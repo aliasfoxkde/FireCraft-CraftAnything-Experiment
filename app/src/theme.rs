@@ -42,6 +42,16 @@ pub struct Palette {
     pub welcome: Color32,
 }
 
+impl Palette {
+    /// Whether this palette is a dark one, decided from the background's
+    /// luminance so a new palette only has to supply colours.
+    pub fn is_dark(&self) -> bool {
+        let c = self.bg;
+        let luma = 0.2126 * c.r() as f32 + 0.7152 * c.g() as f32 + 0.0722 * c.b() as f32;
+        luma < 128.0
+    }
+}
+
 pub const DARK: Palette = Palette {
     bg: Color32::from_rgb(26, 26, 30),
     panel: Color32::from_rgb(40, 40, 46),

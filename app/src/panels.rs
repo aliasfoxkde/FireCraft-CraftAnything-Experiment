@@ -530,7 +530,7 @@ pub fn pages_panel(ui: &mut Ui, app: &mut FireCraft) {
                     }
                 }
             });
-            let mut opacity = app.doc.page().layers[app.selected_layer].opacity;
+            let mut opacity = app.doc.page().layers.get(app.selected_layer).map(|l| l.opacity).unwrap_or(1.0);
             if ui
                 .add(
                     eframe::egui::Slider::new(&mut opacity, 0.0..=1.0)
@@ -538,7 +538,7 @@ pub fn pages_panel(ui: &mut Ui, app: &mut FireCraft) {
                 )
                 .changed()
             {
-                app.doc.page_mut().layers[app.selected_layer].opacity = opacity;
+                if let Some(layer) = app.doc.page_mut().layers.get_mut(app.selected_layer) { layer.opacity = opacity; }
             }
         }
     }
@@ -645,6 +645,7 @@ pub fn properties_panel(ui: &mut Ui, app: &mut FireCraft) {
                             crate::doc::Shape::Path { .. } => "Path",
                             crate::doc::Shape::Text { .. } => "Text",
                             crate::doc::Shape::Bitmap { .. } => "Bitmap",
+                            crate::doc::Shape::Gradient { .. } => "Gradient",
                         })
                         .small(),
                     );
@@ -788,7 +789,7 @@ pub fn start_panel(ui: &mut Ui, app: &mut FireCraft) {
         p.text,
     );
     if response.clicked() {
-        app.show_start = false;
+        app.show_welcome = false;
         app.status = "Editor ready".to_string();
     }
     

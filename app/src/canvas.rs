@@ -1,5 +1,4 @@
 ﻿#![allow(dead_code, unused_imports, unused_variables, unused_must_use)]
-#![allow(dead_code, unused_imports, unused_variables, unused_must_use)]
 use crate::app::{DragKind, FireCraft};
 use crate::constants;
 use crate::doc::{Obj, Shape};
@@ -16,7 +15,11 @@ pub fn show(ui: &mut eframe::egui::Ui, app: &mut FireCraft) {
     let page = app.doc.page();
     let page_size = Vec2::new(page.width * zoom, page.height * zoom);
     let origin: Vec2 = (rect.center() - page_size / 2.0 + app.doc.pan).to_vec2();
-    if !app.show_start {
+
+    // Remember the viewport so `Fit in Window` can work out a zoom that fits.
+    app.canvas_size = rect.size();
+
+    {
         let page_rect = Rect::from_min_size(origin.to_pos2(), page_size);
         painter.rect_filled(
             page_rect.translate(Vec2::new(3.0, 3.0)),
@@ -28,6 +31,14 @@ pub fn show(ui: &mut eframe::egui::Ui, app: &mut FireCraft) {
         draw_page(&clip, app, origin, zoom);
         clip.rect_stroke(page_rect, 0.0, Stroke::new(1.0, app.palette.stroke), eframe::egui::StrokeKind::Middle);
     }
+
+    if app.show_grid {
+        draw_grid(&painter, rect, origin, zoom, app.palette.stroke);
+    }
+    if app.show_rulers {
+        draw_rulers(&painter, rect, origin, zoom, app.palette);
+    }
+
     let pointer = ui.input(|i| (
         i.pointer.primary_pressed(), i.pointer.primary_down(),
         i.pointer.is_decidedly_dragging(), i.pointer.primary_released(),
@@ -78,8 +89,80 @@ pub fn show(ui: &mut eframe::egui::Ui, app: &mut FireCraft) {
         }
     }
 }
-fn draw_page(painter: &Painter, app: &mut FireCraft, origin: Vec2, zoom: f32) {
-    let doc = app.doc.clone();
+/// Document grid, drawn in document coordinates so it scales with the zoom.
+fn draw_grid(painter: &Painter, rect: Rect, origin: Vec2, zoom: f32, stroke: Color32) {
+    // Keep the spacing at least 8 screen pixels apart, whatever the zoom.
+    let step = 20.0_f32;
+    let screen_step = step * zoom;
+    if screen_step < 8.0 {
+        return;
+    }
+    let first_x = ((rect.left() - origin.x) / screen_step).floor() as i64;
+    let last_x = ((rect.right() - origin.x) / screen_step).ceil() as i64;
+    let first_y = ((rect.top() - origin.y) / screen_step).floor() as i64;
+    let last_y = ((rect.bottom() - origin.y) / screen_step).ceil() as i64;
+    let line = Stroke::new(0.5, stroke.gamma_multiply(0.45));
+    for i in first_x..=last_x {
+        let x = origin.x + i as f32 * screen_step;
+        painter.vline(x, rect.top()..=rect.bottom(), line);
+    }
+    for i in first_y..=last_y {
+        let y = origin.y + i as f32 * screen_step;
+        painter.hline(rect.left()..=rect.right(), y, line);
+    }
+}
+
+/// Rulers along the top and left edges of the canvas.
+fn draw_rulers(painter: &Painter, rect: Rect, origin: Vec2, zoom: f32, palette: crate::theme::Palette) {
+    const RULER: f32 = 16.0;
+    let strip_h = Rect::from_min_max(pos2(rect.left(), rect.top()), pos2(rect.right(), rect.top() + RULER));
+    let strip_v = Rect::from_min_max(pos2(rect.left(), rect.top()), pos2(rect.left() + RULER, rect.bottom()));
+    painter.rect_filled(strip_h, 0.0, palette.panel);
+    painter.rect_filled(strip_v, 0.0, palette.panel);
+
+    // Choose a tick spacing that stays legible at any zoom.
+    let mut step = 10.0_f32;
+    while step * zoom < 30.0 {
+        step *= 5.0;
+    }
+    let line = Stroke::new(0.5, palette.text_dim);
+
+    let start_x = ((rect.left() - origin.x) / (step * zoom)).floor() as i64;
+    let end_x = ((rect.right() - origin.x) / (step * zoom)).ceil() as i64;
+    for i in start_x..=end_x {
+        let x = origin.x + i as f32 * step * zoom;
+        if x < strip_h.left() || x > strip_h.right() {
+            continue;
+        }
+        painter.vline(x, strip_h.top()..=strip_h.bottom(), line);
+        painter.text(
+            pos2(x + 2.0, strip_h.bottom() - 2.0),
+            eframe::egui::Align2::LEFT_BOTTOM,
+            format!("{:.0}", i as f32 * step),
+            FontId::proportional(9.0),
+            palette.text_dim,
+        );
+    }
+
+    let start_y = ((rect.top() - origin.y) / (step * zoom)).floor() as i64;
+    let end_y = ((rect.bottom() - origin.y) / (step * zoom)).ceil() as i64;
+    for i in start_y..=end_y {
+        let y = origin.y + i as f32 * step * zoom;
+        if y < strip_v.top() || y > strip_v.bottom() {
+            continue;
+        }
+        painter.hline(strip_v.left()..=strip_v.right(), y, line);
+        painter.text(
+            pos2(strip_v.right() - 2.0, y - 2.0),
+            eframe::egui::Align2::RIGHT_BOTTOM,
+            format!("{:.0}", i as f32 * step),
+            FontId::proportional(9.0),
+            palette.text_dim,
+        );
+    }
+}
+
+fn draw_page(painter: &Painter, app: &mut FireCraft, origin: Vec2, zoom: f32) {    let doc = app.doc.clone();
     for (li, layer) in doc.page().layers.iter().enumerate() {
         if !layer.visible { continue; }
         for (oi, obj) in layer.objects.iter().enumerate() {
@@ -139,12 +222,30 @@ fn draw_obj(
         Shape::Path { points } => {
             if points.len() > 1 {
                 let pts: Vec<Pos2> = points.iter().map(|p| to_screen(origin, zoom, *p)).collect();
-                painter.add(egui::Shape::closed_line(pts, Stroke::new(sw, stroke)));
+                // A pen stroke is an open polyline; `closed_line` would join the
+                // last point back to the first and draw a stray closing edge.
+                painter.add(egui::Shape::line(pts, Stroke::new(sw, stroke)));
             }
         }
         Shape::Text { at, text, size } => {
             let p = to_screen(origin, zoom, *at);
             painter.text(p, eframe::egui::Align2::LEFT_BOTTOM, text, FontId::proportional(size * zoom), fill.unwrap_or(Color32::BLACK));
+        }
+        Shape::Gradient { min, max, from, to } => {
+            let a = to_screen(origin, zoom, *min);
+            let b = to_screen(origin, zoom, *max);
+            let r = Rect::from_min_max(a.min(b), a.max(b));
+            let steps = 64.max(r.height() as i32);
+            for i in 0..steps {
+                let t = i as f32 / steps as f32;
+                let c = from.lerp_to_gamma(*to, t);
+                let y0 = r.top() + r.height() * t;
+                let y1 = r.top() + r.height() * ((i + 1) as f32 / steps as f32);
+                painter.rect_filled(Rect::from_min_max(pos2(r.left(), y0), pos2(r.right(), y1 + 1.0)), 0.0, c);
+            }
+            if obj.stroke.is_some() {
+                painter.rect_stroke(r, 0.0, Stroke::new(sw, stroke), eframe::egui::StrokeKind::Middle);
+            }
         }
         Shape::Bitmap { at, pixels, size } => {
             let key = (_layer_index, _obj_index);
@@ -207,9 +308,13 @@ fn hit_obj(obj: &Obj, p: Vec2) -> bool {
             }
             false
         }
-        Shape::Text { at, size, .. } => {
-            let w = 0.55 * size * 8.0;
+        Shape::Text { at, text, size } => {
+            let w = crate::doc::text_width(text, *size);
             p.x >= at.x && p.x <= at.x + w && p.y >= at.y - size * 1.2 && p.y <= at.y
+        }
+        Shape::Gradient { min, max, .. } => {
+            let lo = min.min(*max); let hi = min.max(*max);
+            p.x >= lo.x && p.x <= hi.x && p.y >= lo.y && p.y <= hi.y
         }
         Shape::Bitmap { at, size, .. } => {
             p.x >= at.x && p.x <= at.x + size.x && p.y >= at.y && p.y <= at.y + size.y

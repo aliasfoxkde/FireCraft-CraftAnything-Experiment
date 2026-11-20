@@ -5,12 +5,14 @@ mod app;
 mod canvas;
 mod colors;
 mod constants;
+mod dialogs;
 mod doc;
 mod formats;
 mod icons;
+mod layout;
+mod menus;
 mod page;
 mod panels;
-mod properties;
 mod theme;
 
 fn main() {

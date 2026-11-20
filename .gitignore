@@ -145,6 +145,7 @@ config.local.toml
 # patch the Rust sources in place. They are scaffolding, not product code.
 /app/scratch/
 /app/shots/
+/app/build.log
 *.py1
 *.bak
 

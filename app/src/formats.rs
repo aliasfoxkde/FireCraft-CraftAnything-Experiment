@@ -388,6 +388,15 @@ fn obj_to_svg(obj: &Obj) -> String {
             fill,
             text.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
         ),
+        Shape::Gradient { min, max, from, to } => format!(
+            "<linearGradient id=\"grad\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"{}\"/><stop offset=\"1\" stop-color=\"{}\"/></linearGradient><rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" fill=\"url(#grad)\"/>",
+            crate::colors::hex_of(*from),
+            crate::colors::hex_of(*to),
+            min.x,
+            min.y,
+            (max.x - min.x).max(0.0),
+            (max.y - min.y).max(0.0)
+        ),
         Shape::Bitmap { .. } => "<image/>".to_string(),
     }
 }
@@ -515,6 +524,24 @@ fn draw_obj(img: &mut image::RgbaImage, obj: &Obj, alpha: u8) {
                             img.put_pixel(gx as u32, gy as u32, blend(*old, color));
                         }
                     }
+                }
+            }
+        }
+        Shape::Gradient { min, max, from, to } => {
+            let (x0, y0) = to_px(*min);
+            let (x1, y1) = to_px(*max);
+            let steps = 64;
+            for i in 0..=steps {
+                let t = i as f32 / steps as f32;
+                let c = from.lerp_to_gamma(*to, t);
+                let color = image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha]);
+                let y = y0 + (y1 - y0) * i / steps;
+                if y < 0 || y >= img.height() as i32 {
+                    continue;
+                }
+                for x in x0.max(0)..=x1.min(img.width() as i32 - 1) {
+                    let old = img.get_pixel(x as u32, y as u32);
+                    img.put_pixel(x as u32, y as u32, blend(*old, color));
                 }
             }
         }

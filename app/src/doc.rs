@@ -1,10 +1,4 @@
-﻿#![allow(dead_code, unused_imports, unused_variables)]
-
-#![allow(dead_code)]
-#![allow(unused_imports)]
-#![allow(unused_variables)]
-
-//! Document model: pages, layers and vector/bitmap objects.
+﻿//! Document model: pages, layers and vector/bitmap objects.
 
 use eframe::egui::{Color32, Vec2};
 
@@ -33,6 +27,12 @@ pub enum Shape {
         at: Vec2,
         text: String,
         size: f32,
+    },
+    Gradient {
+        min: Vec2,
+        max: Vec2,
+        from: Color32,
+        to: Color32,
     },
     Bitmap {
         at: Vec2,
@@ -66,6 +66,7 @@ impl Obj {
                     text.clone()
                 }
             }
+            Shape::Gradient { .. } => "Gradient".to_string(),
             Shape::Bitmap { .. } => "Bitmap".to_string(),
         };
         Self {
@@ -79,13 +80,14 @@ impl Obj {
         }
     }
 
+    /// The axis-aligned bounding box, always normalised so `lo <= hi` on both axes.
     pub fn bounds(&self) -> Option<(Vec2, Vec2)> {
         match &self.kind {
-            Shape::Rect { min, max, .. } => Some((*min, *max)),
+            Shape::Rect { min, max, .. } => Some(((*min).min(*max), (*min).max(*max))),
             Shape::Ellipse { center, radius, .. } => {
                 Some((*center - *radius, *center + *radius))
             }
-            Shape::Line { a, b } => Some((*a, *b)),
+            Shape::Line { a, b } => Some(((*a).min(*b), (*a).max(*b))),
             Shape::Path { points } => {
                 if points.is_empty() {
                     return None;
@@ -98,10 +100,14 @@ impl Obj {
                 }
                 Some((lo, hi))
             }
-            Shape::Text { at, size, .. } => {
-                let n = 0.55 * size * 8.0;
-                Some((*at, *at + Vec2::new(n, size * 1.2)))
+            Shape::Text { at, text, size } => {
+                // egui anchors text by its baseline, so the box sits *above* `at`.
+                Some((
+                    Vec2::new(at.x, at.y - size * 1.2),
+                    Vec2::new(at.x + text_width(text, *size), at.y),
+                ))
             }
+            Shape::Gradient { min, max, .. } => Some(((*min).min(*max), (*min).max(*max))),
             Shape::Bitmap { at, size, .. } => Some((*at, *at + *size)),
         }
     }
@@ -123,9 +129,22 @@ impl Obj {
                 }
             }
             Shape::Text { at, .. } => *at += delta,
+            Shape::Gradient { min, max, .. } => {
+                *min += delta;
+                *max += delta;
+            }
             Shape::Bitmap { at, .. } => *at += delta,
         }
     }
+}
+
+/// Approximate rendered width of a string at `size` points.
+///
+/// egui's proportional font averages a little over half the point size per
+/// character; the exact advance widths depend on the glyphs, so this is a
+/// deliberately conservative estimate used for hit testing and selection boxes.
+pub fn text_width(text: &str, size: f32) -> f32 {
+    0.55 * size * text.chars().count() as f32
 }
 
 #[derive(Clone, Debug)]
@@ -197,26 +216,32 @@ impl Document {
     }
 
     pub fn page(&self) -> &Page {
-        &self.pages[self.current_page.min(self.pages.len() - 1)]
+        // A document always has at least one page, but `page()` must not panic
+        // if a caller clears the list.
+        let i = self.current_page.min(self.pages.len().saturating_sub(1));
+        &self.pages[i]
     }
 
     pub fn page_mut(&mut self) -> &mut Page {
-        let i = self.current_page.min(self.pages.len() - 1);
+        let i = self.current_page.min(self.pages.len().saturating_sub(1));
         &mut self.pages[i]
     }
 
     pub fn layer(&self) -> &Layer {
         let page = self.page();
-        &page.layers[page.layers.len() - 1]
+        &page.layers[page.layers.len().saturating_sub(1)]
     }
 }
 
-/// Snapshot of a page's objects, used for undo/redo.
+/// Snapshot of a page, used for undo/redo.
+///
+/// The whole layer list is captured, not just the layers that happen to exist
+/// at snapshot time, so that adding or deleting a layer can be undone.
 #[derive(Clone)]
 pub struct Snapshot {
     pub label: String,
     pub page: usize,
-    pub layers: Vec<(String, Vec<Obj>)>,
+    pub layers: Vec<Layer>,
 }
 
 impl Document {
@@ -224,24 +249,16 @@ impl Document {
         Snapshot {
             label: label.to_string(),
             page: self.current_page,
-            layers: self
-                .page()
-                .layers
-                .iter()
-                .map(|l| (l.name.clone(), l.objects.clone()))
-                .collect(),
+            layers: self.page().layers.clone(),
         }
     }
 
     pub fn restore(&mut self, snap: &Snapshot) {
-        let idx = snap.page.min(self.pages.len() - 1);
-        let page = &mut self.pages[idx];
-        for (i, (name, objects)) in snap.layers.iter().enumerate() {
-            if i < page.layers.len() {
-                page.layers[i].name = name.clone();
-                page.layers[i].objects = objects.clone();
-            }
+        if self.pages.is_empty() {
+            return;
         }
+        let idx = snap.page.min(self.pages.len() - 1);
+        self.pages[idx].layers = snap.layers.clone();
         self.current_page = idx;
         self.dirty = true;
     }
