@@ -1,0 +1,167 @@
+# ---------------------------------------------------------------------------
+# Rust / Cargo
+# ---------------------------------------------------------------------------
+# Build output. Not just the root one: `target/` matches at any depth, so a
+# crate that is built from its own directory is covered too. This is the
+# single biggest thing that must never reach the index -- `app/target/` was
+# 4.6 GB, and staging it is what left the repository with a broken,
+# half-written object store and failing periodic commits.
+/target/
+target/
+**/target/
+
+# Rust build artifacts and tooling output
+**/*.rs.bk
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.dll
+*.so
+*.dylib
+*.a
+*.rlib
+*.rmeta
+*.wasm
+*.wat
+
+# Cargo.lock IS tracked for the app crate (it is a binary/application crate).
+
+# ---------------------------------------------------------------------------
+# Compiled binaries
+# ---------------------------------------------------------------------------
+*.exe
+*.exe~
+*.out
+*.app
+*.com
+*.bin
+*.msi
+*.msix
+*.deb
+*.rpm
+*.apk
+*.appimage
+*.jar
+*.war
+
+# Native/compiled helper output that lives beside sources
+/app/check_png.exe
+/app/check_png.pdb
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+.tox/
+.nox/
+
+# ---------------------------------------------------------------------------
+# Node / web tooling
+# ---------------------------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm/
+.yarn/
+.pnpm-store/
+.eslintcache
+.vite/
+.wrangler/
+next-env.d.ts
+
+# ---------------------------------------------------------------------------
+# Editors, IDEs, OS
+# ---------------------------------------------------------------------------
+.idea/
+.vscode/
+*.swp
+*.swo
+*.swn
+*~
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# ---------------------------------------------------------------------------
+# Secrets / local configuration
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+!*.pub
+secrets.toml
+config.local.toml
+
+# ---------------------------------------------------------------------------
+# One-off scratch and build-automation scripts (kept on disk, not versioned)
+# ---------------------------------------------------------------------------
+# These were 400+ tracked throwaway .py/.ps1 files that the builder used to
+# patch the Rust sources in place. They are scaffolding, not product code.
+/app/scratch/
+/app/shots/
+*.py1
+*.bak
+
+# ---------------------------------------------------------------------------
+# Craft Anything runtime state
+# ---------------------------------------------------------------------------
+# These are rewritten on every agent turn: ~2 MB of diff per run, and they
+# describe the run rather than the project. The durable audit trail lives in
+# investigation.cany/ and checks/.
+/build-activity.log
+/build-activity.log.*
+/craft.json
+/feed.json
+/transcript.json
+/usage.json
+/capture/window.png
+/pinned/play.log
+/inbox/build-progress.json
+*.session.jsonl
+agent-session.jsonl

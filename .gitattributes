@@ -1,0 +1,29 @@
+# Normalize line endings: the repository is edited on Windows and built on Linux
+# (the build host is Fedora), so text must not depend on the checkout.
+* text=auto eol=lf
+
+*.rs    text eol=lf
+*.py    text eol=lf
+*.ps1   text eol=lf diff=ps1
+*.md    text eol=lf diff=markdown
+*.json  text eol=lf
+*.toml  text eol=lf
+*.txt   text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+.gitignore      text eol=lf
+.gitattributes  text eol=lf
+
+# Images and other binaries: never line-ending translated, never diffed.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.webp  binary
+*.exe   binary
+*.pdb   binary
+*.pdf   binary
+*.ttf   binary
+*.woff  binary
+*.woff2 binary
