@@ -1,0 +1,13 @@
+[package]
+name = "firecraft"
+version = "0.1.0"
+edition = "2021"
+description = "FireCraft - Modern vector graphics editor, inspired by Adobe Fireworks CS6"
+
+[dependencies]
+eframe = "0.37"
+egui = "0.37"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "tiff", "bmp", "ico"] }
+
+[profile.release]
+opt-level = 2
