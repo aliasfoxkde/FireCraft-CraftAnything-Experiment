@@ -1,0 +1,45 @@
+{
+  "id": "ev_2648a93e3dbbb660536399bfbafdb313dee5f7599a62bc43ca73a3e5b6899039",
+  "subject": {
+    "kind": "pe",
+    "sha256": "ab9a267ffe6a9fd23f8f3f09446997c770effceeaae66babcb3f10d15433053f",
+    "name": "Fireworks.exe"
+  },
+  "operation": "native_function_pseudocode",
+  "params": {
+    "function": "sub_b75d00"
+  },
+  "result": {
+    "engine": "ghidra",
+    "entry": "0xb75d00",
+    "function": "FUN_00b75d00",
+    "pseudo_code": "\r\nint FUN_00b75d00(undefined4 param_1)\r\n\r\n{\r\n  undefined4 *puVar1;\r\n  int iVar2;\r\n  int *piVar3;\r\n  LONG LVar4;\r\n  int local_14;\r\n  void *local_10;\r\n  undefined1 *puStack_c;\r\n  undefined4 local_8;\r\n  \r\n  local_8 = 0xffffffff;\r\n  puStack_c = &LAB_015be6f0;\r\n  local_10 = ExceptionList;\r\n  ExceptionList = &local_10;\r\n  FUN_005f5070(&stack0xffffffd8,param_1,1);\r\n  local_8 = 0xffffffff;\r\n  piVar3 = (int *)FUN_00b53d00(&local_14);\r\n  iVar2 = *piVar3;\r\n  local_8 = 0xffffffff;\r\n  if (local_14 != 0) {\r\n    puVar1 = (undefined4 *)(*(int *)(*(int *)(local_14 + 4) + 4) + 4 + local_14);\r\n    LVar4 = InterlockedDecrement(puVar1 + 1);\r\n    if ((LVar4 == 0) && (puVar1 != (undefined4 *)0x0)) {\r\n      (**(code **)*puVar1)();\r\n    }\r\n  }\r\n  if (iVar2 == 0) {\r\n    FUN_00ce11b0();\r\n  }\r\n  ExceptionList = local_10;\r\n  return iVar2;\r\n}\r\n\r\n",
+    "signature": "int FUN_00b75d00(undefined4 param_1);"
+  },
+  "summary": "Pseudo-C for FUN_00b75d00 from the Deep engine (36 lines).",
+  "confidence": "derived",
+  "authority": "original-files",
+  "environment": {
+    "clean_room": false,
+    "engine": "ghidra",
+    "engine_version": "12.1.4",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "deep_engine",
+      "message": "the pseudo-C comes from the external Deep engine (Ghidra), not the original source"
+    }
+  ],
+  "coverage": {
+    "status": "unknown"
+  },
+  "locations": [
+    {
+      "kind": "address",
+      "value": "0xb75d00"
+    }
+  ],
+  "links": [],
+  "carries_target_content": true
+}

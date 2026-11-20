@@ -1,0 +1,410 @@
+{
+  "id": "ev_6d0a7d4393b604819e0bc970b692136359978b8976efffaee1816565756ea321",
+  "subject": {
+    "kind": "pe",
+    "sha256": "ab9a267ffe6a9fd23f8f3f09446997c770effceeaae66babcb3f10d15433053f",
+    "name": "Fireworks.exe"
+  },
+  "operation": "native_strings_find",
+  "params": {
+    "case_sensitive": false,
+    "limit": 200,
+    "mode": "literal",
+    "offset": 0,
+    "pattern": "File::"
+  },
+  "result": {
+    "matches": [
+      {
+        "address": "0x17e6f30",
+        "references": [
+          {
+            "from": "0xdd168b",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Save::Append .fw.png"
+      },
+      {
+        "address": "0x17e7080",
+        "references": [
+          {
+            "from": "0xdd150a",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Save as::SWF"
+      },
+      {
+        "address": "0x17e7094",
+        "references": [
+          {
+            "from": "0xdd14e7",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Save as::WBMP"
+      },
+      {
+        "address": "0x17e70a8",
+        "references": [
+          {
+            "from": "0xdd14c4",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Save as::Anmiated Gif"
+      },
+      {
+        "address": "0x17e70c4",
+        "references": [
+          {
+            "from": "0xdd14a1",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Export::Director"
+      },
+      {
+        "address": "0x17e70dc",
+        "references": [
+          {
+            "from": "0xdd147e",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Export::Lotus Domino"
+      },
+      {
+        "address": "0x17e91e0",
+        "references": [
+          {
+            "from": "0xdcdfe1",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::HTML Setup"
+      },
+      {
+        "address": "0x17e91f4",
+        "references": [
+          {
+            "from": "0xdcdfbe",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Print"
+      },
+      {
+        "address": "0x17e9200",
+        "references": [
+          {
+            "from": "0xdcdf9b",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Preview in Browser::Set Secondary Browser"
+      },
+      {
+        "address": "0x17e9230",
+        "references": [
+          {
+            "from": "0xdcdf78",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Preview in Browser::Set Primary Browser"
+      },
+      {
+        "address": "0x17e9260",
+        "references": [
+          {
+            "from": "0xdcdf55",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Preview in Browser::Preview All Pages in Primary Browser"
+      },
+      {
+        "address": "0x17e92a0",
+        "references": [
+          {
+            "from": "0xdcdf32",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Preview in Browser::Preview in Secondary Browser"
+      },
+      {
+        "address": "0x17e92d8",
+        "references": [
+          {
+            "from": "0xdcdf0f",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Preview in Browser::Preview in Primary Browser"
+      },
+      {
+        "address": "0x17e9310",
+        "references": [
+          {
+            "from": "0xdcdeec",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Batch Process"
+      },
+      {
+        "address": "0x17e9324",
+        "references": [
+          {
+            "from": "0xdcdec9",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Export Wizard"
+      },
+      {
+        "address": "0x17e9338",
+        "references": [
+          {
+            "from": "0xdcdea6",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Update HTML"
+      },
+      {
+        "address": "0x17e934c",
+        "references": [
+          {
+            "from": "0xdcde83",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Send to E-mail::Use Export Settings"
+      },
+      {
+        "address": "0x17e9378",
+        "references": [
+          {
+            "from": "0xdcde60",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Send to E-mail::JPEG Compressed"
+      },
+      {
+        "address": "0x17e93a0",
+        "references": [
+          {
+            "from": "0xdcde3d",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Send to E-mail::Fireworks PNG"
+      },
+      {
+        "address": "0x17e93c4",
+        "references": [
+          {
+            "from": "0xdcde1a",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Image Preview"
+      },
+      {
+        "address": "0x17e93d8",
+        "references": [
+          {
+            "from": "0xdcddf7",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Export"
+      },
+      {
+        "address": "0x17e93e8",
+        "references": [
+          {
+            "from": "0xdcddd4",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Import"
+      },
+      {
+        "address": "0x17e93f8",
+        "references": [
+          {
+            "from": "0xdcddb1",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Revert"
+      },
+      {
+        "address": "0x17e9408",
+        "references": [
+          {
+            "from": "0xdcdd8e",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Save As Template"
+      },
+      {
+        "address": "0x17e9420",
+        "references": [
+          {
+            "from": "0xdcdd6b",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Save As"
+      },
+      {
+        "address": "0x17e9430",
+        "references": [
+          {
+            "from": "0xdcdd48",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Save"
+      },
+      {
+        "address": "0x17e943c",
+        "references": [
+          {
+            "from": "0xdcdd06",
+            "function": "sub_dcdc10"
+          },
+          {
+            "from": "0xdcdd25",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Twain Select"
+      },
+      {
+        "address": "0x17e9450",
+        "references": [
+          {
+            "from": "0xdcdce2",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Twain Acquire"
+      },
+      {
+        "address": "0x17e9464",
+        "references": [
+          {
+            "from": "0xdcdcbf",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Reconstitute Table"
+      },
+      {
+        "address": "0x17e9480",
+        "references": [
+          {
+            "from": "0xdcdc9c",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Browse in Bridge"
+      },
+      {
+        "address": "0x17e9498",
+        "references": [
+          {
+            "from": "0xdcdc79",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Open"
+      },
+      {
+        "address": "0x17e94a4",
+        "references": [
+          {
+            "from": "0xdcdc56",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::New From Template"
+      },
+      {
+        "address": "0x17e94bc",
+        "references": [
+          {
+            "from": "0xdcdc33",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::New"
+      }
+    ],
+    "total": 33
+  },
+  "summary": "33 strings match \"File::\".",
+  "confidence": "observed",
+  "authority": "original-files",
+  "environment": {
+    "clean_room": false,
+    "engine": "builtin",
+    "engine_version": "0.6.1",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "data_sections_only",
+      "message": "only strings stored in the file are searched (absence is not proof)"
+    }
+  ],
+  "coverage": {
+    "status": "complete",
+    "examined": 33,
+    "total": 33
+  },
+  "locations": [],
+  "links": []
+}

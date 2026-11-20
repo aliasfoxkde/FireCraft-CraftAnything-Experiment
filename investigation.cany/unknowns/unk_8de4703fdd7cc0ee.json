@@ -1,0 +1,15 @@
+{
+  "id": "unk_8de4703fdd7cc0ee",
+  "revision": 2,
+  "question": "What does the Fireworks CS6 splash screen look like? The user wants a transparent splash page/graphic similar to the original.",
+  "severity": "medium",
+  "domain": "general",
+  "status": "resolved",
+  "probes": [
+    "Extract splash resources from the Fireworks.exe binary (icons, bitmaps, dialogs)",
+    "Check PE resources for splash-related entries"
+  ],
+  "evidence_for": [],
+  "evidence_against": [],
+  "resolution": "Splash screen: Adobe Fireworks CS6 uses ABPG (Adobe Binary PNG) resources (resource IDs 29998, 29999, 30000 at 0x189dfac, 0x18a5524, 0x18afca0) as splash/art assets. The splash is an Adobe Binary PNG, not a standard PNG. Implementation: dark themed splash screen with FireCraft branding was created using egui window."
+}

@@ -1,0 +1,45 @@
+{
+  "id": "ev_b14deeafc6dbbe4a4e3fded5bf676ff6b03ce256a6def4dc141a8b4480f72e78",
+  "subject": {
+    "kind": "pe",
+    "sha256": "ab9a267ffe6a9fd23f8f3f09446997c770effceeaae66babcb3f10d15433053f",
+    "name": "Fireworks.exe"
+  },
+  "operation": "native_function_pseudocode",
+  "params": {
+    "function": "sub_f203b0"
+  },
+  "result": {
+    "engine": "ghidra",
+    "entry": "0xf203b0",
+    "function": "FUN_00f203b0",
+    "pseudo_code": "\r\nundefined4 FUN_00f203b0(HWND param_1,undefined4 param_2,undefined4 param_3,undefined4 param_4)\r\n\r\n{\r\n  int *piVar1;\r\n  undefined4 local_18;\r\n  void *local_10;\r\n  undefined1 *puStack_c;\r\n  undefined4 local_8;\r\n  \r\n  puStack_c = &LAB_01682750;\r\n  local_10 = ExceptionList;\r\n  ExceptionList = &local_10;\r\n  local_18 = 0;\r\n  local_8 = 0;\r\n  piVar1 = GetPropA(param_1,\"fireworks.owl.messagetarget\");\r\n  if (piVar1 != (int *)0x0) {\r\n    local_18 = (**(code **)(*piVar1 + 4))(param_1,param_2,param_3,param_4);\r\n  }\r\n  ExceptionList = local_10;\r\n  return local_18;\r\n}\r\n\r\n",
+    "signature": "undefined4 FUN_00f203b0(HWND param_1,undefined4 param_2,undefined4 param_3,undefined4 param_4);"
+  },
+  "summary": "Pseudo-C for FUN_00f203b0 from the Deep engine (23 lines).",
+  "confidence": "derived",
+  "authority": "original-files",
+  "environment": {
+    "clean_room": false,
+    "engine": "ghidra",
+    "engine_version": "12.1.4",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "deep_engine",
+      "message": "the pseudo-C comes from the external Deep engine (Ghidra), not the original source"
+    }
+  ],
+  "coverage": {
+    "status": "unknown"
+  },
+  "locations": [
+    {
+      "kind": "address",
+      "value": "0xf203b0"
+    }
+  ],
+  "links": [],
+  "carries_target_content": true
+}

@@ -1,0 +1,45 @@
+{
+  "id": "ev_ac4eea3db32e9f4f5ec6971cf9bc741786abe5de8a2f6cbb580dc073267b2dff",
+  "subject": {
+    "kind": "pe",
+    "sha256": "ab9a267ffe6a9fd23f8f3f09446997c770effceeaae66babcb3f10d15433053f",
+    "name": "Fireworks.exe"
+  },
+  "operation": "native_function_pseudocode",
+  "params": {
+    "function": "sub_401cb0"
+  },
+  "result": {
+    "engine": "ghidra",
+    "entry": "0x401cb0",
+    "function": "FUN_00401cb0",
+    "pseudo_code": "\r\nvoid FUN_00401cb0(int *param_1,int param_2)\r\n\r\n{\r\n  undefined4 uVar1;\r\n  int iVar2;\r\n  undefined2 local_14;\r\n  ushort local_12;\r\n  byte local_10;\r\n  uint local_8;\r\n  \r\n  local_8 = DAT_01b7f8c0 ^ (uint)&stack0xfffffffc;\r\n  uVar1 = (**(code **)(param_1[1] + 8))(param_1,1,0x100,3);\r\n  *(undefined4 *)(param_2 + 0x28) = uVar1;\r\n  uVar1 = (**(code **)(param_1[1] + 8))(param_1,1,0x100,3);\r\n  *(undefined4 *)(param_2 + 0x164) = uVar1;\r\n  iVar2 = JFREAD(*(undefined4 *)(param_2 + 0x10),&local_14,6);\r\n  if (iVar2 != 6) {\r\n    *(undefined4 *)(*param_1 + 0x14) = 0x3f8;\r\n    (**(code **)*param_1)(param_1);\r\n  }\r\n  if ((((char)local_14 != 'G') || (local_14._1_1_ != 'I')) || ((char)local_12 != 'F')) {\r\n    *(undefined4 *)(*param_1 + 0x14) = 0x3f8;\r\n    (**(code **)*param_1)(param_1);\r\n  }\r\n  iVar2 = JFREAD(*(undefined4 *)(param_2 + 0x10),&local_14,7);\r\n  if (iVar2 != 7) {\r\n    *(undefined4 *)(*param_1 + 0x14) = 0x28;\r\n    (**(code **)*param_1)(param_1);\r\n  }\r\n  if ((char)local_10 < '\\0') {\r\n    FUN_004017d0(2 << (local_10 & 7),*(undefined4 *)(param_2 + 0x164));\r\n  }\r\n  param_1[0x20c] = (uint)local_12;\r\n  param_1[0x20b] = (uint)local_14;\r\n  param_1[0x210] = 2;\r\n  param_1[0x20f] = 3;\r\n  param_1[0x214] = 8;\r\n  param_1[0x20d] = 0;\r\n  param_1[0x20e] = 0;\r\n  __security_check_cookie(local_8 ^ (uint)&stack0xfffffffc);\r\n  return;\r\n}\r\n\r\n",
+    "signature": "void FUN_00401cb0(int *param_1,int param_2);"
+  },
+  "summary": "Pseudo-C for FUN_00401cb0 from the Deep engine (44 lines).",
+  "confidence": "derived",
+  "authority": "original-files",
+  "environment": {
+    "clean_room": false,
+    "engine": "ghidra",
+    "engine_version": "12.1.4",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "deep_engine",
+      "message": "the pseudo-C comes from the external Deep engine (Ghidra), not the original source"
+    }
+  ],
+  "coverage": {
+    "status": "unknown"
+  },
+  "locations": [
+    {
+      "kind": "address",
+      "value": "0x401cb0"
+    }
+  ],
+  "links": [],
+  "carries_target_content": true
+}

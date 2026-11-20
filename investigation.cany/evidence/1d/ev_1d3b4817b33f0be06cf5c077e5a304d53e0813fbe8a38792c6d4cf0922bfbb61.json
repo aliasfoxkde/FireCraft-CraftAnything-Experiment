@@ -1,0 +1,42 @@
+{
+  "id": "ev_1d3b4817b33f0be06cf5c077e5a304d53e0813fbe8a38792c6d4cf0922bfbb61",
+  "subject": {
+    "kind": "pe",
+    "sha256": "ab9a267ffe6a9fd23f8f3f09446997c770effceeaae66babcb3f10d15433053f",
+    "name": "Fireworks.exe"
+  },
+  "operation": "native_function_find",
+  "params": {
+    "address": "0x183bfe8"
+  },
+  "result": {
+    "address": "0x183bfe8",
+    "function": null,
+    "reason": "not in executable code"
+  },
+  "summary": "0x183bfe8 isn't inside a known function.",
+  "confidence": "derived",
+  "authority": "original-files",
+  "environment": {
+    "clean_room": false,
+    "engine": "builtin",
+    "engine_version": "0.6.1",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "not_found",
+      "message": "the address may be in code the engine didn't discover (absence is not proof)"
+    }
+  ],
+  "coverage": {
+    "status": "unknown"
+  },
+  "locations": [
+    {
+      "kind": "address",
+      "value": "0x183bfe8"
+    }
+  ],
+  "links": []
+}

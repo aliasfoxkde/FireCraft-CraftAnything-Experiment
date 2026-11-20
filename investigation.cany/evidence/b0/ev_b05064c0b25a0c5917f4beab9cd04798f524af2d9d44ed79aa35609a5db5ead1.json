@@ -1,0 +1,45 @@
+{
+  "id": "ev_b05064c0b25a0c5917f4beab9cd04798f524af2d9d44ed79aa35609a5db5ead1",
+  "subject": {
+    "kind": "pe",
+    "sha256": "ab9a267ffe6a9fd23f8f3f09446997c770effceeaae66babcb3f10d15433053f",
+    "name": "Fireworks.exe"
+  },
+  "operation": "native_function_pseudocode",
+  "params": {
+    "function": "sub_ba9b50"
+  },
+  "result": {
+    "engine": "ghidra",
+    "entry": "0xba9b50",
+    "function": "FUN_00ba9b50",
+    "pseudo_code": "\r\n/* WARNING: Removing unreachable block (ram,0x00ba9bce) */\r\n/* WARNING: Removing unreachable block (ram,0x00ba9c6e) */\r\n/* WARNING: Removing unreachable block (ram,0x00ba9c7f) */\r\n/* WARNING: Removing unreachable block (ram,0x00ba9c83) */\r\n\r\nundefined4\r\nFUN_00ba9b50(undefined4 param_1,undefined4 param_2,undefined4 param_3,undefined4 param_4,\r\n            undefined4 *param_5)\r\n\r\n{\r\n  undefined4 uVar1;\r\n  LONG LVar2;\r\n  undefined4 *puVar3;\r\n  undefined4 **ppuVar4;\r\n  undefined4 *local_18;\r\n  int *local_14;\r\n  void *local_10;\r\n  undefined1 *puStack_c;\r\n  undefined4 local_8;\r\n  \r\n  puStack_c = &LAB_015cd998;\r\n  local_10 = ExceptionList;\r\n  ExceptionList = &local_10;\r\n  *param_5 = 0;\r\n  local_14 = (int *)0x0;\r\n  local_8 = 1;\r\n  FUN_00b32130(\"createFireworksDocument\",param_3,param_4,\"{size:%Ap,res:%Az,bgColor:%Ac}\");\r\n  local_8._0_1_ = 2;\r\n  if (local_14 != (int *)0x0) {\r\n    InterlockedIncrement((LONG *)((int)local_14 + *(int *)(*local_14 + 4) + 4));\r\n  }\r\n  local_8._0_1_ = 3;\r\n  ppuVar4 = &local_18;\r\n  FUN_00b75d00(param_2,\"createFireworksDocument\",ppuVar4);\r\n  local_8._0_1_ = 1;\r\n  FUN_00b7de90(ppuVar4);\r\n  local_8._0_1_ = 4;\r\n  uVar1 = FUN_00b34040();\r\n  *param_5 = uVar1;\r\n  local_8._0_1_ = 1;\r\n  if (((local_18 != (undefined4 *)0x0) && (LVar2 = InterlockedDecrement(local_18 + 1), LVar2 == 0))\r\n     && (local_18 != (undefined4 *)0x0)) {\r\n    (**(code **)*local_18)();\r\n  }\r\n  local_8 = 0xffffffff;\r\n  if (local_14 != (int *)0x0) {\r\n    puVar3 = (undefined4 *)(*(int *)(*local_14 + 4) + (int)local_14);\r\n    LVar2 = InterlockedDecrement(puVar3 + 1);\r\n    if ((LVar2 == 0) && (puVar3 != (undefined4 *)0x0)) {\r\n      (**(code **)*puVar3)();\r\n    }\r\n  }\r\n  ExceptionList = local_10;\r\n  return 1;\r\n}\r\n\r\n",
+    "signature": "undefined4 FUN_00ba9b50(undefined4 param_1,undefined4 param_2,undefined4 param_3,undefined4 param_4,undefined4 *param_5);"
+  },
+  "summary": "Pseudo-C for FUN_00ba9b50 from the Deep engine (57 lines).",
+  "confidence": "derived",
+  "authority": "original-files",
+  "environment": {
+    "clean_room": false,
+    "engine": "ghidra",
+    "engine_version": "12.1.4",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "deep_engine",
+      "message": "the pseudo-C comes from the external Deep engine (Ghidra), not the original source"
+    }
+  ],
+  "coverage": {
+    "status": "unknown"
+  },
+  "locations": [
+    {
+      "kind": "address",
+      "value": "0xba9b50"
+    }
+  ],
+  "links": [],
+  "carries_target_content": true
+}

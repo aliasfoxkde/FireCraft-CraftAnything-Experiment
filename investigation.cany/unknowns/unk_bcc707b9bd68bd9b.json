@@ -1,0 +1,12 @@
+{
+  "id": "unk_bcc707b9bd68bd9b",
+  "revision": 2,
+  "question": "Can we access C:\\Program Files (x86)\\Adobe\\Adobe Fireworks CS6\\Fireworks.exe?",
+  "severity": "medium",
+  "domain": "general",
+  "status": "resolved",
+  "probes": [],
+  "evidence_for": [],
+  "evidence_against": [],
+  "resolution": "Fireworks.exe is accessible at C:\\Program Files (x86)\\Adobe\\Adobe Fireworks CS6\\Fireworks.exe (27,637,392 bytes). All required constants extracted via built-in engine."
+}

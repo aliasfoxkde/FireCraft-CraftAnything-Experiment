@@ -1,0 +1,45 @@
+{
+  "id": "ev_5ef1978dd3466095295688a545093dfe3af6cfc2729f2d3cff846e44d983abbe",
+  "subject": {
+    "kind": "pe",
+    "sha256": "ab9a267ffe6a9fd23f8f3f09446997c770effceeaae66babcb3f10d15433053f",
+    "name": "Fireworks.exe"
+  },
+  "operation": "native_function_pseudocode",
+  "params": {
+    "function": "sub_da1440"
+  },
+  "result": {
+    "engine": "ghidra",
+    "entry": "0xda1440",
+    "function": "FUN_00da1440",
+    "pseudo_code": "\r\nvoid FUN_00da1440(void)\r\n\r\n{\r\n  undefined4 *puVar1;\r\n  LONG LVar2;\r\n  undefined4 *local_14;\r\n  void *local_10;\r\n  undefined1 *puStack_c;\r\n  undefined4 local_8;\r\n  \r\n  local_8 = 0xffffffff;\r\n  puStack_c = &LAB_0163ae20;\r\n  local_10 = ExceptionList;\r\n  ExceptionList = &local_10;\r\n  FUN_00cead80(DAT_01c87f84,\"fireworks-12.0\");\r\n  FUN_005ff610(&stack0xffffffd8,\"BridgeTalk.onReceive = function (iac) { return fw.eval(iac.body);}\"\r\n              );\r\n  local_8 = 0xffffffff;\r\n  FUN_00cdd2a0(&local_14);\r\n  puVar1 = local_14;\r\n  if (local_14 != (undefined4 *)0x0) {\r\n    LVar2 = InterlockedDecrement(local_14 + 1);\r\n    if ((LVar2 == 0) && (puVar1 != (undefined4 *)0x0)) {\r\n      (**(code **)*puVar1)();\r\n    }\r\n  }\r\n  FUN_005ff610(&stack0xffffffd8,\r\n               \"BridgeTalk.launchBridge = function (file){ \\t\\t\\tvar bt = new BridgeTalk(); \\t\\t\\tbt.target = \\\"bridge\\\"; \\t\\t\\tbt.body = \\\"var target = new File(\\'\\\"; \\t\\t\\tbt.body+=file; \\t\\t\\tbt.body+=(\\\"\\');\\\"); \\t\\t\\tbt.body += \\\"app.document.thumbnail = new Thumbnail(target); \\\"; \\t\\t\\tbt.body +=  \\\"app.document.bringToFront(); \\\"; \\t\\t\\tbt.send(); \\t\\t\\tBridgeTalk.bringToFront(\\\"bridge\\\");\\t\\t\\t}\"\r\n              );\r\n  local_8 = 0xffffffff;\r\n  FUN_00cdd2a0(&local_14);\r\n  if (local_14 != (undefined4 *)0x0) {\r\n    LVar2 = InterlockedDecrement(local_14 + 1);\r\n    if ((LVar2 == 0) && (local_14 != (undefined4 *)0x0)) {\r\n      (**(code **)*local_14)();\r\n    }\r\n  }\r\n  ExceptionList = local_10;\r\n  return;\r\n}\r\n\r\n",
+    "signature": "void FUN_00da1440(void);"
+  },
+  "summary": "Pseudo-C for FUN_00da1440 from the Deep engine (42 lines).",
+  "confidence": "derived",
+  "authority": "original-files",
+  "environment": {
+    "clean_room": false,
+    "engine": "ghidra",
+    "engine_version": "12.1.4",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "deep_engine",
+      "message": "the pseudo-C comes from the external Deep engine (Ghidra), not the original source"
+    }
+  ],
+  "coverage": {
+    "status": "unknown"
+  },
+  "locations": [
+    {
+      "kind": "address",
+      "value": "0xda1440"
+    }
+  ],
+  "links": [],
+  "carries_target_content": true
+}

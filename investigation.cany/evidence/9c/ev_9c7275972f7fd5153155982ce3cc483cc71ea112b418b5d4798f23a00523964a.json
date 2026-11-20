@@ -1,0 +1,506 @@
+{
+  "id": "ev_9c7275972f7fd5153155982ce3cc483cc71ea112b418b5d4798f23a00523964a",
+  "subject": {
+    "kind": "pe",
+    "sha256": "ab9a267ffe6a9fd23f8f3f09446997c770effceeaae66babcb3f10d15433053f",
+    "name": "Fireworks.exe"
+  },
+  "operation": "native_strings_find",
+  "params": {
+    "case_sensitive": false,
+    "limit": 200,
+    "mode": "literal",
+    "offset": 0,
+    "pattern": "Fireworks"
+  },
+  "result": {
+    "matches": [
+      {
+        "address": "0x17a813c",
+        "references": [],
+        "section": ".rdata",
+        "text": "Fireworks Styles"
+      },
+      {
+        "address": "0x17a81d4",
+        "references": [],
+        "section": ".rdata",
+        "text": "Fireworks JavaScript"
+      },
+      {
+        "address": "0x17b4218",
+        "references": [
+          {
+            "from": "0x694b74",
+            "function": "sub_694ad0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "<H1> Fireworks Bookmark File</H1>\n\n"
+      },
+      {
+        "address": "0x17b4260",
+        "references": [
+          {
+            "from": "0x694b65",
+            "function": "sub_694ad0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "<TITLE> Fireworks Bookmark File</TITLE>\n"
+      },
+      {
+        "address": "0x17cbcc4",
+        "references": [
+          {
+            "from": "0xa59f33",
+            "function": "sub_a59db0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "MM Fireworks 1.0"
+      },
+      {
+        "address": "0x17d0958",
+        "references": [
+          {
+            "from": "0xc05070",
+            "function": "sub_c04f20"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Fireworks"
+      },
+      {
+        "address": "0x17d0964",
+        "references": [],
+        "section": ".rdata",
+        "text": "CJs_Fireworks"
+      },
+      {
+        "address": "0x17d1dfc",
+        "references": [
+          {
+            "from": "0xb50a44",
+            "function": "sub_b509c0"
+          },
+          {
+            "from": "0xb50baa",
+            "function": "sub_b50b30"
+          },
+          {
+            "from": "0xc05082",
+            "function": "sub_c04f20"
+          }
+        ],
+        "section": ".rdata",
+        "text": "fireworks"
+      },
+      {
+        "address": "0x17d1e1c",
+        "references": [
+          {
+            "from": "0xb50dcc",
+            "function": "sub_b50b30"
+          },
+          {
+            "from": "0xb87507",
+            "function": "sub_b873b0"
+          },
+          {
+            "from": "0xc05570",
+            "function": "sub_c04f20"
+          }
+        ],
+        "section": ".rdata",
+        "text": "activeFireworksDocument"
+      },
+      {
+        "address": "0x17d38ac",
+        "references": [
+          {
+            "from": "0xba9ba5",
+            "function": "sub_ba9b50"
+          },
+          {
+            "from": "0xba9c09",
+            "function": "sub_ba9b50"
+          },
+          {
+            "from": "0xba9d32",
+            "function": "sub_ba9ce0"
+          },
+          {
+            "from": "0xba9d96",
+            "function": "sub_ba9ce0"
+          },
+          {
+            "from": "0xbd9f6b",
+            "function": "sub_bd9f00"
+          },
+          {
+            "from": "0xbda160",
+            "function": "sub_bda030"
+          }
+        ],
+        "section": ".rdata",
+        "text": "createFireworksDocument"
+      },
+      {
+        "address": "0x17dc308",
+        "references": [
+          {
+            "from": "0xcd95e0",
+            "function": "sub_cd9570"
+          },
+          {
+            "from": "0xcd962d",
+            "function": "sub_cd9570"
+          },
+          {
+            "from": "0xda146e",
+            "function": "sub_da1440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "fireworks-12.0"
+      },
+      {
+        "address": "0x17e6320",
+        "references": [
+          {
+            "from": "0xdb2207",
+            "function": "sub_db21b0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "\"Adobe Extension Manager CS6.exe\" -EMBT -locale LANG=%s -locate product=\"Fireworks CS6\""
+      },
+      {
+        "address": "0x17e69d0",
+        "references": [
+          {
+            "from": "0xdc51e0",
+            "function": "sub_dc5160"
+          },
+          {
+            "from": "0xdc6551",
+            "function": "sub_dc64e0"
+          },
+          {
+            "from": "0xdc7a0a",
+            "function": "sub_dc79b0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "\\Resources\\Fireworks Resources.dll"
+      },
+      {
+        "address": "0x17e93a0",
+        "references": [
+          {
+            "from": "0xdcde3d",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Send to E-mail::Fireworks PNG"
+      },
+      {
+        "address": "0x1815c48",
+        "references": [
+          {
+            "from": "0xf128bc",
+            "function": "sub_f12690"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Fireworks_Base"
+      },
+      {
+        "address": "0x18168f8",
+        "references": [
+          {
+            "from": "0xf1ca8c",
+            "function": "sub_f1ca80"
+          },
+          {
+            "from": "0xf1d21b",
+            "function": "sub_f1d210"
+          },
+          {
+            "from": "0xf1f0d7",
+            "function": "sub_f1f030"
+          }
+        ],
+        "section": ".rdata",
+        "text": "com.adobe.owl.fireworks.tool-bar.message-handler"
+      },
+      {
+        "address": "0x1816e24",
+        "references": [
+          {
+            "from": "0xf203e3",
+            "function": "sub_f203b0"
+          },
+          {
+            "from": "0xf2044a",
+            "function": "sub_f20440"
+          },
+          {
+            "from": "0xf20479",
+            "function": "sub_f20440"
+          },
+          {
+            "from": "0xf204af",
+            "function": "sub_f20490"
+          },
+          {
+            "from": "0x1816e40",
+            "function": null
+          }
+        ],
+        "section": ".rdata",
+        "text": "fireworks.owl.messagetarget"
+      },
+      {
+        "address": "0x1826424",
+        "references": [],
+        "section": ".rdata",
+        "text": "Fireworks Document Window"
+      },
+      {
+        "address": "0x182b518",
+        "references": [],
+        "section": ".rdata",
+        "text": "Fireworks Source File Path Format CS6"
+      },
+      {
+        "address": "0x182b568",
+        "references": [],
+        "section": ".rdata",
+        "text": "Fireworks 3 Internal Javascript Format"
+      },
+      {
+        "address": "0x182b5b8",
+        "references": [],
+        "section": ".rdata",
+        "text": "Fireworks Internal Clipboard Format 3.0"
+      },
+      {
+        "address": "0x1838f68",
+        "references": [],
+        "section": ".rdata",
+        "text": "Fireworks Smart Shape Format"
+      },
+      {
+        "address": "0x183bfe8",
+        "references": [],
+        "section": ".rdata",
+        "text": "Fireworks_CS6_MainWindow"
+      },
+      {
+        "address": "0x183c474",
+        "references": [],
+        "section": ".rdata",
+        "text": "FireworksBatchLog.txt"
+      },
+      {
+        "address": "0x183c724",
+        "references": [
+          {
+            "from": "0x1b684b8",
+            "function": null
+          }
+        ],
+        "section": ".rdata",
+        "text": "Fireworks_AppInit_Failure"
+      },
+      {
+        "address": "0x183c7f0",
+        "references": [],
+        "section": ".rdata",
+        "text": "Fireworks encountered a fatal exception.  Fireworks will now terminate."
+      },
+      {
+        "address": "0x183c880",
+        "references": [],
+        "section": ".rdata",
+        "text": "Fireworks Fatal Exception"
+      },
+      {
+        "address": "0x183ca5c",
+        "references": [],
+        "section": ".rdata",
+        "text": "fireworks-12.0"
+      },
+      {
+        "address": "0x183ca98",
+        "references": [],
+        "section": ".rdata",
+        "text": "Fireworks unexpected exception : %08lx"
+      },
+      {
+        "address": "0x183d6b0",
+        "references": [],
+        "section": ".rdata",
+        "text": "Initializing Fireworks Resource.dll...."
+      },
+      {
+        "address": "0x183e060",
+        "references": [],
+        "section": ".rdata",
+        "text": "Fireworks_view_class"
+      },
+      {
+        "address": "0x183ebbc",
+        "references": [],
+        "section": ".rdata",
+        "text": "Software\\Adobe\\Fireworks\\10"
+      },
+      {
+        "address": "0x1847564",
+        "references": [],
+        "section": ".rdata",
+        "text": "fireworks-9.0"
+      },
+      {
+        "address": "0x1859a2c",
+        "references": [],
+        "section": ".rdata",
+        "text": "D:\\depot\\build-FW-Rel-Win\\Mainline\\fw\\app\\output\\Fireworks.pdb"
+      },
+      {
+        "address": "0x1b40b2c",
+        "references": [],
+        "section": ".rdata",
+        "text": "Fireworks.exe"
+      },
+      {
+        "address": "0x1b52fc4",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCJs_Fireworks@@"
+      },
+      {
+        "address": "0x1c9e003",
+        "references": [],
+        "section": ".rsrc",
+        "text": "Macromedia Fireworks 4.0"
+      },
+      {
+        "address": "0x1ca559c",
+        "references": [],
+        "section": ".rsrc",
+        "text": "Macromedia Fireworks MX"
+      },
+      {
+        "address": "0x1cafd19",
+        "references": [],
+        "section": ".rsrc",
+        "text": "Adobe Fireworks CS6輲"
+      },
+      {
+        "address": "0x1e59c5b",
+        "references": [],
+        "section": ".rsrc",
+        "text": "<?xpacket begin=\"﻿\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Adobe XMP Core 5.3-c011 66.145661, 2012/02/06-14:56:27        \">\n   <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n      <rdf:Description rdf:about=\"\"\n            xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\">\n         <xmp:CreatorTool>Adobe Fireworks CS6 (Windows)</xmp:CreatorTool>\n         <xmp:CreateDate>2009-12-07T06:19:41Z</xmp:CreateDate>\n         <xmp:ModifyDate>2012-03-14T14:36:59Z</xmp:ModifyDate>\n      </rdf:Description>\n      <rdf:Description rdf:about=\"\"\n            xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n         <dc:format>image/png</dc:format>\n      </rdf:Description>\n   </rdf:RDF>\n</x:xmpmeta>\n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                                                                                                    \n                              "
+      },
+      {
+        "address": "0x1f76e76",
+        "references": [],
+        "section": ".rsrc",
+        "text": "Fireworks Language"
+      },
+      {
+        "address": "0x1f76f60",
+        "references": [],
+        "section": ".rsrc",
+        "text": "\rFireworks.Doc"
+      },
+      {
+        "address": "0x1f76f7e",
+        "references": [],
+        "section": ".rsrc",
+        "text": "FireworksBatchScript"
+      },
+      {
+        "address": "0x1f76fc2",
+        "references": [],
+        "section": ".rsrc",
+        "text": "FireworksStyleLibrary"
+      },
+      {
+        "address": "0x1f7706a",
+        "references": [],
+        "section": ".rsrc",
+        "text": "Fireworks can not run."
+      },
+      {
+        "address": "0x1f7710c",
+        "references": [],
+        "section": ".rsrc",
+        "text": "Adobe\tFireworks"
+      },
+      {
+        "address": "0x1f77162",
+        "references": [],
+        "section": ".rsrc",
+        "text": "Adobe Fireworks CS6"
+      },
+      {
+        "address": "0x1f7761c",
+        "references": [],
+        "section": ".rsrc",
+        "text": "Adobe Fireworks CS6"
+      },
+      {
+        "address": "0x1f7769c",
+        "references": [],
+        "section": ".rsrc",
+        "text": "Fireworks"
+      },
+      {
+        "address": "0x1f777b4",
+        "references": [],
+        "section": ".rsrc",
+        "text": "Fireworks.exe"
+      },
+      {
+        "address": "0x1f77810",
+        "references": [],
+        "section": ".rsrc",
+        "text": "Fireworks"
+      },
+      {
+        "address": "0x1f778c4",
+        "references": [],
+        "section": ".rsrc",
+        "text": "<assembly manifestVersion=\"1.0\" xmlns=\"urn:schemas-microsoft-com:asm.v1\"><dependency><dependentAssembly><assemblyIdentity type=\"win32\" name=\"Microsoft.Windows.Common-Controls\" version=\"6.0.0.0\" processorArchitecture=\"X86\" publicKeyToken=\"6595b64144ccf1df\" language=\"*\"></assemblyIdentity></dependentAssembly></dependency><ms_asmv2:trustInfo xmlns:ms_asmv2=\"urn:schemas-microsoft-com:asm.v2\" xmlns=\"urn:schemas-microsoft-com:asm.v3\"><ms_asmv2:security><ms_asmv2:requestedPrivileges><ms_asmv2:requestedExecutionLevel level=\"asInvoker\" uiAccess=\"false\"></ms_asmv2:requestedExecutionLevel></ms_asmv2:requestedPrivileges></ms_asmv2:security></ms_asmv2:trustInfo><application xmlns=\"urn:schemas-microsoft-com:asm.v3\"><windowsSettings><ms_windowsSettings:dpiAware xmlns:ms_windowsSettings=\"http://schemas.microsoft.com/SMI/2005/WindowsSettings\" xmlns=\"http://schemas.microsoft.com/SMI/2005/WindowsSettings\">true</ms_windowsSettings:dpiAware></windowsSettings></application><compatibility xmlns=\"urn:schemas-microsoft-com:compatibility.v1\">\r\n \r\n  <application>\r\n\r\n    \r\n\r\n      <supportedOS Id=\"{e2011457-1546-43c5-a5fe-008deee3d3f0}\"></supportedOS>\r\n\r\n  </application>\r\n  \r\n </compatibility></assembly>P<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n<assembly xmlns=\"urn:schemas-microsoft-com:asm.v1\" manifestVersion=\"1.0\">\r\n<assemblyIdentity\r\n    version=\"1.0.0.0\"\r\n    processorArchitecture=\"X86\"\r\n    name=\"Adobe.Fireworks.Fireworks 9\"\r\n    type=\"win32\"\r\n/>\r\n<description>The premier production tool for web graphics creation.</description>\r\n<dependency>\r\n    <dependentAssembly>\r\n        <assemblyIdentity\r\n            type=\"win32\"\r\n            name=\"Microsoft.Windows.Common-Controls\"\r\n            version=\"6.0.0.0\"\r\n            processorArchitecture=\"X86\"\r\n            publicKeyToken=\"6595b64144ccf1df\"\r\n            language=\"*\"\r\n        />\r\n    </dependentAssembly>\r\n</dependency>\r\n  <ms_asmv2:trustInfo xmlns:ms_asmv2=\"urn:schemas-microsoft-com:asm.v2\">\r\n    <ms_asmv2:security>\r\n      <ms_asmv2:requestedPrivileges>\r\n        <ms_asmv2:requestedExecutionLevel level=\"asInvoker\" uiAccess=\"false\"/>\r\n      </ms_asmv2:requestedPrivileges>\r\n    </ms_asmv2:security>\r\n  </ms_asmv2:trustInfo>\r\n</assembly>\r\n"
+      }
+    ],
+    "total": 52
+  },
+  "summary": "52 strings match \"Fireworks\".",
+  "confidence": "observed",
+  "authority": "original-files",
+  "environment": {
+    "clean_room": false,
+    "engine": "builtin",
+    "engine_version": "0.6.1",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "data_sections_only",
+      "message": "only strings stored in the file are searched (absence is not proof)"
+    }
+  ],
+  "coverage": {
+    "status": "complete",
+    "examined": 52,
+    "total": 52
+  },
+  "locations": [],
+  "links": []
+}

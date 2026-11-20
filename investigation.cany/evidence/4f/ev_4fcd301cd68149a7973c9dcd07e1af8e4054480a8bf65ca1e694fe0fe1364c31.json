@@ -1,0 +1,1277 @@
+{
+  "id": "ev_4fcd301cd68149a7973c9dcd07e1af8e4054480a8bf65ca1e694fe0fe1364c31",
+  "subject": {
+    "kind": "pe",
+    "sha256": "ab9a267ffe6a9fd23f8f3f09446997c770effceeaae66babcb3f10d15433053f",
+    "name": "Fireworks.exe"
+  },
+  "operation": "native_pe_resources_list",
+  "params": {
+    "max_entries": 16384,
+    "path": "C:\\Program Files (x86)\\Adobe\\Adobe Fireworks CS6\\Fireworks.exe"
+  },
+  "result": {
+    "entries": [
+      {
+        "codepage": 1252,
+        "file_offset": 24640940,
+        "language": 1033,
+        "name": "29998",
+        "rva": "0x189dfac",
+        "sha256": "59493793817bf48aa57c64b4be0534f38d72227c2a518e42326719c7811a6c23",
+        "size": 30069,
+        "type": "ABPG"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 24671012,
+        "language": 1033,
+        "name": "29999",
+        "rva": "0x18a5524",
+        "sha256": "4a9a43f7a15e2cf202a0a373a8757925ec704d2d333d855d0827959a98efd4cb",
+        "size": 42874,
+        "type": "ABPG"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 24713888,
+        "language": 1033,
+        "name": "30000",
+        "rva": "0x18afca0",
+        "sha256": "e98bcfedd287317dcf0c905bddb81b817092168fc2d9a2bcb1838ba2895bff6b",
+        "size": 2311833,
+        "type": "ABPG"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27025724,
+        "language": 1033,
+        "name": "11090",
+        "rva": "0x1ae433c",
+        "sha256": "4ff3e800e6422036a4ad623a473b5615ba6a4d5296695ff0c7f351f41000e856",
+        "size": 16112,
+        "type": "RT_BITMAP"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27626584,
+        "language": 1033,
+        "name": "11089",
+        "rva": "0x1b76e58",
+        "sha256": "615019bcc98a9f79e41b08c167d921bf292a2eebec447041a69e2a31a046f341",
+        "size": 254,
+        "type": "RT_DIALOG"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27627432,
+        "language": 1033,
+        "name": "128",
+        "rva": "0x1b771a8",
+        "sha256": "7a8c3cc464084801dd02d698431889c226289831e19182fe37be988976f72ca4",
+        "size": 62,
+        "type": "RT_GROUP_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27627496,
+        "language": 1033,
+        "name": "129",
+        "rva": "0x1b771e8",
+        "sha256": "da88e968f5e20717a07965db01f13ad5e042bef4df3aa47c8035a6835df57a2d",
+        "size": 62,
+        "type": "RT_GROUP_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27627560,
+        "language": 1033,
+        "name": "130",
+        "rva": "0x1b77228",
+        "sha256": "306f29637982749b722ff3f621035879165bf41a758c41cb58156127cad2cc93",
+        "size": 62,
+        "type": "RT_GROUP_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27627624,
+        "language": 1033,
+        "name": "131",
+        "rva": "0x1b77268",
+        "sha256": "2a4955cdd9be1f60113272a7af879fc6c928e6d6bfb34f42ab7e9e9420c96617",
+        "size": 62,
+        "type": "RT_GROUP_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27627688,
+        "language": 1033,
+        "name": "3592",
+        "rva": "0x1b772a8",
+        "sha256": "cd879d2e497584aeb50c9210ffa607fd6a46f938c1bc878c125f55af3e4013e1",
+        "size": 132,
+        "type": "RT_GROUP_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27627820,
+        "language": 1033,
+        "name": "3773",
+        "rva": "0x1b7732c",
+        "sha256": "0be20be2226deade1c23b1289ac8b5365ba4436ace1effd824b865ac37d3e52a",
+        "size": 62,
+        "type": "RT_GROUP_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27627884,
+        "language": 1033,
+        "name": "3774",
+        "rva": "0x1b7736c",
+        "sha256": "7ed075ee2b3aa2180461c5457f5ee73c3e89a1c5c0fd222e16c6c96c19c439f0",
+        "size": 62,
+        "type": "RT_GROUP_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27627948,
+        "language": 1033,
+        "name": "3775",
+        "rva": "0x1b773ac",
+        "sha256": "189ed86666d7a6c41db1938c973a3bbec48939a79e7bfb1b248959aff847f88d",
+        "size": 62,
+        "type": "RT_GROUP_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27628012,
+        "language": 1033,
+        "name": "3776",
+        "rva": "0x1b773ec",
+        "sha256": "f0d6b8ac3ca30690d3eef3ed43dfc8b1efa47c2c07803e47c5a84f995802d544",
+        "size": 62,
+        "type": "RT_GROUP_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27628076,
+        "language": 1033,
+        "name": "3777",
+        "rva": "0x1b7742c",
+        "sha256": "f36532fc31194b79ed17d1ccb1a35fea39cc06a1465145fc7ccd8671e2c5b5cb",
+        "size": 62,
+        "type": "RT_GROUP_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27628140,
+        "language": 1033,
+        "name": "3778",
+        "rva": "0x1b7746c",
+        "sha256": "aadb2fb0ef0c8721bbdf6e629fe8d339d5e6841b9a27563dbad66877ab28351d",
+        "size": 62,
+        "type": "RT_GROUP_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27628204,
+        "language": 1033,
+        "name": "3779",
+        "rva": "0x1b774ac",
+        "sha256": "dac5df06d7826062fbc27d6dc25477bf640fee7dd6bca83e6916f50d24651492",
+        "size": 62,
+        "type": "RT_GROUP_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27041836,
+        "language": 1033,
+        "name": "1",
+        "rva": "0x1ae822c",
+        "sha256": "c4af552eaa5bb38c064c80fa19c592c6926430a6b8b333fa61a631f886462cea",
+        "size": 270376,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27357600,
+        "language": 1033,
+        "name": "10",
+        "rva": "0x1b353a0",
+        "sha256": "23930406ea8f711876652849255903f36fd388486b988337bf1f212f17ffb81d",
+        "size": 744,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27358344,
+        "language": 1033,
+        "name": "11",
+        "rva": "0x1b35688",
+        "sha256": "915ba35de1393f0b68bf87f7ab70d3c0f7903ef3f1fb11c0c52f55afb931d258",
+        "size": 296,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27358640,
+        "language": 1033,
+        "name": "12",
+        "rva": "0x1b357b0",
+        "sha256": "da5e353d64589f7e9454c4fae6061e1e05d83bbec101c2d8bb6a055737679266",
+        "size": 3752,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27362392,
+        "language": 1033,
+        "name": "13",
+        "rva": "0x1b36658",
+        "sha256": "0dadcec54c7f2b7d7e6c764ffdf84f071170ec4ef968cdc8a3b14388d3a0b079",
+        "size": 2216,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27364608,
+        "language": 1033,
+        "name": "14",
+        "rva": "0x1b36f00",
+        "sha256": "58b91d0637d67b5970f1e7024264a216a2a592ae85edf2c6aaa3d3a9040ba8ef",
+        "size": 1384,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27365992,
+        "language": 1033,
+        "name": "15",
+        "rva": "0x1b37468",
+        "sha256": "98fff353f520dc57f33400c8d8805e1a170ae9970e31b15a955d3537aedb85ea",
+        "size": 9640,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27375632,
+        "language": 1033,
+        "name": "16",
+        "rva": "0x1b39a10",
+        "sha256": "f18cb07d9fe5001d7922d2448f26d27e3e820c81cd45c3f89049fb6d237d398a",
+        "size": 4264,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27379896,
+        "language": 1033,
+        "name": "17",
+        "rva": "0x1b3aab8",
+        "sha256": "3c5adf91c1088ae610efbd028e792865df6cb41e90e3f4c3573135c709535eed",
+        "size": 1128,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27381024,
+        "language": 1033,
+        "name": "18",
+        "rva": "0x1b3af20",
+        "sha256": "ccb4cea5bc115554646f8ade5a9ae97fba127831af3a7ec0eb97e9c6fee5e261",
+        "size": 14634,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27395660,
+        "language": 1033,
+        "name": "19",
+        "rva": "0x1b3e84c",
+        "sha256": "196956dd5cdb1d2b80ca129eb8f2bb39e79afc7e30f56a90732c92a228c6ca0b",
+        "size": 9640,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27312212,
+        "language": 1033,
+        "name": "2",
+        "rva": "0x1b2a254",
+        "sha256": "df5610492cc70130305a5c110f5d9886a364fdd31aae2478485d89f72c666931",
+        "size": 9640,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27405300,
+        "language": 1033,
+        "name": "20",
+        "rva": "0x1b40df4",
+        "sha256": "bc215bd8cec5b5182bc7208dc36630069c8749ba5ef6840d37fb42656119a1b4",
+        "size": 4264,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27409564,
+        "language": 1033,
+        "name": "21",
+        "rva": "0x1b41e9c",
+        "sha256": "debd221b45b6c63440acaf6146de09c1c86c1524f601b56b91a4b88353706852",
+        "size": 1128,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27410692,
+        "language": 1033,
+        "name": "22",
+        "rva": "0x1b42304",
+        "sha256": "2723f2b4756cb31ba93d07641803f234be356aadee3001ca7a51dd60faff720f",
+        "size": 12468,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27423160,
+        "language": 1033,
+        "name": "23",
+        "rva": "0x1b453b8",
+        "sha256": "890239d897a19fc9d5abefef3a7064b24fbac430a60bfee33d003fda20014ac0",
+        "size": 9640,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27432800,
+        "language": 1033,
+        "name": "24",
+        "rva": "0x1b47960",
+        "sha256": "5af4afb417ca98aa25498f891955b4551e827f81550b19652fe110033ac5378d",
+        "size": 4264,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27437064,
+        "language": 1033,
+        "name": "25",
+        "rva": "0x1b48a08",
+        "sha256": "1c2f8048e5b8c4758d3dcd7b8c8eda308f1d2f25312287365ed5e7cf1317b1cf",
+        "size": 1128,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27438192,
+        "language": 1033,
+        "name": "26",
+        "rva": "0x1b48e70",
+        "sha256": "4e31e4542aea12fbba82c408dda88684fa5d4eb798aa2e7eb87f160a70250587",
+        "size": 13039,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27451232,
+        "language": 1033,
+        "name": "27",
+        "rva": "0x1b4c160",
+        "sha256": "0c5f07573b72a066c03609d39181f6a6beef61f7efdaf81a8f187585d74bb8db",
+        "size": 9640,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27460872,
+        "language": 1033,
+        "name": "28",
+        "rva": "0x1b4e708",
+        "sha256": "af34d25ed9dbd46569d4eb6a7ef73aa05a380d057cf6c4b1b503b1b3d4e8f285",
+        "size": 4264,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27465136,
+        "language": 1033,
+        "name": "29",
+        "rva": "0x1b4f7b0",
+        "sha256": "65ea4eb7a57b14128837cb2738a812599188816a45f0cea095ccb08518c51048",
+        "size": 1128,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27321852,
+        "language": 1033,
+        "name": "3",
+        "rva": "0x1b2c7fc",
+        "sha256": "81f4838405b7baf01a148240e2fbfa6ef1d32ece56ec0ecf83b8174ec386af48",
+        "size": 4264,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27466264,
+        "language": 1033,
+        "name": "30",
+        "rva": "0x1b4fc18",
+        "sha256": "cb27341fd96496c8c99bab16e5b4cbd440ebdfd0a52db610e13427d6cb579900",
+        "size": 11809,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27478076,
+        "language": 1033,
+        "name": "31",
+        "rva": "0x1b52a3c",
+        "sha256": "8d1d310fd5ef63bae4abad77fb694f89b3aefef68792cfdc95f091534e4fcd3c",
+        "size": 9640,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27487716,
+        "language": 1033,
+        "name": "32",
+        "rva": "0x1b54fe4",
+        "sha256": "9c848103649cc88d08b780b688bcfd712a0f5a8fc0a2556fa3f0c9fe285b8fca",
+        "size": 4264,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27491980,
+        "language": 1033,
+        "name": "33",
+        "rva": "0x1b5608c",
+        "sha256": "511e4cfcaf3ca94e2cc664c974547aefd3dc59e5221aa445272d56dccd7eef1f",
+        "size": 1128,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27493108,
+        "language": 1033,
+        "name": "34",
+        "rva": "0x1b564f4",
+        "sha256": "6a883fe91723f210a7a4445e22c61769dcb260582234bc2477a85026341a9c3d",
+        "size": 12593,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27505704,
+        "language": 1033,
+        "name": "35",
+        "rva": "0x1b59628",
+        "sha256": "178b362d33182bb31073e178fc502a9670420836e616a878f590b6c2174d3296",
+        "size": 9640,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27515344,
+        "language": 1033,
+        "name": "36",
+        "rva": "0x1b5bbd0",
+        "sha256": "b0168a563e13ce8bde84742444195360f812017e8c7054c34ef9b18edf192fb5",
+        "size": 4264,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27519608,
+        "language": 1033,
+        "name": "37",
+        "rva": "0x1b5cc78",
+        "sha256": "55f17fd1a066c54399eee3623fdce2442e6b0f3fbac3ebb13622801c38e07f5f",
+        "size": 1128,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27520736,
+        "language": 1033,
+        "name": "38",
+        "rva": "0x1b5d0e0",
+        "sha256": "48d3bd9e514c2671f2b829e78f6ef0dfc1f43b2ac8750b8758ebad22a86bc58c",
+        "size": 12240,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27532976,
+        "language": 1033,
+        "name": "39",
+        "rva": "0x1b600b0",
+        "sha256": "9e683748f66eedcd4c7731bc40c6d760cf2eda15079df645876c7e7727033558",
+        "size": 9640,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27326116,
+        "language": 1033,
+        "name": "4",
+        "rva": "0x1b2d8a4",
+        "sha256": "e6cf18076b6f6d1f4417c8ec4b732cbca9f1076c7d2ef2a6dcb4a7a51c06be64",
+        "size": 1128,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27542616,
+        "language": 1033,
+        "name": "40",
+        "rva": "0x1b62658",
+        "sha256": "4013c63a48232c37f56026c7219e90366eb38412cbe6a9944ed4fa9d676abfee",
+        "size": 4264,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27546880,
+        "language": 1033,
+        "name": "41",
+        "rva": "0x1b63700",
+        "sha256": "01baeaeb0c64b69ab61da9b2ad623c0460c153aff488e8524ffb0ff6345c5fca",
+        "size": 1128,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27548008,
+        "language": 1033,
+        "name": "42",
+        "rva": "0x1b63b68",
+        "sha256": "9f4823fd98a44d97c4ce4d5af00fb678bb33549466356e0b5e23262fe74dff52",
+        "size": 10917,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27558928,
+        "language": 1033,
+        "name": "43",
+        "rva": "0x1b66610",
+        "sha256": "7e8151cf6dff8d8a320ad6816069a0215288a1fd190747a1b6a94d4d4a4007de",
+        "size": 9640,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27568568,
+        "language": 1033,
+        "name": "44",
+        "rva": "0x1b68bb8",
+        "sha256": "4702de1333e98dde6d6da764dd464252e19c0aafba1e80490a3b0b1250e48e0b",
+        "size": 4264,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27572832,
+        "language": 1033,
+        "name": "45",
+        "rva": "0x1b69c60",
+        "sha256": "d8de22beac646419a147e19c3ac2235ed56a959724afa3ae50da888d3466a70d",
+        "size": 1128,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27573960,
+        "language": 1033,
+        "name": "46",
+        "rva": "0x1b6a0c8",
+        "sha256": "8b92939c4e654f52aa45873a7801dab2853ae651dd6de5f149593d24b1d3305c",
+        "size": 8399,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27582360,
+        "language": 1033,
+        "name": "47",
+        "rva": "0x1b6c198",
+        "sha256": "f0b0a51f4de9a207d75a88f1483ed6ec6c0217e53be5455b5d97b190d01ac1a2",
+        "size": 9640,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27592000,
+        "language": 1033,
+        "name": "48",
+        "rva": "0x1b6e740",
+        "sha256": "c299529bb7274ac68bab2386fd3ddbf676b502833aaab0feef050814c0e4b3b4",
+        "size": 4264,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27596264,
+        "language": 1033,
+        "name": "49",
+        "rva": "0x1b6f7e8",
+        "sha256": "10fa920d963c9f562cc5f7c8c732f6f5aea8327e83bdc10ef4886eb7e35bb7da",
+        "size": 1128,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27327244,
+        "language": 1033,
+        "name": "5",
+        "rva": "0x1b2dd0c",
+        "sha256": "ee37e75a52bc7e7fc508d619cd7301091866e1b19de0637ae4e7b106b691ab97",
+        "size": 13684,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27597392,
+        "language": 1033,
+        "name": "50",
+        "rva": "0x1b6fc50",
+        "sha256": "d47f624f00618b7176ff65b3b1005270189b1056da8a3a5548aa028ed7144ea8",
+        "size": 14158,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27611552,
+        "language": 1033,
+        "name": "51",
+        "rva": "0x1b733a0",
+        "sha256": "5c139a0f3084eb337d2b84adea123b9a952869d7dba470cbe292ede9a79757e7",
+        "size": 9640,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27621192,
+        "language": 1033,
+        "name": "52",
+        "rva": "0x1b75948",
+        "sha256": "be92f8890a087a177032d7de4832699fde51a365577a12af5076319bf2c48744",
+        "size": 4264,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27625456,
+        "language": 1033,
+        "name": "53",
+        "rva": "0x1b769f0",
+        "sha256": "43878c2ce98ef963d2d53a2ca32781b13dc211bdab151176c7fdbffe49e35ffc",
+        "size": 1128,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27340928,
+        "language": 1033,
+        "name": "6",
+        "rva": "0x1b31280",
+        "sha256": "6608989ad6476d6b01662fd2835792a13a6b5f69169677739a1482d77ef1fa30",
+        "size": 9640,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27350568,
+        "language": 1033,
+        "name": "7",
+        "rva": "0x1b33828",
+        "sha256": "216bed55df08bced1597c3e690e1810f6296118d81832cb481634404d4e25dba",
+        "size": 4264,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27354832,
+        "language": 1033,
+        "name": "8",
+        "rva": "0x1b348d0",
+        "sha256": "4eae8136f51e1803a83f021fcf86ec87396fe510c9cebe861d147ca92782819c",
+        "size": 1128,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27355960,
+        "language": 1033,
+        "name": "9",
+        "rva": "0x1b34d38",
+        "sha256": "f91958cdf3ef57ec13c7127c962f4f9ea9928c70132a7ab60083e364fbb121a5",
+        "size": 1640,
+        "type": "RT_ICON"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27629252,
+        "language": 1033,
+        "name": "1",
+        "rva": "0x1b778c4",
+        "sha256": "f5ee2fde0cd0cc38f9358da67eb45c45e97ee5887a743d05b9249af41dc94107",
+        "size": 1195,
+        "type": "RT_MANIFEST"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27630448,
+        "language": 1033,
+        "name": "29",
+        "rva": "0x1b77d70",
+        "sha256": "6161a22c33df015408e54e9181e330bef233366ffe3f557ee4204dfee2ebacd0",
+        "size": 1016,
+        "type": "RT_MANIFEST"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27627360,
+        "language": 1033,
+        "name": "3585",
+        "rva": "0x1b77160",
+        "sha256": "f707bbac7ac8623071a761fb29ec9453376765ce80e2bac9a0fcba4e0dd05c2a",
+        "size": 70,
+        "type": "RT_STRING"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27626840,
+        "language": 1033,
+        "name": "626",
+        "rva": "0x1b76f58",
+        "sha256": "d35188cefc0575a3b8dd8c29672fac6e103d3c5f9d21ade242b53259ac066d58",
+        "size": 98,
+        "type": "RT_STRING"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27626940,
+        "language": 1033,
+        "name": "632",
+        "rva": "0x1b76fbc",
+        "sha256": "d968125d5195eb321fc0764e1cd56fd4f9060238b2be01fd1f00bba50c60b84c",
+        "size": 80,
+        "type": "RT_STRING"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27627020,
+        "language": 1033,
+        "name": "691",
+        "rva": "0x1b7700c",
+        "sha256": "bc3c8d65741e2308b9938bfcfb64bdfbde2543d8c0454a624324e2b47c268bda",
+        "size": 64,
+        "type": "RT_STRING"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27627084,
+        "language": 1033,
+        "name": "692",
+        "rva": "0x1b7704c",
+        "sha256": "38e77e11df3e65e97fa24c00e737e06d351960e9a5936cf419da0e7dfb348a4f",
+        "size": 184,
+        "type": "RT_STRING"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27627268,
+        "language": 1033,
+        "name": "706",
+        "rva": "0x1b77104",
+        "sha256": "70809ef5ede2a70742f56b98789cfbf0408c3ca81d7a8d64cb3e892000534b21",
+        "size": 90,
+        "type": "RT_STRING"
+      },
+      {
+        "codepage": 1252,
+        "file_offset": 27628268,
+        "language": 1033,
+        "name": "1",
+        "rva": "0x1b774ec",
+        "sha256": "4e18853e3a7c1c95c3a4332883da4b6d24aafc10d7698c373b1456f6fc7380e2",
+        "size": 984,
+        "type": "RT_VERSION"
+      }
+    ],
+    "icon_groups": [
+      {
+        "icons": [
+          {
+            "bit_count": 32,
+            "bytes": 270376,
+            "height": 256,
+            "icon_id": 1,
+            "width": 256
+          },
+          {
+            "bit_count": 32,
+            "bytes": 9640,
+            "height": 48,
+            "icon_id": 2,
+            "width": 48
+          },
+          {
+            "bit_count": 32,
+            "bytes": 4264,
+            "height": 32,
+            "icon_id": 3,
+            "width": 32
+          },
+          {
+            "bit_count": 32,
+            "bytes": 1128,
+            "height": 16,
+            "icon_id": 4,
+            "width": 16
+          }
+        ],
+        "name": "128"
+      },
+      {
+        "icons": [
+          {
+            "bit_count": 32,
+            "bytes": 13684,
+            "height": 256,
+            "icon_id": 5,
+            "width": 256
+          },
+          {
+            "bit_count": 32,
+            "bytes": 9640,
+            "height": 48,
+            "icon_id": 6,
+            "width": 48
+          },
+          {
+            "bit_count": 32,
+            "bytes": 4264,
+            "height": 32,
+            "icon_id": 7,
+            "width": 32
+          },
+          {
+            "bit_count": 32,
+            "bytes": 1128,
+            "height": 16,
+            "icon_id": 8,
+            "width": 16
+          }
+        ],
+        "name": "129"
+      },
+      {
+        "icons": [
+          {
+            "bit_count": 32,
+            "bytes": 14634,
+            "height": 256,
+            "icon_id": 18,
+            "width": 256
+          },
+          {
+            "bit_count": 32,
+            "bytes": 9640,
+            "height": 48,
+            "icon_id": 19,
+            "width": 48
+          },
+          {
+            "bit_count": 32,
+            "bytes": 4264,
+            "height": 32,
+            "icon_id": 20,
+            "width": 32
+          },
+          {
+            "bit_count": 32,
+            "bytes": 1128,
+            "height": 16,
+            "icon_id": 21,
+            "width": 16
+          }
+        ],
+        "name": "130"
+      },
+      {
+        "icons": [
+          {
+            "bit_count": 32,
+            "bytes": 12468,
+            "height": 256,
+            "icon_id": 22,
+            "width": 256
+          },
+          {
+            "bit_count": 32,
+            "bytes": 9640,
+            "height": 48,
+            "icon_id": 23,
+            "width": 48
+          },
+          {
+            "bit_count": 32,
+            "bytes": 4264,
+            "height": 32,
+            "icon_id": 24,
+            "width": 32
+          },
+          {
+            "bit_count": 32,
+            "bytes": 1128,
+            "height": 16,
+            "icon_id": 25,
+            "width": 16
+          }
+        ],
+        "name": "131"
+      },
+      {
+        "icons": [
+          {
+            "bit_count": 4,
+            "bytes": 1640,
+            "height": 48,
+            "icon_id": 9,
+            "width": 48
+          },
+          {
+            "bit_count": 4,
+            "bytes": 744,
+            "height": 32,
+            "icon_id": 10,
+            "width": 32
+          },
+          {
+            "bit_count": 4,
+            "bytes": 296,
+            "height": 16,
+            "icon_id": 11,
+            "width": 16
+          },
+          {
+            "bit_count": 8,
+            "bytes": 3752,
+            "height": 48,
+            "icon_id": 12,
+            "width": 48
+          },
+          {
+            "bit_count": 8,
+            "bytes": 2216,
+            "height": 32,
+            "icon_id": 13,
+            "width": 32
+          },
+          {
+            "bit_count": 8,
+            "bytes": 1384,
+            "height": 16,
+            "icon_id": 14,
+            "width": 16
+          },
+          {
+            "bit_count": 32,
+            "bytes": 9640,
+            "height": 48,
+            "icon_id": 15,
+            "width": 48
+          },
+          {
+            "bit_count": 32,
+            "bytes": 4264,
+            "height": 32,
+            "icon_id": 16,
+            "width": 32
+          },
+          {
+            "bit_count": 32,
+            "bytes": 1128,
+            "height": 16,
+            "icon_id": 17,
+            "width": 16
+          }
+        ],
+        "name": "3592"
+      },
+      {
+        "icons": [
+          {
+            "bit_count": 32,
+            "bytes": 13039,
+            "height": 256,
+            "icon_id": 26,
+            "width": 256
+          },
+          {
+            "bit_count": 32,
+            "bytes": 9640,
+            "height": 48,
+            "icon_id": 27,
+            "width": 48
+          },
+          {
+            "bit_count": 32,
+            "bytes": 4264,
+            "height": 32,
+            "icon_id": 28,
+            "width": 32
+          },
+          {
+            "bit_count": 32,
+            "bytes": 1128,
+            "height": 16,
+            "icon_id": 29,
+            "width": 16
+          }
+        ],
+        "name": "3773"
+      },
+      {
+        "icons": [
+          {
+            "bit_count": 32,
+            "bytes": 11809,
+            "height": 256,
+            "icon_id": 30,
+            "width": 256
+          },
+          {
+            "bit_count": 32,
+            "bytes": 9640,
+            "height": 48,
+            "icon_id": 31,
+            "width": 48
+          },
+          {
+            "bit_count": 32,
+            "bytes": 4264,
+            "height": 32,
+            "icon_id": 32,
+            "width": 32
+          },
+          {
+            "bit_count": 32,
+            "bytes": 1128,
+            "height": 16,
+            "icon_id": 33,
+            "width": 16
+          }
+        ],
+        "name": "3774"
+      },
+      {
+        "icons": [
+          {
+            "bit_count": 32,
+            "bytes": 12593,
+            "height": 256,
+            "icon_id": 34,
+            "width": 256
+          },
+          {
+            "bit_count": 32,
+            "bytes": 9640,
+            "height": 48,
+            "icon_id": 35,
+            "width": 48
+          },
+          {
+            "bit_count": 32,
+            "bytes": 4264,
+            "height": 32,
+            "icon_id": 36,
+            "width": 32
+          },
+          {
+            "bit_count": 32,
+            "bytes": 1128,
+            "height": 16,
+            "icon_id": 37,
+            "width": 16
+          }
+        ],
+        "name": "3775"
+      },
+      {
+        "icons": [
+          {
+            "bit_count": 32,
+            "bytes": 12240,
+            "height": 256,
+            "icon_id": 38,
+            "width": 256
+          },
+          {
+            "bit_count": 32,
+            "bytes": 9640,
+            "height": 48,
+            "icon_id": 39,
+            "width": 48
+          },
+          {
+            "bit_count": 32,
+            "bytes": 4264,
+            "height": 32,
+            "icon_id": 40,
+            "width": 32
+          },
+          {
+            "bit_count": 32,
+            "bytes": 1128,
+            "height": 16,
+            "icon_id": 41,
+            "width": 16
+          }
+        ],
+        "name": "3776"
+      },
+      {
+        "icons": [
+          {
+            "bit_count": 32,
+            "bytes": 10917,
+            "height": 256,
+            "icon_id": 42,
+            "width": 256
+          },
+          {
+            "bit_count": 32,
+            "bytes": 9640,
+            "height": 48,
+            "icon_id": 43,
+            "width": 48
+          },
+          {
+            "bit_count": 32,
+            "bytes": 4264,
+            "height": 32,
+            "icon_id": 44,
+            "width": 32
+          },
+          {
+            "bit_count": 32,
+            "bytes": 1128,
+            "height": 16,
+            "icon_id": 45,
+            "width": 16
+          }
+        ],
+        "name": "3777"
+      },
+      {
+        "icons": [
+          {
+            "bit_count": 32,
+            "bytes": 8399,
+            "height": 256,
+            "icon_id": 46,
+            "width": 256
+          },
+          {
+            "bit_count": 32,
+            "bytes": 9640,
+            "height": 48,
+            "icon_id": 47,
+            "width": 48
+          },
+          {
+            "bit_count": 32,
+            "bytes": 4264,
+            "height": 32,
+            "icon_id": 48,
+            "width": 32
+          },
+          {
+            "bit_count": 32,
+            "bytes": 1128,
+            "height": 16,
+            "icon_id": 49,
+            "width": 16
+          }
+        ],
+        "name": "3778"
+      },
+      {
+        "icons": [
+          {
+            "bit_count": 32,
+            "bytes": 14158,
+            "height": 256,
+            "icon_id": 50,
+            "width": 256
+          },
+          {
+            "bit_count": 32,
+            "bytes": 9640,
+            "height": 48,
+            "icon_id": 51,
+            "width": 48
+          },
+          {
+            "bit_count": 32,
+            "bytes": 4264,
+            "height": 32,
+            "icon_id": 52,
+            "width": 32
+          },
+          {
+            "bit_count": 32,
+            "bytes": 1128,
+            "height": 16,
+            "icon_id": 53,
+            "width": 16
+          }
+        ],
+        "name": "3779"
+      }
+    ],
+    "manifest": "<assembly manifestVersion=\"1.0\" xmlns=\"urn:schemas-microsoft-com:asm.v1\"><dependency><dependentAssembly><assemblyIdentity type=\"win32\" name=\"Microsoft.Windows.Common-Controls\" version=\"6.0.0.0\" processorArchitecture=\"X86\" publicKeyToken=\"6595b64144ccf1df\" language=\"*\"></assemblyIdentity></dependentAssembly></dependency><ms_asmv2:trustInfo xmlns:ms_asmv2=\"urn:schemas-microsoft-com:asm.v2\" xmlns=\"urn:schemas-microsoft-com:asm.v3\"><ms_asmv2:security><ms_asmv2:requestedPrivileges><ms_asmv2:requestedExecutionLevel level=\"asInvoker\" uiAccess=\"false\"></ms_asmv2:requestedExecutionLevel></ms_asmv2:requestedPrivileges></ms_asmv2:security></ms_asmv2:trustInfo><application xmlns=\"urn:schemas-microsoft-com:asm.v3\"><windowsSettings><ms_windowsSettings:dpiAware xmlns:ms_windowsSettings=\"http://schemas.microsoft.com/SMI/2005/WindowsSettings\" xmlns=\"http://schemas.microsoft.com/SMI/2005/WindowsSettings\">true</ms_windowsSettings:dpiAware></windowsSettings></application><compatibility xmlns=\"urn:schemas-microsoft-com:compatibility.v1\">\r\n \r\n  <application>\r\n\r\n    \r\n\r\n      <supportedOS Id=\"{e2011457-1546-43c5-a5fe-008deee3d3f0}\"></supportedOS>\r\n\r\n  </application>\r\n  \r\n </compatibility></assembly>",
+    "truncated": false,
+    "version": {
+      "file_version": "12.0.0.236",
+      "product_version": "12.0.0.236",
+      "strings": {
+        "Comments": "",
+        "CompanyName": "Adobe Systems Incorporated",
+        "FileDescription": "Adobe Fireworks CS6",
+        "FileVersion": "12.0.0.236",
+        "InternalName": "Fireworks",
+        "LegalCopyright": "Copyright © 1998-2012 Adobe Systems Incorporated. All rights reserved.",
+        "LegalTrademarks": "",
+        "OriginalFilename": "Fireworks.exe",
+        "PrivateBuild": "",
+        "ProductName": "Fireworks",
+        "ProductVersion": "12.0.0.236",
+        "SpecialBuild": ""
+      }
+    }
+  },
+  "summary": "79 resources, 12 icon groups, product \"Fireworks\".",
+  "confidence": "observed",
+  "authority": "original-files",
+  "environment": {
+    "clean_room": false,
+    "engine": "builtin",
+    "engine_version": "0.6.1",
+    "host": "windows-x86_64"
+  },
+  "limitations": [],
+  "coverage": {
+    "status": "complete",
+    "examined": 79,
+    "total": 79
+  },
+  "locations": [],
+  "links": []
+}

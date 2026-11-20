@@ -1,0 +1,45 @@
+{
+  "id": "ev_ab04495acabdc07272b11f010380e72c7781557c9b948c1e945fefb07566fe67",
+  "subject": {
+    "kind": "pe",
+    "sha256": "ab9a267ffe6a9fd23f8f3f09446997c770effceeaae66babcb3f10d15433053f",
+    "name": "Fireworks.exe"
+  },
+  "operation": "native_function_pseudocode",
+  "params": {
+    "function": "sub_f1d210"
+  },
+  "result": {
+    "engine": "ghidra",
+    "entry": "0xf1d210",
+    "function": "FUN_00f1d210",
+    "pseudo_code": "\r\nvoid FUN_00f1d210(undefined4 param_1)\r\n\r\n{\r\n  FUN_01443b90(param_1,\"com.adobe.owl.fireworks.tool-bar.message-handler\",FUN_00f1ca80);\r\n  return;\r\n}\r\n\r\n",
+    "signature": "void FUN_00f1d210(undefined4 param_1);"
+  },
+  "summary": "Pseudo-C for FUN_00f1d210 from the Deep engine (8 lines).",
+  "confidence": "derived",
+  "authority": "original-files",
+  "environment": {
+    "clean_room": false,
+    "engine": "ghidra",
+    "engine_version": "12.1.4",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "deep_engine",
+      "message": "the pseudo-C comes from the external Deep engine (Ghidra), not the original source"
+    }
+  ],
+  "coverage": {
+    "status": "unknown"
+  },
+  "locations": [
+    {
+      "kind": "address",
+      "value": "0xf1d210"
+    }
+  ],
+  "links": [],
+  "carries_target_content": true
+}

@@ -1,0 +1,45 @@
+{
+  "id": "ev_b5ad0e2264b77aaef661782f47c52cc65df5bb0a84d1166c0026dd7ac37f53bb",
+  "subject": {
+    "kind": "pe",
+    "sha256": "ab9a267ffe6a9fd23f8f3f09446997c770effceeaae66babcb3f10d15433053f",
+    "name": "Fireworks.exe"
+  },
+  "operation": "native_function_pseudocode",
+  "params": {
+    "function": "sub_9a86e0"
+  },
+  "result": {
+    "engine": "ghidra",
+    "entry": "0x9a86e0",
+    "function": "FUN_009a86e0",
+    "pseudo_code": "\r\nundefined4 FUN_009a86e0(undefined4 param_1)\r\n\r\n{\r\n  void *local_10;\r\n  undefined1 *puStack_c;\r\n  undefined4 local_8;\r\n  \r\n  local_8 = 0xffffffff;\r\n  puStack_c = &LAB_0156c749;\r\n  local_10 = ExceptionList;\r\n  ExceptionList = &local_10;\r\n  FUN_010e2cf0(param_1,0,0x2f44,DAT_01b7f8c0 ^ (uint)&stack0xfffffffc);\r\n  ExceptionList = local_10;\r\n  return param_1;\r\n}\r\n\r\n",
+    "signature": "undefined4 FUN_009a86e0(undefined4 param_1);"
+  },
+  "summary": "Pseudo-C for FUN_009a86e0 from the Deep engine (17 lines).",
+  "confidence": "derived",
+  "authority": "original-files",
+  "environment": {
+    "clean_room": false,
+    "engine": "ghidra",
+    "engine_version": "12.1.4",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "deep_engine",
+      "message": "the pseudo-C comes from the external Deep engine (Ghidra), not the original source"
+    }
+  ],
+  "coverage": {
+    "status": "unknown"
+  },
+  "locations": [
+    {
+      "kind": "address",
+      "value": "0x9a86e0"
+    }
+  ],
+  "links": [],
+  "carries_target_content": true
+}

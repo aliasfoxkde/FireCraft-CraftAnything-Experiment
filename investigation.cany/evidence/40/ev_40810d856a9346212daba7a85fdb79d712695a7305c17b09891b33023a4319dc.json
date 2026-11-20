@@ -1,0 +1,2120 @@
+{
+  "id": "ev_40810d856a9346212daba7a85fdb79d712695a7305c17b09891b33023a4319dc",
+  "subject": {
+    "kind": "pe",
+    "sha256": "ab9a267ffe6a9fd23f8f3f09446997c770effceeaae66babcb3f10d15433053f",
+    "name": "Fireworks.exe"
+  },
+  "operation": "native_strings_find",
+  "params": {
+    "case_sensitive": false,
+    "limit": 200,
+    "mode": "literal",
+    "offset": 0,
+    "pattern": "Export"
+  },
+  "result": {
+    "matches": [
+      {
+        "address": "0x17aaf00",
+        "references": [
+          {
+            "from": "0x5f7487",
+            "function": "sub_5f6230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "PDFExport_SecureComments"
+      },
+      {
+        "address": "0x17aaf34",
+        "references": [
+          {
+            "from": "0x5f742c",
+            "function": "sub_5f6230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "PDFExport_SecureEditing"
+      },
+      {
+        "address": "0x17aaf64",
+        "references": [
+          {
+            "from": "0x5f73d1",
+            "function": "sub_5f6230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "PDFExport_SecurePrinting"
+      },
+      {
+        "address": "0x17aaf98",
+        "references": [
+          {
+            "from": "0x5f7376",
+            "function": "sub_5f6230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "PDFExport_SecureCopy"
+      },
+      {
+        "address": "0x17aafc4",
+        "references": [
+          {
+            "from": "0x5f731b",
+            "function": "sub_5f6230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "PDFExport_SecurePassword"
+      },
+      {
+        "address": "0x17aaff8",
+        "references": [
+          {
+            "from": "0x5f72c0",
+            "function": "sub_5f6230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "PDFExport_SecureTasks"
+      },
+      {
+        "address": "0x17ab024",
+        "references": [
+          {
+            "from": "0x5f7265",
+            "function": "sub_5f6230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "PDFExport_OpenPassword"
+      },
+      {
+        "address": "0x17ab054",
+        "references": [
+          {
+            "from": "0x5f720a",
+            "function": "sub_5f6230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "PDFExport_SecureOpen"
+      },
+      {
+        "address": "0x17ab9d8",
+        "references": [],
+        "section": ".rdata",
+        "text": "UseLastExportDirectory"
+      },
+      {
+        "address": "0x17ae58c",
+        "references": [],
+        "section": ".rdata",
+        "text": "ExportPngWithAdam7Interlacing"
+      },
+      {
+        "address": "0x17ae7e4",
+        "references": [],
+        "section": ".rdata",
+        "text": "ExportSilently"
+      },
+      {
+        "address": "0x17aee28",
+        "references": [],
+        "section": ".rdata",
+        "text": "BatchDoExport"
+      },
+      {
+        "address": "0x17af7f8",
+        "references": [],
+        "section": ".rdata",
+        "text": "InitialSettings_ExportUndefined"
+      },
+      {
+        "address": "0x17af9f8",
+        "references": [],
+        "section": ".rdata",
+        "text": "ExportTransformMode"
+      },
+      {
+        "address": "0x17afba8",
+        "references": [],
+        "section": ".rdata",
+        "text": "SwfExportAllFrames"
+      },
+      {
+        "address": "0x17afbd0",
+        "references": [],
+        "section": ".rdata",
+        "text": "SwfExportFromFrame"
+      },
+      {
+        "address": "0x17afbf8",
+        "references": [],
+        "section": ".rdata",
+        "text": "SwfExportToFrame"
+      },
+      {
+        "address": "0x17afc38",
+        "references": [],
+        "section": ".rdata",
+        "text": "PDFExport_PagesToExport"
+      },
+      {
+        "address": "0x17afc68",
+        "references": [],
+        "section": ".rdata",
+        "text": "PDFExport_Compression"
+      },
+      {
+        "address": "0x17afc94",
+        "references": [],
+        "section": ".rdata",
+        "text": "PDFExport_Quality"
+      },
+      {
+        "address": "0x17afcb8",
+        "references": [],
+        "section": ".rdata",
+        "text": "PDFExport_Compatibility"
+      },
+      {
+        "address": "0x17afce8",
+        "references": [],
+        "section": ".rdata",
+        "text": "PDFExport_BleedValue"
+      },
+      {
+        "address": "0x17afd14",
+        "references": [],
+        "section": ".rdata",
+        "text": "PDFExport_GrayScale"
+      },
+      {
+        "address": "0x17afd3c",
+        "references": [],
+        "section": ".rdata",
+        "text": "PDFExport_SelectableText"
+      },
+      {
+        "address": "0x17afd70",
+        "references": [],
+        "section": ".rdata",
+        "text": "PDFExport_OpenPDFAfterExport"
+      },
+      {
+        "address": "0x17afdac",
+        "references": [],
+        "section": ".rdata",
+        "text": "PsdExport_Settings"
+      },
+      {
+        "address": "0x17afdd4",
+        "references": [],
+        "section": ".rdata",
+        "text": "PsdExport_Layers"
+      },
+      {
+        "address": "0x17afdf8",
+        "references": [],
+        "section": ".rdata",
+        "text": "PsdExport_Effects"
+      },
+      {
+        "address": "0x17afe1c",
+        "references": [],
+        "section": ".rdata",
+        "text": "PsdExport_Text"
+      },
+      {
+        "address": "0x17afe3c",
+        "references": [],
+        "section": ".rdata",
+        "text": "PsdExport_Vector"
+      },
+      {
+        "address": "0x17afe60",
+        "references": [],
+        "section": ".rdata",
+        "text": "PsdExport_Warn100"
+      },
+      {
+        "address": "0x17afe84",
+        "references": [],
+        "section": ".rdata",
+        "text": "ArtyFileExportType"
+      },
+      {
+        "address": "0x17b031c",
+        "references": [],
+        "section": ".rdata",
+        "text": "LastExportLocation"
+      },
+      {
+        "address": "0x17b0b00",
+        "references": [],
+        "section": ".rdata",
+        "text": "LastExportSymbolsLocation"
+      },
+      {
+        "address": "0x17b0c50",
+        "references": [],
+        "section": ".rdata",
+        "text": "LastKeyboardHTMLExportLocation"
+      },
+      {
+        "address": "0x17b0e50",
+        "references": [],
+        "section": ".rdata",
+        "text": "LastExportURLLocation"
+      },
+      {
+        "address": "0x17b0eb0",
+        "references": [],
+        "section": ".rdata",
+        "text": "LastExportStylesLocation"
+      },
+      {
+        "address": "0x17b15f4",
+        "references": [],
+        "section": ".rdata",
+        "text": "SpriteExportPreset"
+      },
+      {
+        "address": "0x17b1840",
+        "references": [],
+        "section": ".rdata",
+        "text": "ExportPreviewPos"
+      },
+      {
+        "address": "0x17b1864",
+        "references": [],
+        "section": ".rdata",
+        "text": "ExportPreviewSize"
+      },
+      {
+        "address": "0x17b1a2c",
+        "references": [],
+        "section": ".rdata",
+        "text": "PasteExportOrder"
+      },
+      {
+        "address": "0x17b1b34",
+        "references": [],
+        "section": ".rdata",
+        "text": "LastExportDirectory"
+      },
+      {
+        "address": "0x17b1b88",
+        "references": [],
+        "section": ".rdata",
+        "text": "ExportSlicesImageFolder"
+      },
+      {
+        "address": "0x17b37bc",
+        "references": [],
+        "section": ".rdata",
+        "text": "special_exporter"
+      },
+      {
+        "address": "0x17b388c",
+        "references": [],
+        "section": ".rdata",
+        "text": "qqqSpecialExporter-"
+      },
+      {
+        "address": "0x17ba4d0",
+        "references": [],
+        "section": ".rdata",
+        "text": "exportFormat"
+      },
+      {
+        "address": "0x17bae00",
+        "references": [],
+        "section": ".rdata",
+        "text": "spriteExportPresetName"
+      },
+      {
+        "address": "0x17bae30",
+        "references": [],
+        "section": ".rdata",
+        "text": "spriteExportSelectedSlicesOnly"
+      },
+      {
+        "address": "0x17bae70",
+        "references": [],
+        "section": ".rdata",
+        "text": "spriteExportCurrentFrameOnly"
+      },
+      {
+        "address": "0x17baeac",
+        "references": [],
+        "section": ".rdata",
+        "text": "spriteExportPageCount"
+      },
+      {
+        "address": "0x17baed8",
+        "references": [],
+        "section": ".rdata",
+        "text": "spriteExportSelectorIsClass"
+      },
+      {
+        "address": "0x17baf10",
+        "references": [],
+        "section": ".rdata",
+        "text": "spriteExportCSSPrefix"
+      },
+      {
+        "address": "0x17baf3c",
+        "references": [],
+        "section": ".rdata",
+        "text": "spriteExportCSSSuffix"
+      },
+      {
+        "address": "0x17baf68",
+        "references": [],
+        "section": ".rdata",
+        "text": "spriteExportPadding"
+      },
+      {
+        "address": "0x17baf90",
+        "references": [],
+        "section": ".rdata",
+        "text": "spriteExportOrientation"
+      },
+      {
+        "address": "0x17bb134",
+        "references": [],
+        "section": ".rdata",
+        "text": "exportPageMode"
+      },
+      {
+        "address": "0x17bf68f",
+        "references": [],
+        "section": ".rdata",
+        "text": "?ExportDocClass"
+      },
+      {
+        "address": "0x17bf6a0",
+        "references": [],
+        "section": ".rdata",
+        "text": "CJs_ExportDoc"
+      },
+      {
+        "address": "0x17bffdc",
+        "references": [
+          {
+            "from": "0x929f02",
+            "function": "sub_929ed0"
+          },
+          {
+            "from": "0x929f4c",
+            "function": "sub_929f40"
+          },
+          {
+            "from": "0x929fa2",
+            "function": "sub_929f70"
+          },
+          {
+            "from": "0x92a007",
+            "function": "sub_929fe0"
+          },
+          {
+            "from": "0xc2ab24",
+            "function": "sub_c2a950"
+          },
+          {
+            "from": "0xc54a42",
+            "function": "sub_c54a10"
+          },
+          {
+            "from": "0xc54a8c",
+            "function": "sub_c54a80"
+          },
+          {
+            "from": "0xc54ae2",
+            "function": "sub_c54ab0"
+          },
+          {
+            "from": "0xc54b47",
+            "function": "sub_c54b20"
+          },
+          {
+            "from": "0xc55f4e",
+            "function": "sub_c55f00"
+          },
+          {
+            "from": "0xc55fb9",
+            "function": "sub_c55fb0"
+          },
+          {
+            "from": "0xc856a1",
+            "function": "sub_c85640"
+          },
+          {
+            "from": "0xcb4fce",
+            "function": "sub_cb4f80"
+          },
+          {
+            "from": "0xcb503c",
+            "function": "sub_cb5030"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportSettings"
+      },
+      {
+        "address": "0x17c1348",
+        "references": [
+          {
+            "from": "0x96cd55",
+            "function": "sub_96caf0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportFormatOptions"
+      },
+      {
+        "address": "0x17c14c8",
+        "references": [
+          {
+            "from": "0x96f466",
+            "function": "sub_96f2e0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportOptions"
+      },
+      {
+        "address": "0x17c2d74",
+        "references": [
+          {
+            "from": "0x9a9b62",
+            "function": "sub_9a9b30"
+          },
+          {
+            "from": "0x9a9bac",
+            "function": "sub_9a9ba0"
+          },
+          {
+            "from": "0x9a9c02",
+            "function": "sub_9a9bd0"
+          },
+          {
+            "from": "0x9a9c67",
+            "function": "sub_9a9c40"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportArea"
+      },
+      {
+        "address": "0x17cd1a0",
+        "references": [
+          {
+            "from": "0xabb65d",
+            "function": "sub_abb580"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Export to FXG.jsf"
+      },
+      {
+        "address": "0x17cd1b4",
+        "references": [
+          {
+            "from": "0xabce61",
+            "function": "sub_abb7b0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Export Format"
+      },
+      {
+        "address": "0x17cd220",
+        "references": [
+          {
+            "from": "0xabca08",
+            "function": "sub_abb7b0"
+          },
+          {
+            "from": "0xabca41",
+            "function": "sub_abb7b0"
+          },
+          {
+            "from": "0xabca7a",
+            "function": "sub_abb7b0"
+          },
+          {
+            "from": "0xabcab0",
+            "function": "sub_abb7b0"
+          },
+          {
+            "from": "0xabce66",
+            "function": "sub_abb7b0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "CSS Sprites Export"
+      },
+      {
+        "address": "0x17d0a10",
+        "references": [],
+        "section": ".rdata",
+        "text": "ExportOptions"
+      },
+      {
+        "address": "0x17d0a20",
+        "references": [],
+        "section": ".rdata",
+        "text": "CJs_ExportOptions"
+      },
+      {
+        "address": "0x17d0a34",
+        "references": [],
+        "section": ".rdata",
+        "text": "ExportSettings"
+      },
+      {
+        "address": "0x17d0a44",
+        "references": [],
+        "section": ".rdata",
+        "text": "CJs_ExportSettings"
+      },
+      {
+        "address": "0x17d1e10",
+        "references": [
+          {
+            "from": "0xb50e1a",
+            "function": "sub_b50b30"
+          },
+          {
+            "from": "0xc052f8",
+            "function": "sub_c04f20"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportDoc"
+      },
+      {
+        "address": "0x17d26e4",
+        "references": [
+          {
+            "from": "0xb77722",
+            "function": "sub_b776f0"
+          },
+          {
+            "from": "0xb7776c",
+            "function": "sub_b77760"
+          },
+          {
+            "from": "0xb777c2",
+            "function": "sub_b77790"
+          },
+          {
+            "from": "0xb77827",
+            "function": "sub_b77800"
+          }
+        ],
+        "section": ".rdata",
+        "text": "appExportSettingsDir"
+      },
+      {
+        "address": "0x17d393c",
+        "references": [
+          {
+            "from": "0xbaad7c",
+            "function": "sub_baad20"
+          },
+          {
+            "from": "0xbaadf3",
+            "function": "sub_baad20"
+          },
+          {
+            "from": "0xbaaf1b",
+            "function": "sub_baaec0"
+          },
+          {
+            "from": "0xbaaf92",
+            "function": "sub_baaec0"
+          },
+          {
+            "from": "0xbdfcb9",
+            "function": "sub_bdfc50"
+          },
+          {
+            "from": "0xbdfe5e",
+            "function": "sub_bdfda0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportFXG"
+      },
+      {
+        "address": "0x17d466c",
+        "references": [
+          {
+            "from": "0xbc1e91",
+            "function": "sub_bc1e30"
+          },
+          {
+            "from": "0xc185c2",
+            "function": "sub_c18590"
+          },
+          {
+            "from": "0xc1860c",
+            "function": "sub_c18600"
+          },
+          {
+            "from": "0xc18662",
+            "function": "sub_c18630"
+          },
+          {
+            "from": "0xc186c7",
+            "function": "sub_c186a0"
+          },
+          {
+            "from": "0xc1dcfe",
+            "function": "sub_c1dcb0"
+          },
+          {
+            "from": "0xc1dd69",
+            "function": "sub_c1dd60"
+          },
+          {
+            "from": "0xc1e6ae",
+            "function": "sub_c1e660"
+          },
+          {
+            "from": "0xc1e71c",
+            "function": "sub_c1e710"
+          },
+          {
+            "from": "0xc548c2",
+            "function": "sub_c54890"
+          },
+          {
+            "from": "0xc5490c",
+            "function": "sub_c54900"
+          },
+          {
+            "from": "0xc54962",
+            "function": "sub_c54930"
+          },
+          {
+            "from": "0xc549c7",
+            "function": "sub_c549a0"
+          },
+          {
+            "from": "0xc855b1",
+            "function": "sub_c85550"
+          },
+          {
+            "from": "0xcba29e",
+            "function": "sub_cba120"
+          },
+          {
+            "from": "0xcbe71e",
+            "function": "sub_cbe6d0"
+          },
+          {
+            "from": "0xcbe789",
+            "function": "sub_cbe780"
+          },
+          {
+            "from": "0xcc13fe",
+            "function": "sub_cc13b0"
+          },
+          {
+            "from": "0xcc146c",
+            "function": "sub_cc1460"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportOptions"
+      },
+      {
+        "address": "0x17d467c",
+        "references": [
+          {
+            "from": "0xbc1e8c",
+            "function": "sub_bc1e30"
+          },
+          {
+            "from": "0xc855ac",
+            "function": "sub_c85550"
+          }
+        ],
+        "section": ".rdata",
+        "text": "{exportOptions:%Ao} "
+      },
+      {
+        "address": "0x17d4694",
+        "references": [
+          {
+            "from": "0xbc1f87",
+            "function": "sub_bc1f20"
+          },
+          {
+            "from": "0xbdfb6d",
+            "function": "sub_bdfb00"
+          },
+          {
+            "from": "0xc1a8c0",
+            "function": "sub_c1a860"
+          },
+          {
+            "from": "0xc1a93c",
+            "function": "sub_c1a860"
+          },
+          {
+            "from": "0xc1aa6f",
+            "function": "sub_c1aa10"
+          },
+          {
+            "from": "0xc1aaeb",
+            "function": "sub_c1aa10"
+          },
+          {
+            "from": "0xc1ac72",
+            "function": "sub_c1abb0"
+          },
+          {
+            "from": "0xc1e7a1",
+            "function": "sub_c1e750"
+          },
+          {
+            "from": "0xc1e7fc",
+            "function": "sub_c1e750"
+          },
+          {
+            "from": "0xc1e8f0",
+            "function": "sub_c1e8a0"
+          },
+          {
+            "from": "0xc1e94b",
+            "function": "sub_c1e8a0"
+          },
+          {
+            "from": "0xc1ea95",
+            "function": "sub_c1e9f0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportHtmlAndImages"
+      },
+      {
+        "address": "0x17d5678",
+        "references": [
+          {
+            "from": "0xbdf5f9",
+            "function": "sub_bdf590"
+          },
+          {
+            "from": "0xc192ac",
+            "function": "sub_c19250"
+          },
+          {
+            "from": "0xc19323",
+            "function": "sub_c19250"
+          },
+          {
+            "from": "0xc1944b",
+            "function": "sub_c193f0"
+          },
+          {
+            "from": "0xc194c2",
+            "function": "sub_c193f0"
+          },
+          {
+            "from": "0xc1964e",
+            "function": "sub_c19590"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportMXMLAndImages"
+      },
+      {
+        "address": "0x17d56b0",
+        "references": [
+          {
+            "from": "0xbdf749",
+            "function": "sub_bdf6e0"
+          },
+          {
+            "from": "0xc1236f",
+            "function": "sub_c12200"
+          },
+          {
+            "from": "0xc197dc",
+            "function": "sub_c19780"
+          },
+          {
+            "from": "0xc19853",
+            "function": "sub_c19780"
+          },
+          {
+            "from": "0xc1997b",
+            "function": "sub_c19920"
+          },
+          {
+            "from": "0xc199f2",
+            "function": "sub_c19920"
+          },
+          {
+            "from": "0xc19b7e",
+            "function": "sub_c19ac0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportDocumentAs"
+      },
+      {
+        "address": "0x17d56e4",
+        "references": [
+          {
+            "from": "0xbdf89d",
+            "function": "sub_bdf830"
+          },
+          {
+            "from": "0xc19d17",
+            "function": "sub_c19cb0"
+          },
+          {
+            "from": "0xc19db1",
+            "function": "sub_c19cb0"
+          },
+          {
+            "from": "0xc19f06",
+            "function": "sub_c19ea0"
+          },
+          {
+            "from": "0xc19fa0",
+            "function": "sub_c19ea0"
+          },
+          {
+            "from": "0xc1a175",
+            "function": "sub_c1a090"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportPages"
+      },
+      {
+        "address": "0x17d571c",
+        "references": [
+          {
+            "from": "0xbdfa1d",
+            "function": "sub_bdf9b0"
+          },
+          {
+            "from": "0xc1a350",
+            "function": "sub_c1a2f0"
+          },
+          {
+            "from": "0xc1a3d3",
+            "function": "sub_c1a2f0"
+          },
+          {
+            "from": "0xc1a4ff",
+            "function": "sub_c1a4a0"
+          },
+          {
+            "from": "0xc1a582",
+            "function": "sub_c1a4a0"
+          },
+          {
+            "from": "0xc1a720",
+            "function": "sub_c1a650"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportCSSSpriteForJQuery"
+      },
+      {
+        "address": "0x17d5738",
+        "references": [
+          {
+            "from": "0xbdfa18",
+            "function": "sub_bdf9b0"
+          },
+          {
+            "from": "0xc1a349",
+            "function": "sub_c1a2f0"
+          },
+          {
+            "from": "0xc1a4f9",
+            "function": "sub_c1a4a0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "{exportFile:%Au,selectorPrefix:%As,removeSuffix:%As,padding:%Ai}"
+      },
+      {
+        "address": "0x17d57b8",
+        "references": [
+          {
+            "from": "0xbe0001",
+            "function": "sub_bdff90"
+          },
+          {
+            "from": "0xc1ae0b",
+            "function": "sub_c1ada0"
+          },
+          {
+            "from": "0xc1aeaa",
+            "function": "sub_c1ada0"
+          },
+          {
+            "from": "0xc1b00a",
+            "function": "sub_c1afa0"
+          },
+          {
+            "from": "0xc1b0a9",
+            "function": "sub_c1afa0"
+          },
+          {
+            "from": "0xc1b289",
+            "function": "sub_c1b1a0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportCSSLayers"
+      },
+      {
+        "address": "0x17d5800",
+        "references": [
+          {
+            "from": "0xbe0177",
+            "function": "sub_be0110"
+          },
+          {
+            "from": "0xc1b451",
+            "function": "sub_c1b400"
+          },
+          {
+            "from": "0xc1b4a5",
+            "function": "sub_c1b400"
+          },
+          {
+            "from": "0xc1b590",
+            "function": "sub_c1b540"
+          },
+          {
+            "from": "0xc1b5e4",
+            "function": "sub_c1b540"
+          },
+          {
+            "from": "0xc1b71e",
+            "function": "sub_c1b680"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportFrames"
+      },
+      {
+        "address": "0x17d5810",
+        "references": [
+          {
+            "from": "0xbe0297",
+            "function": "sub_be0230"
+          },
+          {
+            "from": "0xc1b851",
+            "function": "sub_c1b800"
+          },
+          {
+            "from": "0xc1b8a5",
+            "function": "sub_c1b800"
+          },
+          {
+            "from": "0xc1b990",
+            "function": "sub_c1b940"
+          },
+          {
+            "from": "0xc1b9e4",
+            "function": "sub_c1b940"
+          },
+          {
+            "from": "0xc1bb1e",
+            "function": "sub_c1ba80"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportLayers"
+      },
+      {
+        "address": "0x17d5820",
+        "references": [
+          {
+            "from": "0xbe03b7",
+            "function": "sub_be0350"
+          },
+          {
+            "from": "0xc1bc51",
+            "function": "sub_c1bc00"
+          },
+          {
+            "from": "0xc1bca5",
+            "function": "sub_c1bc00"
+          },
+          {
+            "from": "0xc1bd90",
+            "function": "sub_c1bd40"
+          },
+          {
+            "from": "0xc1bde4",
+            "function": "sub_c1bd40"
+          },
+          {
+            "from": "0xc1bf1e",
+            "function": "sub_c1be80"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportIllustrator"
+      },
+      {
+        "address": "0x17d5834",
+        "references": [
+          {
+            "from": "0xbe04d7",
+            "function": "sub_be0470"
+          },
+          {
+            "from": "0xc1c051",
+            "function": "sub_c1c000"
+          },
+          {
+            "from": "0xc1c0a5",
+            "function": "sub_c1c000"
+          },
+          {
+            "from": "0xc1c190",
+            "function": "sub_c1c140"
+          },
+          {
+            "from": "0xc1c1e4",
+            "function": "sub_c1c140"
+          },
+          {
+            "from": "0xc1c31e",
+            "function": "sub_c1c280"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportDirectorAsSlices"
+      },
+      {
+        "address": "0x17d584c",
+        "references": [
+          {
+            "from": "0xbe05f7",
+            "function": "sub_be0590"
+          },
+          {
+            "from": "0xc1c451",
+            "function": "sub_c1c400"
+          },
+          {
+            "from": "0xc1c4a5",
+            "function": "sub_c1c400"
+          },
+          {
+            "from": "0xc1c590",
+            "function": "sub_c1c540"
+          },
+          {
+            "from": "0xc1c5e4",
+            "function": "sub_c1c540"
+          },
+          {
+            "from": "0xc1c71e",
+            "function": "sub_c1c680"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportDirectorAsLayers"
+      },
+      {
+        "address": "0x17d5864",
+        "references": [
+          {
+            "from": "0xbe0717",
+            "function": "sub_be06b0"
+          },
+          {
+            "from": "0xc1c851",
+            "function": "sub_c1c800"
+          },
+          {
+            "from": "0xc1c8a5",
+            "function": "sub_c1c800"
+          },
+          {
+            "from": "0xc1c990",
+            "function": "sub_c1c940"
+          },
+          {
+            "from": "0xc1c9e4",
+            "function": "sub_c1c940"
+          },
+          {
+            "from": "0xc1cb1e",
+            "function": "sub_c1ca80"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportPSD"
+      },
+      {
+        "address": "0x17d5870",
+        "references": [
+          {
+            "from": "0xbe0837",
+            "function": "sub_be07d0"
+          },
+          {
+            "from": "0xc1cc51",
+            "function": "sub_c1cc00"
+          },
+          {
+            "from": "0xc1cca5",
+            "function": "sub_c1cc00"
+          },
+          {
+            "from": "0xc1cd90",
+            "function": "sub_c1cd40"
+          },
+          {
+            "from": "0xc1cde4",
+            "function": "sub_c1cd40"
+          },
+          {
+            "from": "0xc1cf1e",
+            "function": "sub_c1ce80"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportPDF"
+      },
+      {
+        "address": "0x17d587c",
+        "references": [
+          {
+            "from": "0xbe0957",
+            "function": "sub_be08f0"
+          },
+          {
+            "from": "0xc1d051",
+            "function": "sub_c1d000"
+          },
+          {
+            "from": "0xc1d0a5",
+            "function": "sub_c1d000"
+          },
+          {
+            "from": "0xc1d190",
+            "function": "sub_c1d140"
+          },
+          {
+            "from": "0xc1d1e4",
+            "function": "sub_c1d140"
+          },
+          {
+            "from": "0xc1d31e",
+            "function": "sub_c1d280"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportSWF"
+      },
+      {
+        "address": "0x17d5888",
+        "references": [
+          {
+            "from": "0xbe0a5e",
+            "function": "sub_be0a10"
+          },
+          {
+            "from": "0xbe0a8d",
+            "function": "sub_be0a10"
+          },
+          {
+            "from": "0xbe0b4a",
+            "function": "sub_be0b00"
+          },
+          {
+            "from": "0xbe0b79",
+            "function": "sub_be0b00"
+          },
+          {
+            "from": "0xbe0c51",
+            "function": "sub_be0bf0"
+          },
+          {
+            "from": "0xbe0d53",
+            "function": "sub_be0ce0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportAndCopyHTMLCode"
+      },
+      {
+        "address": "0x17d7f5c",
+        "references": [
+          {
+            "from": "0xc52132",
+            "function": "sub_c52100"
+          },
+          {
+            "from": "0xc5217c",
+            "function": "sub_c52170"
+          },
+          {
+            "from": "0xc521d2",
+            "function": "sub_c521a0"
+          },
+          {
+            "from": "0xc52237",
+            "function": "sub_c52210"
+          },
+          {
+            "from": "0xc83275",
+            "function": "sub_c83220"
+          },
+          {
+            "from": "0xc832d9",
+            "function": "sub_c832d0"
+          },
+          {
+            "from": "0xc83351",
+            "function": "sub_c832f0"
+          },
+          {
+            "from": "0xcb4105",
+            "function": "sub_cb40b0"
+          },
+          {
+            "from": "0xcb416c",
+            "function": "sub_cb4160"
+          }
+        ],
+        "section": ".rdata",
+        "text": "lastExportDirectory"
+      },
+      {
+        "address": "0x17d7f70",
+        "references": [
+          {
+            "from": "0xc525a2",
+            "function": "sub_c52570"
+          },
+          {
+            "from": "0xc525ec",
+            "function": "sub_c525e0"
+          },
+          {
+            "from": "0xc52642",
+            "function": "sub_c52610"
+          },
+          {
+            "from": "0xc526a7",
+            "function": "sub_c52680"
+          },
+          {
+            "from": "0xc52745",
+            "function": "sub_c526f0"
+          },
+          {
+            "from": "0xc527a9",
+            "function": "sub_c527a0"
+          },
+          {
+            "from": "0xc83571",
+            "function": "sub_c83510"
+          },
+          {
+            "from": "0xcb41f5",
+            "function": "sub_cb41a0"
+          },
+          {
+            "from": "0xcb425c",
+            "function": "sub_cb4250"
+          }
+        ],
+        "section": ".rdata",
+        "text": "lastExportFile"
+      },
+      {
+        "address": "0x17d8410",
+        "references": [
+          {
+            "from": "0xc59a6f",
+            "function": "sub_c59a50"
+          },
+          {
+            "from": "0xc59a8d",
+            "function": "sub_c59a50"
+          },
+          {
+            "from": "0xc59b07",
+            "function": "sub_c59ad0"
+          },
+          {
+            "from": "0xc59b26",
+            "function": "sub_c59ad0"
+          },
+          {
+            "from": "0xc89b9b",
+            "function": "sub_c89b40"
+          },
+          {
+            "from": "0xc89c56",
+            "function": "sub_c89c00"
+          }
+        ],
+        "section": ".rdata",
+        "text": "adjustExportToSize"
+      },
+      {
+        "address": "0x17da8ac",
+        "references": [
+          {
+            "from": "0xc82b12",
+            "function": "sub_c82ae0"
+          },
+          {
+            "from": "0xc82b5c",
+            "function": "sub_c82b50"
+          },
+          {
+            "from": "0xc82bb2",
+            "function": "sub_c82b80"
+          },
+          {
+            "from": "0xc82c17",
+            "function": "sub_c82bf0"
+          },
+          {
+            "from": "0xc82cc1",
+            "function": "sub_c82c60"
+          },
+          {
+            "from": "0xcc1cae",
+            "function": "sub_cc1c60"
+          },
+          {
+            "from": "0xcc1d19",
+            "function": "sub_cc1d10"
+          },
+          {
+            "from": "0xcc20be",
+            "function": "sub_cc2070"
+          },
+          {
+            "from": "0xcc212c",
+            "function": "sub_cc2120"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportFormatOptions"
+      },
+      {
+        "address": "0x17da8c0",
+        "references": [
+          {
+            "from": "0xc82cbc",
+            "function": "sub_c82c60"
+          }
+        ],
+        "section": ".rdata",
+        "text": "{exportFormatOptions:%Ao} "
+      },
+      {
+        "address": "0x17da920",
+        "references": [
+          {
+            "from": "0xc8334c",
+            "function": "sub_c832f0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "{lastExportDirectory:%Au} "
+      },
+      {
+        "address": "0x17da93c",
+        "references": [
+          {
+            "from": "0xc8356c",
+            "function": "sub_c83510"
+          }
+        ],
+        "section": ".rdata",
+        "text": "{lastExportFile:%As} "
+      },
+      {
+        "address": "0x17daae8",
+        "references": [
+          {
+            "from": "0xc8569c",
+            "function": "sub_c85640"
+          }
+        ],
+        "section": ".rdata",
+        "text": "{exportSettings:%Ao} "
+      },
+      {
+        "address": "0x17dab78",
+        "references": [
+          {
+            "from": "0xc86547",
+            "function": "sub_c864e0"
+          },
+          {
+            "from": "0xcba579",
+            "function": "sub_cba460"
+          },
+          {
+            "from": "0xcba596",
+            "function": "sub_cba460"
+          },
+          {
+            "from": "0xcbe911",
+            "function": "sub_cbe8c0"
+          },
+          {
+            "from": "0xcbe96c",
+            "function": "sub_cbe8c0"
+          },
+          {
+            "from": "0xcbea70",
+            "function": "sub_cbea20"
+          },
+          {
+            "from": "0xcbeacb",
+            "function": "sub_cbea20"
+          },
+          {
+            "from": "0xcbec28",
+            "function": "sub_cbeb80"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportTo"
+      },
+      {
+        "address": "0x17dab84",
+        "references": [
+          {
+            "from": "0xc86542",
+            "function": "sub_c864e0"
+          },
+          {
+            "from": "0xcbe90a",
+            "function": "sub_cbe8c0"
+          },
+          {
+            "from": "0xcbea6a",
+            "function": "sub_cbea20"
+          }
+        ],
+        "section": ".rdata",
+        "text": "{path:%As,exportOptionsToUse:%Ad}"
+      },
+      {
+        "address": "0x17db0a8",
+        "references": [
+          {
+            "from": "0xc9ee60",
+            "function": "sub_c9edf0"
+          },
+          {
+            "from": "0xcbfb16",
+            "function": "sub_cbfaa0"
+          },
+          {
+            "from": "0xcbfdb6",
+            "function": "sub_cbfd40"
+          }
+        ],
+        "section": ".rdata",
+        "text": "{exportOptions:%Ao,URLString:%As,altText:%As,target:%As,fileName:%As,statusMessage:%As}"
+      },
+      {
+        "address": "0x17db148",
+        "references": [
+          {
+            "from": "0xca03f1",
+            "function": "sub_ca0390"
+          },
+          {
+            "from": "0xcc194e",
+            "function": "sub_cc1900"
+          },
+          {
+            "from": "0xcc197d",
+            "function": "sub_cc1900"
+          },
+          {
+            "from": "0xcc1a3a",
+            "function": "sub_cc19f0"
+          },
+          {
+            "from": "0xcc1a69",
+            "function": "sub_cc19f0"
+          },
+          {
+            "from": "0xcc1b4f",
+            "function": "sub_cc1ae0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "setExportOptions"
+      },
+      {
+        "address": "0x17db168",
+        "references": [
+          {
+            "from": "0xca1461",
+            "function": "sub_ca1400"
+          },
+          {
+            "from": "0xcb686e",
+            "function": "sub_cb6820"
+          },
+          {
+            "from": "0xcb689d",
+            "function": "sub_cb6820"
+          },
+          {
+            "from": "0xcb695a",
+            "function": "sub_cb6910"
+          },
+          {
+            "from": "0xcb6989",
+            "function": "sub_cb6910"
+          },
+          {
+            "from": "0xcb6a6f",
+            "function": "sub_cb6a00"
+          }
+        ],
+        "section": ".rdata",
+        "text": "setExportSettings"
+      },
+      {
+        "address": "0x17db328",
+        "references": [
+          {
+            "from": "0xca97a1",
+            "function": "sub_ca9740"
+          },
+          {
+            "from": "0xcc040e",
+            "function": "sub_cc03c0"
+          },
+          {
+            "from": "0xcc043d",
+            "function": "sub_cc03c0"
+          },
+          {
+            "from": "0xcc04fa",
+            "function": "sub_cc04b0"
+          },
+          {
+            "from": "0xcc0529",
+            "function": "sub_cc04b0"
+          },
+          {
+            "from": "0xcc060f",
+            "function": "sub_cc05a0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "setSliceExportOptions"
+      },
+      {
+        "address": "0x17db5f8",
+        "references": [
+          {
+            "from": "0xcb1829",
+            "function": "sub_cb17c0"
+          },
+          {
+            "from": "0xcc06fc",
+            "function": "sub_cc06a0"
+          },
+          {
+            "from": "0xcc0773",
+            "function": "sub_cc06a0"
+          },
+          {
+            "from": "0xcc089b",
+            "function": "sub_cc0840"
+          },
+          {
+            "from": "0xcc0912",
+            "function": "sub_cc0840"
+          },
+          {
+            "from": "0xcc0a9e",
+            "function": "sub_cc09e0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "exportElements"
+      },
+      {
+        "address": "0x17db630",
+        "references": [
+          {
+            "from": "0xcb1b71",
+            "function": "sub_cb1b10"
+          },
+          {
+            "from": "0xcc0c16",
+            "function": "sub_cc0bd0"
+          },
+          {
+            "from": "0xcc0c50",
+            "function": "sub_cc0bd0"
+          },
+          {
+            "from": "0xcc0d45",
+            "function": "sub_cc0d00"
+          },
+          {
+            "from": "0xcc0d7f",
+            "function": "sub_cc0d00"
+          },
+          {
+            "from": "0xcc0ef5",
+            "function": "sub_cc0e30"
+          }
+        ],
+        "section": ".rdata",
+        "text": "findExportFormatOptionsByName"
+      },
+      {
+        "address": "0x17dce0c",
+        "references": [
+          {
+            "from": "0xcf2d92",
+            "function": "sub_cf2cd0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "/mmexport"
+      },
+      {
+        "address": "0x17dce50",
+        "references": [
+          {
+            "from": "0xcf2d56",
+            "function": "sub_cf2cd0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "-mmexport"
+      },
+      {
+        "address": "0x17dce94",
+        "references": [
+          {
+            "from": "0xcf2d0a",
+            "function": "sub_cf2cd0"
+          },
+          {
+            "from": "0xcf60e6",
+            "function": "sub_cf5ea0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "mmexport"
+      },
+      {
+        "address": "0x17e7038",
+        "references": [
+          {
+            "from": "0xdd1573",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Export CSS Sprites"
+      },
+      {
+        "address": "0x17e70c4",
+        "references": [
+          {
+            "from": "0xdd14a1",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Export::Director"
+      },
+      {
+        "address": "0x17e70dc",
+        "references": [
+          {
+            "from": "0xdd147e",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Export::Lotus Domino"
+      },
+      {
+        "address": "0x17e78e4",
+        "references": [
+          {
+            "from": "0xdd036b",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Export"
+      },
+      {
+        "address": "0x17e9324",
+        "references": [
+          {
+            "from": "0xdcdec9",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Export Wizard"
+      },
+      {
+        "address": "0x17e934c",
+        "references": [
+          {
+            "from": "0xdcde83",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Send to E-mail::Use Export Settings"
+      },
+      {
+        "address": "0x17e93d8",
+        "references": [
+          {
+            "from": "0xdcddf7",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::Export"
+      },
+      {
+        "address": "0x1808d3c",
+        "references": [
+          {
+            "from": "0xee9497",
+            "function": "sub_ee9440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMMultiPlexPortRemovePortProc"
+      },
+      {
+        "address": "0x1808d68",
+        "references": [
+          {
+            "from": "0xee9489",
+            "function": "sub_ee9440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMMultiPlexPortAppendPortProc"
+      },
+      {
+        "address": "0x1808d94",
+        "references": [
+          {
+            "from": "0xee947b",
+            "function": "sub_ee9440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMMultiPlexPortNewPortV2Proc"
+      },
+      {
+        "address": "0x1808db4",
+        "references": [
+          {
+            "from": "0xee946d",
+            "function": "sub_ee9440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMMultiPlexPortNullPortV2Proc"
+      },
+      {
+        "address": "0x1808de0",
+        "references": [
+          {
+            "from": "0xee9456",
+            "function": "sub_ee9440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMMultiPlexPortInterface"
+      },
+      {
+        "address": "0x180c71c",
+        "references": [
+          {
+            "from": "0xeeb24e",
+            "function": "sub_eeb140"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMPrintSessionGetExportFeatureAvailDictProc"
+      },
+      {
+        "address": "0x180c74c",
+        "references": [
+          {
+            "from": "0xeeb247",
+            "function": "sub_eeb140"
+          }
+        ],
+        "section": ".rdata",
+        "text": "GetExportFeatureAvailDict"
+      },
+      {
+        "address": "0x1816f90",
+        "references": [],
+        "section": ".rdata",
+        "text": "export"
+      },
+      {
+        "address": "0x1822028",
+        "references": [
+          {
+            "from": "0x1822040",
+            "function": null
+          }
+        ],
+        "section": ".rdata",
+        "text": "CExportOptionsInspector"
+      },
+      {
+        "address": "0x1822808",
+        "references": [
+          {
+            "from": "0x1822820",
+            "function": null
+          }
+        ],
+        "section": ".rdata",
+        "text": "CExportSpecialDialog"
+      },
+      {
+        "address": "0x1854498",
+        "references": [],
+        "section": ".rdata",
+        "text": "Exportable"
+      },
+      {
+        "address": "0x1b42fb8",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCCropExportTool@@"
+      },
+      {
+        "address": "0x1b431d8",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCModifySliceExportOptionsUndoable@@"
+      },
+      {
+        "address": "0x1b449c0",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCExportGridRecord@@"
+      },
+      {
+        "address": "0x1b490a4",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCDbExportOptionsHolder@@"
+      },
+      {
+        "address": "0x1b4bd70",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCJs_ExportDoc@@"
+      },
+      {
+        "address": "0x1b4c8f8",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCExportOptionsDialog@@"
+      },
+      {
+        "address": "0x1b4cbac",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCSpriteExportOptionsDialog@@"
+      },
+      {
+        "address": "0x1b4cc20",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCExportDialogControls@@"
+      },
+      {
+        "address": "0x1b4ce48",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCPdfExportOptionsDialog@@"
+      },
+      {
+        "address": "0x1b4d400",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCExportSizeDlgHandler@@"
+      },
+      {
+        "address": "0x1b4d4c8",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCExportWizardDlgHandler@@"
+      },
+      {
+        "address": "0x1b4e398",
+        "references": [],
+        "section": ".data",
+        "text": ".?AV?$bind_t@Uunspecified@_bi@boost@@V?$mf1@XVCPngReaderForExport@@PAX@_mfi@3@V?$list2@V?$value@PAVCPngReaderForExport@@@_bi@boost@@V?$value@PAVPngExportATEInfo@@@23@@23@@_bi@boost@@"
+      },
+      {
+        "address": "0x1b4e458",
+        "references": [],
+        "section": ".data",
+        "text": ".?AV?$bind_t@Uunspecified@_bi@boost@@V?$mf0@XVCPngReaderForExport@@@_mfi@3@V?$list1@V?$value@PAVCPngReaderForExport@@@_bi@boost@@@23@@_bi@boost@@"
+      },
+      {
+        "address": "0x1b4e5b0",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVTMExportLayerInfo@UFileTypes@@"
+      },
+      {
+        "address": "0x1b4ed64",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVStExportHandler@@"
+      },
+      {
+        "address": "0x1b5013c",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCPngReaderForExport@@"
+      },
+      {
+        "address": "0x1b52df4",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCJs_ExportOptions@@"
+      },
+      {
+        "address": "0x1b52ee8",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCJs_ExportSettings@@"
+      },
+      {
+        "address": "0x1b60f78",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCExportPreviewPanels@@"
+      },
+      {
+        "address": "0x1b6113c",
+        "references": [],
+        "section": ".data",
+        "text": ".?AUIExportOptions@@"
+      },
+      {
+        "address": "0x1b61844",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCExportDialog@@"
+      },
+      {
+        "address": "0x1b61860",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCExportOptionsInspector@@"
+      },
+      {
+        "address": "0x1b618d4",
+        "references": [],
+        "section": ".data",
+        "text": ".?AUIExportPalette@@"
+      },
+      {
+        "address": "0x1b618f4",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCExportPanel@@"
+      },
+      {
+        "address": "0x1b61f50",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCExportSpecialDialog@@"
+      },
+      {
+        "address": "0x1b64d20",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCMXMLExportControls@@"
+      },
+      {
+        "address": "0x1b67350",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCWinExportPalette@@"
+      },
+      {
+        "address": "0x1b67458",
+        "references": [],
+        "section": ".data",
+        "text": ".?AVCWinExportWizard@@"
+      }
+    ],
+    "total": 155
+  },
+  "summary": "155 strings match \"Export\".",
+  "confidence": "observed",
+  "authority": "original-files",
+  "environment": {
+    "clean_room": false,
+    "engine": "builtin",
+    "engine_version": "0.6.1",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "data_sections_only",
+      "message": "only strings stored in the file are searched (absence is not proof)"
+    }
+  ],
+  "coverage": {
+    "status": "complete",
+    "examined": 155,
+    "total": 155
+  },
+  "locations": [],
+  "links": []
+}

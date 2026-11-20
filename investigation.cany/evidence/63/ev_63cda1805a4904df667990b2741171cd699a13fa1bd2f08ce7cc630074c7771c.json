@@ -1,0 +1,62 @@
+{
+  "id": "ev_63cda1805a4904df667990b2741171cd699a13fa1bd2f08ce7cc630074c7771c",
+  "subject": {
+    "kind": "pe",
+    "sha256": "ab9a267ffe6a9fd23f8f3f09446997c770effceeaae66babcb3f10d15433053f",
+    "name": "Fireworks.exe"
+  },
+  "operation": "native_strings_find",
+  "params": {
+    "case_sensitive": false,
+    "limit": 200,
+    "mode": "literal",
+    "offset": 0,
+    "pattern": "Untitled"
+  },
+  "result": {
+    "matches": [
+      {
+        "address": "0x17d58d0",
+        "references": [
+          {
+            "from": "0xbe2697",
+            "function": "sub_be2650"
+          },
+          {
+            "from": "0xbe27b7",
+            "function": "sub_be2770"
+          },
+          {
+            "from": "0xbe28f4",
+            "function": "sub_be2890"
+          }
+        ],
+        "section": ".rdata",
+        "text": "{url:%Ao,openAsUntitled:%Ab,openWithWindowHidden:%Ab}"
+      }
+    ],
+    "total": 1
+  },
+  "summary": "1 strings match \"Untitled\".",
+  "confidence": "observed",
+  "authority": "original-files",
+  "environment": {
+    "clean_room": false,
+    "engine": "builtin",
+    "engine_version": "0.6.1",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "data_sections_only",
+      "message": "only strings stored in the file are searched (absence is not proof)"
+    }
+  ],
+  "coverage": {
+    "status": "complete",
+    "examined": 1,
+    "total": 1
+  },
+  "locations": [],
+  "links": []
+}

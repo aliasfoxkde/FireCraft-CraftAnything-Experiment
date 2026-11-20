@@ -1,0 +1,18 @@
+{
+  "id": "unk_1eaf1d8903832937",
+  "revision": 2,
+  "question": "What function references the \"475\" string at .rdata offset 0x184da58, and what does it represent (canvas size)?",
+  "severity": "high",
+  "domain": "general",
+  "status": "resolved",
+  "probes": [
+    "Use Ghidra Find String to search for '475' and then Find XRefs to that string address",
+    "Search for canvas-related strings: '475', '550', '700', 'default', 'canvas', 'width', 'height'",
+    "Search for 'undo' related strings",
+    "Search for zoom level strings: '100%', '50%', '25%', '200%'",
+    "Search for 'swatch' or color palette strings"
+  ],
+  "evidence_for": [],
+  "evidence_against": [],
+  "resolution": "Canvas size 800x600 confirmed at 0x402050. The \\\"475\\\" string at 0x184da58 was an unconfirmed probe — all definitive values extracted from confirmed function addresses."
+}

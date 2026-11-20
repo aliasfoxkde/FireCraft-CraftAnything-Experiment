@@ -1,0 +1,2928 @@
+{
+  "id": "ev_991fbdbffb69b1bc2fd334034bd6b204d49030fd5186040697b30292d6857d69",
+  "subject": {
+    "kind": "pe",
+    "sha256": "ab9a267ffe6a9fd23f8f3f09446997c770effceeaae66babcb3f10d15433053f",
+    "name": "Fireworks.exe"
+  },
+  "operation": "native_strings_find",
+  "params": {
+    "case_sensitive": false,
+    "limit": 200,
+    "mode": "literal",
+    "offset": 0,
+    "pattern": "New"
+  },
+  "result": {
+    "matches": [
+      {
+        "address": "0x17a8928",
+        "references": [
+          {
+            "from": "0x578c0d",
+            "function": "sub_577f20"
+          }
+        ],
+        "section": ".rdata",
+        "text": "= new Menu(\"root\""
+      },
+      {
+        "address": "0x17a9780",
+        "references": [
+          {
+            "from": "0x5abff2",
+            "function": "sub_5ab2e0"
+          },
+          {
+            "from": "0x5af928",
+            "function": "sub_5aef60"
+          }
+        ],
+        "section": ".rdata",
+        "text": " = new"
+      },
+      {
+        "address": "0x17a990a",
+        "references": [
+          {
+            "from": "0x5bfd59",
+            "function": "sub_5bfcb0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "[new"
+      },
+      {
+        "address": "0x17ab6ec",
+        "references": [
+          {
+            "from": "0x5f631c",
+            "function": "sub_5f6230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewObjectBlendMode"
+      },
+      {
+        "address": "0x17ab718",
+        "references": [
+          {
+            "from": "0x5f62c1",
+            "function": "sub_5f6230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewObjectOpacity"
+      },
+      {
+        "address": "0x17ac184",
+        "references": [],
+        "section": ".rdata",
+        "text": "NewWindowsShowRulers"
+      },
+      {
+        "address": "0x17ae11c",
+        "references": [],
+        "section": ".rdata",
+        "text": "NewDocHTMLTemplate"
+      },
+      {
+        "address": "0x17ae144",
+        "references": [],
+        "section": ".rdata",
+        "text": "NewDocSlicing"
+      },
+      {
+        "address": "0x17b34b8",
+        "references": [
+          {
+            "from": "0x64c549",
+            "function": "sub_64c490"
+          }
+        ],
+        "section": ".rdata",
+        "text": "mkb_myRegExp = new RegExp('"
+      },
+      {
+        "address": "0x17ba918",
+        "references": [],
+        "section": ".rdata",
+        "text": "newColorValue"
+      },
+      {
+        "address": "0x17c05fc",
+        "references": [],
+        "section": ".rdata",
+        "text": "NewSmartShape"
+      },
+      {
+        "address": "0x17c777c",
+        "references": [],
+        "section": ".rdata",
+        "text": "<new>..::"
+      },
+      {
+        "address": "0x17ca3e4",
+        "references": [
+          {
+            "from": "0xa21a5c",
+            "function": "sub_a21960"
+          }
+        ],
+        "section": ".rdata",
+        "text": "CArtyReader::VisitPath::ParsePatternArt::NewArtSet"
+      },
+      {
+        "address": "0x17d3350",
+        "references": [
+          {
+            "from": "0xb8c095",
+            "function": "sub_b8bf20"
+          }
+        ],
+        "section": ".rdata",
+        "text": " = new Group;\n"
+      },
+      {
+        "address": "0x17d337c",
+        "references": [
+          {
+            "from": "0xb8c555",
+            "function": "sub_b8c3e0"
+          }
+        ],
+        "section": ".rdata",
+        "text": " = new Path;\n"
+      },
+      {
+        "address": "0x17d39b4",
+        "references": [
+          {
+            "from": "0xbac596",
+            "function": "sub_bac550"
+          },
+          {
+            "from": "0xbac5c9",
+            "function": "sub_bac550"
+          },
+          {
+            "from": "0xbac6a5",
+            "function": "sub_bac660"
+          },
+          {
+            "from": "0xbac6d8",
+            "function": "sub_bac660"
+          },
+          {
+            "from": "0xbe2b61",
+            "function": "sub_be2b00"
+          },
+          {
+            "from": "0xbe2cd6",
+            "function": "sub_be2bf0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "newDocumentFromTemplate"
+      },
+      {
+        "address": "0x17d3b58",
+        "references": [
+          {
+            "from": "0xbaee92",
+            "function": "sub_baee40"
+          },
+          {
+            "from": "0xbaeed9",
+            "function": "sub_baee40"
+          },
+          {
+            "from": "0xbaefd1",
+            "function": "sub_baef80"
+          },
+          {
+            "from": "0xbaf018",
+            "function": "sub_baef80"
+          },
+          {
+            "from": "0xbe6f3d",
+            "function": "sub_be6ed0"
+          },
+          {
+            "from": "0xbe70c9",
+            "function": "sub_be6fd0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "newMobileDocument"
+      },
+      {
+        "address": "0x17d3d10",
+        "references": [
+          {
+            "from": "0xbb12ba",
+            "function": "sub_bb1140"
+          }
+        ],
+        "section": ".rdata",
+        "text": " = new Contour;\n"
+      },
+      {
+        "address": "0x17d5b88",
+        "references": [
+          {
+            "from": "0xbeaa48",
+            "function": "sub_bea8d0"
+          }
+        ],
+        "section": ".rdata",
+        "text": " = new ContourNode;\n"
+      },
+      {
+        "address": "0x17d5f70",
+        "references": [],
+        "section": ".rdata",
+        "text": "whatsnew"
+      },
+      {
+        "address": "0x17d7830",
+        "references": [],
+        "section": ".rdata",
+        "text": "new or replace"
+      },
+      {
+        "address": "0x17d81bc",
+        "references": [
+          {
+            "from": "0xc57afb",
+            "function": "sub_c57ab0"
+          },
+          {
+            "from": "0xc57c08",
+            "function": "sub_c57bc0"
+          },
+          {
+            "from": "0xc87b30",
+            "function": "sub_c87ad0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "{newpos:%Af,guidekind:%As}"
+      },
+      {
+        "address": "0x17d81d8",
+        "references": [
+          {
+            "from": "0xc57d22",
+            "function": "sub_c57cd0"
+          },
+          {
+            "from": "0xc57d5d",
+            "function": "sub_c57cd0"
+          },
+          {
+            "from": "0xc57e2e",
+            "function": "sub_c57de0"
+          },
+          {
+            "from": "0xc57e69",
+            "function": "sub_c57de0"
+          },
+          {
+            "from": "0xc87d45",
+            "function": "sub_c87ce0"
+          },
+          {
+            "from": "0xc87e4d",
+            "function": "sub_c87dd0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "addNewImage"
+      },
+      {
+        "address": "0x17d8204",
+        "references": [
+          {
+            "from": "0xc57ef4",
+            "function": "sub_c57ee0"
+          },
+          {
+            "from": "0xc57f07",
+            "function": "sub_c57ee0"
+          },
+          {
+            "from": "0xc57f6f",
+            "function": "sub_c57f40"
+          },
+          {
+            "from": "0xc57f83",
+            "function": "sub_c57f40"
+          },
+          {
+            "from": "0xc87f43",
+            "function": "sub_c87ef0"
+          },
+          {
+            "from": "0xc87feb",
+            "function": "sub_c87fa0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "addNewImageViaCopy"
+      },
+      {
+        "address": "0x17d8218",
+        "references": [
+          {
+            "from": "0xc57fe4",
+            "function": "sub_c57fd0"
+          },
+          {
+            "from": "0xc57ff7",
+            "function": "sub_c57fd0"
+          },
+          {
+            "from": "0xc5805f",
+            "function": "sub_c58030"
+          },
+          {
+            "from": "0xc58073",
+            "function": "sub_c58030"
+          },
+          {
+            "from": "0xc88083",
+            "function": "sub_c88030"
+          },
+          {
+            "from": "0xc8812b",
+            "function": "sub_c880e0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "addNewImageViaCut"
+      },
+      {
+        "address": "0x17d822c",
+        "references": [
+          {
+            "from": "0xc5810a",
+            "function": "sub_c580c0"
+          },
+          {
+            "from": "0xc58149",
+            "function": "sub_c580c0"
+          },
+          {
+            "from": "0xc58239",
+            "function": "sub_c581f0"
+          },
+          {
+            "from": "0xc58278",
+            "function": "sub_c581f0"
+          },
+          {
+            "from": "0xc881d5",
+            "function": "sub_c88170"
+          },
+          {
+            "from": "0xc88368",
+            "function": "sub_c88260"
+          }
+        ],
+        "section": ".rdata",
+        "text": "addNewLayer"
+      },
+      {
+        "address": "0x17d8250",
+        "references": [
+          {
+            "from": "0xc58371",
+            "function": "sub_c58320"
+          },
+          {
+            "from": "0xc583cc",
+            "function": "sub_c58320"
+          },
+          {
+            "from": "0xc584c0",
+            "function": "sub_c58470"
+          },
+          {
+            "from": "0xc5851b",
+            "function": "sub_c58470"
+          },
+          {
+            "from": "0xc88467",
+            "function": "sub_c88400"
+          },
+          {
+            "from": "0xc885c5",
+            "function": "sub_c88520"
+          }
+        ],
+        "section": ".rdata",
+        "text": "addNewLine"
+      },
+      {
+        "address": "0x17d8270",
+        "references": [
+          {
+            "from": "0xc5860e",
+            "function": "sub_c585c0"
+          },
+          {
+            "from": "0xc58644",
+            "function": "sub_c585c0"
+          },
+          {
+            "from": "0xc5870a",
+            "function": "sub_c586c0"
+          },
+          {
+            "from": "0xc58740",
+            "function": "sub_c586c0"
+          },
+          {
+            "from": "0xc88711",
+            "function": "sub_c886b0"
+          },
+          {
+            "from": "0xc88816",
+            "function": "sub_c887a0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "addNewOval"
+      },
+      {
+        "address": "0x17d828c",
+        "references": [
+          {
+            "from": "0xc58812",
+            "function": "sub_c587c0"
+          },
+          {
+            "from": "0xc5884f",
+            "function": "sub_c587c0"
+          },
+          {
+            "from": "0xc5891e",
+            "function": "sub_c588d0"
+          },
+          {
+            "from": "0xc5895b",
+            "function": "sub_c588d0"
+          },
+          {
+            "from": "0xc88915",
+            "function": "sub_c888b0"
+          },
+          {
+            "from": "0xc88a1f",
+            "function": "sub_c889a0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "addNewRectangle"
+      },
+      {
+        "address": "0x17d82b8",
+        "references": [
+          {
+            "from": "0xc58a22",
+            "function": "sub_c589d0"
+          },
+          {
+            "from": "0xc58a5f",
+            "function": "sub_c589d0"
+          },
+          {
+            "from": "0xc58b2e",
+            "function": "sub_c58ae0"
+          },
+          {
+            "from": "0xc58b6b",
+            "function": "sub_c58ae0"
+          },
+          {
+            "from": "0xc88b25",
+            "function": "sub_c88ac0"
+          },
+          {
+            "from": "0xc88c2f",
+            "function": "sub_c88bb0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "addNewRectanglePrimitive"
+      },
+      {
+        "address": "0x17d82d4",
+        "references": [
+          {
+            "from": "0xc58c3c",
+            "function": "sub_c58be0"
+          },
+          {
+            "from": "0xc58cba",
+            "function": "sub_c58be0"
+          },
+          {
+            "from": "0xc58deb",
+            "function": "sub_c58d90"
+          },
+          {
+            "from": "0xc58e69",
+            "function": "sub_c58d90"
+          },
+          {
+            "from": "0xc88d39",
+            "function": "sub_c88cd0"
+          },
+          {
+            "from": "0xc88ee5",
+            "function": "sub_c88e20"
+          }
+        ],
+        "section": ".rdata",
+        "text": "addNewHotspot"
+      },
+      {
+        "address": "0x17d830c",
+        "references": [
+          {
+            "from": "0xc58fa0",
+            "function": "sub_c58f40"
+          },
+          {
+            "from": "0xc59023",
+            "function": "sub_c58f40"
+          },
+          {
+            "from": "0xc5914f",
+            "function": "sub_c590f0"
+          },
+          {
+            "from": "0xc591d2",
+            "function": "sub_c590f0"
+          },
+          {
+            "from": "0xc8908d",
+            "function": "sub_c89020"
+          },
+          {
+            "from": "0xc89240",
+            "function": "sub_c89170"
+          }
+        ],
+        "section": ".rdata",
+        "text": "addNewSinglePointPath"
+      },
+      {
+        "address": "0x17d834c",
+        "references": [
+          {
+            "from": "0xc592fd",
+            "function": "sub_c592a0"
+          },
+          {
+            "from": "0xc59369",
+            "function": "sub_c592a0"
+          },
+          {
+            "from": "0xc5946c",
+            "function": "sub_c59410"
+          },
+          {
+            "from": "0xc594d8",
+            "function": "sub_c59410"
+          },
+          {
+            "from": "0xc893f3",
+            "function": "sub_c89380"
+          },
+          {
+            "from": "0xc89569",
+            "function": "sub_c894b0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "addNewStar"
+      },
+      {
+        "address": "0x17d8398",
+        "references": [
+          {
+            "from": "0xc595d9",
+            "function": "sub_c59580"
+          },
+          {
+            "from": "0xc5963d",
+            "function": "sub_c59580"
+          },
+          {
+            "from": "0xc59738",
+            "function": "sub_c596e0"
+          },
+          {
+            "from": "0xc5979c",
+            "function": "sub_c596e0"
+          },
+          {
+            "from": "0xc896cf",
+            "function": "sub_c89660"
+          },
+          {
+            "from": "0xc89843",
+            "function": "sub_c89790"
+          }
+        ],
+        "section": ".rdata",
+        "text": "addNewSymbol"
+      },
+      {
+        "address": "0x17d83e4",
+        "references": [
+          {
+            "from": "0xc59892",
+            "function": "sub_c59840"
+          },
+          {
+            "from": "0xc598cd",
+            "function": "sub_c59840"
+          },
+          {
+            "from": "0xc5999e",
+            "function": "sub_c59950"
+          },
+          {
+            "from": "0xc599d9",
+            "function": "sub_c59950"
+          },
+          {
+            "from": "0xc89995",
+            "function": "sub_c89930"
+          },
+          {
+            "from": "0xc89a9d",
+            "function": "sub_c89a20"
+          }
+        ],
+        "section": ".rdata",
+        "text": "addNewText"
+      },
+      {
+        "address": "0x17d868c",
+        "references": [
+          {
+            "from": "0xc5c57f",
+            "function": "sub_c5c530"
+          },
+          {
+            "from": "0xc5c69c",
+            "function": "sub_c5c650"
+          },
+          {
+            "from": "0xc8114f",
+            "function": "sub_c81100"
+          },
+          {
+            "from": "0xc8126c",
+            "function": "sub_c81220"
+          },
+          {
+            "from": "0xc8c284",
+            "function": "sub_c8c220"
+          },
+          {
+            "from": "0xcb2cd4",
+            "function": "sub_cb2c70"
+          }
+        ],
+        "section": ".rdata",
+        "text": "{oldpos:%Af,newpos:%Af,guidekind:%As}"
+      },
+      {
+        "address": "0x17d86c8",
+        "references": [
+          {
+            "from": "0xc5c7b7",
+            "function": "sub_c5c760"
+          },
+          {
+            "from": "0xc5c8e4",
+            "function": "sub_c5c890"
+          },
+          {
+            "from": "0xc8c4bc",
+            "function": "sub_c8c450"
+          }
+        ],
+        "section": ".rdata",
+        "text": "{oldpos:%Af,newpos:%Af,guidekind:%As,isMagneticDrag:%Ab,isSingleDrag:%Ab}"
+      },
+      {
+        "address": "0x17d8cdc",
+        "references": [
+          {
+            "from": "0xc60b67",
+            "function": "sub_c60b20"
+          },
+          {
+            "from": "0xc60c54",
+            "function": "sub_c60c10"
+          },
+          {
+            "from": "0xc9136c",
+            "function": "sub_c91310"
+          }
+        ],
+        "section": ".rdata",
+        "text": "{newSelectionMask:%Ao} "
+      },
+      {
+        "address": "0x17d9234",
+        "references": [
+          {
+            "from": "0xc66449",
+            "function": "sub_c66430"
+          },
+          {
+            "from": "0xc66463",
+            "function": "sub_c66430"
+          },
+          {
+            "from": "0xc664d3",
+            "function": "sub_c664a0"
+          },
+          {
+            "from": "0xc664ee",
+            "function": "sub_c664a0"
+          },
+          {
+            "from": "0xc97617",
+            "function": "sub_c975c0"
+          },
+          {
+            "from": "0xc976c2",
+            "function": "sub_c97670"
+          }
+        ],
+        "section": ".rdata",
+        "text": "moveSelectionToNewLayer"
+      },
+      {
+        "address": "0x17d9544",
+        "references": [
+          {
+            "from": "0xc6894b",
+            "function": "sub_c68900"
+          },
+          {
+            "from": "0xc68a58",
+            "function": "sub_c68a10"
+          },
+          {
+            "from": "0xc68b5b",
+            "function": "sub_c68b10"
+          },
+          {
+            "from": "0xc68c68",
+            "function": "sub_c68c20"
+          },
+          {
+            "from": "0xc68d6b",
+            "function": "sub_c68d20"
+          },
+          {
+            "from": "0xc68e78",
+            "function": "sub_c68e30"
+          },
+          {
+            "from": "0xc99f90",
+            "function": "sub_c99f30"
+          },
+          {
+            "from": "0xc9a1a0",
+            "function": "sub_c9a140"
+          },
+          {
+            "from": "0xc9a3b0",
+            "function": "sub_c9a350"
+          }
+        ],
+        "section": ".rdata",
+        "text": "{newString:%As,uniformAttrs:%Ab}"
+      },
+      {
+        "address": "0x17d9928",
+        "references": [
+          {
+            "from": "0xc6c9b5",
+            "function": "sub_c6c960"
+          },
+          {
+            "from": "0xc6cb65",
+            "function": "sub_c6cb10"
+          },
+          {
+            "from": "0xc6ee45",
+            "function": "sub_c6edf0"
+          },
+          {
+            "from": "0xc6eff5",
+            "function": "sub_c6efa0"
+          },
+          {
+            "from": "0xc9e2f4",
+            "function": "sub_c9e290"
+          },
+          {
+            "from": "0xca00a4",
+            "function": "sub_ca0040"
+          }
+        ],
+        "section": ".rdata",
+        "text": "{category:%As,name:%As,newName:%As}"
+      },
+      {
+        "address": "0x17d9dac",
+        "references": [
+          {
+            "from": "0xc7099a",
+            "function": "sub_c70950"
+          },
+          {
+            "from": "0xc70aea",
+            "function": "sub_c70aa0"
+          },
+          {
+            "from": "0xca1fc2",
+            "function": "sub_ca1f60"
+          }
+        ],
+        "section": ".rdata",
+        "text": "{name:%As,newName:%As}"
+      },
+      {
+        "address": "0x17da0d8",
+        "references": [
+          {
+            "from": "0xc74a98",
+            "function": "sub_c74a80"
+          },
+          {
+            "from": "0xc74b31",
+            "function": "sub_c74b00"
+          },
+          {
+            "from": "0xca5fc6",
+            "function": "sub_ca5f70"
+          }
+        ],
+        "section": ".rdata",
+        "text": "{origPos:%Ai,newPos:%Ai}"
+      },
+      {
+        "address": "0x17da388",
+        "references": [
+          {
+            "from": "0xc7a289",
+            "function": "sub_c7a230"
+          },
+          {
+            "from": "0xc7a439",
+            "function": "sub_c7a3e0"
+          },
+          {
+            "from": "0xcab5c8",
+            "function": "sub_cab560"
+          }
+        ],
+        "section": ".rdata",
+        "text": "{uiName:%As,masterType:%As,newUiName:%As,enable9Slice:%Ab}"
+      },
+      {
+        "address": "0x17da728",
+        "references": [
+          {
+            "from": "0xc80dbe",
+            "function": "sub_c80d70"
+          },
+          {
+            "from": "0xc80e01",
+            "function": "sub_c80d70"
+          },
+          {
+            "from": "0xc80efd",
+            "function": "sub_c80eb0"
+          },
+          {
+            "from": "0xc80f40",
+            "function": "sub_c80eb0"
+          },
+          {
+            "from": "0xcb28e9",
+            "function": "sub_cb2880"
+          },
+          {
+            "from": "0xcb2a8c",
+            "function": "sub_cb2980"
+          }
+        ],
+        "section": ".rdata",
+        "text": "addNewSubLayer"
+      },
+      {
+        "address": "0x17dad20",
+        "references": [
+          {
+            "from": "0xc91564",
+            "function": "sub_c91500"
+          },
+          {
+            "from": "0xcb7e2f",
+            "function": "sub_cb7de0"
+          },
+          {
+            "from": "0xcb7f2c",
+            "function": "sub_cb7ee0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "{enable:%Ab,selectAndEnterPaintModeIfPossible:%Ab,newSelectionMask:%Ao}"
+      },
+      {
+        "address": "0x17db224",
+        "references": [
+          {
+            "from": "0xca5dd3",
+            "function": "sub_ca5d80"
+          },
+          {
+            "from": "0xcb8604",
+            "function": "sub_cb85f0"
+          },
+          {
+            "from": "0xcb8617",
+            "function": "sub_cb85f0"
+          },
+          {
+            "from": "0xcb867f",
+            "function": "sub_cb8650"
+          },
+          {
+            "from": "0xcb8693",
+            "function": "sub_cb8650"
+          },
+          {
+            "from": "0xcb872b",
+            "function": "sub_cb86e0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "addNewPage"
+      },
+      {
+        "address": "0x17db2f4",
+        "references": [
+          {
+            "from": "0xca9137",
+            "function": "sub_ca90f0"
+          },
+          {
+            "from": "0xca9234",
+            "function": "sub_ca91f0"
+          },
+          {
+            "from": "0xca934c",
+            "function": "sub_ca92f0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "{newSides:%Ar} "
+      },
+      {
+        "address": "0x17db668",
+        "references": [
+          {
+            "from": "0xcb21b7",
+            "function": "sub_cb2160"
+          },
+          {
+            "from": "0xcb22d4",
+            "function": "sub_cb2280"
+          },
+          {
+            "from": "0xcb240c",
+            "function": "sub_cb23a0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "{index:%Ai,newLoc:%Ap,shiftKeyDown:%Ab,ctrlCmdKeyDown:%Ab,altOptKeyDown:%Ab}"
+      },
+      {
+        "address": "0x17e5ff0",
+        "references": [
+          {
+            "from": "0xda14d6",
+            "function": "sub_da1440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "BridgeTalk.launchBridge = function (file){ \t\t\tvar bt = new BridgeTalk(); \t\t\tbt.target = \"bridge\"; \t\t\tbt.body = \"var target = new File('\"; \t\t\tbt.body+=file; \t\t\tbt.body+=(\"');\"); \t\t\tbt.body += \"app.document.thumbnail = new Thumbnail(target); \"; \t\t\tbt.body +=  \"app.document.bringToFront(); \"; \t\t\tbt.send(); \t\t\tBridgeTalk.bringToFront(\"bridge\");\t\t\t}"
+      },
+      {
+        "address": "0x17e72d8",
+        "references": [
+          {
+            "from": "0xdd113a",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Select Newer Remote"
+      },
+      {
+        "address": "0x17e72ec",
+        "references": [
+          {
+            "from": "0xdd1117",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Select Newer Local"
+      },
+      {
+        "address": "0x17e7b18",
+        "references": [
+          {
+            "from": "0xdcff50",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "New Folder"
+      },
+      {
+        "address": "0x17e7b24",
+        "references": [
+          {
+            "from": "0xdcff2d",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "New File"
+      },
+      {
+        "address": "0x17e9190",
+        "references": [
+          {
+            "from": "0xdce06d",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Insert::New Symbol"
+      },
+      {
+        "address": "0x17e91ac",
+        "references": [
+          {
+            "from": "0xdce04a",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Insert::New Button"
+      },
+      {
+        "address": "0x17e94a4",
+        "references": [
+          {
+            "from": "0xdcdc56",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::New From Template"
+      },
+      {
+        "address": "0x17e94bc",
+        "references": [
+          {
+            "from": "0xdcdc33",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "File::New"
+      },
+      {
+        "address": "0x18012f4",
+        "references": [
+          {
+            "from": "0xee5bbb",
+            "function": "sub_ee5b80"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewErrorContainerBlankProc"
+      },
+      {
+        "address": "0x1801318",
+        "references": [
+          {
+            "from": "0xee5bb4",
+            "function": "sub_ee5b80"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewErrorContainerBlank"
+      },
+      {
+        "address": "0x1801338",
+        "references": [
+          {
+            "from": "0xee5bad",
+            "function": "sub_ee5b80"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewErrorContainerProc"
+      },
+      {
+        "address": "0x1801354",
+        "references": [
+          {
+            "from": "0xee5ba6",
+            "function": "sub_ee5b80"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewErrorContainer"
+      },
+      {
+        "address": "0x180164c",
+        "references": [
+          {
+            "from": "0xee5cf2",
+            "function": "sub_ee5c70"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewFileSpecPlusInternalProc"
+      },
+      {
+        "address": "0x1801670",
+        "references": [
+          {
+            "from": "0xee5ceb",
+            "function": "sub_ee5c70"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewFileSpecPlusInternal"
+      },
+      {
+        "address": "0x1801690",
+        "references": [
+          {
+            "from": "0xee5ce4",
+            "function": "sub_ee5c70"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewFileSpecPlusWideRHSProc"
+      },
+      {
+        "address": "0x18016b4",
+        "references": [
+          {
+            "from": "0xee5cdd",
+            "function": "sub_ee5c70"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewFileSpecPlusWideRHS"
+      },
+      {
+        "address": "0x18016d4",
+        "references": [
+          {
+            "from": "0xee5cd6",
+            "function": "sub_ee5c70"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewFileSpecPlusWideSProc"
+      },
+      {
+        "address": "0x18016f4",
+        "references": [
+          {
+            "from": "0xee5ccf",
+            "function": "sub_ee5c70"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewFileSpecPlusWideS"
+      },
+      {
+        "address": "0x1801710",
+        "references": [
+          {
+            "from": "0xee5cc8",
+            "function": "sub_ee5c70"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewFileSpecPlusCharRHSProc"
+      },
+      {
+        "address": "0x1801734",
+        "references": [
+          {
+            "from": "0xee5cc1",
+            "function": "sub_ee5c70"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewFileSpecPlusCharRHS"
+      },
+      {
+        "address": "0x1801754",
+        "references": [
+          {
+            "from": "0xee5cba",
+            "function": "sub_ee5c70"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewFileSpecPlusCharSProc"
+      },
+      {
+        "address": "0x1801774",
+        "references": [
+          {
+            "from": "0xee5cb0",
+            "function": "sub_ee5c70"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewFileSpecPlusCharS"
+      },
+      {
+        "address": "0x1801790",
+        "references": [
+          {
+            "from": "0xee5ca6",
+            "function": "sub_ee5c70"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewFileSpecPlusProc"
+      },
+      {
+        "address": "0x18017ac",
+        "references": [
+          {
+            "from": "0xee5c9c",
+            "function": "sub_ee5c70"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewFileSpecPlus"
+      },
+      {
+        "address": "0x1802990",
+        "references": [
+          {
+            "from": "0xee5e88",
+            "function": "sub_ee5df0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewStringCopyProc"
+      },
+      {
+        "address": "0x18029a8",
+        "references": [
+          {
+            "from": "0xee5e7e",
+            "function": "sub_ee5df0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewStringCopy"
+      },
+      {
+        "address": "0x18029bc",
+        "references": [
+          {
+            "from": "0xee5e74",
+            "function": "sub_ee5df0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewStringBlankProc"
+      },
+      {
+        "address": "0x18029d8",
+        "references": [
+          {
+            "from": "0xee5e6a",
+            "function": "sub_ee5df0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewStringBlank"
+      },
+      {
+        "address": "0x18029f0",
+        "references": [
+          {
+            "from": "0xee5e60",
+            "function": "sub_ee5df0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewStringWideSNProc"
+      },
+      {
+        "address": "0x1802a0c",
+        "references": [
+          {
+            "from": "0xee5e56",
+            "function": "sub_ee5df0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewStringWideSN"
+      },
+      {
+        "address": "0x1802a24",
+        "references": [
+          {
+            "from": "0xee5e4c",
+            "function": "sub_ee5df0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewStringCharSNProc"
+      },
+      {
+        "address": "0x1802a40",
+        "references": [
+          {
+            "from": "0xee5e42",
+            "function": "sub_ee5df0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewStringCharSN"
+      },
+      {
+        "address": "0x1802a58",
+        "references": [
+          {
+            "from": "0xee5e38",
+            "function": "sub_ee5df0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewStringWideSProc"
+      },
+      {
+        "address": "0x1802a74",
+        "references": [
+          {
+            "from": "0xee5e2e",
+            "function": "sub_ee5df0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewStringWideS"
+      },
+      {
+        "address": "0x1802a8c",
+        "references": [
+          {
+            "from": "0xee5e24",
+            "function": "sub_ee5df0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewStringCharSProc"
+      },
+      {
+        "address": "0x1802aa8",
+        "references": [
+          {
+            "from": "0xee5e1a",
+            "function": "sub_ee5df0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "FINFO_NewStringCharS"
+      },
+      {
+        "address": "0x1804424",
+        "references": [
+          {
+            "from": "0xee72bf",
+            "function": "sub_ee7230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorProfileProfileSequenceTransformProc"
+      },
+      {
+        "address": "0x1804454",
+        "references": [
+          {
+            "from": "0xee72b8",
+            "function": "sub_ee7230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewProfileSequenceTransform"
+      },
+      {
+        "address": "0x1804470",
+        "references": [
+          {
+            "from": "0xee72b1",
+            "function": "sub_ee7230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorProfileProfileSequenceProcV2"
+      },
+      {
+        "address": "0x1804498",
+        "references": [
+          {
+            "from": "0xee72aa",
+            "function": "sub_ee7230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewProfileSequence"
+      },
+      {
+        "address": "0x18044ac",
+        "references": [
+          {
+            "from": "0xee72a3",
+            "function": "sub_ee7230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorProfileICCProfileProcV7"
+      },
+      {
+        "address": "0x18044d0",
+        "references": [
+          {
+            "from": "0xee729c",
+            "function": "sub_ee7230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewICCProfileV2"
+      },
+      {
+        "address": "0x18044e0",
+        "references": [
+          {
+            "from": "0xee7295",
+            "function": "sub_ee7230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorProfileICCProfileFromDataProcV7"
+      },
+      {
+        "address": "0x180450c",
+        "references": [
+          {
+            "from": "0xee728e",
+            "function": "sub_ee7230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewICCProfileFromData"
+      },
+      {
+        "address": "0x1804524",
+        "references": [
+          {
+            "from": "0xee7287",
+            "function": "sub_ee7230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorProfileLabProcV7"
+      },
+      {
+        "address": "0x1804540",
+        "references": [
+          {
+            "from": "0xee7280",
+            "function": "sub_ee7230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewLabProfile"
+      },
+      {
+        "address": "0x1804550",
+        "references": [
+          {
+            "from": "0xee7279",
+            "function": "sub_ee7230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorProfileCMYKProcV7"
+      },
+      {
+        "address": "0x1804570",
+        "references": [
+          {
+            "from": "0xee7272",
+            "function": "sub_ee7230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewCMYKProfile"
+      },
+      {
+        "address": "0x1804580",
+        "references": [
+          {
+            "from": "0xee726b",
+            "function": "sub_ee7230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorProfileGrayProcV7"
+      },
+      {
+        "address": "0x18045a0",
+        "references": [
+          {
+            "from": "0xee7264",
+            "function": "sub_ee7230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewGrayProfile"
+      },
+      {
+        "address": "0x18045b0",
+        "references": [
+          {
+            "from": "0xee725d",
+            "function": "sub_ee7230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorProfileRGBProcV7"
+      },
+      {
+        "address": "0x18045cc",
+        "references": [
+          {
+            "from": "0xee7256",
+            "function": "sub_ee7230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewRGBProfile"
+      },
+      {
+        "address": "0x18045dc",
+        "references": [
+          {
+            "from": "0xee7246",
+            "function": "sub_ee7230"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorProfileInterface"
+      },
+      {
+        "address": "0x18049a4",
+        "references": [
+          {
+            "from": "0xee74dd",
+            "function": "sub_ee7440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorSpaceIndexedProcV5"
+      },
+      {
+        "address": "0x18049c4",
+        "references": [
+          {
+            "from": "0xee74d6",
+            "function": "sub_ee7440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewIndexedColorSpace"
+      },
+      {
+        "address": "0x18049dc",
+        "references": [
+          {
+            "from": "0xee74cf",
+            "function": "sub_ee7440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorSpaceNChannelProcV2"
+      },
+      {
+        "address": "0x18049fc",
+        "references": [
+          {
+            "from": "0xee74c8",
+            "function": "sub_ee7440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewNChannelColorSpace"
+      },
+      {
+        "address": "0x1804a14",
+        "references": [
+          {
+            "from": "0xee74c1",
+            "function": "sub_ee7440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorSpaceDeviceNProcV5"
+      },
+      {
+        "address": "0x1804a34",
+        "references": [
+          {
+            "from": "0xee74ba",
+            "function": "sub_ee7440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewDeviceNColorSpace"
+      },
+      {
+        "address": "0x1804a4c",
+        "references": [
+          {
+            "from": "0xee74b3",
+            "function": "sub_ee7440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorSpaceSeparation3ProcV4"
+      },
+      {
+        "address": "0x1804a70",
+        "references": [
+          {
+            "from": "0xee74ac",
+            "function": "sub_ee7440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewSeparation3ColorSpace"
+      },
+      {
+        "address": "0x1804a8c",
+        "references": [
+          {
+            "from": "0xee74a5",
+            "function": "sub_ee7440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorSpaceSeparation2ProcV5"
+      },
+      {
+        "address": "0x1804ab0",
+        "references": [
+          {
+            "from": "0xee749e",
+            "function": "sub_ee7440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewSeparation2ColorSpace"
+      },
+      {
+        "address": "0x1804acc",
+        "references": [
+          {
+            "from": "0xee7497",
+            "function": "sub_ee7440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorSpaceSeparationProcV5"
+      },
+      {
+        "address": "0x1804af0",
+        "references": [
+          {
+            "from": "0xee7490",
+            "function": "sub_ee7440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewSeparationColorSpace"
+      },
+      {
+        "address": "0x1804b08",
+        "references": [
+          {
+            "from": "0xee7489",
+            "function": "sub_ee7440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorSpaceCalProcV5"
+      },
+      {
+        "address": "0x1804b24",
+        "references": [
+          {
+            "from": "0xee7482",
+            "function": "sub_ee7440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewCalColorSpace"
+      },
+      {
+        "address": "0x1804b38",
+        "references": [
+          {
+            "from": "0xee747b",
+            "function": "sub_ee7440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorSpaceUcrBgProcV3"
+      },
+      {
+        "address": "0x1804b54",
+        "references": [
+          {
+            "from": "0xee7474",
+            "function": "sub_ee7440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewUcrBgColorSpace"
+      },
+      {
+        "address": "0x1804b68",
+        "references": [
+          {
+            "from": "0xee746d",
+            "function": "sub_ee7440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorSpaceBaseProcV5"
+      },
+      {
+        "address": "0x1804b84",
+        "references": [
+          {
+            "from": "0xee7466",
+            "function": "sub_ee7440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewBaseColorSpace"
+      },
+      {
+        "address": "0x1804b98",
+        "references": [
+          {
+            "from": "0xee7456",
+            "function": "sub_ee7440"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorSpaceInterface"
+      },
+      {
+        "address": "0x1805330",
+        "references": [
+          {
+            "from": "0xee7809",
+            "function": "sub_ee77e0"
+          },
+          {
+            "from": "0xeefcb4",
+            "function": "sub_eefc80"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorSpaceListProcV2"
+      },
+      {
+        "address": "0x180534c",
+        "references": [
+          {
+            "from": "0xee7802",
+            "function": "sub_ee77e0"
+          },
+          {
+            "from": "0xeefcad",
+            "function": "sub_eefc80"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewColorSpaceList"
+      },
+      {
+        "address": "0x1805360",
+        "references": [
+          {
+            "from": "0xee77f7",
+            "function": "sub_ee77e0"
+          },
+          {
+            "from": "0xeefc9d",
+            "function": "sub_eefc80"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorSpaceListInterface"
+      },
+      {
+        "address": "0x180544c",
+        "references": [
+          {
+            "from": "0xee78b9",
+            "function": "sub_ee7890"
+          },
+          {
+            "from": "0xeefdd4",
+            "function": "sub_eefda0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorConvertInfoProc"
+      },
+      {
+        "address": "0x1805468",
+        "references": [
+          {
+            "from": "0xee78b2",
+            "function": "sub_ee7890"
+          },
+          {
+            "from": "0xeefdcd",
+            "function": "sub_eefda0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewColorConvertInfo"
+      },
+      {
+        "address": "0x180547c",
+        "references": [
+          {
+            "from": "0xee78a7",
+            "function": "sub_ee7890"
+          },
+          {
+            "from": "0xeefdbd",
+            "function": "sub_eefda0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewColorConvertInfoInterface"
+      },
+      {
+        "address": "0x1805594",
+        "references": [
+          {
+            "from": "0xee79b5",
+            "function": "sub_ee7950"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewBitArrayMeshDataSourceProcV3"
+      },
+      {
+        "address": "0x18055b8",
+        "references": [
+          {
+            "from": "0xee79ae",
+            "function": "sub_ee7950"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewBitArrayMeshDataSource"
+      },
+      {
+        "address": "0x18055d4",
+        "references": [
+          {
+            "from": "0xee79a7",
+            "function": "sub_ee7950"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewFloatArrayMeshDataSourceProcV2"
+      },
+      {
+        "address": "0x18055fc",
+        "references": [
+          {
+            "from": "0xee79a0",
+            "function": "sub_ee7950"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewFloatArrayMeshDataSource"
+      },
+      {
+        "address": "0x1805618",
+        "references": [
+          {
+            "from": "0xee7999",
+            "function": "sub_ee7950"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewFloatStreamMeshDataSourceProcV3"
+      },
+      {
+        "address": "0x1805640",
+        "references": [
+          {
+            "from": "0xee7992",
+            "function": "sub_ee7950"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewFloatStreamMeshDataSource"
+      },
+      {
+        "address": "0x1805660",
+        "references": [
+          {
+            "from": "0xee798b",
+            "function": "sub_ee7950"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewStreamMeshDataSourceProcV3"
+      },
+      {
+        "address": "0x1805684",
+        "references": [
+          {
+            "from": "0xee7984",
+            "function": "sub_ee7950"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewStreamMeshDataSource"
+      },
+      {
+        "address": "0x180569c",
+        "references": [
+          {
+            "from": "0xee797d",
+            "function": "sub_ee7950"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewSampleFunctionDataSourceProcV3"
+      },
+      {
+        "address": "0x18056c4",
+        "references": [
+          {
+            "from": "0xee7976",
+            "function": "sub_ee7950"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewSampleFunctionDataSource"
+      },
+      {
+        "address": "0x18056e0",
+        "references": [
+          {
+            "from": "0xee7966",
+            "function": "sub_ee7950"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewDataSourceInterface"
+      },
+      {
+        "address": "0x1805954",
+        "references": [
+          {
+            "from": "0xee7acb",
+            "function": "sub_ee7a90"
+          },
+          {
+            "from": "0xef002c",
+            "function": "sub_eeffe0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewDevicePathNewPathPathV2"
+      },
+      {
+        "address": "0x1805974",
+        "references": [
+          {
+            "from": "0xee7ac4",
+            "function": "sub_ee7a90"
+          },
+          {
+            "from": "0xef0025",
+            "function": "sub_eeffe0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewPathPath"
+      },
+      {
+        "address": "0x1805980",
+        "references": [
+          {
+            "from": "0xee7abd",
+            "function": "sub_ee7a90"
+          },
+          {
+            "from": "0xef001e",
+            "function": "sub_eeffe0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewDevicePathNewPathPointsV2"
+      },
+      {
+        "address": "0x18059a0",
+        "references": [
+          {
+            "from": "0xee7ab6",
+            "function": "sub_ee7a90"
+          },
+          {
+            "from": "0xef0017",
+            "function": "sub_eeffe0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewPathPoints"
+      },
+      {
+        "address": "0x18059b0",
+        "references": [
+          {
+            "from": "0xee7aa6",
+            "function": "sub_ee7a90"
+          },
+          {
+            "from": "0xef0007",
+            "function": "sub_eeffe0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewDevicePathInterface"
+      },
+      {
+        "address": "0x1805c38",
+        "references": [
+          {
+            "from": "0xee7c0d",
+            "function": "sub_ee7be0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMDisplayListPortNewPortProcV7"
+      },
+      {
+        "address": "0x1805c58",
+        "references": [
+          {
+            "from": "0xee7c06",
+            "function": "sub_ee7be0"
+          },
+          {
+            "from": "0xee83b2",
+            "function": "sub_ee8390"
+          },
+          {
+            "from": "0xee85a2",
+            "function": "sub_ee8580"
+          },
+          {
+            "from": "0xee8b72",
+            "function": "sub_ee8b50"
+          },
+          {
+            "from": "0xee8bb6",
+            "function": "sub_ee8b90"
+          },
+          {
+            "from": "0xee8c72",
+            "function": "sub_ee8c50"
+          },
+          {
+            "from": "0xee8cf2",
+            "function": "sub_ee8cd0"
+          },
+          {
+            "from": "0xee9474",
+            "function": "sub_ee9440"
+          },
+          {
+            "from": "0xeea3f2",
+            "function": "sub_eea3d0"
+          },
+          {
+            "from": "0xeeb476",
+            "function": "sub_eeb450"
+          },
+          {
+            "from": "0xef0e0d",
+            "function": "sub_ef0de0"
+          },
+          {
+            "from": "0xef0eed",
+            "function": "sub_ef0ec0"
+          },
+          {
+            "from": "0xef117d",
+            "function": "sub_ef1150"
+          },
+          {
+            "from": "0xef1207",
+            "function": "sub_ef11d0"
+          },
+          {
+            "from": "0xef134d",
+            "function": "sub_ef1320"
+          },
+          {
+            "from": "0xef143d",
+            "function": "sub_ef1410"
+          },
+          {
+            "from": "0xef1fad",
+            "function": "sub_ef1f80"
+          },
+          {
+            "from": "0xef3127",
+            "function": "sub_ef30f0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewPort"
+      },
+      {
+        "address": "0x1805da0",
+        "references": [
+          {
+            "from": "0xee7cad",
+            "function": "sub_ee7c80"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMFlatteningPortNewPortProc"
+      },
+      {
+        "address": "0x1805dc0",
+        "references": [
+          {
+            "from": "0xee7ca6",
+            "function": "sub_ee7c80"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewFlatPort"
+      },
+      {
+        "address": "0x1805f50",
+        "references": [
+          {
+            "from": "0xee7d4d",
+            "function": "sub_ee7d20"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMFlatteningPortManagerNewManagerProc"
+      },
+      {
+        "address": "0x1805f78",
+        "references": [
+          {
+            "from": "0xee7d46",
+            "function": "sub_ee7d20"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewManager"
+      },
+      {
+        "address": "0x1806378",
+        "references": [
+          {
+            "from": "0xee7e06",
+            "function": "sub_ee7dd0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMFlatSettingsNewSettingsProcV2"
+      },
+      {
+        "address": "0x180639c",
+        "references": [
+          {
+            "from": "0xee7dfc",
+            "function": "sub_ee7dd0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewSettings"
+      },
+      {
+        "address": "0x18063c4",
+        "references": [
+          {
+            "from": "0xee7fb5",
+            "function": "sub_ee7f50"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewPolynomialFunctionProcV1"
+      },
+      {
+        "address": "0x18063e4",
+        "references": [
+          {
+            "from": "0xee7fae",
+            "function": "sub_ee7f50"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewPolynomialFunction"
+      },
+      {
+        "address": "0x18063fc",
+        "references": [
+          {
+            "from": "0xee7fa7",
+            "function": "sub_ee7f50"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewPCFunctionProcV3"
+      },
+      {
+        "address": "0x1806414",
+        "references": [
+          {
+            "from": "0xee7fa0",
+            "function": "sub_ee7f50"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewPCFunction"
+      },
+      {
+        "address": "0x1806424",
+        "references": [
+          {
+            "from": "0xee7f99",
+            "function": "sub_ee7f50"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewStitchFunctionProcV3"
+      },
+      {
+        "address": "0x1806440",
+        "references": [
+          {
+            "from": "0xee7f92",
+            "function": "sub_ee7f50"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewStitchFunction"
+      },
+      {
+        "address": "0x1806454",
+        "references": [
+          {
+            "from": "0xee7f8b",
+            "function": "sub_ee7f50"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewInterpFunctionProcV3"
+      },
+      {
+        "address": "0x1806470",
+        "references": [
+          {
+            "from": "0xee7f84",
+            "function": "sub_ee7f50"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewInterpFunction"
+      },
+      {
+        "address": "0x1806484",
+        "references": [
+          {
+            "from": "0xee7f7d",
+            "function": "sub_ee7f50"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewSampledFunctionProcV3"
+      },
+      {
+        "address": "0x18064a0",
+        "references": [
+          {
+            "from": "0xee7f76",
+            "function": "sub_ee7f50"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewSampledFunction"
+      },
+      {
+        "address": "0x18064b4",
+        "references": [
+          {
+            "from": "0xee7f66",
+            "function": "sub_ee7f50"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewFunctionInterface"
+      },
+      {
+        "address": "0x1806730",
+        "references": [
+          {
+            "from": "0xee80f9",
+            "function": "sub_ee80d0"
+          },
+          {
+            "from": "0xef0a04",
+            "function": "sub_ef09d0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewFunctionListProcV3"
+      },
+      {
+        "address": "0x180674c",
+        "references": [
+          {
+            "from": "0xee80f2",
+            "function": "sub_ee80d0"
+          },
+          {
+            "from": "0xef09fd",
+            "function": "sub_ef09d0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewFunctionList"
+      },
+      {
+        "address": "0x180675c",
+        "references": [
+          {
+            "from": "0xee80e7",
+            "function": "sub_ee80d0"
+          },
+          {
+            "from": "0xef09ed",
+            "function": "sub_ef09d0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewFunctionListInterface"
+      },
+      {
+        "address": "0x180682c",
+        "references": [
+          {
+            "from": "0xee81e5",
+            "function": "sub_ee8180"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewHalftoneType16ProcV2"
+      },
+      {
+        "address": "0x1806848",
+        "references": [
+          {
+            "from": "0xee81de",
+            "function": "sub_ee8180"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewHalftoneType16"
+      },
+      {
+        "address": "0x180685c",
+        "references": [
+          {
+            "from": "0xee81d7",
+            "function": "sub_ee8180"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewHalftoneType10ProcV2"
+      },
+      {
+        "address": "0x1806878",
+        "references": [
+          {
+            "from": "0xee81d0",
+            "function": "sub_ee8180"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewHalftoneType10"
+      },
+      {
+        "address": "0x180688c",
+        "references": [
+          {
+            "from": "0xee81c9",
+            "function": "sub_ee8180"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewHalftoneType6ProcV2"
+      },
+      {
+        "address": "0x18068a8",
+        "references": [
+          {
+            "from": "0xee81c2",
+            "function": "sub_ee8180"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewHalftoneType6"
+      },
+      {
+        "address": "0x18068bc",
+        "references": [
+          {
+            "from": "0xee81bb",
+            "function": "sub_ee8180"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewHalftoneType5ProcV2"
+      },
+      {
+        "address": "0x18068d8",
+        "references": [
+          {
+            "from": "0xee81b4",
+            "function": "sub_ee8180"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewHalftoneType5"
+      },
+      {
+        "address": "0x18068ec",
+        "references": [
+          {
+            "from": "0xee81ad",
+            "function": "sub_ee8180"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewHalftoneType1ProcV2"
+      },
+      {
+        "address": "0x1806908",
+        "references": [
+          {
+            "from": "0xee81a6",
+            "function": "sub_ee8180"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewHalftoneType1"
+      },
+      {
+        "address": "0x180691c",
+        "references": [
+          {
+            "from": "0xee8196",
+            "function": "sub_ee8180"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewHalftoneInterface"
+      },
+      {
+        "address": "0x1806ab8",
+        "references": [
+          {
+            "from": "0xee82f9",
+            "function": "sub_ee82d0"
+          },
+          {
+            "from": "0xef0c04",
+            "function": "sub_ef0bd0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewHalftoneListProcV2"
+      },
+      {
+        "address": "0x1806ad4",
+        "references": [
+          {
+            "from": "0xee82f2",
+            "function": "sub_ee82d0"
+          },
+          {
+            "from": "0xef0bfd",
+            "function": "sub_ef0bd0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewHalftoneList"
+      },
+      {
+        "address": "0x1806ae4",
+        "references": [
+          {
+            "from": "0xee82e7",
+            "function": "sub_ee82d0"
+          },
+          {
+            "from": "0xef0bed",
+            "function": "sub_ef0bd0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewHalftoneListInterface"
+      },
+      {
+        "address": "0x1806be8",
+        "references": [
+          {
+            "from": "0xee83b9",
+            "function": "sub_ee8390"
+          },
+          {
+            "from": "0xef0e14",
+            "function": "sub_ef0de0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewGStatePortProc"
+      },
+      {
+        "address": "0x1806c00",
+        "references": [
+          {
+            "from": "0xee83a7",
+            "function": "sub_ee8390"
+          },
+          {
+            "from": "0xef0dfd",
+            "function": "sub_ef0de0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewGStatePortInterface"
+      },
+      {
+        "address": "0x1807054",
+        "references": [
+          {
+            "from": "0xee85a9",
+            "function": "sub_ee8580"
+          },
+          {
+            "from": "0xef0ef4",
+            "function": "sub_ef0ec0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewGStateToGraphixPortProc"
+      },
+      {
+        "address": "0x1807074",
+        "references": [
+          {
+            "from": "0xee8597",
+            "function": "sub_ee8580"
+          },
+          {
+            "from": "0xef0edd",
+            "function": "sub_ef0ec0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewGStateToGraphixPortInterface"
+      },
+      {
+        "address": "0x1807098",
+        "references": [
+          {
+            "from": "0xee85fb",
+            "function": "sub_ee85c0"
+          },
+          {
+            "from": "0xef0f8c",
+            "function": "sub_ef0f40"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewCompositorBoundsProcV3"
+      },
+      {
+        "address": "0x18070b8",
+        "references": [
+          {
+            "from": "0xee85f4",
+            "function": "sub_ee85c0"
+          },
+          {
+            "from": "0xef0f85",
+            "function": "sub_ef0f40"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewBounds"
+      },
+      {
+        "address": "0x18070c4",
+        "references": [
+          {
+            "from": "0xee85ed",
+            "function": "sub_ee85c0"
+          },
+          {
+            "from": "0xef0f7e",
+            "function": "sub_ef0f40"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewCompositorWindowProcV3"
+      },
+      {
+        "address": "0x18070e4",
+        "references": [
+          {
+            "from": "0xee85e6",
+            "function": "sub_ee85c0"
+          },
+          {
+            "from": "0xef0f77",
+            "function": "sub_ef0f40"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewWindow"
+      },
+      {
+        "address": "0x18070f0",
+        "references": [
+          {
+            "from": "0xee85d6",
+            "function": "sub_ee85c0"
+          },
+          {
+            "from": "0xef0f67",
+            "function": "sub_ef0f40"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewCompositorInterface"
+      },
+      {
+        "address": "0x1807518",
+        "references": [
+          {
+            "from": "0xee87b9",
+            "function": "sub_ee8790"
+          },
+          {
+            "from": "0xef1064",
+            "function": "sub_ef1030"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewRenderOptionsProc"
+      },
+      {
+        "address": "0x1807530",
+        "references": [
+          {
+            "from": "0xee87b2",
+            "function": "sub_ee8790"
+          },
+          {
+            "from": "0xef105d",
+            "function": "sub_ef1030"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewRenderOptions"
+      },
+      {
+        "address": "0x1807544",
+        "references": [
+          {
+            "from": "0xee87a7",
+            "function": "sub_ee8790"
+          },
+          {
+            "from": "0xef104d",
+            "function": "sub_ef1030"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewRenderOptionsInterface"
+      },
+      {
+        "address": "0x1807df4",
+        "references": [
+          {
+            "from": "0xee8b79",
+            "function": "sub_ee8b50"
+          },
+          {
+            "from": "0xef1184",
+            "function": "sub_ef1150"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewGraphixCapturePortProc"
+      },
+      {
+        "address": "0x1807e14",
+        "references": [
+          {
+            "from": "0xee8b67",
+            "function": "sub_ee8b50"
+          },
+          {
+            "from": "0xef116d",
+            "function": "sub_ef1150"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewGraphixCapturePortInterface"
+      },
+      {
+        "address": "0x1807e38",
+        "references": [
+          {
+            "from": "0xee8bcb",
+            "function": "sub_ee8b90"
+          },
+          {
+            "from": "0xef121c",
+            "function": "sub_ef11d0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewGraphixRasterPortWndProc"
+      },
+      {
+        "address": "0x1807e58",
+        "references": [
+          {
+            "from": "0xee8bc4",
+            "function": "sub_ee8b90"
+          },
+          {
+            "from": "0xef1215",
+            "function": "sub_ef11d0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "NewWndPort"
+      },
+      {
+        "address": "0x1807e64",
+        "references": [
+          {
+            "from": "0xee8bbd",
+            "function": "sub_ee8b90"
+          },
+          {
+            "from": "0xef120e",
+            "function": "sub_ef11d0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewGraphixRasterPortProc"
+      },
+      {
+        "address": "0x1807e80",
+        "references": [
+          {
+            "from": "0xee8ba6",
+            "function": "sub_ee8b90"
+          },
+          {
+            "from": "0xef11f7",
+            "function": "sub_ef11d0"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewGraphixRasterPortInterface"
+      },
+      {
+        "address": "0x1807f3c",
+        "references": [
+          {
+            "from": "0xee8c79",
+            "function": "sub_ee8c50"
+          },
+          {
+            "from": "0xef1354",
+            "function": "sub_ef1320"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewGraphixToGStatePortProcV2"
+      },
+      {
+        "address": "0x1807f5c",
+        "references": [
+          {
+            "from": "0xee8c67",
+            "function": "sub_ee8c50"
+          },
+          {
+            "from": "0xef133d",
+            "function": "sub_ef1320"
+          }
+        ],
+        "section": ".rdata",
+        "text": "AGMNewGraphixToGStatePortInterface"
+      }
+    ],
+    "total": 540
+  },
+  "summary": "540 strings match \"New\".",
+  "confidence": "observed",
+  "authority": "original-files",
+  "environment": {
+    "clean_room": false,
+    "engine": "builtin",
+    "engine_version": "0.6.1",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "data_sections_only",
+      "message": "only strings stored in the file are searched (absence is not proof)"
+    }
+  ],
+  "coverage": {
+    "status": "partial",
+    "examined": 200,
+    "total": 540,
+    "next_offset": 200
+  },
+  "locations": [],
+  "links": []
+}

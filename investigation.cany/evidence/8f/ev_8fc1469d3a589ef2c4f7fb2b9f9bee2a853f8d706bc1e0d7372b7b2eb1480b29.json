@@ -1,0 +1,351 @@
+{
+  "id": "ev_8fc1469d3a589ef2c4f7fb2b9f9bee2a853f8d706bc1e0d7372b7b2eb1480b29",
+  "subject": {
+    "kind": "pe",
+    "sha256": "ab9a267ffe6a9fd23f8f3f09446997c770effceeaae66babcb3f10d15433053f",
+    "name": "Fireworks.exe"
+  },
+  "operation": "native_strings_find",
+  "params": {
+    "case_sensitive": false,
+    "limit": 200,
+    "mode": "literal",
+    "offset": 0,
+    "pattern": "Edit::"
+  },
+  "result": {
+    "matches": [
+      {
+        "address": "0x17e7bc0",
+        "references": [
+          {
+            "from": "0xdcfe38",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Insert::Slice"
+      },
+      {
+        "address": "0x17e8fa8",
+        "references": [
+          {
+            "from": "0xdce393",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Keyboard Shortcuts"
+      },
+      {
+        "address": "0x17e8fc4",
+        "references": [
+          {
+            "from": "0xdce370",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Preferences"
+      },
+      {
+        "address": "0x17e8fd8",
+        "references": [
+          {
+            "from": "0xdce34d",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Crop Document"
+      },
+      {
+        "address": "0x17e8fec",
+        "references": [
+          {
+            "from": "0xdce32a",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Crop Selected Bitmap"
+      },
+      {
+        "address": "0x17e9008",
+        "references": [
+          {
+            "from": "0xdce307",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Clone"
+      },
+      {
+        "address": "0x17e9014",
+        "references": [
+          {
+            "from": "0xdce2e4",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Duplicate"
+      },
+      {
+        "address": "0x17e9024",
+        "references": [
+          {
+            "from": "0xdce2c1",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Paste Attributes"
+      },
+      {
+        "address": "0x17e903c",
+        "references": [
+          {
+            "from": "0xdce29e",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Paste Inside"
+      },
+      {
+        "address": "0x17e9050",
+        "references": [
+          {
+            "from": "0xdce27b",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Paste as Mask"
+      },
+      {
+        "address": "0x17e9064",
+        "references": [
+          {
+            "from": "0xdce257",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Clear"
+      },
+      {
+        "address": "0x17e9070",
+        "references": [
+          {
+            "from": "0xdce234",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Paste"
+      },
+      {
+        "address": "0x17e907c",
+        "references": [
+          {
+            "from": "0xdce211",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Copy as Vectors"
+      },
+      {
+        "address": "0x17e9094",
+        "references": [
+          {
+            "from": "0xdce1ee",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Cut"
+      },
+      {
+        "address": "0x17e90a0",
+        "references": [
+          {
+            "from": "0xdce1cb",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Copy"
+      },
+      {
+        "address": "0x17e90ac",
+        "references": [
+          {
+            "from": "0xdce1a8",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Find and Replace"
+      },
+      {
+        "address": "0x17e90c4",
+        "references": [
+          {
+            "from": "0xdce185",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Insert::Page"
+      },
+      {
+        "address": "0x17e90d8",
+        "references": [
+          {
+            "from": "0xdce162",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Insert::State"
+      },
+      {
+        "address": "0x17e90ec",
+        "references": [
+          {
+            "from": "0xdce13f",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Insert::Layer"
+      },
+      {
+        "address": "0x17e9100",
+        "references": [
+          {
+            "from": "0xdce11c",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Insert::Bitmap Via Cut"
+      },
+      {
+        "address": "0x17e9120",
+        "references": [
+          {
+            "from": "0xdce0f9",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Insert::Bitmap Via Copy"
+      },
+      {
+        "address": "0x17e9140",
+        "references": [
+          {
+            "from": "0xdce0d6",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Insert::Empty Bitmap"
+      },
+      {
+        "address": "0x17e915c",
+        "references": [
+          {
+            "from": "0xdce0b3",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Insert::Polygon Slice"
+      },
+      {
+        "address": "0x17e9178",
+        "references": [
+          {
+            "from": "0xdce090",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Insert::Hotspot"
+      },
+      {
+        "address": "0x17e9190",
+        "references": [
+          {
+            "from": "0xdce06d",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Insert::New Symbol"
+      },
+      {
+        "address": "0x17e91ac",
+        "references": [
+          {
+            "from": "0xdce04a",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Insert::New Button"
+      },
+      {
+        "address": "0x17e91c8",
+        "references": [
+          {
+            "from": "0xdce027",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Redo"
+      },
+      {
+        "address": "0x17e91d4",
+        "references": [
+          {
+            "from": "0xdce004",
+            "function": "sub_dcdc10"
+          }
+        ],
+        "section": ".rdata",
+        "text": "Edit::Undo"
+      }
+    ],
+    "total": 28
+  },
+  "summary": "28 strings match \"Edit::\".",
+  "confidence": "observed",
+  "authority": "original-files",
+  "environment": {
+    "clean_room": false,
+    "engine": "builtin",
+    "engine_version": "0.6.1",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "data_sections_only",
+      "message": "only strings stored in the file are searched (absence is not proof)"
+    }
+  ],
+  "coverage": {
+    "status": "complete",
+    "examined": 28,
+    "total": 28
+  },
+  "locations": [],
+  "links": []
+}

@@ -1,0 +1,15 @@
+{
+  "id": "unk_bc1a5f4eea2ffb4e",
+  "revision": 2,
+  "question": "Java is required for Ghidra analysis but is not installed on this system. Can you install Java (JDK or JRE, 64-bit) and point Craft Anything to it? The Ghidra engine at C:\\Users\\mkinney\\AppData\\Roaming\\craft-anything\\engines\\ghidra\\ghidra_12.1.4_PUBLIC\\support\\analyzeHeadless.bat needs a working java.exe on PATH or configured in settings.",
+  "severity": "high",
+  "domain": "setup",
+  "status": "resolved",
+  "probes": [
+    "Install Java and set engines.ghidra.java_home in Craft Anything settings",
+    "Or find an existing Java installation and update the path"
+  ],
+  "evidence_for": [],
+  "evidence_against": [],
+  "resolution": "Java 27.0.1.1 installed at C:\\Program Files\\Java\\jdk-27.0.1.1. Ghidra 12.1.4 PUBLIC installed. Configured in settings. All required constants already extracted via built-in engine."
+}
