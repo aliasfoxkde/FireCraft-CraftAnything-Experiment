@@ -578,22 +578,475 @@ pub struct SymbolDef {
     pub objects: Vec<Obj>,
 }
 
-/// Reusable graphic Style preset (fill, stroke, width, live effects).
+/// Built-in CS6 Style Library categories.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum StyleLibrary {
+    #[default]
+    CurrentDocument,
+    DarkChrome,
+    ChromeMetal,
+    GlassGel,
+    PlasticWeb,
+    ShadowGlow,
+}
+
+impl StyleLibrary {
+    pub const ALL: [StyleLibrary; 6] = [
+        StyleLibrary::CurrentDocument,
+        StyleLibrary::DarkChrome,
+        StyleLibrary::ChromeMetal,
+        StyleLibrary::GlassGel,
+        StyleLibrary::PlasticWeb,
+        StyleLibrary::ShadowGlow,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            StyleLibrary::CurrentDocument => "Current Document",
+            StyleLibrary::DarkChrome => "Dark Chrome Styles",
+            StyleLibrary::ChromeMetal => "Chrome & Metal Styles",
+            StyleLibrary::GlassGel => "Glass & Gel Styles",
+            StyleLibrary::PlasticWeb => "Plastic & Web UI Styles",
+            StyleLibrary::ShadowGlow => "Shadow & Glow Styles",
+        }
+    }
+}
+
+/// Reusable graphic Style preset (fill, optional gradient end, stroke, width, live effects).
 #[derive(Clone, PartialEq, Debug)]
 pub struct StylePreset {
     pub name: String,
     pub fill: Option<Color32>,
+    pub gradient_end: Option<Color32>,
     pub stroke: Option<Color32>,
     pub stroke_width: f32,
     pub effects: Vec<LiveEffect>,
 }
 
 impl StylePreset {
+    fn preset(
+        name: &str,
+        top: Color32,
+        bot: Option<Color32>,
+        stroke: Option<Color32>,
+        stroke_width: f32,
+        effects: Vec<LiveEffect>,
+    ) -> Self {
+        Self {
+            name: name.to_string(),
+            fill: Some(top),
+            gradient_end: bot,
+            stroke,
+            stroke_width,
+            effects,
+        }
+    }
+
+    pub fn library_styles(lib: StyleLibrary) -> Vec<Self> {
+        let shadow = |d, b, a| LiveEffect::DropShadow {
+            distance: d,
+            angle_deg: 90.0,
+            blur: b,
+            color: Color32::from_black_alpha(a),
+            enabled: true,
+        };
+        let bevel = |w, hi, sh| LiveEffect::Bevel {
+            width: w,
+            highlight: Color32::from_white_alpha(hi),
+            shadow: Color32::from_black_alpha(sh),
+            enabled: true,
+        };
+        let glow = |r, c: Color32, inner| LiveEffect::Glow {
+            radius: r,
+            color: c,
+            inner,
+            enabled: true,
+        };
+        match lib {
+            StyleLibrary::CurrentDocument => Self::default_styles(),
+            StyleLibrary::DarkChrome => vec![
+                Self::preset(
+                    "Obsidian Gloss",
+                    Color32::from_rgb(56, 58, 64),
+                    Some(Color32::from_rgb(14, 15, 18)),
+                    Some(Color32::from_rgb(20, 20, 24)),
+                    1.5,
+                    vec![bevel(1.5, 130, 180)],
+                ),
+                Self::preset(
+                    "Graphite Satin",
+                    Color32::from_rgb(82, 86, 94),
+                    Some(Color32::from_rgb(30, 32, 36)),
+                    Some(Color32::from_rgb(24, 24, 28)),
+                    1.0,
+                    vec![shadow(3.0, 4.0, 120)],
+                ),
+                Self::preset(
+                    "Silver-Top Chrome",
+                    Color32::from_rgb(185, 190, 198),
+                    Some(Color32::from_rgb(18, 20, 24)),
+                    Some(Color32::from_rgb(40, 42, 46)),
+                    1.5,
+                    vec![bevel(2.0, 190, 170)],
+                ),
+                Self::preset(
+                    "Matte Carbon",
+                    Color32::from_rgb(40, 42, 46),
+                    Some(Color32::from_rgb(20, 22, 25)),
+                    Some(Color32::from_rgb(10, 10, 12)),
+                    1.5,
+                    vec![shadow(4.0, 6.0, 160)],
+                ),
+                Self::preset(
+                    "Smoked Steel",
+                    Color32::from_rgb(68, 72, 78),
+                    Some(Color32::from_rgb(12, 13, 16)),
+                    Some(Color32::from_rgb(95, 100, 108)),
+                    1.0,
+                    vec![bevel(1.0, 120, 160)],
+                ),
+                Self::preset(
+                    "Banded Dark Chrome",
+                    Color32::from_rgb(130, 135, 144),
+                    Some(Color32::from_rgb(12, 14, 18)),
+                    Some(Color32::from_rgb(22, 24, 28)),
+                    1.5,
+                    vec![bevel(2.0, 200, 180)],
+                ),
+                Self::preset(
+                    "Brushed Pewter",
+                    Color32::from_rgb(198, 202, 210),
+                    Some(Color32::from_rgb(64, 66, 72)),
+                    Some(Color32::from_rgb(36, 38, 42)),
+                    1.0,
+                    vec![shadow(3.0, 5.0, 130)],
+                ),
+                Self::preset(
+                    "Midnight Bevel",
+                    Color32::from_rgb(32, 34, 40),
+                    Some(Color32::from_rgb(10, 11, 14)),
+                    Some(Color32::from_rgb(76, 80, 88)),
+                    1.5,
+                    vec![bevel(2.5, 150, 200)],
+                ),
+                Self::preset(
+                    "Specular Slate",
+                    Color32::from_rgb(210, 214, 220),
+                    Some(Color32::from_rgb(26, 28, 32)),
+                    Some(Color32::from_rgb(18, 20, 24)),
+                    1.0,
+                    vec![shadow(4.0, 6.0, 140)],
+                ),
+                Self::preset(
+                    "Jet Black Piano",
+                    Color32::from_rgb(28, 28, 32),
+                    Some(Color32::from_rgb(6, 6, 8)),
+                    Some(Color32::from_rgb(68, 70, 76)),
+                    1.5,
+                    vec![bevel(1.5, 170, 210)],
+                ),
+                Self::preset(
+                    "Anodized Charcoal",
+                    Color32::from_rgb(60, 62, 68),
+                    Some(Color32::from_rgb(18, 19, 22)),
+                    Some(Color32::from_rgb(12, 12, 14)),
+                    2.0,
+                    vec![glow(3.0, Color32::from_white_alpha(60), true)],
+                ),
+                Self::preset(
+                    "Gunmetal Ridge",
+                    Color32::from_rgb(98, 102, 110),
+                    Some(Color32::from_rgb(24, 26, 30)),
+                    Some(Color32::from_rgb(150, 156, 166)),
+                    1.0,
+                    vec![bevel(2.0, 160, 180)],
+                ),
+                Self::preset(
+                    "Deep Chrome Well",
+                    Color32::from_rgb(16, 18, 22),
+                    Some(Color32::from_rgb(54, 58, 64)),
+                    Some(Color32::from_rgb(10, 10, 12)),
+                    1.5,
+                    vec![glow(4.0, Color32::from_black_alpha(180), true)],
+                ),
+                Self::preset(
+                    "Stealth Frame",
+                    Color32::from_rgb(72, 75, 82),
+                    Some(Color32::from_rgb(16, 17, 20)),
+                    Some(Color32::from_rgb(180, 186, 196)),
+                    1.5,
+                    vec![shadow(4.0, 5.0, 150)],
+                ),
+                Self::preset(
+                    "Inverted Chrome",
+                    Color32::from_rgb(22, 24, 28),
+                    Some(Color32::from_rgb(172, 178, 188)),
+                    Some(Color32::from_rgb(28, 30, 34)),
+                    1.0,
+                    vec![bevel(1.5, 150, 170)],
+                ),
+                Self::preset(
+                    "Titanium Plate",
+                    Color32::from_rgb(140, 145, 154),
+                    Some(Color32::from_rgb(38, 40, 46)),
+                    Some(Color32::from_rgb(20, 22, 26)),
+                    1.5,
+                    vec![shadow(4.0, 6.0, 130)],
+                ),
+                Self::preset(
+                    "Carbon Diagonal",
+                    Color32::from_rgb(48, 50, 56),
+                    Some(Color32::from_rgb(18, 20, 24)),
+                    Some(Color32::from_rgb(84, 88, 96)),
+                    1.5,
+                    vec![bevel(1.5, 140, 180)],
+                ),
+                Self::preset(
+                    "Dark Alloy Tab",
+                    Color32::from_rgb(44, 46, 52),
+                    Some(Color32::from_rgb(12, 13, 16)),
+                    Some(Color32::from_rgb(96, 100, 110)),
+                    1.0,
+                    vec![shadow(3.0, 4.0, 150)],
+                ),
+                Self::preset(
+                    "Onyx Bevel",
+                    Color32::from_rgb(20, 22, 26),
+                    Some(Color32::from_rgb(8, 8, 10)),
+                    Some(Color32::from_rgb(56, 58, 64)),
+                    2.0,
+                    vec![bevel(2.0, 120, 200)],
+                ),
+                Self::preset(
+                    "Chrome Horizon",
+                    Color32::from_rgb(165, 170, 178),
+                    Some(Color32::from_rgb(14, 15, 18)),
+                    Some(Color32::from_rgb(32, 34, 38)),
+                    1.5,
+                    vec![bevel(2.0, 180, 180)],
+                ),
+            ],
+            StyleLibrary::ChromeMetal => vec![
+                Self::preset(
+                    "Brushed Silver",
+                    Color32::from_rgb(230, 234, 240),
+                    Some(Color32::from_rgb(142, 148, 158)),
+                    Some(Color32::from_rgb(95, 100, 110)),
+                    1.5,
+                    vec![bevel(2.0, 210, 130)],
+                ),
+                Self::preset(
+                    "Polished Aluminum",
+                    Color32::from_rgb(245, 247, 250),
+                    Some(Color32::from_rgb(170, 176, 186)),
+                    Some(Color32::from_rgb(110, 116, 126)),
+                    1.0,
+                    vec![shadow(4.0, 6.0, 90)],
+                ),
+                Self::preset(
+                    "Warm Gold",
+                    Color32::from_rgb(246, 208, 102),
+                    Some(Color32::from_rgb(176, 124, 28)),
+                    Some(Color32::from_rgb(120, 82, 14)),
+                    1.5,
+                    vec![bevel(2.0, 200, 140)],
+                ),
+                Self::preset(
+                    "Burnished Copper",
+                    Color32::from_rgb(226, 140, 88),
+                    Some(Color32::from_rgb(138, 68, 34)),
+                    Some(Color32::from_rgb(92, 42, 18)),
+                    1.5,
+                    vec![bevel(2.0, 180, 150)],
+                ),
+                Self::preset(
+                    "Steel Blue",
+                    Color32::from_rgb(146, 172, 198),
+                    Some(Color32::from_rgb(66, 90, 118)),
+                    Some(Color32::from_rgb(42, 60, 82)),
+                    1.5,
+                    vec![shadow(3.0, 5.0, 110)],
+                ),
+                Self::preset(
+                    "Titanium Gray",
+                    Color32::from_rgb(178, 182, 188),
+                    Some(Color32::from_rgb(94, 98, 106)),
+                    Some(Color32::from_rgb(60, 64, 70)),
+                    1.5,
+                    vec![bevel(1.5, 170, 140)],
+                ),
+            ],
+            StyleLibrary::GlassGel => vec![
+                Self::preset(
+                    "FireCraft Amber Gel",
+                    Color32::from_rgb(252, 194, 88),
+                    Some(Color32::from_rgb(218, 126, 24)),
+                    Some(Color32::from_rgb(166, 92, 14)),
+                    1.5,
+                    vec![bevel(2.5, 220, 120), shadow(4.0, 6.0, 110)],
+                ),
+                Self::preset(
+                    "Aqua Cyan Gel",
+                    Color32::from_rgb(110, 224, 252),
+                    Some(Color32::from_rgb(24, 148, 212)),
+                    Some(Color32::from_rgb(16, 108, 162)),
+                    1.5,
+                    vec![bevel(2.5, 220, 110)],
+                ),
+                Self::preset(
+                    "Emerald Glass",
+                    Color32::from_rgb(98, 226, 150),
+                    Some(Color32::from_rgb(26, 146, 82)),
+                    Some(Color32::from_rgb(16, 102, 56)),
+                    1.5,
+                    vec![bevel(2.5, 210, 120)],
+                ),
+                Self::preset(
+                    "Ruby Crystal",
+                    Color32::from_rgb(248, 108, 120),
+                    Some(Color32::from_rgb(178, 28, 46)),
+                    Some(Color32::from_rgb(122, 16, 28)),
+                    1.5,
+                    vec![bevel(2.5, 210, 130)],
+                ),
+                Self::preset(
+                    "Sapphire Pill",
+                    Color32::from_rgb(104, 158, 248),
+                    Some(Color32::from_rgb(36, 82, 188)),
+                    Some(Color32::from_rgb(24, 56, 138)),
+                    1.5,
+                    vec![bevel(2.5, 210, 130)],
+                ),
+                Self::preset(
+                    "Frosted Smoke",
+                    Color32::from_rgba_unmultiplied(235, 240, 248, 210),
+                    Some(Color32::from_rgba_unmultiplied(185, 196, 212, 200)),
+                    Some(Color32::WHITE),
+                    1.5,
+                    vec![shadow(4.0, 8.0, 80)],
+                ),
+            ],
+            StyleLibrary::PlasticWeb => vec![
+                Self::preset(
+                    "CS6 Primary Blue",
+                    Color32::from_rgb(78, 168, 240),
+                    Some(Color32::from_rgb(38, 118, 196)),
+                    Some(Color32::from_rgb(26, 86, 148)),
+                    1.5,
+                    vec![bevel(1.5, 180, 110)],
+                ),
+                Self::preset(
+                    "Action Orange",
+                    Color32::from_rgb(244, 152, 54),
+                    Some(Color32::from_rgb(206, 98, 18)),
+                    Some(Color32::from_rgb(154, 70, 12)),
+                    1.5,
+                    vec![shadow(3.0, 5.0, 100)],
+                ),
+                Self::preset(
+                    "Success Mint",
+                    Color32::from_rgb(76, 198, 124),
+                    Some(Color32::from_rgb(42, 148, 86)),
+                    Some(Color32::from_rgb(28, 110, 62)),
+                    1.0,
+                    vec![shadow(3.0, 4.0, 90)],
+                ),
+                Self::preset(
+                    "Danger Coral",
+                    Color32::from_rgb(238, 86, 86),
+                    Some(Color32::from_rgb(186, 44, 48)),
+                    Some(Color32::from_rgb(138, 28, 32)),
+                    1.0,
+                    vec![shadow(3.0, 4.0, 100)],
+                ),
+                Self::preset(
+                    "Clean Pill Light",
+                    Color32::from_rgb(252, 252, 254),
+                    Some(Color32::from_rgb(226, 230, 236)),
+                    Some(Color32::from_rgb(180, 186, 196)),
+                    1.0,
+                    vec![shadow(2.0, 4.0, 60)],
+                ),
+                Self::preset(
+                    "Dark UI Button",
+                    Color32::from_rgb(72, 76, 84),
+                    Some(Color32::from_rgb(46, 48, 54)),
+                    Some(Color32::from_rgb(26, 28, 32)),
+                    1.0,
+                    vec![bevel(1.0, 120, 150)],
+                ),
+            ],
+            StyleLibrary::ShadowGlow => vec![
+                Self::preset(
+                    "Soft Card Shadow",
+                    Color32::WHITE,
+                    None,
+                    Some(Color32::from_rgb(210, 215, 222)),
+                    1.0,
+                    vec![shadow(6.0, 8.0, 90)],
+                ),
+                Self::preset(
+                    "Deep Elevation",
+                    Color32::from_rgb(248, 250, 252),
+                    None,
+                    Some(Color32::from_rgb(200, 206, 214)),
+                    1.0,
+                    vec![shadow(10.0, 14.0, 130)],
+                ),
+                Self::preset(
+                    "Neon Cyan Glow",
+                    Color32::from_rgb(28, 32, 44),
+                    None,
+                    Some(Color32::from_rgb(0, 220, 255)),
+                    2.0,
+                    vec![glow(
+                        8.0,
+                        Color32::from_rgba_unmultiplied(0, 220, 255, 180),
+                        false,
+                    )],
+                ),
+                Self::preset(
+                    "Amber Halo",
+                    Color32::from_rgb(38, 30, 24),
+                    None,
+                    Some(Color32::from_rgb(245, 166, 35)),
+                    2.0,
+                    vec![glow(
+                        8.0,
+                        Color32::from_rgba_unmultiplied(245, 166, 35, 180),
+                        false,
+                    )],
+                ),
+                Self::preset(
+                    "Magenta Pulse",
+                    Color32::from_rgb(36, 24, 42),
+                    None,
+                    Some(Color32::from_rgb(236, 72, 153)),
+                    2.0,
+                    vec![glow(
+                        8.0,
+                        Color32::from_rgba_unmultiplied(236, 72, 153, 180),
+                        false,
+                    )],
+                ),
+                Self::preset(
+                    "Inset Recessed",
+                    Color32::from_rgb(44, 48, 56),
+                    None,
+                    Some(Color32::from_rgb(22, 24, 28)),
+                    1.5,
+                    vec![glow(5.0, Color32::from_black_alpha(170), true)],
+                ),
+            ],
+        }
+    }
+
     pub fn default_styles() -> Vec<Self> {
         vec![
             Self {
                 name: "FireCraft Amber Button".to_string(),
                 fill: Some(Color32::from_rgb(232, 163, 61)),
+                gradient_end: Some(Color32::from_rgb(196, 118, 26)),
                 stroke: Some(Color32::from_rgb(140, 85, 15)),
                 stroke_width: 2.0,
                 effects: vec![LiveEffect::DropShadow {
@@ -606,7 +1059,8 @@ impl StylePreset {
             },
             Self {
                 name: "CS6 Web Gloss Blue".to_string(),
-                fill: Some(Color32::from_rgb(41, 128, 185)),
+                fill: Some(Color32::from_rgb(66, 158, 224)),
+                gradient_end: Some(Color32::from_rgb(32, 104, 168)),
                 stroke: Some(Color32::from_rgb(25, 80, 120)),
                 stroke_width: 1.5,
                 effects: vec![LiveEffect::Bevel {
@@ -619,6 +1073,7 @@ impl StylePreset {
             Self {
                 name: "Neon Outer Glow".to_string(),
                 fill: Some(Color32::from_rgb(35, 35, 48)),
+                gradient_end: None,
                 stroke: Some(Color32::from_rgb(0, 220, 255)),
                 stroke_width: 2.0,
                 effects: vec![LiveEffect::Glow {
@@ -631,6 +1086,7 @@ impl StylePreset {
             Self {
                 name: "Soft Card Shadow".to_string(),
                 fill: Some(Color32::WHITE),
+                gradient_end: Some(Color32::from_rgb(238, 242, 248)),
                 stroke: Some(Color32::from_rgb(210, 215, 222)),
                 stroke_width: 1.0,
                 effects: vec![LiveEffect::DropShadow {

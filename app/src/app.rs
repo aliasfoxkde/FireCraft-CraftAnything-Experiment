@@ -490,6 +490,8 @@ pub struct FireCraft {
     pub show_page_setup_dialog: bool,
     pub html_setup: crate::formats::HtmlExportOptions,
     pub page_setup: PageSetupConfig,
+    pub style_library: crate::doc::StyleLibrary,
+    pub selected_style_idx: Option<usize>,
     pub show_find_replace: bool,
     pub show_commands_dialog: bool,
     pub show_about_dialog: bool,
@@ -630,6 +632,8 @@ impl FireCraft {
             show_page_setup_dialog: false,
             html_setup: crate::formats::HtmlExportOptions::default(),
             page_setup: PageSetupConfig::default(),
+            style_library: crate::doc::StyleLibrary::DarkChrome,
+            selected_style_idx: None,
             show_find_replace: false,
             show_commands_dialog: false,
             show_about_dialog: false,
@@ -2954,11 +2958,8 @@ impl FireCraft {
         self.status = format!("Placed Symbol #{} instance", symbol_id + 1);
     }
 
-    pub fn apply_style_preset(&mut self, style_idx: usize) {
-        let Some(preset) = self.doc.styles.get(style_idx).cloned() else {
-            return;
-        };
-        if self.selected.is_none() {
+    pub fn apply_style_preset_value(&mut self, preset: &StylePreset) {
+        if self.selected.is_none() && self.selected_set.is_empty() {
             self.fill = preset.fill.unwrap_or(self.fill);
             self.stroke = preset.stroke.unwrap_or(self.stroke);
             self.status = format!("Loaded style colors: {}", preset.name);
@@ -2966,13 +2967,28 @@ impl FireCraft {
         }
         self.push_undo("Apply Style");
         let name = preset.name.clone();
+        let preset_clone = preset.clone();
         self.with_selected_mut(|obj| {
-            obj.fill = preset.fill;
-            obj.stroke = preset.stroke;
-            obj.width = preset.stroke_width;
-            obj.effects = preset.effects;
+            obj.fill = preset_clone.fill;
+            obj.stroke = preset_clone.stroke;
+            obj.width = preset_clone.stroke_width;
+            obj.effects = preset_clone.effects;
         });
         self.status = format!("Applied style: {name}");
+    }
+
+    pub fn delete_selected_style(&mut self) {
+        if self.style_library != crate::doc::StyleLibrary::CurrentDocument {
+            return;
+        }
+        if let Some(idx) = self.selected_style_idx
+            && idx < self.doc.styles.len()
+        {
+            let removed = self.doc.styles.remove(idx);
+            self.selected_style_idx = None;
+            self.doc.dirty = true;
+            self.status = format!("Deleted style: {}", removed.name);
+        }
     }
 
     pub fn save_selection_as_style(&mut self) {
@@ -2983,10 +2999,13 @@ impl FireCraft {
         self.doc.styles.push(StylePreset {
             name: name.clone(),
             fill: obj.fill,
+            gradient_end: None,
             stroke: obj.stroke,
             stroke_width: obj.width,
             effects: obj.effects.clone(),
         });
+        self.style_library = crate::doc::StyleLibrary::CurrentDocument;
+        self.selected_style_idx = Some(self.doc.styles.len() - 1);
         self.status = format!("Saved new style preset: {name}");
     }
 
@@ -5906,5 +5925,36 @@ mod tests {
         let print_html = app.build_print_html();
         assert!(print_html.contains("@page { size: A4 landscape; margin: 0.25in; }"));
         assert!(print_html.contains("window.print()"));
+    }
+
+    #[test]
+    fn styles_library_categories_and_apply() {
+        let mut app = FireCraft::new(None);
+        for lib in crate::doc::StyleLibrary::ALL {
+            let list = StylePreset::library_styles(lib);
+            assert!(
+                !list.is_empty(),
+                "Expected non-empty style library for {:?}",
+                lib
+            );
+        }
+        let dark_chrome = StylePreset::library_styles(crate::doc::StyleLibrary::DarkChrome);
+        assert!(dark_chrome.len() >= 20);
+        let layer_idx = app.selected_layer;
+        app.doc.page_mut().layers[layer_idx].objects.push(Obj::new(
+            Shape::Rect {
+                min: Vec2::new(10.0, 10.0),
+                max: Vec2::new(100.0, 60.0),
+                corner_radius: 0.0,
+                filled: true,
+            },
+            Some(Color32::GRAY),
+            None,
+        ));
+        app.select_single(Some(0));
+        app.apply_style_preset_value(&dark_chrome[0]);
+        let obj = app.selected_object().unwrap();
+        assert_eq!(obj.fill, dark_chrome[0].fill);
+        assert_eq!(obj.stroke, dark_chrome[0].stroke);
     }
 }

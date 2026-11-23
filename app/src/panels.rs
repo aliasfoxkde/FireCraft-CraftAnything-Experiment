@@ -2246,8 +2246,176 @@ pub fn pages_panel(ui: &mut Ui, app: &mut FireCraft) {
 pub fn styles_panel(ui: &mut Ui, app: &mut FireCraft) {
     let p = app.palette;
     ui.horizontal(|ui| {
-        ui.label(RichText::new("Current Document").small().color(p.text_dim));
+        ui.spacing_mut().item_spacing = Vec2::new(4.0, 0.0);
+        let icon_r = ui.allocate_exact_size(Vec2::splat(16.0), Sense::hover()).0;
+        icons::draw(
+            ui.painter(),
+            icon_r,
+            icons::Icon::Duplicate,
+            p.text_dim,
+            1.1,
+        );
+        egui::ComboBox::from_id_salt("styles_library_combo")
+            .width((ui.available_width() - 8.0).max(140.0))
+            .selected_text(app.style_library.label())
+            .show_ui(ui, |ui| {
+                for lib in crate::doc::StyleLibrary::ALL {
+                    if ui
+                        .selectable_label(app.style_library == lib, lib.label())
+                        .clicked()
+                    {
+                        app.style_library = lib;
+                        app.selected_style_idx = None;
+                    }
+                }
+            });
+    });
+    ui.add_space(3.0);
+
+    let styles = if app.style_library == crate::doc::StyleLibrary::CurrentDocument {
+        app.doc.styles.clone()
+    } else {
+        crate::doc::StylePreset::library_styles(app.style_library)
+    };
+
+    egui::Frame::new()
+        .fill(p.well)
+        .stroke(Stroke::new(1.0, p.stroke))
+        .inner_margin(egui::Margin::same(4))
+        .show(ui, |ui| {
+            egui::ScrollArea::vertical()
+                .id_salt("styles_panel_scroll")
+                .max_height(132.0)
+                .show(ui, |ui| {
+                    ui.horizontal_wrapped(|ui| {
+                        ui.spacing_mut().item_spacing = Vec2::new(4.0, 4.0);
+                        for (idx, preset) in styles.iter().enumerate() {
+                            let (rect, resp) =
+                                ui.allocate_exact_size(Vec2::splat(34.0), Sense::click());
+                            let painter = ui.painter();
+                            let is_sel = app.selected_style_idx == Some(idx);
+
+                            // Outer CS6 thumbnail frame
+                            painter.rect_filled(rect, 0.0, Color32::WHITE);
+                            let inner = rect.shrink(2.0);
+                            let top_c = preset.fill.unwrap_or(Color32::from_rgb(76, 80, 88));
+                            let bot_c = preset.gradient_end.unwrap_or(top_c);
+
+                            // Multi-band vertical gradient preview (chrome/gloss/plastic)
+                            let bands = 6usize;
+                            let band_h = inner.height() / bands as f32;
+                            for b in 0..bands {
+                                let t = (b as f32 + 0.5) / bands as f32;
+                                let r = (top_c.r() as f32 * (1.0 - t) + bot_c.r() as f32 * t) as u8;
+                                let g = (top_c.g() as f32 * (1.0 - t) + bot_c.g() as f32 * t) as u8;
+                                let bl =
+                                    (top_c.b() as f32 * (1.0 - t) + bot_c.b() as f32 * t) as u8;
+                                let al =
+                                    (top_c.a() as f32 * (1.0 - t) + bot_c.a() as f32 * t) as u8;
+                                painter.rect_filled(
+                                    Rect::from_min_size(
+                                        pos2(inner.left(), inner.top() + b as f32 * band_h),
+                                        Vec2::new(inner.width(), band_h + 0.6),
+                                    ),
+                                    0.0,
+                                    Color32::from_rgba_unmultiplied(r, g, bl, al),
+                                );
+                            }
+
+                            // Effect indicators (Bevel highlight / Glow / DropShadow / InnerShadow)
+                            for eff in &preset.effects {
+                                match eff {
+                                    crate::doc::LiveEffect::Bevel { .. } => {
+                                        painter.line_segment(
+                                            [
+                                                pos2(inner.left() + 1.0, inner.top() + 1.5),
+                                                pos2(inner.right() - 1.0, inner.top() + 1.5),
+                                            ],
+                                            Stroke::new(1.5, Color32::from_white_alpha(150)),
+                                        );
+                                        painter.line_segment(
+                                            [
+                                                pos2(inner.left() + 1.0, inner.bottom() - 1.5),
+                                                pos2(inner.right() - 1.0, inner.bottom() - 1.5),
+                                            ],
+                                            Stroke::new(1.5, Color32::from_black_alpha(150)),
+                                        );
+                                    }
+                                    crate::doc::LiveEffect::Glow { color, .. } => {
+                                        painter.rect_stroke(
+                                            inner.shrink(1.5),
+                                            1.0,
+                                            Stroke::new(1.5, *color),
+                                            egui::StrokeKind::Inside,
+                                        );
+                                    }
+                                    crate::doc::LiveEffect::DropShadow { .. } => {
+                                        painter.line_segment(
+                                            [
+                                                pos2(inner.left() + 2.0, inner.bottom() - 0.5),
+                                                pos2(inner.right(), inner.bottom() - 0.5),
+                                            ],
+                                            Stroke::new(2.0, Color32::from_black_alpha(120)),
+                                        );
+                                    }
+                                    crate::doc::LiveEffect::InnerShadow { color, .. } => {
+                                        painter.line_segment(
+                                            [
+                                                pos2(inner.left() + 1.0, inner.top() + 1.5),
+                                                pos2(inner.right() - 1.0, inner.top() + 1.5),
+                                            ],
+                                            Stroke::new(1.5, *color),
+                                        );
+                                    }
+                                    crate::doc::LiveEffect::GaussianBlur { .. }
+                                    | crate::doc::LiveEffect::ColorAdjust { .. } => {}
+                                }
+                            }
+
+                            if let Some(st) = preset.stroke {
+                                painter.rect_stroke(
+                                    inner,
+                                    0.0,
+                                    Stroke::new(preset.stroke_width.clamp(1.0, 2.5), st),
+                                    egui::StrokeKind::Inside,
+                                );
+                            }
+                            painter.rect_stroke(
+                                rect,
+                                0.0,
+                                Stroke::new(
+                                    if is_sel { 1.5 } else { 1.0 },
+                                    if is_sel {
+                                        p.selection
+                                    } else if resp.hovered() {
+                                        p.accent
+                                    } else {
+                                        p.stroke
+                                    },
+                                ),
+                                egui::StrokeKind::Middle,
+                            );
+                            if resp.on_hover_text(&preset.name).clicked() {
+                                app.selected_style_idx = Some(idx);
+                                app.apply_style_preset_value(preset);
+                            }
+                        }
+                    });
+                });
+        });
+
+    ui.add_space(2.0);
+    ui.horizontal(|ui| {
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            let can_del = app.style_library == crate::doc::StyleLibrary::CurrentDocument
+                && app.selected_style_idx.is_some();
+            if ui
+                .add_enabled(can_del, egui::Button::new("🗑").small())
+                .on_hover_text("Delete selected custom style from Current Document")
+                .clicked()
+            {
+                app.delete_selected_style();
+            }
             if ui
                 .add_enabled(
                     app.selected.is_some(),
@@ -2260,54 +2428,6 @@ pub fn styles_panel(ui: &mut Ui, app: &mut FireCraft) {
             }
         });
     });
-    let styles = app.doc.styles.clone();
-    egui::ScrollArea::vertical()
-        .id_salt("styles_panel_scroll")
-        .max_height(112.0)
-        .show(ui, |ui| {
-            ui.horizontal_wrapped(|ui| {
-                ui.spacing_mut().item_spacing = Vec2::new(4.0, 4.0);
-                for (idx, preset) in styles.iter().enumerate() {
-                    let (rect, resp) =
-                        ui.allocate_exact_size(Vec2::new(134.0, 26.0), Sense::click());
-                    let painter = ui.painter();
-                    painter.rect_filled(rect, 0.0, p.well);
-                    let swatch_r = Rect::from_min_size(
-                        pos2(rect.left() + 4.0, rect.top() + 4.0),
-                        Vec2::splat(18.0),
-                    );
-                    painter.rect_filled(
-                        swatch_r,
-                        0.0,
-                        preset.fill.unwrap_or(Color32::from_rgb(90, 90, 90)),
-                    );
-                    if let Some(st) = preset.stroke {
-                        painter.rect_stroke(
-                            swatch_r,
-                            0.0,
-                            Stroke::new(1.5, st),
-                            egui::StrokeKind::Middle,
-                        );
-                    }
-                    painter.text(
-                        pos2(swatch_r.right() + 6.0, rect.center().y),
-                        Align2::LEFT_CENTER,
-                        &preset.name,
-                        FontId::proportional(10.5),
-                        p.text,
-                    );
-                    painter.rect_stroke(
-                        rect,
-                        0.0,
-                        Stroke::new(1.0, if resp.hovered() { p.accent } else { p.stroke }),
-                        egui::StrokeKind::Middle,
-                    );
-                    if resp.clicked() {
-                        app.apply_style_preset(idx);
-                    }
-                }
-            });
-        });
 }
 
 /// Bottom-right dock group: Special Characters | Image Editing | Auto Shapes | Document Library | CSS/URL.
