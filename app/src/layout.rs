@@ -195,20 +195,47 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     }
 
     // 7. Central Panel: Document Tab Bar + Canvas + CS6 Canvas Footer Bar (Transport, Resolution, Scale)
+    if app.floating_doc_tabs.contains(&app.active_doc)
+        && let Some(first_docked) =
+            (0..app.open_docs.len()).find(|i| !app.floating_doc_tabs.contains(i))
+    {
+        app.switch_document_tab(first_docked);
+    }
+    let all_floating = !app.open_docs.is_empty()
+        && (0..app.open_docs.len()).all(|i| app.floating_doc_tabs.contains(&i));
     egui::CentralPanel::default()
         .frame(egui::Frame::new().fill(app.palette.bg))
         .show(ui, |ui| {
             document_tab_strip(ui, app);
-            egui::Panel::bottom("canvas_footer_bar")
-                .exact_size(24.0)
-                .frame(
-                    egui::Frame::new()
-                        .fill(app.palette.panel)
-                        .stroke(egui::Stroke::new(1.0, app.palette.stroke))
-                        .inner_margin(egui::Margin::symmetric(8, 2)),
-                )
-                .show(ui, |ui| canvas_footer_bar(ui, app));
-            canvas::show(ui, app);
+            if all_floating {
+                ui.centered_and_justified(|ui| {
+                    ui.vertical_centered(|ui| {
+                        ui.add_space(40.0);
+                        ui.label(
+                            RichText::new("Canvas floated to external window (Multi-Monitor Mode)")
+                                .size(14.0)
+                                .color(app.palette.text),
+                        );
+                        ui.add_space(8.0);
+                        if ui.button("Dock All Canvases Back to Main Window").clicked() {
+                            app.floating_doc_tabs.clear();
+                            app.status =
+                                "Docked floating canvas window(s) back to main window".to_string();
+                        }
+                    });
+                });
+            } else {
+                egui::Panel::bottom("canvas_footer_bar")
+                    .exact_size(24.0)
+                    .frame(
+                        egui::Frame::new()
+                            .fill(app.palette.panel)
+                            .stroke(egui::Stroke::new(1.0, app.palette.stroke))
+                            .inner_margin(egui::Margin::symmetric(8, 2)),
+                    )
+                    .show(ui, |ui| canvas_footer_bar(ui, app));
+                canvas::show(ui, app);
+            }
         });
 
     // 8. Floating CS6 Tools Palette (when undocked via its top grip bar)
@@ -400,6 +427,118 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     dialogs::canvas_size_dialog(app);
     dialogs::find_replace_dialog(app);
     dialogs::saved_commands_dialog(app);
+    // 10. Detached Floating Canvas Windows (Multi-Monitor Native OS Viewports)
+    #[cfg(not(target_arch = "wasm32"))]
+    if !app.floating_doc_tabs.is_empty() {
+        app.sync_active_doc_slot();
+        let floating_list = app.floating_doc_tabs.clone();
+        let mut redock_list: Vec<usize> = Vec::new();
+        let saved_active = app.active_doc;
+        let saved_doc = app.doc.clone();
+        for idx in floating_list {
+            let Some(doc_clone) = app.open_docs.get(idx).cloned() else {
+                redock_list.push(idx);
+                continue;
+            };
+            app.active_doc = idx;
+            app.doc = doc_clone;
+            let title = if app.doc.dirty {
+                format!("*{} — FireCraft Canvas", app.doc.name)
+            } else {
+                format!("{} — FireCraft Canvas", app.doc.name)
+            };
+            let vp_id = egui::ViewportId::from_hash_of(("firecraft_floating_doc", idx));
+            let builder = egui::ViewportBuilder::default()
+                .with_title(&title)
+                .with_inner_size([860.0, 620.0])
+                .with_min_inner_size([360.0, 260.0])
+                .with_resizable(true);
+            let mut dock_back = false;
+            ui.ctx()
+                .show_viewport_immediate(vp_id, builder, |vui, _class| {
+                    if vui.ctx().input(|i| i.viewport().close_requested()) {
+                        dock_back = true;
+                    }
+                    egui::Panel::top(("floating_doc_top", idx))
+                        .exact_size(24.0)
+                        .frame(
+                            egui::Frame::new()
+                                .fill(app.palette.panel_alt)
+                                .stroke(egui::Stroke::new(1.0, app.palette.stroke))
+                                .inner_margin(egui::Margin::symmetric(6, 2)),
+                        )
+                        .show(vui, |ui| {
+                            ui.horizontal(|ui| {
+                                ui.label(
+                                    RichText::new(&app.doc.name)
+                                        .small()
+                                        .strong()
+                                        .color(app.palette.text),
+                                );
+                                ui.separator();
+                                if ui
+                                    .selectable_label(
+                                        app.view_mode == CanvasViewMode::Original,
+                                        RichText::new("Original").small(),
+                                    )
+                                    .clicked()
+                                {
+                                    app.view_mode = CanvasViewMode::Original;
+                                }
+                                if ui
+                                    .selectable_label(
+                                        app.view_mode == CanvasViewMode::Preview,
+                                        RichText::new("Preview").small(),
+                                    )
+                                    .clicked()
+                                {
+                                    app.view_mode = CanvasViewMode::Preview;
+                                }
+                                ui.with_layout(
+                                    egui::Layout::right_to_left(egui::Align::Center),
+                                    |ui| {
+                                        if ui
+                                            .small_button("Dock to Main Window")
+                                            .on_hover_text(
+                                                "Re-dock this canvas back into the main tab bar",
+                                            )
+                                            .clicked()
+                                        {
+                                            dock_back = true;
+                                        }
+                                    },
+                                );
+                            });
+                        });
+                    egui::Panel::bottom(("floating_doc_footer", idx))
+                        .exact_size(24.0)
+                        .frame(
+                            egui::Frame::new()
+                                .fill(app.palette.panel)
+                                .stroke(egui::Stroke::new(1.0, app.palette.stroke))
+                                .inner_margin(egui::Margin::symmetric(8, 2)),
+                        )
+                        .show(vui, |ui| canvas_footer_bar(ui, app));
+                    egui::CentralPanel::default()
+                        .frame(egui::Frame::new().fill(app.palette.bg))
+                        .show(vui, |ui| canvas::show(ui, app));
+                });
+            app.open_docs[idx] = app.doc.clone();
+            if dock_back {
+                redock_list.push(idx);
+            }
+        }
+        app.active_doc = saved_active;
+        app.doc = saved_doc;
+        if let Some(&last_redock) = redock_list.last() {
+            app.floating_doc_tabs.retain(|i| !redock_list.contains(i));
+            if last_redock < app.open_docs.len() {
+                app.switch_document_tab(last_redock);
+            }
+            app.status = "Re-docked floating canvas window".to_string();
+        }
+    }
+
     dialogs::command_palette_dialog(app);
     dialogs::mcp_cli_dialog(app);
     dialogs::about_dialog(app);
@@ -596,7 +735,11 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                 let doc_count = app.open_docs.len();
                 let mut switch_to = None;
                 let mut close_idx = None;
+                let mut float_idx = None;
                 for i in 0..doc_count {
+                    if app.floating_doc_tabs.contains(&i) {
+                        continue;
+                    }
                     let is_active = i == app.active_doc;
                     let name = if is_active {
                         if app.doc.dirty {
@@ -611,7 +754,7 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                     };
                     let tab_w = (28.0 + name.len() as f32 * 6.2).clamp(112.0, 210.0);
                     let (tab_r, tab_resp) =
-                        ui.allocate_exact_size(Vec2::new(tab_w, 21.0), egui::Sense::click());
+                        ui.allocate_exact_size(Vec2::new(tab_w, 21.0), egui::Sense::click_and_drag());
                     let close_r = egui::Rect::from_center_size(
                         egui::pos2(tab_r.right() - 11.0, tab_r.center().y),
                         Vec2::splat(14.0),
@@ -675,19 +818,34 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                             p.text_dim
                         },
                     );
+                    let tab_resp = tab_resp.on_hover_text(
+                        "Left-click to switch · Drag down/out to float in new window · Middle-click to close",
+                    );
                     if close_resp
                         .on_hover_text("Close Document Tab (Middle-Click or Ctrl+W)")
                         .clicked()
                         || tab_resp.middle_clicked()
                     {
                         close_idx = Some(i);
-                    } else if tab_resp
-                        .on_hover_text("Left-click to switch tab · Middle-click to close tab")
-                        .clicked()
-                        && !is_active
-                    {
+                    } else if tab_resp.clicked() && !is_active {
                         switch_to = Some(i);
                     }
+                    if tab_resp.dragged()
+                        && let Some(ptr) = ui.ctx().pointer_interact_pos()
+                        && (ptr.y > tab_r.bottom() + 18.0 || ptr.y < tab_r.top() - 18.0)
+                    {
+                        float_idx = Some(i);
+                    }
+                    tab_resp.context_menu(|ui| {
+                        if ui.button("Float in New Window (Multi-Monitor)").clicked() {
+                            float_idx = Some(i);
+                            ui.close();
+                        }
+                        if ui.button("Close Document Tab").clicked() {
+                            close_idx = Some(i);
+                            ui.close();
+                        }
+                    });
                 }
                 if ui
                     .small_button("+")
@@ -695,6 +853,33 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                     .clicked()
                 {
                     app.new_document_tab(constants::DEFAULT_WIDTH, constants::DEFAULT_HEIGHT);
+                }
+                if !app.open_docs.is_empty()
+                    && !app.floating_doc_tabs.contains(&app.active_doc)
+                    && ui
+                        .small_button("⧉")
+                        .on_hover_text("Float active canvas in a movable / multi-monitor OS window")
+                        .clicked()
+                {
+                    float_idx = Some(app.active_doc);
+                }
+                if !app.floating_doc_tabs.is_empty()
+                    && ui
+                        .small_button(format!("Dock All ({})", app.floating_doc_tabs.len()))
+                        .on_hover_text("Dock all floating canvas windows back into main window")
+                        .clicked()
+                {
+                    app.floating_doc_tabs.clear();
+                }
+                if let Some(fi) = float_idx {
+                    app.sync_active_doc_slot();
+                    if !app.floating_doc_tabs.contains(&fi) {
+                        app.floating_doc_tabs.push(fi);
+                        app.status = format!(
+                            "Floated {} to movable OS window (drag to any monitor)",
+                            app.open_docs[fi].name
+                        );
+                    }
                 }
                 if let Some(target) = switch_to {
                     app.switch_document_tab(target);

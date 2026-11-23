@@ -384,6 +384,7 @@ pub struct FireCraft {
     pub tools_floating_pos: egui::Pos2,
     pub show_right_dock: bool,
     pub right_dock_collapsed: bool,
+    pub floating_doc_tabs: Vec<usize>,
     pub show_bottom_inspector: bool,
     pub bottom_collapsed: bool,
     pub full_screen_canvas: bool,
@@ -508,6 +509,7 @@ impl FireCraft {
             tools_floating_pos: egui::pos2(12.0, 96.0),
             show_right_dock: true,
             right_dock_collapsed: false,
+            floating_doc_tabs: Vec::new(),
             show_bottom_inspector: true,
             bottom_collapsed: false,
             full_screen_canvas: false,
@@ -2443,7 +2445,7 @@ impl FireCraft {
 
     // ---- Multi-Document Tabs & Document Lifecycle --------------------------
 
-    fn sync_active_doc_slot(&mut self) {
+    pub fn sync_active_doc_slot(&mut self) {
         if self.active_doc < self.open_docs.len() {
             self.open_docs[self.active_doc] = self.doc.clone();
         }
@@ -2501,6 +2503,12 @@ impl FireCraft {
             return;
         }
         self.open_docs.remove(idx);
+        self.floating_doc_tabs.retain(|&i| i != idx);
+        for i in &mut self.floating_doc_tabs {
+            if *i > idx {
+                *i -= 1;
+            }
+        }
         self.active_doc = self.active_doc.min(self.open_docs.len() - 1);
         self.doc = self.open_docs[self.active_doc].clone();
         self.selected = None;
@@ -2547,6 +2555,7 @@ impl FireCraft {
     pub fn close_document(&mut self) {
         self.doc = Document::new(constants::DEFAULT_WIDTH, constants::DEFAULT_HEIGHT);
         self.open_docs = vec![self.doc.clone()];
+        self.floating_doc_tabs.clear();
         self.active_doc = 0;
         self.selected = None;
         self.selected_layer = 0;
