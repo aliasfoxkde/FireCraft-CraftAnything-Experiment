@@ -349,42 +349,50 @@ pub fn draw(painter: &Painter, rect: Rect, icon: Icon, color: Color32, width: f3
             );
         }
         Icon::Undo => {
-            painter.add(egui::Shape::line(
-                arc_points(
-                    pos2(cx, cy + u * 0.2),
-                    u * 0.55,
-                    std::f32::consts::PI,
-                    std::f32::consts::TAU,
-                    10,
-                ),
-                st,
-            ));
-            painter.line_segment(
-                [
-                    pos2(cx - u * 0.55, cy + u * 0.2),
-                    pos2(cx - u * 0.2, cy - u * 0.15),
-                ],
-                st,
+            let arc = arc_points(
+                pos2(cx + u * 0.05, cy + u * 0.22),
+                u * 0.58,
+                std::f32::consts::PI * 1.05,
+                std::f32::consts::TAU * 0.96,
+                12,
             );
+            painter.add(egui::Shape::line(
+                arc,
+                stroke_of(color, (width * 1.15).max(1.4)),
+            ));
+            let tip = pos2(cx - u * 0.54, cy + u * 0.14);
+            painter.add(egui::Shape::convex_polygon(
+                vec![
+                    pos2(tip.x - u * 0.22, tip.y - u * 0.12),
+                    pos2(tip.x + u * 0.22, tip.y - u * 0.30),
+                    pos2(tip.x + u * 0.06, tip.y + u * 0.22),
+                ],
+                accent_blue,
+                egui::Stroke::NONE,
+            ));
         }
         Icon::Redo => {
-            painter.add(egui::Shape::line(
-                arc_points(
-                    pos2(cx, cy + u * 0.2),
-                    u * 0.55,
-                    std::f32::consts::PI,
-                    std::f32::consts::TAU,
-                    10,
-                ),
-                st,
-            ));
-            painter.line_segment(
-                [
-                    pos2(cx + u * 0.55, cy + u * 0.2),
-                    pos2(cx + u * 0.2, cy - u * 0.15),
-                ],
-                st,
+            let arc = arc_points(
+                pos2(cx - u * 0.05, cy + u * 0.22),
+                u * 0.58,
+                std::f32::consts::PI * 1.04,
+                std::f32::consts::TAU * 0.95,
+                12,
             );
+            painter.add(egui::Shape::line(
+                arc,
+                stroke_of(color, (width * 1.15).max(1.4)),
+            ));
+            let tip = pos2(cx + u * 0.54, cy + u * 0.14);
+            painter.add(egui::Shape::convex_polygon(
+                vec![
+                    pos2(tip.x + u * 0.22, tip.y - u * 0.12),
+                    pos2(tip.x - u * 0.22, tip.y - u * 0.30),
+                    pos2(tip.x - u * 0.06, tip.y + u * 0.22),
+                ],
+                accent_blue,
+                egui::Stroke::NONE,
+            ));
         }
         Icon::Select => {
             painter.add(egui::Shape::convex_polygon(
@@ -508,66 +516,113 @@ pub fn draw(painter: &Painter, rect: Rect, icon: Icon, color: Color32, width: f3
             );
         }
         Icon::Zoom | Icon::ZoomIn | Icon::ZoomOut => {
-            painter.circle_stroke(pos2(cx - u * 0.15, cy - u * 0.15), u * 0.55, st);
+            let lens_c = pos2(cx - u * 0.16, cy - u * 0.16);
+            let lens_r = u * 0.54;
+            painter.circle_filled(lens_c, lens_r * 0.86, accent_blue.gamma_multiply(0.18));
+            painter.circle_stroke(lens_c, lens_r, st);
             painter.line_segment(
                 [
-                    pos2(cx + u * 0.25, cy + u * 0.25),
-                    pos2(cx + u * 0.85, cy + u * 0.85),
+                    pos2(cx + u * 0.24, cy + u * 0.24),
+                    pos2(cx + u * 0.80, cy + u * 0.80),
                 ],
-                st,
+                stroke_of(accent, (width * 1.6).max(2.0)),
             );
             if icon == Icon::ZoomIn {
+                let plus_st = stroke_of(accent_blue, width.max(1.2));
                 painter.line_segment(
                     [
-                        pos2(cx - u * 0.4, cy - u * 0.15),
-                        pos2(cx + u * 0.1, cy - u * 0.15),
+                        pos2(lens_c.x - u * 0.26, lens_c.y),
+                        pos2(lens_c.x + u * 0.26, lens_c.y),
                     ],
-                    st,
+                    plus_st,
                 );
                 painter.line_segment(
                     [
-                        pos2(cx - u * 0.15, cy - u * 0.4),
-                        pos2(cx - u * 0.15, cy + u * 0.1),
+                        pos2(lens_c.x, lens_c.y - u * 0.26),
+                        pos2(lens_c.x, lens_c.y + u * 0.26),
                     ],
-                    st,
+                    plus_st,
                 );
             } else if icon == Icon::ZoomOut {
                 painter.line_segment(
                     [
-                        pos2(cx - u * 0.4, cy - u * 0.15),
-                        pos2(cx + u * 0.1, cy - u * 0.15),
+                        pos2(lens_c.x - u * 0.26, lens_c.y),
+                        pos2(lens_c.x + u * 0.26, lens_c.y),
                     ],
-                    st,
+                    stroke_of(accent_blue, width.max(1.2)),
                 );
             }
         }
         Icon::Brush => {
+            // Angled handle
             painter.line_segment(
                 [
-                    pos2(cx - u * 0.5, cy + u * 0.6),
-                    pos2(cx + u * 0.65, cy - u * 0.65),
+                    pos2(cx - u * 0.08, cy + u * 0.08),
+                    pos2(cx + u * 0.72, cy - u * 0.72),
                 ],
-                st,
+                stroke_of(color, (width * 1.7).max(2.1)),
             );
-            painter.circle_filled(pos2(cx - u * 0.55, cy + u * 0.65), u * 0.28, color);
+            // Metallic ferrule
+            painter.line_segment(
+                [
+                    pos2(cx - u * 0.28, cy + u * 0.28),
+                    pos2(cx - u * 0.06, cy + u * 0.06),
+                ],
+                stroke_of(accent, (width * 2.1).max(2.5)),
+            );
+            // Tapered bristle tip
+            painter.add(egui::Shape::convex_polygon(
+                vec![
+                    pos2(cx - u * 0.76, cy + u * 0.76),
+                    pos2(cx - u * 0.42, cy + u * 0.16),
+                    pos2(cx - u * 0.16, cy + u * 0.42),
+                ],
+                accent_blue,
+                st,
+            ));
         }
         Icon::Pencil => {
-            painter.line_segment(
-                [
-                    pos2(cx - u * 0.75, cy + u * 0.75),
-                    pos2(cx + u * 0.75, cy - u * 0.75),
+            // Angled pencil barrel
+            painter.add(egui::Shape::convex_polygon(
+                vec![
+                    pos2(cx - u * 0.34, cy + u * 0.14),
+                    pos2(cx + u * 0.50, cy - u * 0.70),
+                    pos2(cx + u * 0.74, cy - u * 0.46),
+                    pos2(cx - u * 0.10, cy + u * 0.38),
                 ],
+                accent.gamma_multiply(0.32),
                 st,
-            );
-            dot(pos2(cx - u * 0.8, cy + u * 0.8));
-        }
-        Icon::Eraser => {
+            ));
+            // Sharpened wood cone & graphite tip
             painter.add(egui::Shape::closed_line(
                 vec![
-                    pos2(cx - u * 0.75, cy + u * 0.35),
-                    pos2(cx - u * 0.15, cy - u * 0.65),
-                    pos2(cx + u * 0.75, cy - u * 0.1),
-                    pos2(cx + u * 0.15, cy + u * 0.85),
+                    pos2(cx - u * 0.74, cy + u * 0.74),
+                    pos2(cx - u * 0.34, cy + u * 0.14),
+                    pos2(cx - u * 0.10, cy + u * 0.38),
+                ],
+                st,
+            ));
+            dot(pos2(cx - u * 0.74, cy + u * 0.74));
+        }
+        Icon::Eraser => {
+            // Upper sleeve (accent)
+            painter.add(egui::Shape::convex_polygon(
+                vec![
+                    pos2(cx - u * 0.30, cy - u * 0.08),
+                    pos2(cx + u * 0.16, cy - u * 0.68),
+                    pos2(cx + u * 0.74, cy - u * 0.18),
+                    pos2(cx + u * 0.28, cy + u * 0.42),
+                ],
+                accent.gamma_multiply(0.30),
+                st,
+            ));
+            // Lower rubber tip
+            painter.add(egui::Shape::closed_line(
+                vec![
+                    pos2(cx - u * 0.68, cy + u * 0.38),
+                    pos2(cx - u * 0.30, cy - u * 0.08),
+                    pos2(cx + u * 0.28, cy + u * 0.42),
+                    pos2(cx - u * 0.10, cy + u * 0.80),
                 ],
                 st,
             ));
@@ -646,14 +701,38 @@ pub fn draw(painter: &Painter, rect: Rect, icon: Icon, color: Color32, width: f3
             );
         }
         Icon::Text => {
+            let bold_st = stroke_of(color, (width * 1.4).max(1.8));
+            // Top bar + serif ticks
             painter.line_segment(
                 [
-                    pos2(cx - u * 0.65, cy - u * 0.7),
-                    pos2(cx + u * 0.65, cy - u * 0.7),
+                    pos2(cx - u * 0.66, cy - u * 0.68),
+                    pos2(cx + u * 0.66, cy - u * 0.68),
+                ],
+                bold_st,
+            );
+            painter.line_segment(
+                [
+                    pos2(cx - u * 0.66, cy - u * 0.68),
+                    pos2(cx - u * 0.66, cy - u * 0.44),
                 ],
                 st,
             );
-            painter.line_segment([pos2(cx, cy - u * 0.7), pos2(cx, cy + u * 0.75)], st);
+            painter.line_segment(
+                [
+                    pos2(cx + u * 0.66, cy - u * 0.68),
+                    pos2(cx + u * 0.66, cy - u * 0.44),
+                ],
+                st,
+            );
+            // Stem + bottom serif
+            painter.line_segment([pos2(cx, cy - u * 0.68), pos2(cx, cy + u * 0.72)], bold_st);
+            painter.line_segment(
+                [
+                    pos2(cx - u * 0.34, cy + u * 0.72),
+                    pos2(cx + u * 0.34, cy + u * 0.72),
+                ],
+                stroke_of(accent_blue, width.max(1.2)),
+            );
         }
         Icon::Picker => {
             painter.line_segment(

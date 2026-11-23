@@ -447,7 +447,11 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
                 });
 
             if ui
-                .small_button(if app.window_fullscreen { "🗗" } else { "⛶" })
+                .add_sized(
+                    [24.0, 20.0],
+                    egui::Button::new(if app.window_fullscreen { "🗗" } else { "⛶" })
+                        .corner_radius(0.0),
+                )
                 .on_hover_text("Toggle App Fullscreen (F11)")
                 .clicked()
             {
@@ -455,14 +459,20 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
             }
 
             if ui
-                .small_button("MCP / CLI")
+                .add_sized(
+                    [68.0, 20.0],
+                    egui::Button::new("MCP / CLI").corner_radius(0.0),
+                )
                 .on_hover_text("Open Model Context Protocol (MCP) JSON-RPC 2.0 & CLI Console")
                 .clicked()
             {
                 app.show_mcp_dialog = true;
             }
             if ui
-                .small_button("Cmd (Ctrl+K)")
+                .add_sized(
+                    [92.0, 20.0],
+                    egui::Button::new("Cmd (Ctrl+K)").corner_radius(0.0),
+                )
                 .on_hover_text("Open Searchable Command Palette (Ctrl+K / Ctrl+P)")
                 .clicked()
             {

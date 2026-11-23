@@ -342,7 +342,19 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     screenshot(ui, app);
 }
 
+fn toolbar_sep(ui: &mut Ui, color: egui::Color32) {
+    let (r, _) = ui.allocate_exact_size(Vec2::new(7.0, 20.0), egui::Sense::hover());
+    ui.painter().line_segment(
+        [
+            egui::pos2(r.center().x, r.top() + 3.0),
+            egui::pos2(r.center().x, r.bottom() - 3.0),
+        ],
+        egui::Stroke::new(1.0, color),
+    );
+}
+
 fn main_toolbar(ui: &mut Ui, app: &mut FireCraft) {
+    let sep_color = app.palette.stroke;
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing = Vec2::new(3.0, 2.0);
         if canvas::tool_button(ui, icons::Icon::New, false, "New Document (Ctrl+N)").clicked() {
@@ -360,7 +372,7 @@ fn main_toolbar(ui: &mut Ui, app: &mut FireCraft) {
         if canvas::tool_button(ui, icons::Icon::Export, false, "Export (Ctrl+Shift+R)").clicked() {
             app.begin_file_dialog(FileMode::Export);
         }
-        ui.separator();
+        toolbar_sep(ui, sep_color);
         if canvas::tool_button(ui, icons::Icon::Cut, false, "Cut (Ctrl+X)").clicked() {
             app.cut_selected();
         }
@@ -373,14 +385,14 @@ fn main_toolbar(ui: &mut Ui, app: &mut FireCraft) {
         if canvas::tool_button(ui, icons::Icon::Duplicate, false, "Duplicate (Ctrl+D)").clicked() {
             app.duplicate_selected();
         }
-        ui.separator();
+        toolbar_sep(ui, sep_color);
         if canvas::tool_button(ui, icons::Icon::Undo, false, "Undo (Ctrl+Z)").clicked() {
             app.undo_action();
         }
         if canvas::tool_button(ui, icons::Icon::Redo, false, "Redo (Ctrl+Y)").clicked() {
             app.redo_action();
         }
-        ui.separator();
+        toolbar_sep(ui, sep_color);
         if canvas::tool_button(
             ui,
             icons::Icon::Group,
@@ -401,7 +413,7 @@ fn main_toolbar(ui: &mut Ui, app: &mut FireCraft) {
         {
             app.ungroup_selected();
         }
-        ui.separator();
+        toolbar_sep(ui, sep_color);
         if canvas::tool_button(
             ui,
             icons::Icon::BringFront,
@@ -558,7 +570,19 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                     if is_active {
                         painter.line_segment(
                             [tab_r.left_top(), tab_r.right_top()],
-                            egui::Stroke::new(1.5, p.accent),
+                            egui::Stroke::new(2.0, p.accent),
+                        );
+                        painter.line_segment(
+                            [
+                                egui::pos2(tab_r.left() + 1.0, tab_r.bottom()),
+                                egui::pos2(tab_r.right() - 1.0, tab_r.bottom()),
+                            ],
+                            egui::Stroke::new(1.5, bg),
+                        );
+                    } else {
+                        painter.line_segment(
+                            [tab_r.left_bottom(), tab_r.right_bottom()],
+                            egui::Stroke::new(1.0, p.stroke),
                         );
                     }
                     painter.text(
