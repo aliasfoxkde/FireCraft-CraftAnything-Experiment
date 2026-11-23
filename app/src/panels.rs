@@ -330,23 +330,35 @@ pub fn tools_panel(ui: &mut Ui, app: &mut FireCraft) {
 
     for (name, tools) in sections {
         ui.add_space(2.0);
-        let (rect, _) =
-            ui.allocate_exact_size(Vec2::new(ui.available_width(), 14.0), Sense::hover());
-        let painter = ui.painter();
-        painter.text(
-            pos2(rect.left() + 3.0, rect.center().y),
-            Align2::LEFT_CENTER,
-            name,
-            FontId::proportional(10.0),
-            p.text_dim,
-        );
-        painter.line_segment(
-            [
-                pos2(rect.left() + 2.0, rect.bottom()),
-                pos2(rect.right() - 2.0, rect.bottom()),
-            ],
-            Stroke::new(1.0, p.stroke),
-        );
+        if app.tools_collapsed {
+            let (rect, _) =
+                ui.allocate_exact_size(Vec2::new(ui.available_width(), 5.0), Sense::hover());
+            ui.painter().line_segment(
+                [
+                    pos2(rect.left() + 2.0, rect.center().y),
+                    pos2(rect.right() - 2.0, rect.center().y),
+                ],
+                Stroke::new(1.0, p.stroke),
+            );
+        } else {
+            let (rect, _) =
+                ui.allocate_exact_size(Vec2::new(ui.available_width(), 14.0), Sense::hover());
+            let painter = ui.painter();
+            painter.text(
+                pos2(rect.left() + 3.0, rect.center().y),
+                Align2::LEFT_CENTER,
+                name,
+                FontId::proportional(10.0),
+                p.text_dim,
+            );
+            painter.line_segment(
+                [
+                    pos2(rect.left() + 2.0, rect.bottom()),
+                    pos2(rect.right() - 2.0, rect.bottom()),
+                ],
+                Stroke::new(1.0, p.stroke),
+            );
+        }
         ui.horizontal_wrapped(|ui| {
             ui.spacing_mut().item_spacing = Vec2::splat(3.0);
             let flyout_state_id = ui.make_persistent_id("tool_flyout_open");

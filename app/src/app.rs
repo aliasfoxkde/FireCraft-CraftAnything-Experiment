@@ -334,6 +334,14 @@ pub struct Drag {
     pub path: Vec<Vec2>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum ToolsDockMode {
+    #[default]
+    Left,
+    Right,
+    Floating,
+}
+
 pub struct FireCraft {
     pub ctx: Context,
     pub doc: Document,
@@ -372,7 +380,10 @@ pub struct FireCraft {
     pub show_main_toolbar: bool,
     pub show_tools_dock: bool,
     pub tools_collapsed: bool,
+    pub tools_zone: ToolsDockMode,
+    pub tools_floating_pos: egui::Pos2,
     pub show_right_dock: bool,
+    pub right_dock_collapsed: bool,
     pub show_bottom_inspector: bool,
     pub bottom_collapsed: bool,
     pub full_screen_canvas: bool,
@@ -493,7 +504,10 @@ impl FireCraft {
             show_main_toolbar: true,
             show_tools_dock: true,
             tools_collapsed: false,
+            tools_zone: ToolsDockMode::Left,
+            tools_floating_pos: egui::pos2(12.0, 96.0),
             show_right_dock: true,
+            right_dock_collapsed: false,
             show_bottom_inspector: true,
             bottom_collapsed: false,
             full_screen_canvas: false,

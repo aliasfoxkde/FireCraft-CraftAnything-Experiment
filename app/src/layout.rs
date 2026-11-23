@@ -68,30 +68,54 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
 
     // 4. Bottom Dock: Properties & Symbol Properties Inspector (fixed default height so switching selection never jumps)
     if app.show_bottom_inspector {
+        let bottom_h = if app.bottom_collapsed { 24.0 } else { 104.0 };
         egui::Panel::bottom("properties_dock")
-            .exact_size(104.0)
+            .exact_size(bottom_h)
             .resizable(false)
-            .frame(
-                egui::Frame::new()
-                    .fill(app.palette.panel)
-                    .inner_margin(egui::Margin::symmetric(8, 5)),
-            )
+            .frame(egui::Frame::new().fill(app.palette.panel).inner_margin(
+                egui::Margin::symmetric(8, if app.bottom_collapsed { 2 } else { 5 }),
+            ))
             .show(ui, |ui| bottom_properties_dock(ui, app));
     }
 
-    // 5. Left Dock: 2-Column CS6 Tool Strip
+    // 5. Left/Right/Floating CS6 Tool Strip (with top grip bar to drag/float/snap + >> / << collapse)
     if app.show_tools_dock {
-        egui::Panel::left("tools")
-            .exact_size(76.0)
-            .resizable(false)
-            .frame(
-                egui::Frame::new()
-                    .fill(app.palette.panel)
-                    .inner_margin(egui::Margin::symmetric(5, 4)),
-            )
-            .show(ui, |ui| {
-                egui::ScrollArea::vertical().show(ui, |ui| panels::tools_panel(ui, app));
-            });
+        let tools_w = if app.tools_collapsed { 38.0 } else { 76.0 };
+        match app.tools_zone {
+            crate::app::ToolsDockMode::Left => {
+                egui::Panel::left("tools")
+                    .exact_size(tools_w)
+                    .resizable(false)
+                    .frame(
+                        egui::Frame::new()
+                            .fill(app.palette.panel)
+                            .inner_margin(egui::Margin::symmetric(4, 2)),
+                    )
+                    .show(ui, |ui| {
+                        tools_top_bar(ui, app);
+                        egui::ScrollArea::vertical()
+                            .id_salt("tools_scroll_left")
+                            .show(ui, |ui| panels::tools_panel(ui, app));
+                    });
+            }
+            crate::app::ToolsDockMode::Right => {
+                egui::Panel::right("tools_right")
+                    .exact_size(tools_w)
+                    .resizable(false)
+                    .frame(
+                        egui::Frame::new()
+                            .fill(app.palette.panel)
+                            .inner_margin(egui::Margin::symmetric(4, 2)),
+                    )
+                    .show(ui, |ui| {
+                        tools_top_bar(ui, app);
+                        egui::ScrollArea::vertical()
+                            .id_salt("tools_scroll_right")
+                            .show(ui, |ui| panels::tools_panel(ui, app));
+                    });
+            }
+            crate::app::ToolsDockMode::Floating => {}
+        }
     }
 
     app.panel_title_rects.clear();
@@ -118,27 +142,40 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
             });
     }
 
-    // 6. Right Dock: CS6 Stacked Tab-Groups (Outer + optional Inner 2-Column)
+    // 6. Right Dock: CS6 Stacked Tab-Groups (Outer + optional Inner 2-Column, or Collapsed Iconic Strip)
     let mut right_outer_rect = None;
     let mut right_inner_rect = None;
     if app.show_right_dock {
-        let resp = egui::Panel::right("dock")
-            .default_size(275.0)
-            .min_size(240.0)
-            .max_size(360.0)
-            .resizable(true)
-            .frame(
-                egui::Frame::new()
-                    .fill(app.palette.panel)
-                    .inner_margin(egui::Margin::same(3)),
-            )
-            .show(ui, |ui| right_dock(ui, app));
+        let resp = if app.right_dock_collapsed {
+            egui::Panel::right("dock")
+                .exact_size(94.0)
+                .resizable(false)
+                .frame(
+                    egui::Frame::new()
+                        .fill(app.palette.panel)
+                        .inner_margin(egui::Margin::same(3)),
+                )
+                .show(ui, |ui| right_dock(ui, app))
+        } else {
+            egui::Panel::right("dock")
+                .default_size(275.0)
+                .min_size(240.0)
+                .max_size(360.0)
+                .resizable(true)
+                .frame(
+                    egui::Frame::new()
+                        .fill(app.palette.panel)
+                        .inner_margin(egui::Margin::same(3)),
+                )
+                .show(ui, |ui| right_dock(ui, app))
+        };
         right_outer_rect = Some(resp.response.rect);
 
-        let has_right_inner = app
-            .panel_groups
-            .iter()
-            .any(|g| g.zone == crate::app::DockZone::RightInner && !g.tabs.is_empty());
+        let has_right_inner = !app.right_dock_collapsed
+            && app
+                .panel_groups
+                .iter()
+                .any(|g| g.zone == crate::app::DockZone::RightInner && !g.tabs.is_empty());
         if has_right_inner {
             let resp2 = egui::Panel::right("dock_inner")
                 .default_size(245.0)
@@ -174,7 +211,39 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
             canvas::show(ui, app);
         });
 
-    // 8. Floating Panel Windows with Magnetic Snapping
+    // 8. Floating CS6 Tools Palette (when undocked via its top grip bar)
+    if app.show_tools_dock && app.tools_zone == crate::app::ToolsDockMode::Floating {
+        let tools_w = if app.tools_collapsed { 38.0 } else { 76.0 };
+        let screen = ui.ctx().content_rect();
+        let max_h = (screen.height() - 160.0).max(240.0);
+        egui::Area::new(ui.make_persistent_id("floating_tools_palette"))
+            .order(egui::Order::Middle)
+            .fixed_pos(app.tools_floating_pos)
+            .constrain(true)
+            .show(ui.ctx(), |ui| {
+                egui::Frame::new()
+                    .fill(app.palette.panel)
+                    .stroke(egui::Stroke::new(1.0, app.palette.stroke))
+                    .shadow(egui::Shadow {
+                        offset: [2, 3],
+                        blur: 8,
+                        spread: 0,
+                        color: egui::Color32::from_black_alpha(100),
+                    })
+                    .inner_margin(egui::Margin::symmetric(4, 3))
+                    .show(ui, |ui| {
+                        ui.set_width(tools_w);
+                        ui.set_max_height(max_h);
+                        tools_top_bar(ui, app);
+                        egui::ScrollArea::vertical()
+                            .id_salt("tools_scroll_floating")
+                            .max_height(max_h - 24.0)
+                            .show(ui, |ui| panels::tools_panel(ui, app));
+                    });
+            });
+    }
+
+    // 9. Floating Panel Windows with Magnetic Snapping
     let floating_indices: Vec<usize> = app
         .panel_groups
         .iter()
@@ -715,6 +784,41 @@ fn bottom_properties_dock(ui: &mut Ui, app: &mut FireCraft) {
     let current = app.bottom_tab.min(1);
     let mut tab = current;
     let palette = app.palette;
+    if app.bottom_collapsed {
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing = Vec2::new(6.0, 0.0);
+            for (i, label) in TABS.iter().enumerate() {
+                if ui
+                    .selectable_label(current == i, RichText::new(*label).small())
+                    .clicked()
+                {
+                    app.bottom_tab = i;
+                    app.bottom_collapsed = false;
+                }
+            }
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui
+                    .small_button("▴")
+                    .on_hover_text("Expand Properties Inspector")
+                    .clicked()
+                {
+                    app.bottom_collapsed = false;
+                }
+            });
+        });
+        return;
+    }
+    ui.horizontal(|ui| {
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            if ui
+                .small_button("▾")
+                .on_hover_text("Collapse Properties Inspector")
+                .clicked()
+            {
+                app.bottom_collapsed = true;
+            }
+        });
+    });
     panels::panel(
         ui,
         TABS[current],
@@ -845,27 +949,218 @@ fn canvas_footer_bar(ui: &mut Ui, app: &mut FireCraft) {
     });
 }
 
+fn panel_mini_icon(id: crate::app::PanelId) -> icons::Icon {
+    use crate::app::PanelId;
+    match id {
+        PanelId::Optimize => icons::Icon::Slice,
+        PanelId::History => icons::Icon::Undo,
+        PanelId::Align => icons::Icon::Group,
+        PanelId::Path => icons::Icon::Pen,
+        PanelId::Pages => icons::Icon::New,
+        PanelId::States => icons::Icon::Duplicate,
+        PanelId::Layers => icons::Icon::Folder,
+        PanelId::Styles => icons::Icon::Star,
+        PanelId::ColorPalette | PanelId::ColorMixer | PanelId::Swatches => icons::Icon::Picker,
+        PanelId::Info => icons::Icon::Select,
+        PanelId::SpecialChars => icons::Icon::Text,
+        PanelId::ImageEditing => icons::Icon::Brush,
+        PanelId::AutoShapes | PanelId::AutoShapeProps => icons::Icon::Polygon,
+        PanelId::DocumentLibrary | PanelId::CommonLibrary => icons::Icon::Open,
+        PanelId::CssProperties => icons::Icon::Export,
+        PanelId::Url => icons::Icon::Hotspot,
+        PanelId::Behaviors => icons::Icon::Wand,
+    }
+}
+
+fn tools_top_bar(ui: &mut Ui, app: &mut FireCraft) {
+    let p = app.palette;
+    let w = ui.available_width().max(26.0);
+    let (bar_r, _) = ui.allocate_exact_size(Vec2::new(w, 15.0), egui::Sense::hover());
+    let painter = ui.painter();
+    painter.rect_filled(bar_r, 0.0, p.panel_alt);
+    painter.line_segment(
+        [bar_r.left_bottom(), bar_r.right_bottom()],
+        egui::Stroke::new(1.0, p.stroke),
+    );
+
+    // Collapse / Expand chevron button (<< to collapse to 1-col, >> to expand to 2-col)
+    let btn_r = egui::Rect::from_min_max(
+        egui::pos2(bar_r.right() - 16.0, bar_r.top() + 1.0),
+        egui::pos2(bar_r.right() - 1.0, bar_r.bottom() - 1.0),
+    );
+    let btn_resp = ui.interact(
+        btn_r,
+        ui.make_persistent_id("tools_collapse_btn"),
+        egui::Sense::click(),
+    );
+    if btn_resp.hovered() {
+        painter.rect_filled(btn_r, 0.0, p.well);
+    }
+    let chevron = match (app.tools_zone, app.tools_collapsed) {
+        (crate::app::ToolsDockMode::Right, false) => ">>",
+        (crate::app::ToolsDockMode::Right, true) => "<<",
+        (_, false) => "<<",
+        (_, true) => ">>",
+    };
+    painter.text(
+        btn_r.center(),
+        egui::Align2::CENTER_CENTER,
+        chevron,
+        egui::FontId::proportional(9.0),
+        if btn_resp.hovered() {
+            p.accent
+        } else {
+            p.text_dim
+        },
+    );
+    if btn_resp.clicked() {
+        app.tools_collapsed = !app.tools_collapsed;
+    }
+    btn_resp.on_hover_text(if app.tools_collapsed {
+        "Expand Tools (2 columns)"
+    } else {
+        "Collapse Tools (1 column)"
+    });
+
+    // Draggable CS6 dotted grip (drag to float anywhere or snap to left/right edge)
+    let grip_r =
+        egui::Rect::from_min_max(bar_r.left_top(), egui::pos2(btn_r.left(), bar_r.bottom()));
+    let grip_resp = ui.interact(
+        grip_r,
+        ui.make_persistent_id("tools_drag_grip"),
+        egui::Sense::click_and_drag(),
+    );
+    let dot_col = if grip_resp.hovered() || grip_resp.dragged() {
+        p.accent
+    } else {
+        p.text_dim
+    };
+    let dots = ((grip_r.width() - 6.0) / 4.0).floor().clamp(3.0, 6.0) as usize;
+    let start_x = grip_r.left() + 4.0;
+    for i in 0..dots {
+        painter.rect_filled(
+            egui::Rect::from_center_size(
+                egui::pos2(start_x + i as f32 * 4.0, grip_r.center().y),
+                Vec2::splat(1.5),
+            ),
+            0.0,
+            dot_col,
+        );
+    }
+    if grip_resp.hovered() {
+        ui.ctx().set_cursor_icon(egui::CursorIcon::Grab);
+    }
+    if grip_resp.double_clicked() {
+        app.tools_zone = match app.tools_zone {
+            crate::app::ToolsDockMode::Floating => crate::app::ToolsDockMode::Left,
+            _ => crate::app::ToolsDockMode::Floating,
+        };
+    } else if grip_resp.dragged() {
+        ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+        let screen = ui.ctx().content_rect();
+        if let Some(ptr) = ui.ctx().pointer_interact_pos() {
+            let delta = grip_resp.drag_delta();
+            match app.tools_zone {
+                crate::app::ToolsDockMode::Left if ptr.x > screen.left() + 88.0 => {
+                    app.tools_zone = crate::app::ToolsDockMode::Floating;
+                    app.tools_floating_pos = egui::pos2(ptr.x - 16.0, ptr.y - 6.0);
+                }
+                crate::app::ToolsDockMode::Right if ptr.x < screen.right() - 88.0 => {
+                    app.tools_zone = crate::app::ToolsDockMode::Floating;
+                    app.tools_floating_pos = egui::pos2(ptr.x - 16.0, ptr.y - 6.0);
+                }
+                crate::app::ToolsDockMode::Floating => {
+                    app.tools_floating_pos += delta;
+                    app.tools_floating_pos.x = app
+                        .tools_floating_pos
+                        .x
+                        .clamp(screen.left(), (screen.right() - 76.0).max(screen.left()));
+                    app.tools_floating_pos.y = app.tools_floating_pos.y.clamp(
+                        screen.top() + 50.0,
+                        (screen.bottom() - 120.0).max(screen.top() + 50.0),
+                    );
+                    if ptr.x <= screen.left() + 26.0 {
+                        app.tools_zone = crate::app::ToolsDockMode::Left;
+                    } else if ptr.x >= screen.right() - 26.0 {
+                        app.tools_zone = crate::app::ToolsDockMode::Right;
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    grip_resp
+        .on_hover_text("Drag to float Tools or snap to Left/Right edge (double-click to toggle)");
+}
+
 fn dock_column(ui: &mut Ui, app: &mut FireCraft, zone: crate::app::DockZone) {
     let p = app.palette;
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing = Vec2::new(4.0, 0.0);
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if ui
-                .small_button("▸")
-                .on_hover_text("Expand all panels in dock")
-                .clicked()
-            {
-                app.collapse_all_panels(false);
-            }
-            if ui
-                .small_button("▾")
-                .on_hover_text("Collapse all panels in dock")
-                .clicked()
-            {
-                app.collapse_all_panels(true);
-            }
+    let is_right_outer = zone == crate::app::DockZone::RightOuter;
+    let collapsed_iconic = is_right_outer && app.right_dock_collapsed;
+
+    // CS6 Dock Header Bar with >> / << collapse-to-iconic-strip toggle
+    let bar_w = ui.available_width();
+    let (bar_r, _) = ui.allocate_exact_size(Vec2::new(bar_w, 16.0), egui::Sense::hover());
+    let painter = ui.painter();
+    painter.rect_filled(bar_r, 0.0, p.panel_alt);
+    painter.line_segment(
+        [bar_r.left_bottom(), bar_r.right_bottom()],
+        egui::Stroke::new(1.0, p.stroke),
+    );
+    if is_right_outer {
+        let chev_r = egui::Rect::from_min_max(
+            egui::pos2(bar_r.left() + 1.0, bar_r.top() + 1.0),
+            egui::pos2(bar_r.left() + 20.0, bar_r.bottom() - 1.0),
+        );
+        let chev_resp = ui.interact(
+            chev_r,
+            ui.make_persistent_id("right_dock_collapse_btn"),
+            egui::Sense::click(),
+        );
+        if chev_resp.hovered() {
+            painter.rect_filled(chev_r, 0.0, p.well);
+        }
+        painter.text(
+            chev_r.center(),
+            egui::Align2::CENTER_CENTER,
+            if collapsed_iconic { "<<" } else { ">>" },
+            egui::FontId::proportional(9.5),
+            if chev_resp.hovered() {
+                p.accent
+            } else {
+                p.text_dim
+            },
+        );
+        if chev_resp.clicked() {
+            app.right_dock_collapsed = !app.right_dock_collapsed;
+        }
+        chev_resp.on_hover_text(if collapsed_iconic {
+            "Expand Panels Dock (<<)"
+        } else {
+            "Collapse Panels Dock to Iconic Strip (>>)"
         });
-    });
+    }
+    if !collapsed_iconic {
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing = Vec2::new(4.0, 0.0);
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui
+                    .small_button("▸")
+                    .on_hover_text("Expand all panels in dock")
+                    .clicked()
+                {
+                    app.collapse_all_panels(false);
+                }
+                if ui
+                    .small_button("▾")
+                    .on_hover_text("Collapse all panels in dock")
+                    .clicked()
+                {
+                    app.collapse_all_panels(true);
+                }
+            });
+        });
+    }
     ui.add_space(2.0);
     let indices: Vec<usize> = app
         .panel_groups
@@ -874,6 +1169,81 @@ fn dock_column(ui: &mut Ui, app: &mut FireCraft, zone: crate::app::DockZone) {
         .filter(|(_, g)| g.zone == zone && !g.tabs.is_empty())
         .map(|(i, _)| i)
         .collect();
+    if collapsed_iconic {
+        egui::ScrollArea::vertical()
+            .id_salt(("dock_iconic_scroll", zone as u8))
+            .show(ui, |ui| {
+                let mut expand_to: Option<(usize, usize)> = None;
+                for idx in indices {
+                    // Dotted group separator matching CS6 Iconic Strip
+                    let (sep_r, _) = ui.allocate_exact_size(
+                        Vec2::new(ui.available_width(), 7.0),
+                        egui::Sense::hover(),
+                    );
+                    for d in 0..4 {
+                        ui.painter().rect_filled(
+                            egui::Rect::from_center_size(
+                                egui::pos2(sep_r.left() + 6.0 + d as f32 * 4.0, sep_r.center().y),
+                                Vec2::splat(1.5),
+                            ),
+                            0.0,
+                            p.text_dim,
+                        );
+                    }
+                    let tabs = app.panel_groups[idx].tabs.clone();
+                    let active_tab = app.panel_groups[idx].active_tab;
+                    for (ti, pid) in tabs.into_iter().enumerate() {
+                        let (row_r, row_resp) = ui.allocate_exact_size(
+                            Vec2::new(ui.available_width(), 20.0),
+                            egui::Sense::click(),
+                        );
+                        if row_resp.hovered() {
+                            ui.painter().rect_filled(row_r, 0.0, p.well);
+                        } else if ti == active_tab {
+                            ui.painter()
+                                .rect_filled(row_r, 0.0, p.panel_alt.gamma_multiply(0.7));
+                        }
+                        let icon_r = egui::Rect::from_center_size(
+                            egui::pos2(row_r.left() + 10.0, row_r.center().y),
+                            Vec2::splat(13.0),
+                        );
+                        icons::draw(
+                            ui.painter(),
+                            icon_r,
+                            panel_mini_icon(pid),
+                            if row_resp.hovered() { p.accent } else { p.text },
+                            1.1,
+                        );
+                        let mut title = pid.title().to_string();
+                        if title.len() > 10 {
+                            title.truncate(9);
+                            title.push('…');
+                        }
+                        ui.painter().text(
+                            egui::pos2(row_r.left() + 20.0, row_r.center().y),
+                            egui::Align2::LEFT_CENTER,
+                            title,
+                            egui::FontId::proportional(10.0),
+                            if row_resp.hovered() {
+                                p.text
+                            } else {
+                                p.text_dim
+                            },
+                        );
+                        if row_resp.clicked() {
+                            expand_to = Some((idx, ti));
+                        }
+                        row_resp.on_hover_text(format!("Expand {}", pid.title()));
+                    }
+                }
+                if let Some((gidx, tidx)) = expand_to {
+                    app.panel_groups[gidx].active_tab = tidx;
+                    app.panel_groups[gidx].collapsed = false;
+                    app.right_dock_collapsed = false;
+                }
+            });
+        return;
+    }
     egui::ScrollArea::vertical()
         .id_salt(("dock_scroll", zone as u8))
         .show(ui, |ui| {
