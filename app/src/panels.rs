@@ -643,6 +643,7 @@ pub fn history_panel(ui: &mut Ui, app: &mut FireCraft) {
     } else {
         let labels: Vec<String> = app.undo.iter().map(|s| s.label.clone()).collect();
         egui::ScrollArea::vertical()
+            .id_salt("history_panel_scroll")
             .max_height(100.0)
             .show(ui, |ui| {
                 for (idx, lbl) in labels.iter().enumerate() {
@@ -1803,6 +1804,7 @@ pub fn pages_panel(ui: &mut Ui, app: &mut FireCraft) {
             // Pages tab with CS6 page preview thumbnail box + bottom status/action bar
             let count = app.doc.pages.len();
             egui::ScrollArea::vertical()
+                .id_salt("pages_tab_scroll")
                 .max_height(114.0)
                 .show(ui, |ui| {
                     for i in 0..count {
@@ -1869,6 +1871,7 @@ pub fn pages_panel(ui: &mut Ui, app: &mut FireCraft) {
             let state_count = app.doc.page().states.len();
             let current_st = app.doc.page().current_state;
             egui::ScrollArea::vertical()
+                .id_salt("states_tab_scroll")
                 .max_height(110.0)
                 .show(ui, |ui| {
                     for i in 0..state_count {
@@ -1979,7 +1982,8 @@ pub fn pages_panel(ui: &mut Ui, app: &mut FireCraft) {
 
             let layers = app.doc.page().layers.clone();
             egui::ScrollArea::vertical()
-                .max_height(84.0)
+                .id_salt("layers_tab_scroll")
+                .max_height(128.0)
                 .show(ui, |ui| {
                     for (li, layer) in layers.iter().enumerate().rev() {
                         ui.horizontal(|ui| {
@@ -2164,6 +2168,7 @@ pub fn styles_panel(ui: &mut Ui, app: &mut FireCraft) {
     });
     let styles = app.doc.styles.clone();
     egui::ScrollArea::vertical()
+        .id_salt("styles_panel_scroll")
         .max_height(112.0)
         .show(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
@@ -2413,6 +2418,7 @@ pub fn library_panel(ui: &mut Ui, app: &mut FireCraft) {
             if let Some(obj) = app.selected_object() {
                 let css = crate::formats::generate_css_for_object(&obj);
                 egui::ScrollArea::vertical()
+                    .id_salt("library_panel_scroll")
                     .max_height(88.0)
                     .show(ui, |ui| {
                         ui.code(&css);
@@ -3493,13 +3499,15 @@ pub fn common_library_panel(ui: &mut Ui, app: &mut FireCraft) {
         "Navigation Bar",
         "Badge Pill",
     ];
-    egui::ScrollArea::vertical().show(ui, |ui| {
-        for item in items {
-            if ui.selectable_label(false, format!("+ {item}")).clicked() {
-                app.insert_common_library_item(item);
+    egui::ScrollArea::vertical()
+        .id_salt("common_library_scroll")
+        .show(ui, |ui| {
+            for item in items {
+                if ui.selectable_label(false, format!("+ {item}")).clicked() {
+                    app.insert_common_library_item(item);
+                }
             }
-        }
-    });
+        });
 }
 
 pub fn url_panel(ui: &mut Ui, app: &mut FireCraft) {
@@ -3853,7 +3861,9 @@ pub fn panel_group_widget(ui: &mut Ui, app: &mut FireCraft, group_idx: usize, is
                                     .auto_shrink([false, false])
                                     .max_height((body_h - 12.0).max(40.0))
                                     .show(ui, |ui| {
-                                        render_panel_by_id(ui, app, active_panel);
+                                        ui.push_id(("panel_body", group.id, active_panel), |ui| {
+                                            render_panel_by_id(ui, app, active_panel);
+                                        });
                                     });
                             });
                     },
