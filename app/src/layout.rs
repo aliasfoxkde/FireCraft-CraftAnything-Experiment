@@ -1006,6 +1006,38 @@ enum Shortcut {
 }
 
 fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
+    if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, Key::Escape)) {
+        if let Some(fid) = ui.ctx().memory(|m| m.focused()) {
+            ui.ctx().memory_mut(|m| m.surrender_focus(fid));
+        }
+        let closed_popup = app.active_menu.is_some()
+            || app.context_menu_pos.is_some()
+            || app.show_command_palette
+            || app.show_find_replace
+            || app.show_new_dialog
+            || app.show_canvas_size_dialog
+            || app.show_commands_dialog
+            || app.show_mcp_dialog
+            || app.show_about_dialog
+            || app.show_file_dialog
+            || app.show_welcome;
+        app.active_menu = None;
+        app.context_menu_pos = None;
+        app.show_command_palette = false;
+        app.show_find_replace = false;
+        app.show_new_dialog = false;
+        app.show_canvas_size_dialog = false;
+        app.show_commands_dialog = false;
+        app.show_mcp_dialog = false;
+        app.show_about_dialog = false;
+        app.show_file_dialog = false;
+        app.show_welcome = false;
+        if !closed_popup {
+            app.clear_selection();
+        }
+        ui.ctx().request_repaint();
+        return;
+    }
     if !ui.ctx().egui_wants_keyboard_input() {
         let tab_toggled = ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, Key::Tab));
         if tab_toggled {
