@@ -66,16 +66,30 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
         )
         .show(ui, |ui| status_bar(ui, app));
 
-    // 4. Bottom Dock: Properties & Symbol Properties Inspector (fixed default height so switching selection never jumps)
+    // 4. Bottom Dock: Properties & Symbol Properties Inspector (taller default + resizable)
     if app.show_bottom_inspector {
-        let bottom_h = if app.bottom_collapsed { 24.0 } else { 104.0 };
-        egui::Panel::bottom("properties_dock")
-            .exact_size(bottom_h)
-            .resizable(false)
-            .frame(egui::Frame::new().fill(app.palette.panel).inner_margin(
-                egui::Margin::symmetric(8, if app.bottom_collapsed { 2 } else { 5 }),
-            ))
-            .show(ui, |ui| bottom_properties_dock(ui, app));
+        let frame =
+            egui::Frame::new()
+                .fill(app.palette.panel)
+                .inner_margin(egui::Margin::symmetric(
+                    8,
+                    if app.bottom_collapsed { 2 } else { 5 },
+                ));
+        if app.bottom_collapsed {
+            egui::Panel::bottom("properties_dock")
+                .exact_size(24.0)
+                .resizable(false)
+                .frame(frame)
+                .show(ui, |ui| bottom_properties_dock(ui, app));
+        } else {
+            egui::Panel::bottom("properties_dock")
+                .default_size(142.0)
+                .min_size(118.0)
+                .max_size(240.0)
+                .resizable(true)
+                .frame(frame)
+                .show(ui, |ui| bottom_properties_dock(ui, app));
+        }
     }
 
     // 5. Left/Right/Floating CS6 Tool Strip (with top grip bar to drag/float/snap + >> / << collapse)
