@@ -110,35 +110,41 @@ pub const LIGHT: Palette = Palette {
     welcome: Color32::from_rgb(0xed, 0xed, 0xed),
 };
 
-/// Reads the operating system's light/dark preference on Windows.
+/// Reads the operating system's light/dark preference on Windows (cached).
 pub fn system_is_light() -> bool {
-    #[cfg(target_os = "windows")]
-    {
-        let out = std::process::Command::new("reg")
-            .args([
-                "query",
-                r"HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
-                "/v",
-                "AppsUseLightTheme",
-            ])
-            .output();
-        if let Ok(out) = out {
-            let text = String::from_utf8_lossy(&out.stdout).to_string();
-            for token in text.split_whitespace() {
-                if token.eq_ignore_ascii_case("0x0") {
-                    return false;
-                }
-                if token.eq_ignore_ascii_case("0x1") {
-                    return true;
+    static CACHED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *CACHED.get_or_init(|| {
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+            let out = std::process::Command::new("reg")
+                .args([
+                    "query",
+                    r"HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+                    "/v",
+                    "AppsUseLightTheme",
+                ])
+                .creation_flags(CREATE_NO_WINDOW)
+                .output();
+            if let Ok(out) = out {
+                let text = String::from_utf8_lossy(&out.stdout);
+                for token in text.split_whitespace() {
+                    if token.eq_ignore_ascii_case("0x0") {
+                        return false;
+                    }
+                    if token.eq_ignore_ascii_case("0x1") {
+                        return true;
+                    }
                 }
             }
+            false
         }
-        false
-    }
-    #[cfg(not(target_os = "windows"))]
-    {
-        false
-    }
+        #[cfg(not(target_os = "windows"))]
+        {
+            false
+        }
+    })
 }
 
 pub fn resolve(mode: ThemeMode) -> Palette {
