@@ -322,6 +322,7 @@ pub struct FireCraft {
     pub panel_groups: Vec<PanelGroup>,
     pub next_panel_group_id: u64,
     pub dragging_panel: Option<PanelId>,
+    pub dragging_group: Option<u64>,
     pub panel_title_rects: Vec<(u64, egui::Rect)>,
     pub workspace_preset: &'static str,
     pub anim_playing: bool,
@@ -434,6 +435,7 @@ impl FireCraft {
             panel_groups: Self::cs6_dual_column_groups(),
             next_panel_group_id: 100,
             dragging_panel: None,
+            dragging_group: None,
             panel_title_rects: Vec::new(),
             workspace_preset: "CS6 Dual-Column",
             anim_playing: false,
@@ -972,6 +974,27 @@ impl FireCraft {
             }
             target.collapsed = false;
             self.status = format!("Grouped {} into tab group", panel.title());
+        }
+    }
+
+    pub fn merge_groups(&mut self, src_id: u64, dst_id: u64) {
+        if src_id == dst_id {
+            return;
+        }
+        let Some(src_idx) = self.panel_groups.iter().position(|g| g.id == src_id) else {
+            return;
+        };
+        let src_tabs = self.panel_groups[src_idx].tabs.clone();
+        self.panel_groups.remove(src_idx);
+        if let Some(dst) = self.panel_groups.iter_mut().find(|g| g.id == dst_id) {
+            for t in src_tabs {
+                if !dst.tabs.contains(&t) {
+                    dst.tabs.push(t);
+                }
+            }
+            dst.active_tab = dst.tabs.len().saturating_sub(1);
+            dst.collapsed = false;
+            self.status = "Merged panel groups".to_string();
         }
     }
 

@@ -176,6 +176,7 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
         && rect.contains(pointer_pos)
         && !app.show_welcome
         && app.dragging_panel.is_none()
+        && app.dragging_group.is_none()
         && app.active_menu.is_none();
     if over_canvas {
         let doc_pos: Vec2 = (pointer_pos - origin.to_pos2()) / zoom;

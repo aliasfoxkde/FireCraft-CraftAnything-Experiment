@@ -3480,7 +3480,8 @@ pub fn panel_group_widget(ui: &mut Ui, app: &mut FireCraft, group_idx: usize, is
             );
             app.panel_title_rects.push((group.id, header_rect));
 
-            let is_drop_target = app.dragging_panel.is_some()
+            let is_drop_target = (app.dragging_panel.is_some()
+                || app.dragging_group.is_some_and(|gid| gid != group.id))
                 && ui
                     .ctx()
                     .pointer_latest_pos()
@@ -3508,7 +3509,7 @@ pub fn panel_group_widget(ui: &mut Ui, app: &mut FireCraft, group_idx: usize, is
                 g.collapsed = !g.collapsed;
             }
             if header_resp.drag_started() {
-                app.dragging_panel = Some(active_panel);
+                app.dragging_group = Some(group.id);
             }
             if header_resp.hovered() {
                 ui.ctx().set_cursor_icon(egui::CursorIcon::Grab);
@@ -3698,18 +3699,25 @@ pub fn panel_group_widget(ui: &mut Ui, app: &mut FireCraft, group_idx: usize, is
 
             if !group.collapsed {
                 let body_h = group.body_height;
-                ui.allocate_ui(Vec2::new(ui.available_width(), body_h), |ui| {
-                    egui::Frame::NONE
-                        .inner_margin(egui::Margin::symmetric(8, 6))
-                        .show(ui, |ui| {
-                            egui::ScrollArea::vertical()
-                                .id_salt(("pg_scroll", group.id, active_panel))
-                                .max_height(body_h - 10.0)
-                                .show(ui, |ui| {
-                                    render_panel_by_id(ui, app, active_panel);
-                                });
-                        });
-                });
+                ui.allocate_ui_with_layout(
+                    Vec2::new(ui.available_width(), body_h),
+                    egui::Layout::top_down(egui::Align::Min),
+                    |ui| {
+                        ui.set_min_height(body_h);
+                        ui.set_max_height(body_h);
+                        egui::Frame::NONE
+                            .inner_margin(egui::Margin::symmetric(8, 6))
+                            .show(ui, |ui| {
+                                egui::ScrollArea::vertical()
+                                    .id_salt(("pg_scroll", group.id, active_panel))
+                                    .auto_shrink([false, false])
+                                    .max_height((body_h - 12.0).max(40.0))
+                                    .show(ui, |ui| {
+                                        render_panel_by_id(ui, app, active_panel);
+                                    });
+                            });
+                    },
+                );
 
                 // Bottom resize splitter bar
                 let (split_r, split_resp) =

@@ -207,7 +207,64 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
         }
     }
 
-    // 9. Resolve Dragging Panel Tab Drop (Group / Dock / Tear-off Floating)
+    // 9. Resolve Dragging Panel Tab or Whole Group Drop (Group / Dock / Tear-off Floating)
+    if let Some(dragged_gid) = app.dragging_group {
+        let pointer_pos = ui.ctx().pointer_latest_pos();
+        let released = ui.input(|i| !i.pointer.primary_down());
+        if !released && let Some(pos) = pointer_pos {
+            ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+            let ghost_r =
+                egui::Rect::from_min_size(pos + Vec2::new(8.0, 8.0), Vec2::new(200.0, 26.0));
+            let fg = ui.ctx().layer_painter(egui::LayerId::new(
+                egui::Order::Tooltip,
+                ui.make_persistent_id("group_drag_ghost"),
+            ));
+            fg.rect_filled(ghost_r, 0.0, app.palette.panel_alt.gamma_multiply(0.92));
+            fg.rect_stroke(
+                ghost_r,
+                0.0,
+                egui::Stroke::new(1.5, app.palette.accent),
+                egui::StrokeKind::Inside,
+            );
+            fg.text(
+                ghost_r.center(),
+                egui::Align2::CENTER_CENTER,
+                "Moving Panel Group (Drop to Dock / Merge / Float)",
+                egui::FontId::proportional(10.5),
+                app.palette.text,
+            );
+        }
+        if released {
+            app.dragging_group = None;
+            if let Some(pos) = pointer_pos {
+                if let Some((target_gid, _)) = app
+                    .panel_title_rects
+                    .iter()
+                    .find(|(gid, r)| *gid != dragged_gid && r.contains(pos))
+                    .copied()
+                {
+                    app.merge_groups(dragged_gid, target_gid);
+                } else if right_inner_rect.is_some_and(|r| r.contains(pos)) {
+                    app.move_group_to_zone(dragged_gid, crate::app::DockZone::RightInner, None);
+                } else if right_outer_rect.is_some_and(|r| r.contains(pos)) {
+                    app.move_group_to_zone(dragged_gid, crate::app::DockZone::RightOuter, None);
+                } else {
+                    let snapped = app.snap_floating_pos(
+                        dragged_gid,
+                        pos - Vec2::new(110.0, 10.0),
+                        Vec2::new(250.0, 180.0),
+                        ui.ctx().content_rect(),
+                    );
+                    app.move_group_to_zone(
+                        dragged_gid,
+                        crate::app::DockZone::Floating,
+                        Some(snapped),
+                    );
+                }
+            }
+        }
+    }
+
     if let Some(dragged) = app.dragging_panel {
         let pointer_pos = ui.ctx().pointer_latest_pos();
         let released = ui.input(|i| !i.pointer.primary_down());
