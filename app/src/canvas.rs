@@ -127,7 +127,30 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
         draw_guides(&painter, rect, origin, zoom, app);
     }
     if app.show_rulers {
-        draw_rulers(&painter, rect, origin, zoom, app.palette);
+        draw_rulers(
+            &painter,
+            rect,
+            origin,
+            zoom,
+            app.palette,
+            app.ruler_unit,
+            app.doc.dpi as f32,
+        );
+        let corner = Rect::from_min_size(rect.min, Vec2::splat(16.0));
+        if ui
+            .interact(
+                corner,
+                ui.make_persistent_id("ruler_unit_corner"),
+                Sense::click(),
+            )
+            .on_hover_text("Click to cycle Ruler Units (px / in / cm / mm)")
+            .clicked()
+        {
+            let all = crate::app::RulerUnit::ALL;
+            let cur = all.iter().position(|&u| u == app.ruler_unit).unwrap_or(0);
+            app.ruler_unit = all[(cur + 1) % all.len()];
+            app.status = format!("Ruler units: {}", app.ruler_unit.label());
+        }
     }
 
     let pointer = ui.input(|i| {
@@ -723,6 +746,8 @@ fn draw_rulers(
     origin: Vec2,
     zoom: f32,
     palette: crate::theme::Palette,
+    unit: crate::app::RulerUnit,
+    dpi: f32,
 ) {
     const RULER: f32 = 16.0;
     let strip_h = Rect::from_min_max(
@@ -736,45 +761,119 @@ fn draw_rulers(
     painter.rect_filled(strip_h, 0.0, palette.panel);
     painter.rect_filled(strip_v, 0.0, palette.panel);
 
-    let mut step = 10.0_f32;
-    while step * zoom < 35.0 {
-        step *= 5.0;
-    }
-    let line = Stroke::new(0.5, palette.text_dim);
+    let px_per_unit = unit.px_per_unit(dpi);
+    let candidates: &[f32] = match unit {
+        crate::app::RulerUnit::Pixels => &[10.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0],
+        crate::app::RulerUnit::Inches => &[0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 25.0],
+        crate::app::RulerUnit::Centimeters => &[0.5, 1.0, 2.0, 5.0, 10.0, 25.0, 50.0],
+        crate::app::RulerUnit::Millimeters => &[5.0, 10.0, 25.0, 50.0, 100.0, 250.0, 500.0],
+    };
+    let unit_step = candidates
+        .iter()
+        .copied()
+        .find(|&c| c * px_per_unit * zoom >= 42.0)
+        .unwrap_or(*candidates.last().unwrap_or(&100.0));
+    let step_px = unit_step * px_per_unit;
+    let subs = unit.subdivisions();
+    let major_line = Stroke::new(0.8, palette.text_dim);
+    let minor_line = Stroke::new(0.5, palette.text_dim.gamma_multiply(0.55));
 
-    let start_x = ((rect.left() - origin.x) / (step * zoom)).floor() as i64;
-    let end_x = ((rect.right() - origin.x) / (step * zoom)).ceil() as i64;
+    let fmt_val = |v: f32| -> String {
+        if (v - v.round()).abs() < 0.01 {
+            format!("{:.0}", v.round())
+        } else {
+            format!("{v:.2}")
+                .trim_end_matches('0')
+                .trim_end_matches('.')
+                .to_string()
+        }
+    };
+
+    let start_x = ((rect.left() - origin.x) / (step_px * zoom)).floor() as i64;
+    let end_x = ((rect.right() - origin.x) / (step_px * zoom)).ceil() as i64;
     for i in start_x..=end_x {
-        let x = origin.x + i as f32 * step * zoom;
-        if x < strip_h.left() + RULER || x > strip_h.right() {
-            continue;
+        let x = origin.x + i as f32 * step_px * zoom;
+        if x >= strip_h.left() + RULER && x <= strip_h.right() {
+            painter.vline(x, strip_h.top()..=strip_h.bottom(), major_line);
+            painter.text(
+                pos2(x + 2.0, strip_h.top() + 1.0),
+                Align2::LEFT_TOP,
+                fmt_val(i as f32 * unit_step),
+                FontId::proportional(8.5),
+                palette.text_dim,
+            );
         }
-        painter.vline(x, strip_h.top()..=strip_h.bottom(), line);
-        painter.text(
-            pos2(x + 2.0, strip_h.bottom() - 2.0),
-            Align2::LEFT_BOTTOM,
-            format!("{:.0}", i as f32 * step),
-            FontId::proportional(9.0),
-            palette.text_dim,
-        );
+        // Fractional sub-ticks
+        if step_px * zoom >= 24.0 {
+            for s in 1..subs {
+                let sx = origin.x + (i as f32 + s as f32 / subs as f32) * step_px * zoom;
+                if sx < strip_h.left() + RULER || sx > strip_h.right() {
+                    continue;
+                }
+                let tick_h = if s * 2 == subs {
+                    9.0
+                } else if subs == 8 && s % 2 == 0 {
+                    6.5
+                } else {
+                    4.0
+                };
+                painter.vline(
+                    sx,
+                    (strip_h.bottom() - tick_h)..=strip_h.bottom(),
+                    minor_line,
+                );
+            }
+        }
     }
 
-    let start_y = ((rect.top() - origin.y) / (step * zoom)).floor() as i64;
-    let end_y = ((rect.bottom() - origin.y) / (step * zoom)).ceil() as i64;
+    let start_y = ((rect.top() - origin.y) / (step_px * zoom)).floor() as i64;
+    let end_y = ((rect.bottom() - origin.y) / (step_px * zoom)).ceil() as i64;
     for i in start_y..=end_y {
-        let y = origin.y + i as f32 * step * zoom;
-        if y < strip_v.top() + RULER || y > strip_v.bottom() {
-            continue;
+        let y = origin.y + i as f32 * step_px * zoom;
+        if y >= strip_v.top() + RULER && y <= strip_v.bottom() {
+            painter.hline(strip_v.left()..=strip_v.right(), y, major_line);
+            painter.text(
+                pos2(strip_v.left() + 2.0, y + 1.0),
+                Align2::LEFT_TOP,
+                fmt_val(i as f32 * unit_step),
+                FontId::proportional(8.0),
+                palette.text_dim,
+            );
         }
-        painter.hline(strip_v.left()..=strip_v.right(), y, line);
-        painter.text(
-            pos2(strip_v.right() - 2.0, y - 2.0),
-            Align2::RIGHT_BOTTOM,
-            format!("{:.0}", i as f32 * step),
-            FontId::proportional(9.0),
-            palette.text_dim,
-        );
+        if step_px * zoom >= 24.0 {
+            for s in 1..subs {
+                let sy = origin.y + (i as f32 + s as f32 / subs as f32) * step_px * zoom;
+                if sy < strip_v.top() + RULER || sy > strip_v.bottom() {
+                    continue;
+                }
+                let tick_w = if s * 2 == subs {
+                    9.0
+                } else if subs == 8 && s % 2 == 0 {
+                    6.5
+                } else {
+                    4.0
+                };
+                painter.hline((strip_v.right() - tick_w)..=strip_v.right(), sy, minor_line);
+            }
+        }
     }
+
+    // Top-left corner unit badge
+    let corner = Rect::from_min_size(rect.min, Vec2::splat(RULER));
+    painter.rect_filled(corner, 0.0, palette.panel_alt);
+    painter.rect_stroke(
+        corner,
+        0.0,
+        Stroke::new(1.0, palette.stroke),
+        egui::StrokeKind::Inside,
+    );
+    painter.text(
+        corner.center(),
+        Align2::CENTER_CENTER,
+        unit.short_code(),
+        FontId::proportional(8.5),
+        palette.accent,
+    );
 }
 
 fn draw_page(painter: &Painter, app: &mut FireCraft, origin: Vec2, zoom: f32, preview_mode: bool) {

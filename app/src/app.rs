@@ -232,6 +232,60 @@ impl PanelId {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum RulerUnit {
+    Pixels,
+    Inches,
+    Centimeters,
+    Millimeters,
+}
+
+impl RulerUnit {
+    pub const ALL: [RulerUnit; 4] = [
+        RulerUnit::Pixels,
+        RulerUnit::Inches,
+        RulerUnit::Centimeters,
+        RulerUnit::Millimeters,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            RulerUnit::Pixels => "Pixels (px)",
+            RulerUnit::Inches => "Inches (Imperial)",
+            RulerUnit::Centimeters => "Centimeters (Metric)",
+            RulerUnit::Millimeters => "Millimeters (Metric)",
+        }
+    }
+
+    pub fn short_code(self) -> &'static str {
+        match self {
+            RulerUnit::Pixels => "px",
+            RulerUnit::Inches => "in",
+            RulerUnit::Centimeters => "cm",
+            RulerUnit::Millimeters => "mm",
+        }
+    }
+
+    pub fn px_per_unit(self, dpi: f32) -> f32 {
+        let d = dpi.max(72.0);
+        match self {
+            RulerUnit::Pixels => 1.0,
+            RulerUnit::Inches => d,
+            RulerUnit::Centimeters => d / 2.54,
+            RulerUnit::Millimeters => d / 25.4,
+        }
+    }
+
+    pub fn subdivisions(self) -> usize {
+        match self {
+            RulerUnit::Pixels => 5,
+            RulerUnit::Inches => 8,       // 1/8", 1/4", 1/2"
+            RulerUnit::Centimeters => 10, // 1mm, 5mm
+            RulerUnit::Millimeters => 5,
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum DockZone {
     RightOuter,
     RightInner,
@@ -343,6 +397,7 @@ pub struct FireCraft {
     pub screenshot_path: Option<String>,
     pub screenshot_saved: bool,
     pub show_rulers: bool,
+    pub ruler_unit: RulerUnit,
     pub show_grid: bool,
     pub snap_to_grid: bool,
     pub show_guides: bool,
@@ -465,6 +520,7 @@ impl FireCraft {
             screenshot_path,
             screenshot_saved: false,
             show_rulers: true,
+            ruler_unit: RulerUnit::Pixels,
             show_grid: false,
             snap_to_grid: false,
             show_guides: true,

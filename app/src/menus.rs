@@ -705,6 +705,19 @@ fn view_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
     if nav.check_row(ui, p, &mut rulers, "Rulers", "Ctrl+Alt+R") {
         app.show_rulers = rulers;
     }
+    for ru in crate::app::RulerUnit::ALL {
+        if nav.radio_row(
+            ui,
+            p,
+            app.ruler_unit == ru,
+            &format!("  Unit: {}", ru.label()),
+            "",
+        ) {
+            app.ruler_unit = ru;
+            app.show_rulers = true;
+            app.status = format!("Ruler units: {}", ru.label());
+        }
+    }
     let mut grid = app.show_grid;
     if nav.check_row(ui, p, &mut grid, "Grid", "Ctrl+Alt+G") {
         app.show_grid = grid;
