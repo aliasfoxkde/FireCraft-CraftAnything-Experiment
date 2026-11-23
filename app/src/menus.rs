@@ -209,17 +209,6 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
     }
 
     ui.horizontal(|ui| {
-        if let Some(ref tex) = app.logo_tex {
-            ui.add(egui::Image::new(tex).fit_to_exact_size(egui::vec2(18.0, 18.0)));
-        }
-        ui.label(
-            RichText::new("Fc")
-                .strong()
-                .color(app.palette.banner_text)
-                .size(14.0),
-        );
-        ui.separator();
-
         // 10 Top-Level CS6 Menus with mnemonic underlines and keyboard/mouse focus
         ui.spacing_mut().item_spacing = Vec2::new(2.0, 0.0);
         for (i, (title, mnemonic_pos)) in MENU_TITLES.iter().enumerate() {

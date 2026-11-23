@@ -109,11 +109,160 @@ impl Tool {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum PanelId {
+    Optimize,
+    History,
+    Align,
+    Path,
+    Pages,
+    States,
+    Layers,
+    Styles,
+    ColorPalette,
+    ColorMixer,
+    Swatches,
+    Info,
+    SpecialChars,
+    ImageEditing,
+    AutoShapes,
+    AutoShapeProps,
+    DocumentLibrary,
+    CommonLibrary,
+    CssProperties,
+    Url,
+    Behaviors,
+}
+
+impl PanelId {
+    pub const ALL: [PanelId; 21] = [
+        PanelId::Optimize,
+        PanelId::History,
+        PanelId::Align,
+        PanelId::Path,
+        PanelId::Pages,
+        PanelId::States,
+        PanelId::Layers,
+        PanelId::Styles,
+        PanelId::ColorPalette,
+        PanelId::ColorMixer,
+        PanelId::Swatches,
+        PanelId::Info,
+        PanelId::SpecialChars,
+        PanelId::ImageEditing,
+        PanelId::AutoShapes,
+        PanelId::AutoShapeProps,
+        PanelId::DocumentLibrary,
+        PanelId::CommonLibrary,
+        PanelId::CssProperties,
+        PanelId::Url,
+        PanelId::Behaviors,
+    ];
+
+    pub fn title(self) -> &'static str {
+        match self {
+            PanelId::Optimize => "Optimize",
+            PanelId::History => "History",
+            PanelId::Align => "Align",
+            PanelId::Path => "Path",
+            PanelId::Pages => "Pages",
+            PanelId::States => "States",
+            PanelId::Layers => "Layers",
+            PanelId::Styles => "Styles",
+            PanelId::ColorPalette => "Color Palette",
+            PanelId::ColorMixer => "Color Mixer",
+            PanelId::Swatches => "Swatches",
+            PanelId::Info => "Info",
+            PanelId::SpecialChars => "Special Characters",
+            PanelId::ImageEditing => "Image Editing",
+            PanelId::AutoShapes => "Auto Shapes",
+            PanelId::AutoShapeProps => "Auto Shape Properties",
+            PanelId::DocumentLibrary => "Document Library",
+            PanelId::CommonLibrary => "Common Library",
+            PanelId::CssProperties => "CSS Properties",
+            PanelId::Url => "URL",
+            PanelId::Behaviors => "Behaviors",
+        }
+    }
+
+    pub fn short_tab(self) -> &'static str {
+        match self {
+            PanelId::SpecialChars => "Chars",
+            PanelId::ImageEditing => "Image Edit",
+            PanelId::AutoShapeProps => "Auto Props",
+            PanelId::DocumentLibrary => "Doc Library",
+            PanelId::CommonLibrary => "Common Lib",
+            PanelId::CssProperties => "CSS",
+            other => other.title(),
+        }
+    }
+
+    pub fn shortcut(self) -> &'static str {
+        match self {
+            PanelId::Optimize => "F6",
+            PanelId::Layers => "F2",
+            PanelId::CommonLibrary => "F7",
+            PanelId::CssProperties => "Ctrl+F7",
+            PanelId::Pages => "F5",
+            PanelId::States => "Shift+F2",
+            PanelId::History => "Shift+F10",
+            PanelId::Styles => "Ctrl+F11",
+            PanelId::DocumentLibrary => "F11",
+            PanelId::Url => "Alt+Shift+F10",
+            PanelId::ColorMixer => "Shift+F9",
+            PanelId::Swatches => "Ctrl+F9",
+            PanelId::Info => "Alt+Shift+F12",
+            PanelId::Behaviors => "Shift+F3",
+            _ => "",
+        }
+    }
+
+    pub fn default_height(self) -> f32 {
+        match self {
+            PanelId::Path => 182.0,
+            PanelId::Align => 148.0,
+            PanelId::Optimize => 148.0,
+            PanelId::History => 148.0,
+            PanelId::Layers | PanelId::Pages | PanelId::States => 142.0,
+            PanelId::ColorPalette | PanelId::ColorMixer | PanelId::Swatches => 144.0,
+            _ => 122.0,
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum DockZone {
+    RightOuter,
+    RightInner,
+    LeftInner,
+    Floating,
+}
+
+#[derive(Clone, Debug)]
+pub struct PanelGroup {
+    pub id: u64,
+    pub tabs: Vec<PanelId>,
+    pub active_tab: usize,
+    pub zone: DockZone,
+    pub collapsed: bool,
+    pub body_height: f32,
+    pub floating_pos: egui::Pos2,
+    pub floating_width: f32,
+}
+
+#[derive(Clone, Debug)]
+pub struct WebBehavior {
+    pub event: String,
+    pub action: String,
+    pub info: String,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum DragKind {
     Marquee,
     Create,
     Move,
+    MoveNode(usize),
     Resize(usize),
     Pan,
     Paint,
@@ -164,9 +313,24 @@ pub struct FireCraft {
     pub active_menu_item: usize,
     pub show_main_toolbar: bool,
     pub show_tools_dock: bool,
+    pub tools_collapsed: bool,
     pub show_right_dock: bool,
     pub show_bottom_inspector: bool,
+    pub bottom_collapsed: bool,
     pub full_screen_canvas: bool,
+    pub panel_groups: Vec<PanelGroup>,
+    pub next_panel_group_id: u64,
+    pub dragging_panel: Option<PanelId>,
+    pub panel_title_rects: Vec<(u64, egui::Rect)>,
+    pub workspace_preset: &'static str,
+    pub anim_playing: bool,
+    pub anim_last_tick: f64,
+    pub behaviors: Vec<WebBehavior>,
+    pub new_url_input: String,
+    pub rename_page_idx: Option<usize>,
+    pub rename_page_buf: String,
+    pub inline_text_edit_obj: Option<usize>,
+    pub smart_guides_lines: Vec<(Vec2, Vec2)>,
     pub textures: TextureCache,
     pub logo_tex: Option<egui::TextureHandle>,
     pub frames: u32,
@@ -258,9 +422,35 @@ impl FireCraft {
             active_menu_item: 0,
             show_main_toolbar: true,
             show_tools_dock: true,
+            tools_collapsed: false,
             show_right_dock: true,
             show_bottom_inspector: true,
+            bottom_collapsed: false,
             full_screen_canvas: false,
+            panel_groups: Self::default_panel_groups(),
+            next_panel_group_id: 100,
+            dragging_panel: None,
+            panel_title_rects: Vec::new(),
+            workspace_preset: "Expanded Mode",
+            anim_playing: false,
+            anim_last_tick: 0.0,
+            behaviors: vec![
+                WebBehavior {
+                    event: "onMouseOver".to_string(),
+                    action: "Simple Rollover".to_string(),
+                    info: "Swap to State 2".to_string(),
+                },
+                WebBehavior {
+                    event: "onClick".to_string(),
+                    action: "Set Nav Bar Image".to_string(),
+                    info: "Target: _blank".to_string(),
+                },
+            ],
+            new_url_input: "https://github.com/aliasfoxkde/FireCraft".to_string(),
+            rename_page_idx: None,
+            rename_page_buf: String::new(),
+            inline_text_edit_obj: None,
+            smart_guides_lines: Vec::new(),
             textures: TextureCache::new(),
             logo_tex: None,
             frames: 0,
@@ -316,6 +506,558 @@ impl FireCraft {
         };
         app.create_default_button_symbol();
         app
+    }
+
+    pub fn default_panel_groups() -> Vec<PanelGroup> {
+        vec![
+            PanelGroup {
+                id: 1,
+                tabs: vec![
+                    PanelId::Optimize,
+                    PanelId::History,
+                    PanelId::Align,
+                    PanelId::Path,
+                ],
+                active_tab: 0,
+                zone: DockZone::RightOuter,
+                collapsed: false,
+                body_height: 182.0,
+                floating_pos: egui::pos2(740.0, 62.0),
+                floating_width: 286.0,
+            },
+            PanelGroup {
+                id: 2,
+                tabs: vec![
+                    PanelId::Pages,
+                    PanelId::States,
+                    PanelId::Layers,
+                    PanelId::Behaviors,
+                ],
+                active_tab: 2,
+                zone: DockZone::RightOuter,
+                collapsed: false,
+                body_height: 140.0,
+                floating_pos: egui::pos2(740.0, 270.0),
+                floating_width: 286.0,
+            },
+            PanelGroup {
+                id: 3,
+                tabs: vec![
+                    PanelId::Styles,
+                    PanelId::ColorPalette,
+                    PanelId::ColorMixer,
+                    PanelId::Swatches,
+                    PanelId::Info,
+                ],
+                active_tab: 1,
+                zone: DockZone::RightOuter,
+                collapsed: false,
+                body_height: 144.0,
+                floating_pos: egui::pos2(740.0, 440.0),
+                floating_width: 286.0,
+            },
+            PanelGroup {
+                id: 4,
+                tabs: vec![
+                    PanelId::SpecialChars,
+                    PanelId::ImageEditing,
+                    PanelId::AutoShapes,
+                    PanelId::AutoShapeProps,
+                    PanelId::DocumentLibrary,
+                    PanelId::CommonLibrary,
+                    PanelId::CssProperties,
+                    PanelId::Url,
+                ],
+                active_tab: 2,
+                zone: DockZone::RightOuter,
+                collapsed: false,
+                body_height: 112.0,
+                floating_pos: egui::pos2(740.0, 610.0),
+                floating_width: 286.0,
+            },
+        ]
+    }
+
+    pub fn cs6_dual_column_groups() -> Vec<PanelGroup> {
+        // Exact dual-column right dock from screenshots/Fireworks_Layout_Design.jpg
+        vec![
+            // Inner Right Column
+            PanelGroup {
+                id: 11,
+                tabs: vec![PanelId::Swatches],
+                active_tab: 0,
+                zone: DockZone::RightInner,
+                collapsed: false,
+                body_height: 142.0,
+                floating_pos: egui::pos2(680.0, 62.0),
+                floating_width: 268.0,
+            },
+            PanelGroup {
+                id: 12,
+                tabs: vec![PanelId::ColorPalette, PanelId::ColorMixer, PanelId::Info],
+                active_tab: 0,
+                zone: DockZone::RightInner,
+                collapsed: false,
+                body_height: 175.0,
+                floating_pos: egui::pos2(680.0, 232.0),
+                floating_width: 268.0,
+            },
+            PanelGroup {
+                id: 13,
+                tabs: vec![PanelId::Align],
+                active_tab: 0,
+                zone: DockZone::RightInner,
+                collapsed: false,
+                body_height: 158.0,
+                floating_pos: egui::pos2(680.0, 434.0),
+                floating_width: 268.0,
+            },
+            // Outer Right Column
+            PanelGroup {
+                id: 14,
+                tabs: vec![PanelId::Optimize, PanelId::History, PanelId::Path],
+                active_tab: 2,
+                zone: DockZone::RightOuter,
+                collapsed: false,
+                body_height: 186.0,
+                floating_pos: egui::pos2(960.0, 62.0),
+                floating_width: 286.0,
+            },
+            PanelGroup {
+                id: 15,
+                tabs: vec![PanelId::Pages, PanelId::States, PanelId::Layers],
+                active_tab: 2,
+                zone: DockZone::RightOuter,
+                collapsed: false,
+                body_height: 140.0,
+                floating_pos: egui::pos2(960.0, 274.0),
+                floating_width: 286.0,
+            },
+            PanelGroup {
+                id: 16,
+                tabs: vec![PanelId::Styles],
+                active_tab: 0,
+                zone: DockZone::RightOuter,
+                collapsed: false,
+                body_height: 98.0,
+                floating_pos: egui::pos2(960.0, 440.0),
+                floating_width: 286.0,
+            },
+            PanelGroup {
+                id: 17,
+                tabs: vec![
+                    PanelId::SpecialChars,
+                    PanelId::ImageEditing,
+                    PanelId::AutoShapes,
+                    PanelId::AutoShapeProps,
+                    PanelId::DocumentLibrary,
+                    PanelId::CommonLibrary,
+                    PanelId::Url,
+                    PanelId::Behaviors,
+                    PanelId::CssProperties,
+                ],
+                active_tab: 2,
+                zone: DockZone::RightOuter,
+                collapsed: false,
+                body_height: 112.0,
+                floating_pos: egui::pos2(960.0, 564.0),
+                floating_width: 286.0,
+            },
+        ]
+    }
+
+    pub fn cs6_all_panels_floating_groups() -> Vec<PanelGroup> {
+        // Exact multi-column snapped floating panels from screenshots/Fireworks-All_Window_Panels.jpg
+        let mut groups = Self::cs6_dual_column_groups();
+        let floating_specs: &[(u64, PanelId, f32, f32, f32)] = &[
+            (21, PanelId::ColorMixer, 290.0, 68.0, 128.0),
+            (22, PanelId::Info, 290.0, 224.0, 96.0),
+            (23, PanelId::Url, 290.0, 348.0, 110.0),
+            (24, PanelId::Behaviors, 290.0, 486.0, 110.0),
+            (25, PanelId::ImageEditing, 536.0, 68.0, 152.0),
+            (26, PanelId::SpecialChars, 536.0, 248.0, 134.0),
+            (27, PanelId::CommonLibrary, 536.0, 410.0, 118.0),
+            (28, PanelId::AutoShapeProps, 74.0, 540.0, 108.0),
+        ];
+        for &(gid, pid, x, y, h) in floating_specs {
+            for g in &mut groups {
+                g.tabs.retain(|&t| t != pid);
+                if g.active_tab >= g.tabs.len() && !g.tabs.is_empty() {
+                    g.active_tab = g.tabs.len() - 1;
+                }
+            }
+            groups.retain(|g| !g.tabs.is_empty());
+            groups.push(PanelGroup {
+                id: gid,
+                tabs: vec![pid],
+                active_tab: 0,
+                zone: DockZone::Floating,
+                collapsed: false,
+                body_height: h,
+                floating_pos: egui::pos2(x, y),
+                floating_width: 236.0,
+            });
+        }
+        groups
+    }
+
+    pub fn apply_workspace_preset(&mut self, preset: &'static str) {
+        self.workspace_preset = preset;
+        match preset {
+            "Expanded Mode" => {
+                self.full_screen_canvas = false;
+                self.show_main_toolbar = true;
+                self.show_tools_dock = true;
+                self.tools_collapsed = false;
+                self.show_right_dock = true;
+                self.show_bottom_inspector = true;
+                self.bottom_collapsed = false;
+                self.panel_groups = Self::default_panel_groups();
+                self.status = "Workspace set to CS6 Expanded Mode (Single Right Dock)".to_string();
+            }
+            "CS6 Dual-Column" => {
+                self.full_screen_canvas = false;
+                self.show_main_toolbar = true;
+                self.show_tools_dock = true;
+                self.tools_collapsed = false;
+                self.show_right_dock = true;
+                self.show_bottom_inspector = true;
+                self.bottom_collapsed = false;
+                self.panel_groups = Self::cs6_dual_column_groups();
+                self.status =
+                    "Workspace set to CS6 Dual-Column Dock (Swatches/Color/Align + Optimize/Path/Layers)"
+                        .to_string();
+            }
+            "All Panels Floating" => {
+                self.full_screen_canvas = false;
+                self.show_main_toolbar = true;
+                self.show_tools_dock = true;
+                self.show_right_dock = true;
+                self.show_bottom_inspector = true;
+                self.show_welcome = false;
+                self.panel_groups = Self::cs6_all_panels_floating_groups();
+                self.status =
+                    "Opened all CS6 Window Panels (drag headers to snap, drag tabs to group, or click 📌 to dock)"
+                        .to_string();
+            }
+            "Iconic Mode" => {
+                self.full_screen_canvas = false;
+                self.show_main_toolbar = true;
+                self.show_tools_dock = true;
+                self.show_right_dock = true;
+                self.show_bottom_inspector = true;
+                self.collapse_all_panels(true);
+                if let Some(first) = self.panel_groups.first_mut() {
+                    first.collapsed = false;
+                }
+                self.status =
+                    "Workspace set to Iconic Mode (collapsed panel headers; click any header to expand)"
+                        .to_string();
+            }
+            "Netbook Mode" => {
+                self.full_screen_canvas = false;
+                self.show_main_toolbar = true;
+                self.show_tools_dock = true;
+                self.show_right_dock = false;
+                self.show_bottom_inspector = false;
+                self.status = "Workspace set to Netbook Mode".to_string();
+            }
+            "Full Screen" => {
+                self.full_screen_canvas = false;
+                self.toggle_full_screen_canvas();
+            }
+            _ => {}
+        }
+    }
+
+    pub fn is_panel_open(&self, id: PanelId) -> bool {
+        self.panel_groups.iter().any(|g| g.tabs.contains(&id))
+    }
+
+    pub fn sync_legacy_tabs_to_groups(&mut self) {
+        // If legacy test/CLI fields mutated top_right_tab / layers_tab / middle_right_tab / library_tab,
+        // ensure the corresponding PanelGroup reflects that active tab.
+        let g1 = [
+            PanelId::Optimize,
+            PanelId::History,
+            PanelId::Align,
+            PanelId::Path,
+        ];
+        if let Some(&pid) = g1.get(self.top_right_tab) {
+            for g in &mut self.panel_groups {
+                if g.id == 1
+                    && let Some(pos) = g.tabs.iter().position(|&t| t == pid)
+                {
+                    g.active_tab = pos;
+                }
+            }
+        }
+    }
+
+    pub fn focus_or_open_panel(&mut self, id: PanelId) {
+        self.full_screen_canvas = false;
+        self.show_right_dock = true;
+        for g in &mut self.panel_groups {
+            if let Some(pos) = g.tabs.iter().position(|&t| t == id) {
+                g.active_tab = pos;
+                g.collapsed = false;
+                self.status = format!("Focused {} panel", id.title());
+                return;
+            }
+        }
+        // Panel wasn't in any open group; add it as a new docked group or into the closest group
+        let gid = self.next_panel_group_id;
+        self.next_panel_group_id += 1;
+        self.panel_groups.push(PanelGroup {
+            id: gid,
+            tabs: vec![id],
+            active_tab: 0,
+            zone: DockZone::RightOuter,
+            collapsed: false,
+            body_height: id.default_height(),
+            floating_pos: egui::pos2(420.0, 96.0),
+            floating_width: 272.0,
+        });
+        self.status = format!("Opened {} panel", id.title());
+    }
+
+    pub fn toggle_panel_visibility(&mut self, id: PanelId) {
+        if self.is_panel_open(id) {
+            // If it's already the active tab of an expanded group, close it; otherwise focus it
+            let already_active = self.panel_groups.iter().any(|g| {
+                !g.collapsed && g.tabs.get(g.active_tab).copied() == Some(id)
+            });
+            if already_active {
+                self.close_panel(id);
+            } else {
+                self.focus_or_open_panel(id);
+            }
+        } else {
+            self.focus_or_open_panel(id);
+        }
+    }
+
+    pub fn close_panel(&mut self, id: PanelId) {
+        for g in &mut self.panel_groups {
+            if let Some(pos) = g.tabs.iter().position(|&t| t == id) {
+                g.tabs.remove(pos);
+                if g.active_tab >= g.tabs.len() && !g.tabs.is_empty() {
+                    g.active_tab = g.tabs.len() - 1;
+                }
+            }
+        }
+        self.panel_groups.retain(|g| !g.tabs.is_empty());
+        self.status = format!("Closed {} panel (reopen anytime via Window menu)", id.title());
+    }
+
+    pub fn ungroup_panel_to_floating(&mut self, id: PanelId, pos: egui::Pos2) {
+        for g in &mut self.panel_groups {
+            if g.tabs.len() == 1 && g.tabs[0] == id {
+                g.zone = DockZone::Floating;
+                g.floating_pos = pos;
+                g.collapsed = false;
+                self.status = format!(
+                    "Undocked {} to Floating Window (drag edges to snap, or click 📌 to dock)",
+                    id.title()
+                );
+                return;
+            }
+            if let Some(idx) = g.tabs.iter().position(|&t| t == id) {
+                g.tabs.remove(idx);
+                if g.active_tab >= g.tabs.len() && !g.tabs.is_empty() {
+                    g.active_tab = g.tabs.len() - 1;
+                }
+            }
+        }
+        self.panel_groups.retain(|g| !g.tabs.is_empty());
+        let gid = self.next_panel_group_id;
+        self.next_panel_group_id += 1;
+        self.panel_groups.push(PanelGroup {
+            id: gid,
+            tabs: vec![id],
+            active_tab: 0,
+            zone: DockZone::Floating,
+            collapsed: false,
+            body_height: id.default_height(),
+            floating_pos: pos,
+            floating_width: 274.0,
+        });
+        self.status = format!(
+            "Split {} into a Floating Window (drag onto any panel's tab bar to re-group)",
+            id.title()
+        );
+    }
+
+    pub fn ungroup_panel_below(&mut self, id: PanelId) {
+        let mut target_zone = DockZone::RightOuter;
+        let mut insert_after = None;
+        for (gi, g) in self.panel_groups.iter_mut().enumerate() {
+            if g.tabs.len() > 1
+                && let Some(ti) = g.tabs.iter().position(|&t| t == id)
+            {
+                g.tabs.remove(ti);
+                if g.active_tab >= g.tabs.len() {
+                    g.active_tab = g.tabs.len() - 1;
+                }
+                target_zone = g.zone;
+                insert_after = Some(gi + 1);
+                break;
+            }
+        }
+        if let Some(ins) = insert_after {
+            let gid = self.next_panel_group_id;
+            self.next_panel_group_id += 1;
+            let new_group = PanelGroup {
+                id: gid,
+                tabs: vec![id],
+                active_tab: 0,
+                zone: target_zone,
+                collapsed: false,
+                body_height: id.default_height(),
+                floating_pos: egui::pos2(440.0, 120.0),
+                floating_width: 274.0,
+            };
+            if ins <= self.panel_groups.len() {
+                self.panel_groups.insert(ins, new_group);
+            } else {
+                self.panel_groups.push(new_group);
+            }
+            self.status = format!("Ungrouped {} into its own panel section", id.title());
+        }
+    }
+
+    pub fn group_panel_into(&mut self, panel: PanelId, target_group_id: u64) {
+        if self
+            .panel_groups
+            .iter()
+            .any(|g| g.id == target_group_id && g.tabs.len() == 1 && g.tabs[0] == panel)
+        {
+            return;
+        }
+        // Remove `panel` from its current group
+        for g in &mut self.panel_groups {
+            if g.id != target_group_id
+                && let Some(pos) = g.tabs.iter().position(|&t| t == panel)
+            {
+                g.tabs.remove(pos);
+                if g.active_tab >= g.tabs.len() && !g.tabs.is_empty() {
+                    g.active_tab = g.tabs.len() - 1;
+                }
+            }
+        }
+        self.panel_groups.retain(|g| !g.tabs.is_empty());
+        // Add `panel` to `target_group_id`
+        if let Some(target) = self.panel_groups.iter_mut().find(|g| g.id == target_group_id) {
+            if let Some(existing) = target.tabs.iter().position(|&t| t == panel) {
+                target.active_tab = existing;
+            } else {
+                target.tabs.push(panel);
+                target.active_tab = target.tabs.len() - 1;
+            }
+            target.collapsed = false;
+            self.status = format!("Grouped {} into tab group", panel.title());
+        }
+    }
+
+    pub fn move_group_to_zone(
+        &mut self,
+        group_id: u64,
+        zone: DockZone,
+        floating_pos: Option<egui::Pos2>,
+    ) {
+        if let Some(g) = self.panel_groups.iter_mut().find(|g| g.id == group_id) {
+            g.zone = zone;
+            if let Some(pos) = floating_pos {
+                g.floating_pos = pos;
+            }
+            let title = g
+                .tabs
+                .get(g.active_tab)
+                .copied()
+                .map(|t| t.title())
+                .unwrap_or("Panel");
+            self.status = match zone {
+                DockZone::RightOuter => format!("Pinned {title} to Primary Right Dock"),
+                DockZone::RightInner => format!("Pinned {title} to Secondary Inner-Right Dock"),
+                DockZone::LeftInner => format!("Pinned {title} to Left Dock"),
+                DockZone::Floating => format!("Undocked {title} to Floating Window"),
+            };
+        }
+    }
+
+    pub fn collapse_all_panels(&mut self, collapsed: bool) {
+        for g in &mut self.panel_groups {
+            g.collapsed = collapsed;
+        }
+        self.status = if collapsed {
+            "Collapsed all panel groups (click any header arrow ▸ to expand)".to_string()
+        } else {
+            "Expanded all panel groups".to_string()
+        };
+    }
+
+    /// Magnetically snaps a floating panel window (`group_id`) within 12px of other floating windows
+    /// or the canvas/dock edges (`screenshots/Fireworks-All_Window_Panels.jpg`).
+    pub fn snap_floating_pos(
+        &self,
+        group_id: u64,
+        mut pos: egui::Pos2,
+        size: Vec2,
+        bounds: egui::Rect,
+    ) -> egui::Pos2 {
+        let threshold = 12.0;
+        // Snap to workspace/canvas edges
+        if (pos.x - bounds.left()).abs() < threshold {
+            pos.x = bounds.left() + 2.0;
+        }
+        if ((pos.x + size.x) - bounds.right()).abs() < threshold {
+            pos.x = bounds.right() - size.x - 2.0;
+        }
+        if (pos.y - bounds.top()).abs() < threshold {
+            pos.y = bounds.top() + 2.0;
+        }
+        if ((pos.y + size.y) - bounds.bottom()).abs() < threshold {
+            pos.y = bounds.bottom() - size.y - 2.0;
+        }
+
+        // Snap edge-to-edge and corner-aligned against other floating panel windows
+        for other in &self.panel_groups {
+            if other.id == group_id || other.zone != DockZone::Floating {
+                continue;
+            }
+            let oh = if other.collapsed {
+                26.0
+            } else {
+                other.body_height + 30.0
+            };
+            let o_rect = egui::Rect::from_min_size(
+                other.floating_pos,
+                Vec2::new(other.floating_width, oh),
+            );
+            // Vertical stacking snap (top to other's bottom, or bottom to other's top)
+            if (pos.x - o_rect.left()).abs() < 28.0 {
+                if (pos.y - o_rect.bottom()).abs() < threshold {
+                    pos.y = o_rect.bottom() + 2.0;
+                    pos.x = o_rect.left();
+                } else if ((pos.y + size.y) - o_rect.top()).abs() < threshold {
+                    pos.y = o_rect.top() - size.y - 2.0;
+                    pos.x = o_rect.left();
+                }
+            }
+            // Horizontal column snap (left to other's right, or right to other's left)
+            if (pos.x - o_rect.right()).abs() < threshold {
+                pos.x = o_rect.right() + 3.0;
+                if (pos.y - o_rect.top()).abs() < threshold {
+                    pos.y = o_rect.top();
+                }
+            } else if ((pos.x + size.x) - o_rect.left()).abs() < threshold {
+                pos.x = o_rect.left() - size.x - 3.0;
+                if (pos.y - o_rect.top()).abs() < threshold {
+                    pos.y = o_rect.top();
+                }
+            }
+        }
+        pos
     }
 
     pub fn selected_object(&self) -> Option<Obj> {

@@ -850,6 +850,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
 
                         // View & Magnification
                         (Key::Num0, true, _, false) => Some(Shortcut::FitWindow),
+                        (Key::Insert, false, false, false) => Some(Shortcut::FitWindow),
                         (Key::Num1, true, false, false) => Some(Shortcut::ZoomTo(1.0)),
                         (Key::Num2, true, false, false) => Some(Shortcut::ZoomTo(2.0)),
                         (Key::Num5, true, false, false) => Some(Shortcut::ZoomTo(0.5)),
