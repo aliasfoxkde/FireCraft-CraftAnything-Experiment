@@ -629,6 +629,7 @@ fn extract_json_str(json: &str, key: &str) -> Option<String> {
 
 /// Run the headless CLI or MCP stdio loop when a CLI subcommand is passed on the command line.
 /// Returns `Some(exit_code)` if a CLI command handled execution, or `None` to launch the GUI.
+#[cfg_attr(target_arch = "wasm32", allow(dead_code))]
 pub fn try_run_cli(args: &[String]) -> Option<i32> {
     let sub = args.get(1)?.as_str();
     match sub {

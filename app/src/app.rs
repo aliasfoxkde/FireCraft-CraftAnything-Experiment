@@ -3192,6 +3192,7 @@ impl FireCraft {
         self.clipboard_set = copied;
         let marker = format!("FIRECRAFT_CLIPBOARD:{}", self.clipboard_set.len());
         self.ctx.copy_text(marker.clone());
+        #[cfg(not(target_arch = "wasm32"))]
         if let Ok(mut cb) = arboard::Clipboard::new() {
             let _ = cb.set_text(marker);
         }
@@ -3212,6 +3213,7 @@ impl FireCraft {
 
     pub fn paste_with_text(&mut self, event_text: Option<&str>) {
         // 1. Check if the OS clipboard holds a bitmap image (e.g. Win+Shift+S screenshot, browser Copy Image)
+        #[cfg(not(target_arch = "wasm32"))]
         if event_text.is_none()
             && let Ok(mut cb) = arboard::Clipboard::new()
             && let Ok(img) = cb.get_image()
@@ -3244,11 +3246,14 @@ impl FireCraft {
         }
 
         // 2. Determine clipboard text (from egui Paste event or OS clipboard)
+        #[cfg(not(target_arch = "wasm32"))]
         let os_text = event_text.map(|s| s.to_string()).or_else(|| {
             arboard::Clipboard::new()
                 .ok()
                 .and_then(|mut cb| cb.get_text().ok())
         });
+        #[cfg(target_arch = "wasm32")]
+        let os_text = event_text.map(|s| s.to_string());
         let is_internal_marker = os_text
             .as_deref()
             .map(|s| s.starts_with("FIRECRAFT_CLIPBOARD"))

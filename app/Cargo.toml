@@ -1,14 +1,21 @@
 [package]
 name = "firecraft"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 description = "FireCraft - Modern vector graphics editor, inspired by Adobe Fireworks CS6"
 
 [dependencies]
-arboard = "3.7"
-eframe = "0.37"
+eframe = { version = "0.37", features = ["glow"] }
 egui = "0.37"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "tiff", "bmp", "ico"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+arboard = "3.7"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = ["Document", "Element", "HtmlCanvasElement", "Window"] }
 
 [profile.release]
 opt-level = 2

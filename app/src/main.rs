@@ -18,6 +18,7 @@ mod page;
 mod panels;
 mod theme;
 
+#[cfg(not(target_arch = "wasm32"))]
 fn load_window_icon() -> Option<eframe::egui::IconData> {
     let bytes = include_bytes!("logo.png");
     let img = image::load_from_memory(bytes).ok()?.into_rgba8();
@@ -29,6 +30,7 @@ fn load_window_icon() -> Option<eframe::egui::IconData> {
     })
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn main() {
     let args: Vec<String> = std::env::args().collect();
 
@@ -111,4 +113,31 @@ fn main() {
         }),
     )
     .expect("FireCraft could not start");
+}
+
+#[cfg(target_arch = "wasm32")]
+fn main() {
+    use wasm_bindgen::JsCast as _;
+
+    wasm_bindgen_futures::spawn_local(async {
+        let document = web_sys::window()
+            .expect("No window")
+            .document()
+            .expect("No document");
+
+        let canvas = document
+            .get_element_by_id("firecraft-canvas")
+            .expect("Failed to find #firecraft-canvas")
+            .dyn_into::<web_sys::HtmlCanvasElement>()
+            .expect("#firecraft-canvas was not a HtmlCanvasElement");
+
+        let web_options = eframe::WebOptions::default();
+        let _ = eframe::WebRunner::new()
+            .start(
+                canvas,
+                web_options,
+                Box::new(|_cc| Ok(Box::new(app::FireCraft::new(None)))),
+            )
+            .await;
+    });
 }

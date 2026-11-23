@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name="description" content="FireCraft Studio — Adobe Fireworks CS6 parity vector, bitmap, and web graphics editor running in the browser via WebAssembly."/>
+    <title>FireCraft Studio — Adobe Fireworks CS6 Edition</title>
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link data-trunk rel="copy-file" href="favicon.png">
+    <link data-trunk rel="rust" data-bin="firecraft" data-wasm-opt="z"/>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #282828;
+        }
+        #firecraft-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        #firecraft-canvas:focus-visible {
+            outline: 2px solid #E8A33D;
+            outline-offset: -2px;
+        }
+    </style>
+</head>
+<body>
+<canvas id="firecraft-canvas" aria-label="FireCraft Studio editor canvas" aria-describedby="firecraft-fallback">
+    <span id="firecraft-fallback">
+        FireCraft Studio is a vector, bitmap, and web graphics editor inspired by Adobe Fireworks CS6.
+        It requires WebAssembly and WebGL2 in your browser.
+    </span>
+</canvas>
+</body>
+</html>
