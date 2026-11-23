@@ -471,6 +471,8 @@ pub struct FireCraft {
     pub ruler_unit: RulerUnit,
     pub show_grid: bool,
     pub snap_to_grid: bool,
+    pub snap_to_guides: bool,
+    pub snap_to_objects: bool,
     pub show_guides: bool,
     pub show_slices: bool,
     pub onion_skin: bool,
@@ -613,6 +615,8 @@ impl FireCraft {
             ruler_unit: RulerUnit::Pixels,
             show_grid: false,
             snap_to_grid: false,
+            snap_to_guides: true,
+            snap_to_objects: true,
             show_guides: true,
             show_slices: true,
             onion_skin: false,
@@ -1834,7 +1838,38 @@ impl FireCraft {
 
     // ---- Pointer handling --------------------------------------------------
 
-    pub fn snap_pos(&self, p: Vec2) -> Vec2 {
+    pub fn snap_pos(&self, mut p: Vec2) -> Vec2 {
+        let tol = 6.0 / self.doc.zoom.max(0.25);
+        if self.snap_to_guides {
+            let page = self.doc.page();
+            let mut best_dx = tol;
+            let mut best_dy = tol;
+            let mut snap_x = p.x;
+            let mut snap_y = p.y;
+            for &vx in page
+                .guides_v
+                .iter()
+                .chain([0.0, page.width * 0.5, page.width].iter())
+            {
+                let d = (p.x - vx).abs();
+                if d < best_dx {
+                    best_dx = d;
+                    snap_x = vx;
+                }
+            }
+            for &hy in page
+                .guides_h
+                .iter()
+                .chain([0.0, page.height * 0.5, page.height].iter())
+            {
+                let d = (p.y - hy).abs();
+                if d < best_dy {
+                    best_dy = d;
+                    snap_y = hy;
+                }
+            }
+            p = Vec2::new(snap_x, snap_y);
+        }
         if self.snap_to_grid && self.grid_size >= 2.0 {
             let g = self.grid_size;
             Vec2::new((p.x / g).round() * g, (p.y / g).round() * g)
@@ -2365,7 +2400,7 @@ impl FireCraft {
                 }
                 page.sync_state();
                 self.smart_guides_lines.clear();
-                if self.show_guides
+                if (self.snap_to_guides || self.snap_to_objects)
                     && let Some(sel_idx) = self.selected
                     && let Some((lo, hi)) = self
                         .doc
@@ -2375,17 +2410,81 @@ impl FireCraft {
                         .and_then(|l| l.objects.get(sel_idx))
                         .and_then(|o| o.bounds())
                 {
-                    let cx = (lo.x + hi.x) * 0.5;
-                    let cy = (lo.y + hi.y) * 0.5;
+                    let tol = (6.0 / self.doc.zoom.max(0.25)).clamp(3.0, 14.0);
                     let pw = self.doc.page().width;
                     let ph = self.doc.page().height;
-                    if (cx - pw * 0.5).abs() < 4.0 {
-                        self.smart_guides_lines
-                            .push((Vec2::new(pw * 0.5, 0.0), Vec2::new(pw * 0.5, ph)));
+                    let mut x_targets: Vec<f32> = Vec::new();
+                    let mut y_targets: Vec<f32> = Vec::new();
+                    if self.snap_to_guides {
+                        x_targets.extend([0.0, pw * 0.5, pw]);
+                        y_targets.extend([0.0, ph * 0.5, ph]);
+                        x_targets.extend(self.doc.page().guides_v.iter().copied());
+                        y_targets.extend(self.doc.page().guides_h.iter().copied());
                     }
-                    if (cy - ph * 0.5).abs() < 4.0 {
-                        self.smart_guides_lines
-                            .push((Vec2::new(0.0, ph * 0.5), Vec2::new(pw, ph * 0.5)));
+                    if self.snap_to_objects
+                        && let Some(l) = self.doc.page().layers.get(layer)
+                    {
+                        for (oi, other) in l.objects.iter().enumerate() {
+                            if oi == sel_idx || self.selected_set.contains(&oi) || !other.visible {
+                                continue;
+                            }
+                            if let Some((oa, ob)) = other.bounds() {
+                                x_targets.extend([oa.x, (oa.x + ob.x) * 0.5, ob.x]);
+                                y_targets.extend([oa.y, (oa.y + ob.y) * 0.5, ob.y]);
+                            }
+                        }
+                    }
+                    let sel_xs = [lo.x, (lo.x + hi.x) * 0.5, hi.x];
+                    let sel_ys = [lo.y, (lo.y + hi.y) * 0.5, hi.y];
+                    let mut best_dx: Option<(f32, f32)> = None;
+                    for &sx in &sel_xs {
+                        for &tx in &x_targets {
+                            let diff = tx - sx;
+                            if diff.abs() <= tol
+                                && best_dx.is_none_or(|(bd, _)| diff.abs() < bd.abs())
+                            {
+                                best_dx = Some((diff, tx));
+                            }
+                        }
+                    }
+                    let mut best_dy: Option<(f32, f32)> = None;
+                    for &sy in &sel_ys {
+                        for &ty in &y_targets {
+                            let diff = ty - sy;
+                            if diff.abs() <= tol
+                                && best_dy.is_none_or(|(bd, _)| diff.abs() < bd.abs())
+                            {
+                                best_dy = Some((diff, ty));
+                            }
+                        }
+                    }
+                    let snap_delta = Vec2::new(
+                        best_dx.map_or(0.0, |(d, _)| d),
+                        best_dy.map_or(0.0, |(d, _)| d),
+                    );
+                    if snap_delta != Vec2::ZERO {
+                        drag.current += snap_delta;
+                        let page = self.doc.page_mut();
+                        for &idx in &indices {
+                            if let Some(obj) = page
+                                .layers
+                                .get_mut(layer)
+                                .and_then(|l| l.objects.get_mut(idx))
+                            {
+                                obj.translate(snap_delta);
+                            }
+                        }
+                        page.sync_state();
+                    }
+                    if self.show_guides {
+                        if let Some((_, tx)) = best_dx {
+                            self.smart_guides_lines
+                                .push((Vec2::new(tx, 0.0), Vec2::new(tx, ph)));
+                        }
+                        if let Some((_, ty)) = best_dy {
+                            self.smart_guides_lines
+                                .push((Vec2::new(0.0, ty), Vec2::new(pw, ty)));
+                        }
                     }
                 }
             }
@@ -6458,5 +6557,17 @@ mod tests {
         } else {
             panic!("Expected flattened Bitmap");
         }
+    }
+
+    #[test]
+    fn smart_snapping_aligns_object_to_canvas_center_and_guides() {
+        let app = FireCraft::new(None);
+        assert!(app.snap_to_guides);
+        assert!(app.snap_to_objects);
+        let pw = app.doc.page().width;
+        let ph = app.doc.page().height;
+        let snapped = app.snap_pos(Vec2::new(pw * 0.5 + 3.0, ph * 0.5 - 2.0));
+        assert!((snapped.x - pw * 0.5).abs() < 1e-3);
+        assert!((snapped.y - ph * 0.5).abs() < 1e-3);
     }
 }

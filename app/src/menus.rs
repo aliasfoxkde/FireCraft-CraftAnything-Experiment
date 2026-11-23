@@ -718,6 +718,14 @@ fn view_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
     if nav.check_row(ui, p, &mut snap, "Snap to Grid", "Ctrl+Alt+Shift+G") {
         app.snap_to_grid = snap;
     }
+    let mut snap_guides = app.snap_to_guides;
+    if nav.check_row(ui, p, &mut snap_guides, "Snap to Guides & Canvas", "") {
+        app.snap_to_guides = snap_guides;
+    }
+    let mut snap_objs = app.snap_to_objects;
+    if nav.check_row(ui, p, &mut snap_objs, "Snap to Objects (Smart Guides)", "") {
+        app.snap_to_objects = snap_objs;
+    }
     let mut guides = app.show_guides;
     if nav.check_row(ui, p, &mut guides, "Guides", "Ctrl+;") {
         app.show_guides = guides;

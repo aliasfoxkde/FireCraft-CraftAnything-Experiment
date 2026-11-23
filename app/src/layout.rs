@@ -1188,6 +1188,30 @@ fn canvas_footer_bar(ui: &mut Ui, app: &mut FireCraft) {
                 .small()
                 .color(p.text_dim),
         );
+        ui.separator();
+        let snap_on = app.snap_to_guides || app.snap_to_objects || app.snap_to_grid;
+        if ui
+            .selectable_label(
+                snap_on,
+                RichText::new(if snap_on {
+                    "🧲 Snap: On"
+                } else {
+                    "Snap: Off"
+                })
+                .small(),
+            )
+            .on_hover_text("Toggle Smart Guides & Object Snapping (View > Snap)")
+            .clicked()
+        {
+            let next = !snap_on;
+            app.snap_to_guides = next;
+            app.snap_to_objects = next;
+            app.status = if next {
+                "Smart snapping enabled (Guides + Objects)".to_string()
+            } else {
+                "Snapping disabled".to_string()
+            };
+        }
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             // Zoom Scale Dropdown (e.g. 50% ▾)
             let zoom_pct = (app.doc.zoom * 100.0).round() as i32;
