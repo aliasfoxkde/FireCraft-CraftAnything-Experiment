@@ -644,6 +644,15 @@ fn edit_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
     if nav.row(ui, p, true, "Paste", "Ctrl+V") {
         app.paste();
     }
+    if nav.row(
+        ui,
+        p,
+        has_sel && app.clipboard.is_some(),
+        "Paste Attributes",
+        "Ctrl+Alt+Shift+V",
+    ) {
+        app.paste_attributes();
+    }
     if nav.row(ui, p, has_sel, "Clear", "Backspace") {
         app.delete_selected();
     }

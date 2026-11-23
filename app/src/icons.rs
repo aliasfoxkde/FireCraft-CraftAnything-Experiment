@@ -272,28 +272,61 @@ pub fn draw(painter: &Painter, rect: Rect, icon: Icon, color: Color32, width: f3
                 st,
             );
         }
-        Icon::Cut | Icon::Copy | Icon::Paste => {
-            painter.rect_stroke(
-                Rect::from_center_size(pos2(cx, cy + u * 0.25), Vec2::new(u * 1.2, u * 1.2)),
-                1.0,
-                st,
-                egui::StrokeKind::Middle,
+        Icon::Cut => {
+            // Scissors blades + finger rings
+            painter.circle_stroke(
+                pos2(cx - u * 0.42, cy + u * 0.52),
+                u * 0.28,
+                stroke_of(accent, 1.3),
             );
-            if icon == Icon::Paste {
-                painter.rect_filled(
-                    Rect::from_center_size(pos2(cx, cy - u * 0.55), Vec2::new(u * 0.9, u * 0.35)),
-                    0.0,
-                    color,
-                );
-            } else {
-                painter.line_segment(
-                    [
-                        pos2(cx - u * 0.4, cy - u * 0.8),
-                        pos2(cx + u * 0.4, cy - u * 0.8),
-                    ],
-                    st,
-                );
-            }
+            painter.circle_stroke(
+                pos2(cx + u * 0.42, cy + u * 0.52),
+                u * 0.28,
+                stroke_of(accent, 1.3),
+            );
+            painter.line_segment(
+                [
+                    pos2(cx - u * 0.28, cy + u * 0.28),
+                    pos2(cx + u * 0.48, cy - u * 0.72),
+                ],
+                st,
+            );
+            painter.line_segment(
+                [
+                    pos2(cx + u * 0.28, cy + u * 0.28),
+                    pos2(cx - u * 0.48, cy - u * 0.72),
+                ],
+                st,
+            );
+        }
+        Icon::Copy => {
+            let back = Rect::from_min_size(
+                pos2(cx - u * 0.72, cy - u * 0.72),
+                Vec2::new(u * 0.92, u * 1.12),
+            );
+            let front = Rect::from_min_size(
+                pos2(cx - u * 0.16, cy - u * 0.24),
+                Vec2::new(u * 0.92, u * 1.12),
+            );
+            painter.rect_stroke(back, 0.0, st, egui::StrokeKind::Middle);
+            painter.rect_filled(front, 0.0, accent_blue.gamma_multiply(0.24));
+            painter.rect_stroke(front, 0.0, st, egui::StrokeKind::Middle);
+        }
+        Icon::Paste => {
+            let board =
+                Rect::from_center_size(pos2(cx, cy + u * 0.16), Vec2::new(u * 1.25, u * 1.42));
+            painter.rect_filled(board, 0.0, accent.gamma_multiply(0.22));
+            painter.rect_stroke(board, 0.0, st, egui::StrokeKind::Middle);
+            painter.rect_filled(
+                Rect::from_center_size(pos2(cx, cy - u * 0.58), Vec2::new(u * 0.72, u * 0.34)),
+                0.0,
+                accent,
+            );
+            let sheet = Rect::from_center_size(
+                pos2(cx + u * 0.12, cy + u * 0.28),
+                Vec2::new(u * 0.72, u * 0.86),
+            );
+            painter.rect_filled(sheet, 0.0, color.gamma_multiply(0.85));
         }
         Icon::Duplicate => {
             painter.rect_stroke(
