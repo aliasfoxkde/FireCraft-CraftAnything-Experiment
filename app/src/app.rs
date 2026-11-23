@@ -1786,11 +1786,11 @@ impl FireCraft {
                     self.status = "Filled selected object".to_string();
                 } else {
                     self.push_undo("Fill Canvas");
-                    let page = self.doc.page().clone();
+                    let (pw, ph) = (self.doc.page().width, self.doc.page().height);
                     let obj = Obj::new(
                         Shape::Rect {
                             min: Vec2::ZERO,
-                            max: Vec2::new(page.width, page.height),
+                            max: Vec2::new(pw, ph),
                             corner_radius: 0.0,
                             filled: true,
                         },
@@ -1804,11 +1804,11 @@ impl FireCraft {
             }
             Tool::Gradient => {
                 self.push_undo("Gradient");
-                let page = self.doc.page().clone();
+                let (pw, ph) = (self.doc.page().width, self.doc.page().height);
                 let obj = Obj::new(
                     Shape::Gradient {
                         min: Vec2::ZERO,
-                        max: Vec2::new(page.width, page.height),
+                        max: Vec2::new(pw, ph),
                         from: self.fill,
                         to: self.stroke,
                         radial: false,

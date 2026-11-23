@@ -1726,7 +1726,6 @@ pub fn pages_panel(ui: &mut Ui, app: &mut FireCraft) {
         }
         1 => {
             // States (Animation / Rollover states) tab
-            app.doc.page_mut().sync_state();
             let state_count = app.doc.page().states.len();
             let current_st = app.doc.page().current_state;
             egui::ScrollArea::vertical()

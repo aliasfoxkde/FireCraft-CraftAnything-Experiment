@@ -21,7 +21,12 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     if app.logo_tex.is_none() {
         app.logo_tex = FireCraft::load_logo(&ctx);
     }
-    theme::apply_cs6_style(&ctx, &app.palette, app.palette.is_dark());
+    let theme_id = ui.make_persistent_id("applied_theme_mode");
+    let last_theme = ctx.data(|d| d.get_temp::<crate::theme::ThemeMode>(theme_id));
+    if last_theme != Some(app.theme_mode) {
+        theme::apply_cs6_style(&ctx, &app.palette, app.palette.is_dark());
+        ctx.data_mut(|d| d.insert_temp(theme_id, app.theme_mode));
+    }
 
     if dialogs::startup_splash(ui, app) {
         return;
