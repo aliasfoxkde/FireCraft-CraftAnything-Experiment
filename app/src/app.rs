@@ -4958,9 +4958,18 @@ impl FireCraft {
     }
 
     pub fn paste_with_text(&mut self, event_text: Option<&str>) {
-        // 1. Check if the OS clipboard holds a bitmap image (e.g. Win+Shift+S screenshot, browser Copy Image)
+        let event_non_empty = event_text.filter(|s| !s.is_empty());
+        #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
+        let is_svg_or_marker = event_non_empty.is_some_and(|s| {
+            let t = s.trim_start();
+            t.starts_with("FIRECRAFT_CLIPBOARD") || t.starts_with("<svg")
+        });
+
+        // 1. Check if the OS clipboard holds a bitmap image (e.g. Win+Shift+S screenshot, browser Copy Image).
+        // Note: on Windows, Ctrl+V often emits `Event::Paste("")` (or a URL when copying an image from a browser),
+        // so we check `cb.get_image()` whenever the event text is not an internal FireCraft marker or SVG payload.
         #[cfg(not(target_arch = "wasm32"))]
-        if event_text.is_none()
+        if !is_svg_or_marker
             && let Ok(mut cb) = arboard::Clipboard::new()
             && let Ok(img) = cb.get_image()
             && img.width > 0
@@ -4984,6 +4993,7 @@ impl FireCraft {
             let idx = self.push_object(obj);
             self.select_single(Some(idx));
             self.textures.clear();
+            self.show_welcome = false;
             self.status = format!(
                 "Pasted bitmap image ({:.0}×{:.0} px) from system clipboard",
                 w, h
@@ -4993,13 +5003,13 @@ impl FireCraft {
 
         // 2. Determine clipboard text (from egui Paste event or OS clipboard)
         #[cfg(not(target_arch = "wasm32"))]
-        let os_text = event_text.map(|s| s.to_string()).or_else(|| {
+        let os_text = event_non_empty.map(|s| s.to_string()).or_else(|| {
             arboard::Clipboard::new()
                 .ok()
                 .and_then(|mut cb| cb.get_text().ok())
         });
         #[cfg(target_arch = "wasm32")]
-        let os_text = event_text.map(|s| s.to_string());
+        let os_text = event_non_empty.map(|s| s.to_string());
         let is_internal_marker = os_text
             .as_deref()
             .map(|s| s.starts_with("FIRECRAFT_CLIPBOARD"))
@@ -5007,7 +5017,7 @@ impl FireCraft {
 
         // 3. If we have internal FireCraft objects in `clipboard_set` (or `clipboard`) and either
         // the marker matches or no external text override was passed, paste the internal objects.
-        if (is_internal_marker || event_text.is_none())
+        if (is_internal_marker || event_non_empty.is_none())
             && (!self.clipboard_set.is_empty() || self.clipboard.is_some())
         {
             if self.clipboard_set.is_empty()
