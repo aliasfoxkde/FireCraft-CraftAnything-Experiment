@@ -925,20 +925,32 @@ pub fn file_dialog(app: &mut FireCraft) {
                 }
             });
 
+            let type_filter_id = ui.make_persistent_id("file_dialog_type_filter");
+            let mut type_filter: usize = ui.ctx().data(|d| d.get_temp(type_filter_id).unwrap_or(0));
             ui.add_space(4.0);
             ui.horizontal(|ui| {
                 ui.label(RichText::new("Filter:").small().color(p.text_dim));
                 ui.add(
                     egui::TextEdit::singleline(&mut filter_str)
-                        .desired_width(240.0)
+                        .desired_width(210.0)
                         .hint_text("Filter files by name or extension…"),
                 );
                 if !filter_str.is_empty() && ui.small_button("×").clicked() {
                     filter_str.clear();
                 }
+                if matches!(app.file_mode, FileMode::Open | FileMode::Import) {
+                    ui.separator();
+                    for (ti, tlbl) in ["All", "Images", "SVG", "PSD/AI"].iter().enumerate() {
+                        if ui.selectable_label(type_filter == ti, *tlbl).clicked() {
+                            type_filter = ti;
+                        }
+                    }
+                }
             });
-            ui.ctx()
-                .data_mut(|d| d.insert_temp(filter_id, filter_str.clone()));
+            ui.ctx().data_mut(|d| {
+                d.insert_temp(filter_id, filter_str.clone());
+                d.insert_temp(type_filter_id, type_filter);
+            });
             ui.separator();
 
             // Two-Column Body: Quick Places Sidebar | File List
@@ -1008,6 +1020,31 @@ pub fn file_dialog(app: &mut FireCraft) {
                                     .and_then(|e| e.to_str())
                                     .unwrap_or("")
                                     .to_uppercase();
+                                if !is_dir
+                                    && matches!(app.file_mode, FileMode::Open | FileMode::Import)
+                                {
+                                    let ext_l = ext.to_lowercase();
+                                    let ok = match type_filter {
+                                        1 => matches!(
+                                            ext_l.as_str(),
+                                            "png"
+                                                | "jpg"
+                                                | "jpeg"
+                                                | "webp"
+                                                | "gif"
+                                                | "bmp"
+                                                | "tiff"
+                                                | "tif"
+                                                | "ico"
+                                        ),
+                                        2 => ext_l == "svg",
+                                        3 => matches!(ext_l.as_str(), "psd" | "psb" | "ai"),
+                                        _ => true,
+                                    };
+                                    if !ok {
+                                        continue;
+                                    }
+                                }
                                 let badge = if is_dir {
                                     "📁".to_string()
                                 } else if ext.is_empty() {
@@ -1080,15 +1117,34 @@ pub fn file_dialog(app: &mut FireCraft) {
                         crate::formats::Format::Bmp,
                         crate::formats::Format::Ico,
                     ] {
-                        if ui.small_button(fmt.label()).clicked() {
+                        let cur_fmt = crate::formats::Format::from_path(std::path::Path::new(
+                            &app.file_dialog_name,
+                        ));
+                        if ui.selectable_label(cur_fmt == fmt, fmt.label()).clicked() {
                             let stem = std::path::Path::new(&app.file_dialog_name)
                                 .file_stem()
                                 .and_then(|s| s.to_str())
                                 .filter(|s| !s.is_empty())
                                 .unwrap_or("export");
                             app.file_dialog_name = format!("{stem}.{}", fmt.extension());
+                            app.doc.optimize.format = fmt.label().to_string();
                         }
                     }
+                });
+                ui.horizontal(|ui| {
+                    ui.label(RichText::new("Quality:").small().color(p.text_dim));
+                    ui.add(egui::Slider::new(&mut app.doc.optimize.quality, 10..=100).suffix("%"));
+                    ui.separator();
+                    let mut trans = app.doc.page().transparent_bg;
+                    if ui.checkbox(&mut trans, "Transparent BG").changed() {
+                        app.doc.page_mut().transparent_bg = trans;
+                    }
+                    ui.separator();
+                    ui.label(
+                        RichText::new(format!("Est: ~{} KB", app.estimated_export_kb()))
+                            .small()
+                            .color(p.accent),
+                    );
                 });
             }
             if confirm_now {
