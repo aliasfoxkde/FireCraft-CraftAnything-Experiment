@@ -502,12 +502,13 @@ pub fn handle_mcp_jsonrpc(app: &mut FireCraft, line: &str) -> Option<String> {
         )),
         "tools/list" => Some(format!(
             "{{\"jsonrpc\":\"2.0\",\"id\":{id},\"result\":{{\"tools\":[\
-            {{\"name\":\"firecraft.info\",\"description\":\"Summarize the open FireCraft document as JSON.\"}},\
-            {{\"name\":\"firecraft.apply\",\"description\":\"Apply a registered FireCraft command ID to the active document.\"}},\
-            {{\"name\":\"firecraft.export\",\"description\":\"Render and export the active document to a file path.\"}},\
-            {{\"name\":\"firecraft.undo\",\"description\":\"Step back one undo level.\"}},\
-            {{\"name\":\"firecraft.redo\",\"description\":\"Step forward one redo level.\"}},\
-            {{\"name\":\"firecraft.listCommands\",\"description\":\"List all {} registered command IDs.\"}}\
+            {{\"name\":\"firecraft.info\",\"description\":\"Summarize the open FireCraft document as JSON.\",\"inputSchema\":{{\"type\":\"object\",\"properties\":{{}}}}}},\
+            {{\"name\":\"firecraft.apply\",\"description\":\"Apply a registered FireCraft command ID to the active document.\",\"inputSchema\":{{\"type\":\"object\",\"properties\":{{\"command\":{{\"type\":\"string\"}}}},\"required\":[\"command\"]}}}},\
+            {{\"name\":\"firecraft.runScript\",\"description\":\"Run a FireCraft automation script file (path) or inline semicolon/newline command batch (script).\",\"inputSchema\":{{\"type\":\"object\",\"properties\":{{\"path\":{{\"type\":\"string\"}},\"script\":{{\"type\":\"string\"}}}}}}}},\
+            {{\"name\":\"firecraft.export\",\"description\":\"Render and export the active document to a file path.\",\"inputSchema\":{{\"type\":\"object\",\"properties\":{{\"path\":{{\"type\":\"string\"}}}},\"required\":[\"path\"]}}}},\
+            {{\"name\":\"firecraft.undo\",\"description\":\"Step back one undo level.\",\"inputSchema\":{{\"type\":\"object\",\"properties\":{{}}}}}},\
+            {{\"name\":\"firecraft.redo\",\"description\":\"Step forward one redo level.\",\"inputSchema\":{{\"type\":\"object\",\"properties\":{{}}}}}},\
+            {{\"name\":\"firecraft.listCommands\",\"description\":\"List all {} registered command IDs.\",\"inputSchema\":{{\"type\":\"object\",\"properties\":{{}}}}}}\
             ]}}}}",
             COMMAND_CATALOG.len()
         )),
@@ -549,6 +550,40 @@ pub fn handle_mcp_jsonrpc(app: &mut FireCraft, line: &str) -> Option<String> {
                         Ok(msg) => Some(tool_ok(&id, &msg)),
                         Err(err) => Some(tool_err(&id, &err)),
                     }
+                }
+                "firecraft.runScript" => {
+                    let script_body = if let Some(p) = extract_json_str(trimmed, "path")
+                        && !p.trim().is_empty()
+                    {
+                        match std::fs::read_to_string(&p) {
+                            Ok(s) => s,
+                            Err(e) => {
+                                return Some(tool_err(&id, &format!("Failed to read {p}: {e}")));
+                            }
+                        }
+                    } else if let Some(s) = extract_json_str(trimmed, "script") {
+                        s
+                    } else {
+                        return Some(tool_err(
+                            &id,
+                            "firecraft.runScript requires a path or script argument",
+                        ));
+                    };
+                    let mut ran = 0usize;
+                    for raw_line in script_body.split(['\n', ';']) {
+                        let cmd = raw_line.trim();
+                        if cmd.is_empty() || cmd.starts_with('#') || cmd.starts_with("//") {
+                            continue;
+                        }
+                        if let Err(err) = execute_catalog_command(app, cmd) {
+                            return Some(tool_err(
+                                &id,
+                                &format!("Script failed at step {}: {err}", ran + 1),
+                            ));
+                        }
+                        ran += 1;
+                    }
+                    Some(tool_ok(&id, &format!("Executed {ran} script command(s)")))
                 }
                 "firecraft.export" => {
                     let path_str = extract_json_str(trimmed, "path").unwrap_or_default();
