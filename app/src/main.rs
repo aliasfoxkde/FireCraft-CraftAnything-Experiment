@@ -76,7 +76,7 @@ fn main() {
     let mut viewport = eframe::egui::ViewportBuilder::default()
         .with_inner_size([1360.0, 860.0])
         .with_min_inner_size([960.0, 640.0])
-        .with_title("FireCraft Studio — Adobe Fireworks CS6 Edition")
+        .with_title("FireCraft Studio - Open Source bitmap and vector Graphics Editor")
         .with_app_id("firecraft.editor")
         .with_visible(true)
         .with_active(screenshot_path.is_none());
