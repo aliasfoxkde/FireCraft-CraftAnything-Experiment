@@ -91,6 +91,8 @@ fn main() {
 
     let native_options = eframe::NativeOptions {
         viewport,
+        centered: true,
+        persist_window: true,
         ..Default::default()
     };
 

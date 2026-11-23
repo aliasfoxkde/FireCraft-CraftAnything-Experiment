@@ -23,6 +23,7 @@ impl ThemeMode {
         }
     }
 
+    #[allow(dead_code)]
     pub fn short_label(self) -> &'static str {
         match self {
             ThemeMode::Dark => "Theme: Dark",

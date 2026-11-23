@@ -23,6 +23,10 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     }
     theme::apply_cs6_style(&ctx, &app.palette, app.palette.is_dark());
 
+    if dialogs::startup_splash(ui, app) {
+        return;
+    }
+
     shortcuts(ui, app);
 
     // 1. Top Menu Bar (10 CS6 menus + Bridge/Hand/Zoom/Resolution/Theme/Workspace mode selector)
@@ -202,6 +206,29 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     if let Some(dragged) = app.dragging_panel {
         let pointer_pos = ui.ctx().pointer_latest_pos();
         let released = ui.input(|i| !i.pointer.primary_down());
+        if !released && let Some(pos) = pointer_pos {
+            ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+            let ghost_r =
+                egui::Rect::from_min_size(pos + Vec2::new(8.0, 8.0), Vec2::new(180.0, 26.0));
+            let fg = ui.ctx().layer_painter(egui::LayerId::new(
+                egui::Order::Tooltip,
+                ui.make_persistent_id("panel_drag_ghost"),
+            ));
+            fg.rect_filled(ghost_r, 0.0, app.palette.panel_alt.gamma_multiply(0.92));
+            fg.rect_stroke(
+                ghost_r,
+                0.0,
+                egui::Stroke::new(1.5, app.palette.accent),
+                egui::StrokeKind::Inside,
+            );
+            fg.text(
+                ghost_r.center(),
+                egui::Align2::CENTER_CENTER,
+                format!("Moving: {}", dragged.title()),
+                egui::FontId::proportional(11.0),
+                app.palette.text,
+            );
+        }
         if released {
             app.dragging_panel = None;
             if let Some(pos) = pointer_pos {
@@ -883,9 +910,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
                         // Workspace & Panel toggles (Tab, Shift+Tab, F1..F12)
                         (Key::Tab, false, false, false)
                         | (Key::F4, false, false, false)
-                        | (Key::F11, false, false, false) => {
-                            Some(Shortcut::ToggleFullScreenCanvas)
-                        }
+                        | (Key::F11, false, false, false) => Some(Shortcut::ToggleFullScreenCanvas),
                         (Key::Tab, false, true, false) => Some(Shortcut::ToggleRightDock),
                         (Key::F1, false, false, false) => Some(Shortcut::HelpDialog),
                         (Key::F2, true, false, false) => Some(Shortcut::ToggleToolsDock),
@@ -894,9 +919,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
                         (Key::F2, false, true, false) => Some(Shortcut::FocusRightPanel(1, 1)), // States
                         (Key::F5, false, false, false) => Some(Shortcut::FocusRightPanel(1, 0)), // Pages
                         (Key::F6, false, false, false) => Some(Shortcut::FocusRightPanel(0, 0)), // Optimize
-                        (Key::F7, false, false, false) => {
-                            Some(Shortcut::FocusRightPanel(3, 3))
-                        } // Library
+                        (Key::F7, false, false, false) => Some(Shortcut::FocusRightPanel(3, 3)), // Library
                         (Key::F7, true, false, false) => Some(Shortcut::FocusRightPanel(3, 4)), // CSS
                         (Key::F9, true, false, false) => Some(Shortcut::FocusRightPanel(2, 2)), // Swatches
                         (Key::F9, false, true, false) => Some(Shortcut::FocusRightPanel(2, 1)), // Color Mixer

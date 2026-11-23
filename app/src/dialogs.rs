@@ -682,81 +682,104 @@ pub fn file_dialog(app: &mut FireCraft) {
 }
 
 /// The Fireworks CS6 Welcome Splash screen overlay (`screenshots/Fireworks-Tab_View.jpg`).
-pub fn welcome_overlay(app: &mut FireCraft) {
-    let t = app.ctx.input(|i| i.time);
-    if t < 2.4 && app.screenshot_path.is_none() {
-        let ctx = app.ctx.clone();
-        let alpha = if t < 0.35 {
-            (t / 0.35) as f32
-        } else if t > 1.9 {
-            ((2.4 - t) / 0.5).clamp(0.0, 1.0) as f32
-        } else {
-            1.0
-        };
-        let tex = ctx.data_mut(|d| {
-            d.get_temp::<egui::TextureHandle>(egui::Id::new("firecraft_splash_tex"))
-        }).unwrap_or_else(|| {
+pub fn startup_splash(ui: &mut egui::Ui, app: &mut FireCraft) -> bool {
+    let ctx = ui.ctx().clone();
+    let t = ctx.input(|i| i.time);
+    let skip_id = ui.make_persistent_id("splash_skipped");
+    let tex_id = ui.make_persistent_id("firecraft_splash_tex");
+    let area_id = ui.make_persistent_id("cs6_startup_splash");
+    let skipped = ctx.data(|d| d.get_temp::<bool>(skip_id).unwrap_or(false));
+    if t >= 2.2 || skipped || app.screenshot_path.is_some() {
+        return false;
+    }
+    let alpha = if t < 0.30 {
+        (t / 0.30) as f32
+    } else if t > 1.8 {
+        ((2.2 - t) / 0.4).clamp(0.0, 1.0) as f32
+    } else {
+        1.0
+    };
+    let tex = ctx
+        .data_mut(|d| d.get_temp::<egui::TextureHandle>(tex_id))
+        .unwrap_or_else(|| {
             let bytes = include_bytes!("../../screenshots/FireCraft Flame Tech Logo.png");
             let img = image::load_from_memory(bytes).expect("valid splash logo");
             let size = [img.width() as usize, img.height() as usize];
             let rgba = img.to_rgba8();
             let color_img = egui::ColorImage::from_rgba_unmultiplied(size, rgba.as_raw());
-            let handle = ctx.load_texture("firecraft_splash_tex", color_img, egui::TextureOptions::LINEAR);
-            ctx.data_mut(|d| d.insert_temp(egui::Id::new("firecraft_splash_tex"), handle.clone()));
+            let handle = ctx.load_texture(
+                "firecraft_splash_tex",
+                color_img,
+                egui::TextureOptions::LINEAR,
+            );
+            ctx.data_mut(|d| d.insert_temp(tex_id, handle.clone()));
             handle
         });
-        egui::Area::new(egui::Id::new("cs6_startup_splash"))
-            .order(egui::Order::Foreground)
-            .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
-            .show(&ctx, |ui| {
-                let p = app.palette;
-                let (rect, resp) = ui.allocate_exact_size(egui::Vec2::new(420.0, 260.0), egui::Sense::click());
-                let painter = ui.painter();
-                let bg = egui::Color32::from_rgba_unmultiplied(26, 26, 30, (215.0 * alpha) as u8);
-                painter.rect_filled(rect, 0.0, bg);
-                painter.rect_stroke(
-                    rect,
-                    0.0,
-                    egui::Stroke::new(1.5, p.accent.gamma_multiply(alpha)),
-                    egui::StrokeKind::Inside,
-                );
-                let pulse = 1.0 + 0.04 * (t as f32 * 5.0).sin();
-                let logo_sz = egui::Vec2::splat(136.0 * pulse);
-                let logo_r = egui::Rect::from_center_size(
-                    egui::pos2(rect.center().x, rect.top() + 92.0),
-                    logo_sz,
-                );
-                painter.image(
-                    tex.id(),
-                    logo_r,
-                    egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-                    egui::Color32::from_white_alpha((255.0 * alpha) as u8),
-                );
-                painter.text(
-                    egui::pos2(rect.center().x, rect.bottom() - 62.0),
-                    egui::Align2::CENTER_CENTER,
-                    "FireCraft Studio",
-                    egui::FontId::proportional(20.0),
-                    egui::Color32::from_white_alpha((245.0 * alpha) as u8),
-                );
-                let prog = (t / 2.2).clamp(0.0, 1.0) as f32;
-                let bar_bg = egui::Rect::from_min_size(
-                    egui::pos2(rect.left() + 48.0, rect.bottom() - 32.0),
-                    egui::Vec2::new(rect.width() - 96.0, 5.0),
-                );
-                painter.rect_filled(bar_bg, 0.0, egui::Color32::from_white_alpha((45.0 * alpha) as u8));
-                let bar_fg = egui::Rect::from_min_size(
-                    bar_bg.min,
-                    egui::Vec2::new(bar_bg.width() * prog, bar_bg.height()),
-                );
-                painter.rect_filled(bar_fg, 0.0, p.accent.gamma_multiply(alpha));
-                if resp.clicked() {
-                    app.ctx.request_repaint();
-                }
-            });
-        ctx.request_repaint();
-        return;
-    }
+    let screen = ctx.content_rect();
+    ui.painter().rect_filled(
+        screen,
+        0.0,
+        egui::Color32::from_rgba_unmultiplied(18, 18, 22, 235),
+    );
+    egui::Area::new(area_id)
+        .order(egui::Order::Foreground)
+        .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
+        .show(&ctx, |ui| {
+            let p = app.palette;
+            let (rect, resp) =
+                ui.allocate_exact_size(egui::Vec2::new(420.0, 260.0), egui::Sense::click());
+            let painter = ui.painter();
+            let bg = egui::Color32::from_rgba_unmultiplied(28, 28, 34, (220.0 * alpha) as u8);
+            painter.rect_filled(rect, 0.0, bg);
+            painter.rect_stroke(
+                rect,
+                0.0,
+                egui::Stroke::new(1.5, p.accent.gamma_multiply(alpha)),
+                egui::StrokeKind::Inside,
+            );
+            let pulse = 1.0 + 0.04 * (t as f32 * 5.0).sin();
+            let logo_sz = egui::Vec2::splat(136.0 * pulse);
+            let logo_r = egui::Rect::from_center_size(
+                egui::pos2(rect.center().x, rect.top() + 92.0),
+                logo_sz,
+            );
+            painter.image(
+                tex.id(),
+                logo_r,
+                egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                egui::Color32::from_white_alpha((255.0 * alpha) as u8),
+            );
+            painter.text(
+                egui::pos2(rect.center().x, rect.bottom() - 62.0),
+                egui::Align2::CENTER_CENTER,
+                "FireCraft Studio",
+                egui::FontId::proportional(20.0),
+                egui::Color32::from_white_alpha((245.0 * alpha) as u8),
+            );
+            let prog = (t / 2.0).clamp(0.0, 1.0) as f32;
+            let bar_bg = egui::Rect::from_min_size(
+                egui::pos2(rect.left() + 48.0, rect.bottom() - 32.0),
+                egui::Vec2::new(rect.width() - 96.0, 5.0),
+            );
+            painter.rect_filled(
+                bar_bg,
+                0.0,
+                egui::Color32::from_white_alpha((45.0 * alpha) as u8),
+            );
+            let bar_fg = egui::Rect::from_min_size(
+                bar_bg.min,
+                egui::Vec2::new(bar_bg.width() * prog, bar_bg.height()),
+            );
+            painter.rect_filled(bar_fg, 0.0, p.accent.gamma_multiply(alpha));
+            if resp.clicked() {
+                ctx.data_mut(|d| d.insert_temp(skip_id, true));
+            }
+        });
+    ctx.request_repaint();
+    true
+}
+
+pub fn welcome_overlay(app: &mut FireCraft) {
     if !app.show_welcome {
         return;
     }
@@ -765,6 +788,7 @@ pub fn welcome_overlay(app: &mut FireCraft) {
         .title_bar(false)
         .collapsible(false)
         .resizable(false)
+        .movable(false)
         .fixed_size([624.0, 412.0])
         .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
         .frame(

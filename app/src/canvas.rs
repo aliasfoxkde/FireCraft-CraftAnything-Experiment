@@ -11,6 +11,7 @@ use eframe::egui::{
 
 pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
     let rect = ui.available_rect_before_wrap();
+    let canvas_resp = ui.allocate_rect(rect, Sense::click_and_drag());
     let painter = ui.painter().clone();
     painter.rect_filled(rect, 0.0, app.palette.canvas_pad);
 
@@ -171,7 +172,11 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
         app.alt_hand_pan = false;
     }
 
-    let over_canvas = rect.contains(pointer_pos) && !app.show_welcome;
+    let over_canvas = (canvas_resp.hovered() || app.drag.is_some())
+        && rect.contains(pointer_pos)
+        && !app.show_welcome
+        && app.dragging_panel.is_none()
+        && app.active_menu.is_none();
     if over_canvas {
         let doc_pos: Vec2 = (pointer_pos - origin.to_pos2()) / zoom;
         app.cursor_doc_pos = Some(doc_pos);

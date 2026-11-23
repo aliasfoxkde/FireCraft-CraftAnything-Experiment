@@ -9,6 +9,9 @@
 /target/
 target/
 **/target/
+/target2/
+target2/
+**/target2/
 
 # Rust build artifacts and tooling output
 **/*.rs.bk

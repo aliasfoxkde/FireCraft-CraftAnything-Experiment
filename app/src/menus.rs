@@ -46,15 +46,23 @@ impl MenuNav {
         label: &str,
         shortcut: &str,
     ) -> bool {
-        let idx = self.cursor;
-        self.cursor += 1;
-        let is_selected = idx == self.active_idx;
+        let idx = if enabled {
+            let i = self.cursor;
+            self.cursor += 1;
+            Some(i)
+        } else {
+            None
+        };
+        let is_selected = idx.is_some_and(|i| i == self.active_idx);
         let width = ui.available_width().max(248.0);
         let (rect, resp) = ui.allocate_exact_size(Vec2::new(width, 20.0), Sense::click());
-        if resp.hovered() && ui.input(|i| i.pointer.delta().length_sq() > 0.01) {
-            self.active_idx = idx;
+        if let Some(i) = idx
+            && resp.hovered()
+            && ui.input(|inp| inp.pointer.delta().length_sq() > 0.01)
+        {
+            self.active_idx = i;
         }
-        let highlighted = idx == self.active_idx;
+        let highlighted = idx.is_some_and(|i| i == self.active_idx);
         let painter = ui.painter();
         if highlighted && enabled {
             painter.rect_filled(rect, 0.0, palette.selection.gamma_multiply(0.38));
@@ -96,6 +104,18 @@ impl MenuNav {
             self.closed = true;
         }
         triggered
+    }
+
+    fn radio_row(
+        &mut self,
+        ui: &mut Ui,
+        palette: crate::theme::Palette,
+        selected: bool,
+        label: &str,
+        shortcut: &str,
+    ) -> bool {
+        let mut val = selected;
+        self.check_row(ui, palette, &mut val, label, shortcut)
     }
 
     fn check_row(
@@ -413,8 +433,8 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
                 });
 
             egui::ComboBox::from_id_salt("header_theme_combo")
-                .width(105.0)
-                .selected_text(app.theme_mode.short_label())
+                .width(128.0)
+                .selected_text(app.theme_mode.label())
                 .show_ui(ui, |ui| {
                     for mode in [ThemeMode::Dark, ThemeMode::Light, ThemeMode::System] {
                         if ui
@@ -999,46 +1019,17 @@ fn window_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
         app.show_bottom_inspector = props;
     }
     ui.separator();
-    for (label, shortcut, group, tab) in [
-        ("Optimize", "F6", 0usize, 0usize),
-        ("Layers", "F2", 1, 2),
-        ("Common / Document Library", "F7 / F11", 3, 3),
-        ("CSS Properties", "Ctrl+F7", 3, 4),
-        ("Pages", "F5", 1, 0),
-        ("States", "Shift+F2", 1, 1),
-        ("History", "Shift+F10", 0, 1),
-        ("Auto Shapes", "", 3, 2),
-        ("Styles", "Ctrl+F11", 2, 0),
-        ("Color Mixer / Palette", "Shift+F9", 2, 1),
-        ("Swatches", "Ctrl+F9", 2, 2),
-        ("Info", "Alt+Shift+F12", 2, 3),
-        ("Align", "Ctrl+Alt+1", 0, 2),
-        ("Path", "", 0, 3),
-        ("Special Characters", "", 3, 0),
-        ("Image Editing", "", 3, 1),
-    ] {
-        let mut active = app.show_right_dock
-            && match group {
-                0 => app.top_right_tab == tab,
-                1 => app.layers_tab == tab,
-                2 => app.middle_right_tab == tab,
-                _ => app.library_tab == tab,
-            };
-        if nav.check_row(ui, p, &mut active, label, shortcut) {
+    for pid in crate::app::PanelId::ALL {
+        let mut active = app.show_right_dock && app.is_panel_open(pid);
+        if nav.check_row(ui, p, &mut active, pid.title(), pid.shortcut()) {
             app.full_screen_canvas = false;
             app.show_right_dock = true;
-            match group {
-                0 => app.top_right_tab = tab,
-                1 => app.layers_tab = tab,
-                2 => app.middle_right_tab = tab,
-                _ => app.library_tab = tab,
-            }
+            app.focus_or_open_panel(pid);
         }
     }
     ui.separator();
     for mode in [ThemeMode::Dark, ThemeMode::Light, ThemeMode::System] {
-        let mut active = app.theme_mode == mode;
-        if nav.check_row(ui, p, &mut active, mode.label(), "") {
+        if nav.radio_row(ui, p, app.theme_mode == mode, mode.label(), "") {
             app.set_theme(mode);
         }
     }
@@ -1047,12 +1038,11 @@ fn window_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
         app.full_screen_canvas = false;
         app.show_main_toolbar = true;
         app.show_tools_dock = true;
+        app.tools_collapsed = false;
         app.show_right_dock = true;
         app.show_bottom_inspector = true;
-        app.top_right_tab = 0;
-        app.layers_tab = 2;
-        app.middle_right_tab = 1;
-        app.library_tab = 2;
+        app.bottom_collapsed = false;
+        app.apply_workspace_preset("Expanded Mode");
         app.status = "Workspace layout reset to CS6 Expanded Mode".to_string();
     }
 }

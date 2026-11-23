@@ -3475,20 +3475,44 @@ pub fn panel_group_widget(ui: &mut Ui, app: &mut FireCraft, group_idx: usize, is
         .show(ui, |ui| {
             ui.spacing_mut().item_spacing = Vec2::ZERO;
             let header_h = 22.0;
-            let (header_rect, header_resp) =
-                ui.allocate_exact_size(Vec2::new(ui.available_width(), header_h), Sense::click());
+            let (header_rect, header_resp) = ui.allocate_exact_size(
+                Vec2::new(ui.available_width(), header_h),
+                Sense::click_and_drag(),
+            );
             app.panel_title_rects.push((group.id, header_rect));
 
-            ui.painter().rect_filled(header_rect, 0.0, p.panel_alt);
+            let is_drop_target = app.dragging_panel.is_some()
+                && ui
+                    .ctx()
+                    .pointer_latest_pos()
+                    .is_some_and(|pos| header_rect.contains(pos));
+            ui.painter().rect_filled(
+                header_rect,
+                0.0,
+                if is_drop_target {
+                    p.accent.gamma_multiply(0.35)
+                } else {
+                    p.panel_alt
+                },
+            );
             ui.painter().line_segment(
                 [header_rect.left_bottom(), header_rect.right_bottom()],
-                Stroke::new(1.0, p.stroke),
+                Stroke::new(
+                    if is_drop_target { 2.0 } else { 1.0 },
+                    if is_drop_target { p.accent } else { p.stroke },
+                ),
             );
 
             if header_resp.double_clicked()
                 && let Some(g) = app.panel_groups.get_mut(group_idx)
             {
                 g.collapsed = !g.collapsed;
+            }
+            if header_resp.drag_started() {
+                app.dragging_panel = Some(active_panel);
+            }
+            if header_resp.hovered() {
+                ui.ctx().set_cursor_icon(egui::CursorIcon::Grab);
             }
 
             // Left collapse chevron
