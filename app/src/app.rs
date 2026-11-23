@@ -318,6 +318,8 @@ pub enum DragKind {
     Create,
     Move,
     MoveNode(usize),
+    AdjustCornerRadius,
+    AdjustStarInner,
     Resize(usize),
     Pan,
     Paint,
@@ -1763,6 +1765,23 @@ impl FireCraft {
                         return;
                     }
                 }
+                if let Some(auto_h) = canvas::hit_test_auto_handle(self, raw_doc_pos) {
+                    let kind = if auto_h == 0 {
+                        self.push_undo("Adjust Corner Radius");
+                        DragKind::AdjustCornerRadius
+                    } else {
+                        self.push_undo("Adjust Star Pointiness");
+                        DragKind::AdjustStarInner
+                    };
+                    self.drag = Some(Drag {
+                        kind,
+                        start: doc_pos,
+                        current: doc_pos,
+                        orig_bounds: None,
+                        path: vec![],
+                    });
+                    return;
+                }
                 if let Some(handle_idx) = canvas::hit_test_handle(self, raw_doc_pos) {
                     let orig = self.selected_object().and_then(|o| o.bounds());
                     self.push_undo("Resize");
@@ -2097,6 +2116,45 @@ impl FireCraft {
         match drag.kind {
             DragKind::Pan => {
                 // Screen-space panning is applied directly in canvas::show via pointer_delta.
+            }
+            DragKind::AdjustCornerRadius => {
+                drag.current = doc_pos;
+                let mut new_r = 0.0_f32;
+                self.with_selected_mut(|obj| {
+                    if let Shape::Rect {
+                        min,
+                        max,
+                        corner_radius,
+                        ..
+                    } = &mut obj.kind
+                    {
+                        let lo = min.min(*max);
+                        let hi = min.max(*max);
+                        let max_r = ((hi.x - lo.x).min(hi.y - lo.y) * 0.5).max(0.0);
+                        new_r = (doc_pos.x - lo.x).clamp(0.0, max_r);
+                        *corner_radius = new_r;
+                    }
+                });
+                self.status = format!("Corner Radius: {new_r:.0} px");
+            }
+            DragKind::AdjustStarInner => {
+                drag.current = doc_pos;
+                let mut new_ratio = 0.45_f32;
+                self.with_selected_mut(|obj| {
+                    if let Shape::Polygon {
+                        center,
+                        radius,
+                        star_inner,
+                        ..
+                    } = &mut obj.kind
+                    {
+                        let dist = (doc_pos - *center).length();
+                        new_ratio = (dist / radius.max(1.0)).clamp(0.10, 1.0);
+                        *star_inner = new_ratio;
+                    }
+                });
+                self.star_ratio = new_ratio;
+                self.status = format!("Star Inner Ratio: {:.0}%", new_ratio * 100.0);
             }
             DragKind::MoveNode(node_idx) => {
                 drag.current = doc_pos;

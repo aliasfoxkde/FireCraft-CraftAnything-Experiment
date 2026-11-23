@@ -1440,6 +1440,20 @@ fn draw_obj(
                 );
             }
         }
+        if let Some((_, doc_h)) = auto_handle_for(obj) {
+            let sh = to_screen(origin, zoom, doc_h);
+            let r = 5.0;
+            painter.add(egui::Shape::convex_polygon(
+                vec![
+                    pos2(sh.x, sh.y - r),
+                    pos2(sh.x + r, sh.y),
+                    pos2(sh.x, sh.y + r),
+                    pos2(sh.x - r, sh.y),
+                ],
+                Color32::from_rgb(244, 178, 54),
+                Stroke::new(1.2, Color32::from_rgb(32, 24, 12)),
+            ));
+        }
         if app.tool == Tool::Subselect
             && let Shape::Path { points, .. } = &obj.kind
         {
@@ -1469,6 +1483,52 @@ pub fn selection_handles(sel: Rect) -> [Pos2; 8] {
         sel.left_bottom(),
         pos2(sel.left(), sel.center().y),
     ]
+}
+
+pub fn auto_handle_for(obj: &Obj) -> Option<(usize, Vec2)> {
+    match &obj.kind {
+        Shape::Rect {
+            min,
+            max,
+            corner_radius,
+            ..
+        } => {
+            let lo = min.min(*max);
+            let hi = min.max(*max);
+            let x = lo.x + (*corner_radius).max(10.0).min((hi.x - lo.x) * 0.48);
+            Some((0, Vec2::new(x, lo.y + 10.0)))
+        }
+        Shape::Polygon {
+            center,
+            radius,
+            sides,
+            star_inner,
+            angle_rad,
+        } => {
+            let ang = *angle_rad + std::f32::consts::PI / (*sides).max(3) as f32;
+            let r = *radius * *star_inner;
+            Some((1, *center + Vec2::new(ang.cos(), ang.sin()) * r))
+        }
+        _ => None,
+    }
+}
+
+/// Check if `doc_pos` hits the CS6 amber diamond Auto Shape control handle.
+pub fn hit_test_auto_handle(app: &FireCraft, doc_pos: Vec2) -> Option<usize> {
+    let idx = app.selected?;
+    let obj = app
+        .doc
+        .page()
+        .layers
+        .get(app.selected_layer)
+        .and_then(|l| l.objects.get(idx))?;
+    let (kind_id, h_pos) = auto_handle_for(obj)?;
+    let tol = 9.0 / app.doc.zoom.max(0.1);
+    if (h_pos - doc_pos).length() <= tol {
+        Some(kind_id)
+    } else {
+        None
+    }
 }
 
 /// Check if `doc_pos` hits one of the 8 resize handles of the currently selected object.
