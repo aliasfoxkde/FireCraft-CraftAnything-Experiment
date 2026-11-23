@@ -547,8 +547,8 @@ fn ctx_menu_row(
     label: &str,
     shortcut: &str,
 ) -> bool {
-    let width = ui.available_width().max(230.0);
-    let (rect, resp) = ui.allocate_exact_size(Vec2::new(width, 20.0), Sense::click());
+    let width = ui.available_width().max(252.0);
+    let (rect, resp) = ui.allocate_exact_size(Vec2::new(width, 22.0), Sense::click());
     if enabled && resp.hovered() {
         ui.painter()
             .rect_filled(rect, 0.0, p.selection.gamma_multiply(0.32));
@@ -565,18 +565,18 @@ fn ctx_menu_row(
         p.text_dim.gamma_multiply(0.55)
     };
     ui.painter().text(
-        pos2(rect.left() + 8.0, rect.center().y),
+        pos2(rect.left() + 12.0, rect.center().y),
         Align2::LEFT_CENTER,
         label,
-        FontId::proportional(11.0),
+        FontId::proportional(11.5),
         fg,
     );
     if !shortcut.is_empty() {
         ui.painter().text(
-            pos2(rect.right() - 8.0, rect.center().y),
+            pos2(rect.right() - 10.0, rect.center().y),
             Align2::RIGHT_CENTER,
             shortcut,
-            FontId::proportional(10.0),
+            FontId::proportional(10.5),
             if enabled { p.text_dim } else { fg },
         );
     }
@@ -632,8 +632,17 @@ fn canvas_context_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
                 .stroke(Stroke::new(1.0, p.stroke))
                 .inner_margin(egui::Margin::same(3))
                 .show(ui, |ui| {
-                    ui.set_min_width(236.0);
+                    ui.set_min_width(256.0);
                     ui.spacing_mut().item_spacing = Vec2::new(0.0, 1.0);
+                    if ctx_menu_row(ui, p, !app.undo.is_empty(), "Undo", "Ctrl+Z") {
+                        app.undo_action();
+                        close_menu = true;
+                    }
+                    if ctx_menu_row(ui, p, !app.redo.is_empty(), "Redo", "Ctrl+Y") {
+                        app.redo_action();
+                        close_menu = true;
+                    }
+                    ui.separator();
                     if ctx_menu_row(ui, p, has_sel, "Cut", "Ctrl+X") {
                         app.cut_selected();
                         close_menu = true;
@@ -648,6 +657,13 @@ fn canvas_context_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
                     }
                     if ctx_menu_row(ui, p, true, "Paste", "Ctrl+V") {
                         app.paste();
+                        close_menu = true;
+                    }
+                    if has_sel
+                        && app.clipboard.is_some()
+                        && ctx_menu_row(ui, p, true, "Paste Attributes", "Ctrl+Alt+Shift+V")
+                    {
+                        app.paste_attributes();
                         close_menu = true;
                     }
                     if has_sel {
@@ -739,6 +755,47 @@ fn canvas_context_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
                             app.convert_selected_to_path();
                             close_menu = true;
                         }
+                        if multi_sel {
+                            ui.menu_button("  Combine Paths  ▸", |ui| {
+                                for (op, lbl) in [
+                                    ("union", "Union"),
+                                    ("intersect", "Intersect"),
+                                    ("punch", "Punch"),
+                                    ("crop", "Crop"),
+                                    ("join", "Join"),
+                                ] {
+                                    if ui.button(lbl).clicked() {
+                                        app.combine_paths_op(op);
+                                        close_menu = true;
+                                        ui.close();
+                                    }
+                                }
+                            });
+                            ui.menu_button("  Align Selection  ▸", |ui| {
+                                for (op, lbl) in [
+                                    ("left", "Align Left"),
+                                    ("center_h", "Align Horizontal Center"),
+                                    ("right", "Align Right"),
+                                    ("top", "Align Top"),
+                                    ("center_v", "Align Vertical Center"),
+                                    ("bottom", "Align Bottom"),
+                                ] {
+                                    if ui.button(lbl).clicked() {
+                                        app.align_selected_to_canvas(op);
+                                        close_menu = true;
+                                        ui.close();
+                                    }
+                                }
+                            });
+                        }
+                        if ctx_menu_row(ui, p, true, "Snap To Pixel", "") {
+                            app.snap_selected_to_pixel();
+                            close_menu = true;
+                        }
+                        if ctx_menu_row(ui, p, true, "Flatten Selection", "Ctrl+Alt+Shift+Z") {
+                            app.flatten_selected_to_bitmap();
+                            close_menu = true;
+                        }
                         if ctx_menu_row(ui, p, true, "Convert to Symbol…", "F8") {
                             app.convert_selection_to_symbol();
                             close_menu = true;
@@ -777,6 +834,33 @@ fn canvas_context_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
                             app.select_all();
                             close_menu = true;
                         }
+                        ui.menu_button("  Insert Shape / Element  ▸", |ui| {
+                            if ui.button("Rounded Rectangle").clicked() {
+                                app.insert_auto_shape(crate::doc::AutoShapeKind::RoundedRect);
+                                close_menu = true;
+                                ui.close();
+                            }
+                            if ui.button("Star").clicked() {
+                                app.insert_auto_shape(crate::doc::AutoShapeKind::Star);
+                                close_menu = true;
+                                ui.close();
+                            }
+                            if ui.button("Primary Button").clicked() {
+                                app.insert_common_library_item("Primary Button");
+                                close_menu = true;
+                                ui.close();
+                            }
+                            if ui.button("Web Slice").clicked() {
+                                app.insert_slice(false);
+                                close_menu = true;
+                                ui.close();
+                            }
+                            if ui.button("Hotspot").clicked() {
+                                app.insert_slice(true);
+                                close_menu = true;
+                                ui.close();
+                            }
+                        });
                         if ctx_menu_row(ui, p, true, "New Layer", "") {
                             app.add_layer();
                             close_menu = true;

@@ -1,4 +1,4 @@
-﻿//! Theme: FireCraft ships in a crisp Fireworks CS6 Charcoal Dark theme, can follow the OS,
+//! Theme: FireCraft ships in a crisp Fireworks CS6 Charcoal Dark theme, can follow the OS,
 //! and can be switched to the measured Fireworks CS6 Classic Light theme (`#D6D6D6` / `#EDEDED` / `#999999`)
 //! from the top header bar or the Window menu.
 //!
@@ -212,6 +212,18 @@ pub fn apply_cs6_style(ctx: &egui::Context, p: &Palette, dark: bool) {
 
     ctx.all_styles_mut(|style| {
         style.visuals = v.clone();
+        style
+            .text_styles
+            .insert(egui::TextStyle::Body, egui::FontId::proportional(12.0));
+        style
+            .text_styles
+            .insert(egui::TextStyle::Button, egui::FontId::proportional(11.5));
+        style
+            .text_styles
+            .insert(egui::TextStyle::Small, egui::FontId::proportional(10.5));
+        style
+            .text_styles
+            .insert(egui::TextStyle::Heading, egui::FontId::proportional(14.5));
         style.spacing.menu_margin = egui::Margin::same(4);
         style.spacing.button_padding = egui::Vec2::new(7.0, 3.0);
         style.spacing.item_spacing = egui::Vec2::new(5.0, 3.0);

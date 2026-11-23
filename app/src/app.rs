@@ -4711,6 +4711,39 @@ impl FireCraft {
 
     // ---- Geometry transforms -----------------------------------------------
 
+    pub fn paste_attributes(&mut self) {
+        let Some(src) = self.clipboard.clone() else {
+            self.status = "Copy an object first to Paste Attributes".to_string();
+            return;
+        };
+        if self.selected.is_none() && self.selected_set.is_empty() {
+            return;
+        }
+        self.push_undo("Paste Attributes");
+        let mut indices = self.selected_set.clone();
+        if let Some(s) = self.selected
+            && !indices.contains(&s)
+        {
+            indices.push(s);
+        }
+        let layer = self.selected_layer;
+        let page = self.doc.page_mut();
+        if let Some(l) = page.layers.get_mut(layer) {
+            for idx in indices {
+                if let Some(obj) = l.objects.get_mut(idx) {
+                    obj.fill = src.fill;
+                    obj.stroke = src.stroke;
+                    obj.width = src.width;
+                    obj.opacity = src.opacity;
+                    obj.effects = src.effects.clone();
+                }
+            }
+        }
+        page.sync_state();
+        self.doc.dirty = true;
+        self.status = "Pasted Fill, Stroke, Opacity & Live Filters".to_string();
+    }
+
     pub fn flip_horizontal(&mut self) {
         self.mirror_selected(true);
     }
