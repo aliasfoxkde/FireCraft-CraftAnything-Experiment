@@ -3907,12 +3907,55 @@ impl FireCraft {
         let Some(obj) = self.selected_object() else {
             return;
         };
+        let mut override_fill: Option<Option<Color32>> = None;
         let new_kind = match &obj.kind {
-            Shape::Rect { min, max, .. } => {
+            Shape::Rect {
+                min,
+                max,
+                corner_radius,
+                ..
+            } => {
                 let lo = min.min(*max);
                 let hi = min.max(*max);
+                let cr = (*corner_radius)
+                    .min((hi.x - lo.x) * 0.5)
+                    .min((hi.y - lo.y) * 0.5);
+                let points = if cr > 0.5 {
+                    let mut pts = Vec::with_capacity(16);
+                    let corners = [
+                        (
+                            Vec2::new(lo.x + cr, lo.y + cr),
+                            std::f32::consts::PI,
+                            std::f32::consts::PI * 1.5,
+                        ),
+                        (
+                            Vec2::new(hi.x - cr, lo.y + cr),
+                            std::f32::consts::PI * 1.5,
+                            std::f32::consts::TAU,
+                        ),
+                        (
+                            Vec2::new(hi.x - cr, hi.y - cr),
+                            0.0,
+                            std::f32::consts::FRAC_PI_2,
+                        ),
+                        (
+                            Vec2::new(lo.x + cr, hi.y - cr),
+                            std::f32::consts::FRAC_PI_2,
+                            std::f32::consts::PI,
+                        ),
+                    ];
+                    for (c, a0, a1) in corners {
+                        for step in 0..=3 {
+                            let a = a0 + (a1 - a0) * (step as f32 / 3.0);
+                            pts.push(c + Vec2::new(cr * a.cos(), cr * a.sin()));
+                        }
+                    }
+                    pts
+                } else {
+                    vec![lo, Vec2::new(hi.x, lo.y), hi, Vec2::new(lo.x, hi.y)]
+                };
                 Shape::Path {
-                    points: vec![lo, Vec2::new(hi.x, lo.y), hi, Vec2::new(lo.x, hi.y)],
+                    points,
                     closed: true,
                 }
             }
@@ -3942,11 +3985,53 @@ impl FireCraft {
                 points: vec![*a, *b],
                 closed: false,
             },
+            Shape::Gradient { min, max, from, .. } => {
+                let lo = min.min(*max);
+                let hi = min.max(*max);
+                override_fill = Some(Some(*from));
+                Shape::Path {
+                    points: vec![lo, Vec2::new(hi.x, lo.y), hi, Vec2::new(lo.x, hi.y)],
+                    closed: true,
+                }
+            }
+            Shape::Text { at, text, size, .. } => {
+                let char_count = text.chars().count().max(1) as f32;
+                let w = (char_count * size * 0.58).max(*size);
+                let h = *size;
+                let lo = Vec2::new(at.x, at.y - h);
+                let hi = Vec2::new(at.x + w, at.y);
+                let mid_x = (lo.x + hi.x) * 0.5;
+                let mid_y = (lo.y + hi.y) * 0.5;
+                Shape::Path {
+                    points: vec![
+                        lo,
+                        Vec2::new(mid_x, lo.y),
+                        Vec2::new(hi.x, lo.y),
+                        Vec2::new(hi.x, mid_y),
+                        hi,
+                        Vec2::new(mid_x, hi.y),
+                        Vec2::new(lo.x, hi.y),
+                        Vec2::new(lo.x, mid_y),
+                    ],
+                    closed: true,
+                }
+            }
+            Shape::Path { .. } => {
+                self.status = "Selection is already an editable Vector Path".to_string();
+                return;
+            }
             _ => return,
         };
+        self.inline_text_edit_obj = None;
         self.push_undo("Convert to Path");
-        self.with_selected_mut(|o| o.kind = new_kind);
-        self.status = "Converted selection to editable Vector Path".to_string();
+        self.with_selected_mut(|o| {
+            o.kind = new_kind;
+            if let Some(f) = override_fill {
+                o.fill = f;
+            }
+        });
+        self.tool = Tool::Subselect;
+        self.status = "Converted selection to editable Vector Path (Subselect nodes)".to_string();
     }
 
     pub fn simplify_selected_path(&mut self) {
@@ -6254,5 +6339,46 @@ mod tests {
         app.tool = Tool::Wand;
         app.on_pointer_down(Vec2::new(120.0, 120.0), Vec2::ZERO, false, false, false);
         assert_eq!(app.selected_set, vec![0, 1]);
+    }
+
+    #[test]
+    fn convert_to_path_works_for_shapes_and_text() {
+        let mut app = FireCraft::new(None);
+        let layer_idx = app.selected_layer;
+        app.doc.page_mut().layers[layer_idx].objects.push(Obj::new(
+            Shape::Rect {
+                min: Vec2::new(10.0, 10.0),
+                max: Vec2::new(110.0, 70.0),
+                corner_radius: 12.0,
+                filled: true,
+            },
+            Some(Color32::BLUE),
+            None,
+        ));
+        app.select_single(Some(0));
+        app.convert_selected_to_path();
+        assert!(matches!(
+            app.selected_object().unwrap().kind,
+            Shape::Path { ref points, closed: true } if points.len() == 16
+        ));
+
+        app.doc.page_mut().layers[layer_idx].objects.push(Obj::new(
+            Shape::Text {
+                at: Vec2::new(40.0, 100.0),
+                text: "FireCraft".to_string(),
+                size: 24.0,
+                bold: false,
+                italic: false,
+                font_family: "Sans-Serif".to_string(),
+            },
+            Some(Color32::WHITE),
+            None,
+        ));
+        app.select_single(Some(1));
+        app.convert_selected_to_path();
+        assert!(matches!(
+            app.selected_object().unwrap().kind,
+            Shape::Path { closed: true, .. }
+        ));
     }
 }

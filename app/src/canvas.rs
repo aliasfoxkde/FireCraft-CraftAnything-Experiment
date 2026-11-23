@@ -483,20 +483,34 @@ fn inline_text_editor(ui: &mut egui::Ui, app: &mut FireCraft, origin: Vec2, zoom
         return;
     };
 
+    let text_h = (size * zoom).clamp(11.0, 72.0);
     let screen_pos = to_screen(origin, zoom, at);
-    let mut finish = ui.input(|i| i.key_pressed(egui::Key::Escape));
+    let area_pos = pos2(screen_pos.x, screen_pos.y - text_h);
+    let mut finish = ui.input(|i| {
+        i.key_pressed(egui::Key::Escape) || (i.modifiers.ctrl && i.key_pressed(egui::Key::Enter))
+    });
     let area_resp = egui::Area::new(ui.make_persistent_id(("inline_text_edit", obj_idx)))
-        .fixed_pos(screen_pos)
+        .fixed_pos(area_pos)
         .order(egui::Order::Foreground)
         .show(ui.ctx(), |ui| {
-            let te = egui::TextEdit::multiline(&mut text)
-                .font(FontId::proportional((size * zoom).clamp(11.0, 72.0)))
-                .text_color(fill)
-                .desired_width(240.0)
-                .desired_rows(1);
-            let resp = ui.add(te);
-            resp.request_focus();
-            resp
+            egui::Frame::new()
+                .fill(Color32::TRANSPARENT)
+                .stroke(Stroke::new(1.0, app.palette.accent))
+                .inner_margin(egui::Margin::symmetric(3, 1))
+                .show(ui, |ui| {
+                    let te = egui::TextEdit::multiline(&mut text)
+                        .font(FontId::proportional(text_h))
+                        .text_color(fill)
+                        .frame(egui::Frame::NONE)
+                        .desired_width(260.0)
+                        .desired_rows(1);
+                    let resp = ui.add(te);
+                    if !resp.has_focus() {
+                        resp.request_focus();
+                    }
+                    resp
+                })
+                .inner
         });
 
     if let Some(obj) = app
@@ -1228,6 +1242,9 @@ fn draw_page(painter: &Painter, app: &mut FireCraft, origin: Vec2, zoom: f32, pr
         }
         for (oi, obj) in layer.objects.iter().enumerate() {
             if !obj.visible {
+                continue;
+            }
+            if app.inline_text_edit_obj == Some(oi) && li == app.selected_layer {
                 continue;
             }
             let alpha = (layer.opacity * obj.opacity).clamp(0.0, 1.0);

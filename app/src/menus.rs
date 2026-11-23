@@ -839,6 +839,9 @@ fn modify_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
         app.flip_vertical();
     }
     ui.separator();
+    if nav.row(ui, p, has_sel, "Convert to Path", "Ctrl+Shift+P") {
+        app.convert_selected_to_path();
+    }
     if nav.row(ui, p, has_sel, "Join Paths", "Ctrl+J") {
         app.combine_paths_op("join");
     }
