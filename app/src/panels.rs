@@ -186,6 +186,43 @@ pub fn panel(
 type ToolSection = (&'static str, &'static [(icons::Icon, Tool, &'static str)]);
 
 /// The tool palette down the left edge, grouped into Fireworks CS6's 6 sections.
+fn tool_icon(tool: Tool) -> icons::Icon {
+    match tool {
+        Tool::Select => icons::Icon::Select,
+        Tool::Subselect => icons::Icon::Subselect,
+        Tool::Scale => icons::Icon::Scale,
+        Tool::Crop => icons::Icon::Crop,
+        Tool::Marquee => icons::Icon::Marquee,
+        Tool::Lasso => icons::Icon::Lasso,
+        Tool::Wand => icons::Icon::Wand,
+        Tool::Brush => icons::Icon::Brush,
+        Tool::Pencil => icons::Icon::Pencil,
+        Tool::Eraser => icons::Icon::Eraser,
+        Tool::Blur => icons::Icon::Blur,
+        Tool::Sharpen => icons::Icon::Sharpen,
+        Tool::Dodge => icons::Icon::Dodge,
+        Tool::Burn => icons::Icon::Burn,
+        Tool::Stamp => icons::Icon::Stamp,
+        Tool::Line => icons::Icon::Line,
+        Tool::Path => icons::Icon::Pen,
+        Tool::Rectangle => icons::Icon::Rectangle,
+        Tool::RoundedRect => icons::Icon::Rounded,
+        Tool::Ellipse => icons::Icon::Ellipse,
+        Tool::Polygon => icons::Icon::Polygon,
+        Tool::Star => icons::Icon::Star,
+        Tool::Text => icons::Icon::Text,
+        Tool::Knife => icons::Icon::Knife,
+        Tool::Slice => icons::Icon::Slice,
+        Tool::Hotspot => icons::Icon::Hotspot,
+        Tool::Picker => icons::Icon::Picker,
+        Tool::Fill => icons::Icon::Fill,
+        Tool::Gradient => icons::Icon::Gradient,
+        Tool::Hand => icons::Icon::Hand,
+        Tool::Zoom => icons::Icon::Zoom,
+        Tool::Fit => icons::Icon::Fit,
+    }
+}
+
 fn tool_variations(tool: Tool) -> &'static [(Tool, &'static str)] {
     match tool {
         Tool::Select | Tool::Subselect => &[
@@ -419,12 +456,57 @@ pub fn tools_panel(ui: &mut Ui, app: &mut FireCraft) {
                                 .stroke(Stroke::new(1.0, p.stroke))
                                 .inner_margin(egui::Margin::same(4))
                                 .show(ui, |ui| {
-                                    ui.set_min_width(175.0);
+                                    ui.set_min_width(196.0);
+                                    ui.spacing_mut().item_spacing = Vec2::new(0.0, 1.0);
                                     for &(v_tool, v_label) in vars {
-                                        if ui
-                                            .selectable_label(app.tool == v_tool, v_label)
-                                            .clicked()
-                                        {
+                                        let is_selected = app.tool == v_tool;
+                                        let (row_r, row_resp) = ui.allocate_exact_size(
+                                            Vec2::new(ui.available_width().max(192.0), 22.0),
+                                            Sense::click(),
+                                        );
+                                        let row_p = ui.painter();
+                                        if is_selected {
+                                            row_p.rect_filled(
+                                                row_r,
+                                                0.0,
+                                                p.selection.gamma_multiply(0.35),
+                                            );
+                                            row_p.rect_stroke(
+                                                row_r,
+                                                0.0,
+                                                Stroke::new(1.0, p.selection),
+                                                egui::StrokeKind::Middle,
+                                            );
+                                        } else if row_resp.hovered() {
+                                            row_p.rect_filled(row_r, 0.0, p.well);
+                                        }
+                                        let icon_r = Rect::from_center_size(
+                                            pos2(row_r.left() + 14.0, row_r.center().y),
+                                            Vec2::splat(16.0),
+                                        );
+                                        icons::draw(
+                                            row_p,
+                                            icon_r,
+                                            tool_icon(v_tool),
+                                            if is_selected || row_resp.hovered() {
+                                                p.text
+                                            } else {
+                                                p.text_dim
+                                            },
+                                            1.25,
+                                        );
+                                        row_p.text(
+                                            pos2(row_r.left() + 28.0, row_r.center().y),
+                                            Align2::LEFT_CENTER,
+                                            v_label,
+                                            FontId::proportional(11.0),
+                                            if is_selected || row_resp.hovered() {
+                                                p.text
+                                            } else {
+                                                p.text_dim
+                                            },
+                                        );
+                                        if row_resp.clicked() {
                                             app.tool = v_tool;
                                             app.status = format!("{} selected", v_tool.name());
                                             open_flyout = None;
