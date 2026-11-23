@@ -208,13 +208,7 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
         let hand_mode_active =
             app.tool == Tool::Hand || middle_down || space_down || app.alt_hand_pan;
         if hand_mode_active {
-            ui.ctx().set_cursor_icon(
-                if down || middle_down || (app.alt_hand_pan && pointer_delta.length_sq() > 0.1) {
-                    egui::CursorIcon::Grabbing
-                } else {
-                    egui::CursorIcon::Grab
-                },
-            );
+            ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
         }
 
         // Direct 2D Hand panning via Middle-Mouse drag, Space+drag, Hand Tool drag, or Alt+Scroll Hand mode
@@ -302,7 +296,7 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
                 app.status = format!("Zoom: {:.0}% (Ctrl+Scroll)", app.doc.zoom * 100.0);
             } else if alt {
                 app.alt_hand_pan = true;
-                ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+                ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
                 app.doc.pan += Vec2::new(scroll_vec.x, scroll_vec.y) * 1.25;
                 app.status =
                     "Hand Pan active (move mouse while holding Alt, or middle-drag to pan)"
@@ -348,20 +342,6 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
                 }
             }
             ui.ctx().request_repaint();
-        }
-
-        // Draw floating Hand tool badge at cursor when Alt+Scroll Hand Pan or Middle-Drag is active
-        if app.alt_hand_pan || middle_down || space_down {
-            let badge =
-                Rect::from_center_size(pointer_pos + Vec2::new(16.0, 16.0), Vec2::splat(22.0));
-            painter.rect_filled(badge, 0.0, app.palette.panel);
-            painter.rect_stroke(
-                badge,
-                0.0,
-                Stroke::new(1.0, app.palette.accent),
-                egui::StrokeKind::Middle,
-            );
-            icons::draw(&painter, badge, icons::Icon::Hand, app.palette.accent, 1.2);
         }
     } else {
         app.cursor_doc_pos = None;
