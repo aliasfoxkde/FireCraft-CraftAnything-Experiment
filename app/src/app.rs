@@ -220,13 +220,13 @@ impl PanelId {
 
     pub fn default_height(self) -> f32 {
         match self {
-            PanelId::Path => 182.0,
-            PanelId::Align => 148.0,
-            PanelId::Optimize => 148.0,
+            PanelId::Path | PanelId::Optimize => 220.0,
+            PanelId::Align => 152.0,
             PanelId::History => 148.0,
-            PanelId::Layers | PanelId::Pages | PanelId::States => 142.0,
-            PanelId::ColorPalette | PanelId::ColorMixer | PanelId::Swatches => 144.0,
-            _ => 122.0,
+            PanelId::Layers | PanelId::Pages | PanelId::States => 188.0,
+            PanelId::ColorPalette | PanelId::ColorMixer => 186.0,
+            PanelId::Swatches => 134.0,
+            _ => 118.0,
         }
     }
 }

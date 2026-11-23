@@ -669,20 +669,23 @@ fn bottom_properties_dock(ui: &mut Ui, app: &mut FireCraft) {
 fn dock_column(ui: &mut Ui, app: &mut FireCraft, zone: crate::app::DockZone) {
     let p = app.palette;
     ui.horizontal(|ui| {
-        if ui
-            .small_button("▾ Collapse All")
-            .on_hover_text("Collapse all panels in dock")
-            .clicked()
-        {
-            app.collapse_all_panels(true);
-        }
-        if ui
-            .small_button("▸ Expand All")
-            .on_hover_text("Expand all panels in dock")
-            .clicked()
-        {
-            app.collapse_all_panels(false);
-        }
+        ui.spacing_mut().item_spacing = Vec2::new(4.0, 0.0);
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            if ui
+                .small_button("▸")
+                .on_hover_text("Expand all panels in dock")
+                .clicked()
+            {
+                app.collapse_all_panels(false);
+            }
+            if ui
+                .small_button("▾")
+                .on_hover_text("Collapse all panels in dock")
+                .clicked()
+            {
+                app.collapse_all_panels(true);
+            }
+        });
     });
     ui.add_space(2.0);
     let indices: Vec<usize> = app
