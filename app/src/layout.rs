@@ -142,36 +142,98 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
             });
     }
 
-    // 6. Right Dock: CS6 Stacked Tab-Groups (Outer + optional Inner 2-Column, or Collapsed Iconic Strip)
+    // 6. Right/Left/Floating Panel Dock: CS6 Stacked Tab-Groups (or Collapsed Iconic Strip)
     let mut right_outer_rect = None;
     let mut right_inner_rect = None;
     if app.show_right_dock {
-        let resp = if app.right_dock_collapsed {
-            egui::Panel::right("dock")
-                .exact_size(94.0)
-                .resizable(false)
-                .frame(
-                    egui::Frame::new()
-                        .fill(app.palette.panel)
-                        .inner_margin(egui::Margin::same(3)),
-                )
-                .show(ui, |ui| right_dock(ui, app))
-        } else {
-            egui::Panel::right("dock")
-                .default_size(275.0)
-                .min_size(240.0)
-                .max_size(360.0)
-                .resizable(true)
-                .frame(
-                    egui::Frame::new()
-                        .fill(app.palette.panel)
-                        .inner_margin(egui::Margin::same(3)),
-                )
-                .show(ui, |ui| right_dock(ui, app))
-        };
-        right_outer_rect = Some(resp.response.rect);
+        match app.right_dock_zone {
+            crate::app::ToolsDockMode::Right => {
+                let resp = if app.right_dock_collapsed {
+                    egui::Panel::right("dock")
+                        .exact_size(94.0)
+                        .resizable(false)
+                        .frame(
+                            egui::Frame::new()
+                                .fill(app.palette.panel)
+                                .inner_margin(egui::Margin::same(3)),
+                        )
+                        .show(ui, |ui| right_dock(ui, app))
+                } else {
+                    egui::Panel::right("dock")
+                        .default_size(275.0)
+                        .min_size(240.0)
+                        .max_size(360.0)
+                        .resizable(true)
+                        .frame(
+                            egui::Frame::new()
+                                .fill(app.palette.panel)
+                                .inner_margin(egui::Margin::same(3)),
+                        )
+                        .show(ui, |ui| right_dock(ui, app))
+                };
+                right_outer_rect = Some(resp.response.rect);
+            }
+            crate::app::ToolsDockMode::Left => {
+                let resp = if app.right_dock_collapsed {
+                    egui::Panel::left("dock_on_left")
+                        .exact_size(94.0)
+                        .resizable(false)
+                        .frame(
+                            egui::Frame::new()
+                                .fill(app.palette.panel)
+                                .inner_margin(egui::Margin::same(3)),
+                        )
+                        .show(ui, |ui| right_dock(ui, app))
+                } else {
+                    egui::Panel::left("dock_on_left")
+                        .default_size(275.0)
+                        .min_size(240.0)
+                        .max_size(360.0)
+                        .resizable(true)
+                        .frame(
+                            egui::Frame::new()
+                                .fill(app.palette.panel)
+                                .inner_margin(egui::Margin::same(3)),
+                        )
+                        .show(ui, |ui| right_dock(ui, app))
+                };
+                right_outer_rect = Some(resp.response.rect);
+            }
+            crate::app::ToolsDockMode::Floating => {
+                let screen = ui.ctx().content_rect();
+                let dock_w = if app.right_dock_collapsed {
+                    94.0
+                } else {
+                    268.0
+                };
+                let max_h = (screen.height() - 160.0).max(260.0);
+                let resp = egui::Area::new(ui.make_persistent_id("floating_right_dock"))
+                    .order(egui::Order::Middle)
+                    .fixed_pos(app.right_dock_floating_pos)
+                    .constrain(true)
+                    .show(ui.ctx(), |ui| {
+                        egui::Frame::new()
+                            .fill(app.palette.panel)
+                            .stroke(egui::Stroke::new(1.0, app.palette.stroke))
+                            .shadow(egui::Shadow {
+                                offset: [2, 3],
+                                blur: 8,
+                                spread: 0,
+                                color: egui::Color32::from_black_alpha(100),
+                            })
+                            .inner_margin(egui::Margin::same(3))
+                            .show(ui, |ui| {
+                                ui.set_width(dock_w);
+                                ui.set_max_height(max_h);
+                                right_dock(ui, app);
+                            });
+                    });
+                right_outer_rect = Some(resp.response.rect);
+            }
+        }
 
-        let has_right_inner = !app.right_dock_collapsed
+        let has_right_inner = app.right_dock_zone == crate::app::ToolsDockMode::Right
+            && !app.right_dock_collapsed
             && app
                 .panel_groups
                 .iter()
@@ -1236,21 +1298,18 @@ fn tools_top_bar(ui: &mut Ui, app: &mut FireCraft) {
         ui.ctx().set_cursor_icon(egui::CursorIcon::Grab);
     }
     if grip_resp.double_clicked() {
-        app.tools_zone = match app.tools_zone {
-            crate::app::ToolsDockMode::Floating => crate::app::ToolsDockMode::Left,
-            _ => crate::app::ToolsDockMode::Floating,
-        };
+        app.tools_collapsed = !app.tools_collapsed;
     } else if grip_resp.dragged() {
         ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
         let screen = ui.ctx().content_rect();
         if let Some(ptr) = ui.ctx().pointer_interact_pos() {
             let delta = grip_resp.drag_delta();
             match app.tools_zone {
-                crate::app::ToolsDockMode::Left if ptr.x > screen.left() + 88.0 => {
+                crate::app::ToolsDockMode::Left if ptr.x > screen.left() + 48.0 => {
                     app.tools_zone = crate::app::ToolsDockMode::Floating;
                     app.tools_floating_pos = egui::pos2(ptr.x - 16.0, ptr.y - 6.0);
                 }
-                crate::app::ToolsDockMode::Right if ptr.x < screen.right() - 88.0 => {
+                crate::app::ToolsDockMode::Right if ptr.x < screen.right() - 48.0 => {
                     app.tools_zone = crate::app::ToolsDockMode::Floating;
                     app.tools_floating_pos = egui::pos2(ptr.x - 16.0, ptr.y - 6.0);
                 }
@@ -1264,9 +1323,9 @@ fn tools_top_bar(ui: &mut Ui, app: &mut FireCraft) {
                         screen.top() + 50.0,
                         (screen.bottom() - 120.0).max(screen.top() + 50.0),
                     );
-                    if ptr.x <= screen.left() + 26.0 {
+                    if ptr.x <= screen.left() + 28.0 {
                         app.tools_zone = crate::app::ToolsDockMode::Left;
-                    } else if ptr.x >= screen.right() - 26.0 {
+                    } else if ptr.x >= screen.right() - 28.0 {
                         app.tools_zone = crate::app::ToolsDockMode::Right;
                     }
                 }
@@ -1274,8 +1333,9 @@ fn tools_top_bar(ui: &mut Ui, app: &mut FireCraft) {
             }
         }
     }
-    grip_resp
-        .on_hover_text("Drag to float Tools or snap to Left/Right edge (double-click to toggle)");
+    grip_resp.on_hover_text(
+        "Drag to float Tools or snap to Left/Right edge · Double-click to collapse/expand",
+    );
 }
 
 fn dock_column(ui: &mut Ui, app: &mut FireCraft, zone: crate::app::DockZone) {
@@ -1305,10 +1365,16 @@ fn dock_column(ui: &mut Ui, app: &mut FireCraft, zone: crate::app::DockZone) {
         if chev_resp.hovered() {
             painter.rect_filled(chev_r, 0.0, p.well);
         }
+        let chev_txt = match (app.right_dock_zone, collapsed_iconic) {
+            (crate::app::ToolsDockMode::Left, false) => "<<",
+            (crate::app::ToolsDockMode::Left, true) => ">>",
+            (_, false) => ">>",
+            (_, true) => "<<",
+        };
         painter.text(
             chev_r.center(),
             egui::Align2::CENTER_CENTER,
-            if collapsed_iconic { "<<" } else { ">>" },
+            chev_txt,
             egui::FontId::proportional(9.5),
             if chev_resp.hovered() {
                 p.accent
@@ -1320,10 +1386,80 @@ fn dock_column(ui: &mut Ui, app: &mut FireCraft, zone: crate::app::DockZone) {
             app.right_dock_collapsed = !app.right_dock_collapsed;
         }
         chev_resp.on_hover_text(if collapsed_iconic {
-            "Expand Panels Dock (<<)"
+            "Expand Panels Dock"
         } else {
-            "Collapse Panels Dock to Iconic Strip (>>)"
+            "Collapse Panels Dock to Iconic Strip"
         });
+
+        // Draggable CS6 dotted grip (drag to float panel block or snap to Left/Right; double-click to toggle collapse)
+        let grip_r = egui::Rect::from_min_max(
+            egui::pos2(chev_r.right() + 2.0, bar_r.top()),
+            bar_r.right_bottom(),
+        );
+        let grip_resp = ui.interact(
+            grip_r,
+            ui.make_persistent_id("right_dock_drag_grip"),
+            egui::Sense::click_and_drag(),
+        );
+        let dot_col = if grip_resp.hovered() || grip_resp.dragged() {
+            p.accent
+        } else {
+            p.text_dim
+        };
+        let dots = ((grip_r.width() - 8.0) / 5.0).floor().clamp(4.0, 12.0) as usize;
+        let start_x = grip_r.center().x - (dots as f32 * 2.5);
+        for i in 0..dots {
+            painter.rect_filled(
+                egui::Rect::from_center_size(
+                    egui::pos2(start_x + i as f32 * 5.0, grip_r.center().y),
+                    Vec2::splat(1.5),
+                ),
+                0.0,
+                dot_col,
+            );
+        }
+        if grip_resp.hovered() {
+            ui.ctx().set_cursor_icon(egui::CursorIcon::Grab);
+        }
+        if grip_resp.double_clicked() {
+            app.right_dock_collapsed = !app.right_dock_collapsed;
+        } else if grip_resp.dragged() {
+            ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+            let screen = ui.ctx().content_rect();
+            if let Some(ptr) = ui.ctx().pointer_interact_pos() {
+                let delta = grip_resp.drag_delta();
+                match app.right_dock_zone {
+                    crate::app::ToolsDockMode::Right if ptr.x < screen.right() - 60.0 => {
+                        app.right_dock_zone = crate::app::ToolsDockMode::Floating;
+                        app.right_dock_floating_pos = egui::pos2(ptr.x - 120.0, ptr.y - 6.0);
+                    }
+                    crate::app::ToolsDockMode::Left if ptr.x > screen.left() + 60.0 => {
+                        app.right_dock_zone = crate::app::ToolsDockMode::Floating;
+                        app.right_dock_floating_pos = egui::pos2(ptr.x - 120.0, ptr.y - 6.0);
+                    }
+                    crate::app::ToolsDockMode::Floating => {
+                        app.right_dock_floating_pos += delta;
+                        app.right_dock_floating_pos.x = app
+                            .right_dock_floating_pos
+                            .x
+                            .clamp(screen.left(), (screen.right() - 120.0).max(screen.left()));
+                        app.right_dock_floating_pos.y = app.right_dock_floating_pos.y.clamp(
+                            screen.top() + 50.0,
+                            (screen.bottom() - 120.0).max(screen.top() + 50.0),
+                        );
+                        if ptr.x >= screen.right() - 28.0 {
+                            app.right_dock_zone = crate::app::ToolsDockMode::Right;
+                        } else if ptr.x <= screen.left() + 28.0 {
+                            app.right_dock_zone = crate::app::ToolsDockMode::Left;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        grip_resp.on_hover_text(
+            "Drag to move/float Panels Dock or snap to Left/Right edge · Double-click to collapse/expand",
+        );
     }
     if !collapsed_iconic {
         ui.horizontal(|ui| {
