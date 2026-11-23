@@ -451,6 +451,49 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
     canvas_context_menu(ui, app);
 }
 
+fn ctx_menu_row(
+    ui: &mut egui::Ui,
+    p: crate::theme::Palette,
+    enabled: bool,
+    label: &str,
+    shortcut: &str,
+) -> bool {
+    let width = ui.available_width().max(230.0);
+    let (rect, resp) = ui.allocate_exact_size(Vec2::new(width, 20.0), Sense::click());
+    if enabled && resp.hovered() {
+        ui.painter()
+            .rect_filled(rect, 0.0, p.selection.gamma_multiply(0.32));
+        ui.painter().rect_stroke(
+            rect,
+            0.0,
+            Stroke::new(1.0, p.selection),
+            egui::StrokeKind::Inside,
+        );
+    }
+    let fg = if enabled {
+        p.text
+    } else {
+        p.text_dim.gamma_multiply(0.55)
+    };
+    ui.painter().text(
+        pos2(rect.left() + 8.0, rect.center().y),
+        Align2::LEFT_CENTER,
+        label,
+        FontId::proportional(11.0),
+        fg,
+    );
+    if !shortcut.is_empty() {
+        ui.painter().text(
+            pos2(rect.right() - 8.0, rect.center().y),
+            Align2::RIGHT_CENTER,
+            shortcut,
+            FontId::proportional(10.0),
+            if enabled { p.text_dim } else { fg },
+        );
+    }
+    enabled && resp.clicked()
+}
+
 fn canvas_context_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
     let Some(menu_pos) = app.context_menu_pos else {
         return;
@@ -459,109 +502,159 @@ fn canvas_context_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
         app.context_menu_pos = None;
         return;
     }
-    let has_sel = app.selected.is_some();
+    let sel_obj = app.selected_object();
+    let has_sel = sel_obj.is_some();
     let multi_sel = app.selected_set.len() >= 2;
-    let is_group = app
-        .selected_object()
+    let is_group = sel_obj
+        .as_ref()
         .is_some_and(|o| matches!(o.kind, Shape::Group { .. }));
+    let is_text = sel_obj
+        .as_ref()
+        .is_some_and(|o| matches!(o.kind, Shape::Text { .. }));
+    let is_bitmap = sel_obj
+        .as_ref()
+        .is_some_and(|o| matches!(o.kind, Shape::Bitmap { .. }));
+    let is_slice = sel_obj
+        .as_ref()
+        .is_some_and(|o| matches!(o.kind, Shape::Slice { .. }));
+    let is_path = sel_obj
+        .as_ref()
+        .is_some_and(|o| matches!(o.kind, Shape::Path { .. }));
+    let is_locked = sel_obj.as_ref().is_some_and(|o| o.locked);
+
+    let p = app.palette;
     let screen = ui.ctx().content_rect();
+    let est_h = if has_sel { 440.0 } else { 290.0 };
     let clamped_pos = pos2(
         menu_pos
             .x
-            .clamp(screen.left() + 4.0, (screen.right() - 210.0).max(4.0)),
+            .clamp(screen.left() + 4.0, (screen.right() - 250.0).max(4.0)),
         menu_pos
             .y
-            .clamp(screen.top() + 4.0, (screen.bottom() - 300.0).max(4.0)),
+            .clamp(screen.top() + 4.0, (screen.bottom() - est_h).max(4.0)),
     );
+    let mut close_menu = false;
     let area_resp = egui::Area::new(ui.make_persistent_id("cs6_canvas_context_menu"))
         .fixed_pos(clamped_pos)
         .order(egui::Order::Foreground)
         .show(ui.ctx(), |ui| {
             egui::Frame::menu(ui.style())
-                .fill(app.palette.panel)
-                .stroke(Stroke::new(1.0, app.palette.stroke))
-                .inner_margin(egui::Margin::same(4))
+                .fill(p.panel)
+                .stroke(Stroke::new(1.0, p.stroke))
+                .inner_margin(egui::Margin::same(3))
                 .show(ui, |ui| {
-                    ui.set_min_width(185.0);
-                    if ui
-                        .add_enabled(
-                            has_sel,
-                            egui::Button::new("Cut                      Ctrl+X"),
-                        )
-                        .clicked()
-                    {
+                    ui.set_min_width(236.0);
+                    ui.spacing_mut().item_spacing = Vec2::new(0.0, 1.0);
+                    if ctx_menu_row(ui, p, has_sel, "Cut", "Ctrl+X") {
                         app.cut_selected();
-                        app.context_menu_pos = None;
+                        close_menu = true;
                     }
-                    if ui
-                        .add_enabled(
-                            has_sel,
-                            egui::Button::new("Copy                     Ctrl+C"),
-                        )
-                        .clicked()
-                    {
+                    if ctx_menu_row(ui, p, has_sel, "Copy", "Ctrl+C") {
                         app.copy_selected();
-                        app.context_menu_pos = None;
+                        close_menu = true;
                     }
-                    if ui
-                        .add_enabled(
-                            app.clipboard.is_some(),
-                            egui::Button::new("Paste                    Ctrl+V"),
-                        )
-                        .clicked()
-                    {
+                    if ctx_menu_row(ui, p, has_sel, "Copy CSS Properties", "Ctrl+Shift+C") {
+                        app.copy_selected_css();
+                        close_menu = true;
+                    }
+                    if ctx_menu_row(ui, p, true, "Paste", "Ctrl+V") {
                         app.paste();
-                        app.context_menu_pos = None;
+                        close_menu = true;
                     }
                     if has_sel {
-                        if ui.button("Duplicate                Ctrl+D").clicked() {
+                        if ctx_menu_row(ui, p, true, "Duplicate", "Ctrl+Alt+D") {
                             app.duplicate_selected();
-                            app.context_menu_pos = None;
+                            close_menu = true;
                         }
-                        if ui.button("Delete                   Del").clicked() {
+                        if ctx_menu_row(ui, p, true, "Clone in Place", "Ctrl+Shift+D") {
+                            app.clone_selected();
+                            close_menu = true;
+                        }
+                        if ctx_menu_row(ui, p, true, "Delete", "Del") {
                             app.delete_selected();
-                            app.context_menu_pos = None;
+                            close_menu = true;
                         }
                         ui.separator();
-                        if multi_sel && ui.button("Group Objects            Ctrl+G").clicked() {
+                        if multi_sel && ctx_menu_row(ui, p, true, "Group Objects", "Ctrl+G") {
                             app.group_selected();
-                            app.context_menu_pos = None;
+                            close_menu = true;
                         }
-                        if is_group && ui.button("Ungroup            Ctrl+Shift+G").clicked() {
+                        if is_group && ctx_menu_row(ui, p, true, "Ungroup", "Ctrl+Shift+G") {
                             app.ungroup_selected();
-                            app.context_menu_pos = None;
+                            close_menu = true;
                         }
-                        if ui.button("Bring to Front").clicked() {
+                        if ctx_menu_row(ui, p, true, "Bring to Front", "Ctrl+Shift+↑") {
                             app.reorder_selected(true);
-                            app.context_menu_pos = None;
+                            close_menu = true;
                         }
-                        if ui.button("Send to Back").clicked() {
+                        if ctx_menu_row(ui, p, true, "Bring Forward", "Ctrl+↑") {
+                            app.reorder_selected_step(true);
+                            close_menu = true;
+                        }
+                        if ctx_menu_row(ui, p, true, "Send Backward", "Ctrl+↓") {
+                            app.reorder_selected_step(false);
+                            close_menu = true;
+                        }
+                        if ctx_menu_row(ui, p, true, "Send to Back", "Ctrl+Shift+↓") {
                             app.reorder_selected(false);
-                            app.context_menu_pos = None;
+                            close_menu = true;
                         }
                         ui.separator();
-                        if ui.button("Flip Horizontal").clicked() {
+                        if is_text {
+                            if ctx_menu_row(ui, p, true, "Toggle Bold", "Ctrl+B") {
+                                app.toggle_selected_text_bold();
+                                close_menu = true;
+                            }
+                            if ctx_menu_row(ui, p, true, "Toggle Italic", "Ctrl+I") {
+                                app.toggle_selected_text_italic();
+                                close_menu = true;
+                            }
+                        } else if is_bitmap {
+                            if ctx_menu_row(ui, p, true, "Sharpen Bitmap", "") {
+                                app.run_bitmap_filter(Tool::Sharpen);
+                                close_menu = true;
+                            }
+                            if ctx_menu_row(ui, p, true, "Blur Bitmap", "") {
+                                app.run_bitmap_filter(Tool::Blur);
+                                close_menu = true;
+                            }
+                        } else if is_slice {
+                            if ctx_menu_row(ui, p, true, "Assign URL…", "") {
+                                app.focus_or_open_panel(crate::app::PanelId::Url);
+                                close_menu = true;
+                            }
+                            if ctx_menu_row(ui, p, true, "Attach Behavior…", "Shift+F3") {
+                                app.focus_or_open_panel(crate::app::PanelId::Behaviors);
+                                close_menu = true;
+                            }
+                        }
+                        if ctx_menu_row(ui, p, true, "Flip Horizontal", "") {
                             app.flip_horizontal();
-                            app.context_menu_pos = None;
+                            close_menu = true;
                         }
-                        if ui.button("Flip Vertical").clicked() {
+                        if ctx_menu_row(ui, p, true, "Flip Vertical", "") {
                             app.flip_vertical();
-                            app.context_menu_pos = None;
+                            close_menu = true;
                         }
-                        if ui.button("Rotate 90° CW").clicked() {
+                        if ctx_menu_row(ui, p, true, "Rotate 90° CW", "") {
                             app.rotate_90();
-                            app.context_menu_pos = None;
+                            close_menu = true;
                         }
                         ui.separator();
-                        if ui.button("Convert to Path").clicked() {
+                        if is_path && ctx_menu_row(ui, p, true, "Edit Path Points (Subselect)", "A")
+                        {
+                            app.tool = Tool::Subselect;
+                            close_menu = true;
+                        }
+                        if ctx_menu_row(ui, p, !is_path, "Convert to Path", "") {
                             app.convert_selected_to_path();
-                            app.context_menu_pos = None;
+                            close_menu = true;
                         }
-                        if ui.button("Convert to Symbol        F8").clicked() {
+                        if ctx_menu_row(ui, p, true, "Convert to Symbol…", "F8") {
                             app.convert_selection_to_symbol();
-                            app.context_menu_pos = None;
+                            close_menu = true;
                         }
-                        if ui.button("Add Drop Shadow").clicked() {
+                        if ctx_menu_row(ui, p, true, "Add Live Drop Shadow", "") {
                             app.add_live_effect(LiveEffect::DropShadow {
                                 distance: 5.0,
                                 angle_deg: 45.0,
@@ -569,53 +662,113 @@ fn canvas_context_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
                                 color: Color32::from_black_alpha(150),
                                 enabled: true,
                             });
-                            app.context_menu_pos = None;
+                            close_menu = true;
                         }
-                        if ui.button("Insert Web Slice").clicked() {
+                        if ctx_menu_row(ui, p, true, "Insert Web Slice", "") {
                             app.insert_slice(false);
-                            app.context_menu_pos = None;
+                            close_menu = true;
                         }
-                        if ui.button("Copy CSS Properties").clicked() {
-                            app.copy_selected_css();
-                            app.context_menu_pos = None;
+                        if ctx_menu_row(
+                            ui,
+                            p,
+                            true,
+                            if is_locked {
+                                "Unlock Selection"
+                            } else {
+                                "Lock Selection"
+                            },
+                            "Ctrl+L",
+                        ) {
+                            app.toggle_lock_selection();
+                            close_menu = true;
                         }
                     } else {
                         ui.separator();
-                        if ui.button("Select All               Ctrl+A").clicked() {
+                        if ctx_menu_row(ui, p, true, "Select All", "Ctrl+A") {
                             app.select_all();
-                            app.context_menu_pos = None;
+                            close_menu = true;
                         }
-                        if ui.button("New Layer").clicked() {
+                        if ctx_menu_row(ui, p, true, "New Layer", "") {
                             app.add_layer();
-                            app.context_menu_pos = None;
+                            close_menu = true;
                         }
-                        if ui.button("Import Image / SVG…      Ctrl+R").clicked() {
+                        if ctx_menu_row(ui, p, true, "Import Image / SVG…", "Ctrl+R") {
                             app.begin_file_dialog(crate::app::FileMode::Import);
-                            app.context_menu_pos = None;
+                            close_menu = true;
                         }
-                        if ui.button("Export Document…   Ctrl+Shift+R").clicked() {
+                        if ctx_menu_row(ui, p, true, "Export Document…", "Ctrl+Shift+R") {
                             app.begin_file_dialog(crate::app::FileMode::Export);
-                            app.context_menu_pos = None;
+                            close_menu = true;
                         }
-                        if ui.button("Canvas Size…").clicked() {
+                        ui.separator();
+                        if ctx_menu_row(ui, p, true, "Canvas Size…", "") {
                             app.open_canvas_size_dialog();
-                            app.context_menu_pos = None;
+                            close_menu = true;
                         }
-                        if ui.button("Fit Canvas to Objects").clicked() {
+                        if ctx_menu_row(ui, p, true, "Fit Canvas to Contents", "Ctrl+Alt+F") {
                             app.fit_canvas_to_contents();
-                            app.context_menu_pos = None;
+                            close_menu = true;
                         }
-                        if ui.button("Fit in Window            Ctrl+0").clicked() {
+                        if ctx_menu_row(ui, p, true, "Fit in Window", "Insert / Ctrl+0") {
                             app.fit_in_window();
-                            app.context_menu_pos = None;
+                            close_menu = true;
                         }
-                        if ui.button("Load CS6 Demo Showcase").clicked() {
+                        if ctx_menu_row(ui, p, true, "Zoom 100%", "Ctrl+1") {
+                            app.set_zoom(1.0);
+                            close_menu = true;
+                        }
+                        ui.separator();
+                        if ctx_menu_row(
+                            ui,
+                            p,
+                            true,
+                            if app.show_rulers {
+                                "✓ Rulers"
+                            } else {
+                                "  Rulers"
+                            },
+                            "Ctrl+Alt+R",
+                        ) {
+                            app.show_rulers = !app.show_rulers;
+                            close_menu = true;
+                        }
+                        if ctx_menu_row(
+                            ui,
+                            p,
+                            true,
+                            if app.show_grid { "✓ Grid" } else { "  Grid" },
+                            "Ctrl+'",
+                        ) {
+                            app.show_grid = !app.show_grid;
+                            close_menu = true;
+                        }
+                        if ctx_menu_row(
+                            ui,
+                            p,
+                            true,
+                            if app.show_guides {
+                                "✓ Guides"
+                            } else {
+                                "  Guides"
+                            },
+                            "Ctrl+;",
+                        ) {
+                            app.show_guides = !app.show_guides;
+                            close_menu = true;
+                        }
+                        ui.separator();
+                        if ctx_menu_row(ui, p, true, "Load 1080p Demo Showcase", "") {
                             app.load_demo_showcase();
-                            app.context_menu_pos = None;
+                            close_menu = true;
                         }
                     }
                 });
         });
+
+    if close_menu {
+        app.context_menu_pos = None;
+        return;
+    }
 
     let clicked_outside = ui.input(|i| {
         i.pointer.any_pressed()
