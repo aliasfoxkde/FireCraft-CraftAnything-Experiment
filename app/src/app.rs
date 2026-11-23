@@ -932,11 +932,30 @@ impl FireCraft {
                     "Workspace set to Iconic Mode (click any dock icon to open flyout, or << to expand)"
                         .to_string();
             }
+            "Iconic Mode With Panel Names" => {
+                self.full_screen_canvas = false;
+                self.show_main_toolbar = true;
+                self.show_tools_dock = true;
+                self.tools_collapsed = false;
+                self.tools_zone = ToolsDockMode::Left;
+                self.show_right_dock = true;
+                self.right_dock_collapsed = true;
+                self.right_dock_zone = ToolsDockMode::Right;
+                self.iconic_flyout_panel = None;
+                self.show_bottom_inspector = true;
+                self.bottom_collapsed = false;
+                self.panel_groups = Self::default_panel_groups();
+                self.status =
+                    "Workspace set to Iconic Mode With Panel Names (click any row or << to expand)"
+                        .to_string();
+            }
             "Netbook Mode" => {
                 self.full_screen_canvas = false;
                 self.show_main_toolbar = true;
                 self.show_tools_dock = true;
+                self.tools_collapsed = true;
                 self.show_right_dock = false;
+                self.iconic_flyout_panel = None;
                 self.show_bottom_inspector = false;
                 self.status = "Workspace set to Netbook Mode".to_string();
             }

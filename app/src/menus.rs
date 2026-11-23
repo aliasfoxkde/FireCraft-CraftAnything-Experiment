@@ -334,90 +334,27 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
                 .width(122.0)
                 .selected_text(if app.full_screen_canvas {
                     "Full Screen (Tab)"
-                } else if app.show_right_dock && app.show_bottom_inspector {
-                    "Expanded Mode"
-                } else if !app.show_right_dock && app.show_bottom_inspector {
-                    "Iconic Mode"
                 } else {
-                    "Netbook Mode"
+                    app.workspace_preset
                 })
                 .show_ui(ui, |ui| {
-                    if ui
-                        .selectable_label(
-                            !app.full_screen_canvas
-                                && app.show_right_dock
-                                && app.show_bottom_inspector,
-                            "Expanded Mode",
-                        )
-                        .clicked()
-                    {
-                        app.full_screen_canvas = false;
-                        app.show_main_toolbar = true;
-                        app.show_tools_dock = true;
-                        app.show_right_dock = true;
-                        app.show_bottom_inspector = true;
-                        app.apply_workspace_preset("Expanded Mode");
-                    }
-                    if ui
-                        .selectable_label(
-                            app.workspace_preset == "CS6 Dual-Column",
-                            "CS6 Dual-Column",
-                        )
-                        .clicked()
-                    {
-                        app.apply_workspace_preset("CS6 Dual-Column");
-                    }
-                    if ui
-                        .selectable_label(
-                            app.workspace_preset == "All Panels Floating",
-                            "All Panels Floating",
-                        )
-                        .clicked()
-                    {
-                        app.apply_workspace_preset("All Panels Floating");
-                    }
-                    if ui
-                        .selectable_label(
-                            !app.full_screen_canvas
-                                && !app.show_right_dock
-                                && app.show_bottom_inspector,
-                            "Iconic Mode",
-                        )
-                        .clicked()
-                    {
-                        app.full_screen_canvas = false;
-                        app.show_main_toolbar = true;
-                        app.show_tools_dock = true;
-                        app.show_right_dock = false;
-                        app.show_bottom_inspector = true;
-                        app.status = "Workspace set to Iconic Mode".to_string();
-                    }
-                    if ui
-                        .selectable_label(false, "Iconic Mode With Panel Names")
-                        .clicked()
-                    {
-                        app.full_screen_canvas = false;
-                        app.show_main_toolbar = true;
-                        app.show_tools_dock = true;
-                        app.show_right_dock = true;
-                        app.show_bottom_inspector = true;
-                        app.status = "Workspace set to Iconic Mode With Panel Names".to_string();
-                    }
-                    if ui
-                        .selectable_label(
-                            !app.full_screen_canvas
-                                && !app.show_right_dock
-                                && !app.show_bottom_inspector,
-                            "Netbook Mode",
-                        )
-                        .clicked()
-                    {
-                        app.full_screen_canvas = false;
-                        app.show_main_toolbar = true;
-                        app.show_tools_dock = true;
-                        app.show_right_dock = false;
-                        app.show_bottom_inspector = false;
-                        app.status = "Workspace set to Netbook Mode".to_string();
+                    for preset in [
+                        "Expanded Mode",
+                        "CS6 Dual-Column",
+                        "All Panels Floating",
+                        "Iconic Mode",
+                        "Iconic Mode With Panel Names",
+                        "Netbook Mode",
+                    ] {
+                        if ui
+                            .selectable_label(
+                                !app.full_screen_canvas && app.workspace_preset == preset,
+                                preset,
+                            )
+                            .clicked()
+                        {
+                            app.apply_workspace_preset(preset);
+                        }
                     }
                     if ui
                         .selectable_label(app.full_screen_canvas, "Full Screen Canvas (Tab / F4)")
