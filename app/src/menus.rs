@@ -545,7 +545,7 @@ fn file_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
     }
     ui.separator();
     if nav.row(ui, p, true, "Close", "Ctrl+W") {
-        app.close_active_tab();
+        app.request_close_active_tab();
     }
     if nav.row(ui, p, app.open_docs.len() > 1, "Close All", "") {
         app.close_document();

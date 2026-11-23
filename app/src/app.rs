@@ -423,6 +423,7 @@ pub struct FireCraft {
     pub show_commands_dialog: bool,
     pub show_about_dialog: bool,
     pub show_update_dialog: bool,
+    pub pending_close_tab: Option<usize>,
     pub update_status: String,
     pub update_latest_version: Option<String>,
     pub update_release_url: Option<String>,
@@ -551,6 +552,7 @@ impl FireCraft {
             show_commands_dialog: false,
             show_about_dialog: false,
             show_update_dialog: false,
+            pending_close_tab: None,
             update_status: format!("Current version: v{}", env!("CARGO_PKG_VERSION")),
             update_latest_version: None,
             update_release_url: Some(
@@ -2462,6 +2464,23 @@ impl FireCraft {
         }
     }
 
+    pub fn request_close_document_tab(&mut self, idx: usize) {
+        let is_dirty = if idx == self.active_doc {
+            self.doc.dirty
+        } else {
+            self.open_docs.get(idx).is_some_and(|d| d.dirty)
+        };
+        if is_dirty {
+            self.pending_close_tab = Some(idx);
+        } else {
+            self.close_document_tab(idx);
+        }
+    }
+
+    pub fn request_close_active_tab(&mut self) {
+        self.request_close_document_tab(self.active_doc);
+    }
+
     pub fn close_document_tab(&mut self, idx: usize) {
         if self.open_docs.len() <= 1 {
             self.close_document();
@@ -2473,11 +2492,6 @@ impl FireCraft {
         self.selected = None;
         self.selected_layer = 0;
         self.textures.clear();
-    }
-
-    pub fn close_active_tab(&mut self) {
-        let cur = self.active_doc;
-        self.close_document_tab(cur);
     }
 
     pub fn new_document(&mut self, width: f32, height: f32) {

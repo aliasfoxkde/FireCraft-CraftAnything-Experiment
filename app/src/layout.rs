@@ -335,6 +335,7 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     dialogs::mcp_cli_dialog(app);
     dialogs::about_dialog(app);
     dialogs::update_dialog(app);
+    dialogs::unsaved_changes_dialog(app);
     dialogs::file_dialog(app);
     dialogs::welcome_overlay(app);
 
@@ -606,7 +607,7 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                     app.switch_document_tab(target);
                 }
                 if let Some(ci) = close_idx {
-                    app.close_document_tab(ci);
+                    app.request_close_document_tab(ci);
                 }
             });
 
@@ -1021,6 +1022,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
             || app.show_mcp_dialog
             || app.show_about_dialog
             || app.show_update_dialog
+            || app.pending_close_tab.is_some()
             || app.show_file_dialog
             || app.show_welcome;
         app.active_menu = None;
@@ -1033,6 +1035,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
         app.show_mcp_dialog = false;
         app.show_about_dialog = false;
         app.show_update_dialog = false;
+        app.pending_close_tab = None;
         app.show_file_dialog = false;
         app.show_welcome = false;
         if !closed_popup {
@@ -1299,7 +1302,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
         Some(Shortcut::SaveAs) => app.begin_file_dialog(FileMode::Save),
         Some(Shortcut::New) => app.show_new_dialog = true,
         Some(Shortcut::Open) => app.begin_file_dialog(FileMode::Open),
-        Some(Shortcut::CloseTab) => app.close_active_tab(),
+        Some(Shortcut::CloseTab) => app.request_close_active_tab(),
         Some(Shortcut::Quit) => std::process::exit(0),
         Some(Shortcut::Import) => app.begin_file_dialog(FileMode::Import),
         Some(Shortcut::Export) => app.begin_file_dialog(FileMode::Export),

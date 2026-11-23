@@ -816,6 +816,63 @@ pub fn mcp_cli_dialog(app: &mut FireCraft) {
 }
 
 /// About & Keyboard Shortcuts dialog (Help > About FireCraft).
+pub fn unsaved_changes_dialog(app: &mut FireCraft) {
+    let Some(idx) = app.pending_close_tab else {
+        return;
+    };
+    let doc_name = if idx == app.active_doc {
+        app.doc.name.clone()
+    } else {
+        app.open_docs
+            .get(idx)
+            .map(|d| d.name.clone())
+            .unwrap_or_else(|| "Untitled".to_string())
+    };
+    let mut open = true;
+    let p = app.palette;
+    egui::Window::new("Save Changes?")
+        .open(&mut open)
+        .collapsible(false)
+        .resizable(false)
+        .fixed_size([390.0, 145.0])
+        .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
+        .show(&app.ctx.clone(), |ui| {
+            ui.label(
+                RichText::new(format!("Save changes to \"{doc_name}\" before closing?")).strong(),
+            );
+            ui.add_space(4.0);
+            ui.label(
+                RichText::new("Your changes will be lost if you close without saving.")
+                    .small()
+                    .color(p.text_dim),
+            );
+            ui.add_space(14.0);
+            ui.separator();
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui.button("Save").clicked() {
+                    if idx != app.active_doc {
+                        app.switch_document_tab(idx);
+                    }
+                    app.save_current();
+                    if !app.doc.dirty {
+                        app.close_document_tab(idx);
+                    }
+                    app.pending_close_tab = None;
+                }
+                if ui.button("Don't Save").clicked() {
+                    app.close_document_tab(idx);
+                    app.pending_close_tab = None;
+                }
+                if ui.button("Cancel").clicked() {
+                    app.pending_close_tab = None;
+                }
+            });
+        });
+    if !open {
+        app.pending_close_tab = None;
+    }
+}
+
 pub fn update_dialog(app: &mut FireCraft) {
     if !app.show_update_dialog {
         return;
