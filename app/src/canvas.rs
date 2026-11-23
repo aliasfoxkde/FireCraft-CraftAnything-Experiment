@@ -231,6 +231,17 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
                 app.context_menu_pos = None;
                 app.on_pointer_down(doc_pos, pointer_pos.to_vec2(), alt, ctrl, shift);
             }
+            if canvas_resp.double_clicked()
+                && let Some((li, oi)) = hit_test(app, doc_pos)
+                && matches!(
+                    app.doc.page().layers[li].objects[oi].kind,
+                    Shape::Text { .. }
+                )
+            {
+                app.selected_layer = li;
+                app.select_single(Some(oi));
+                app.inline_text_edit_obj = Some(oi);
+            }
             if secondary_clicked || canvas_resp.secondary_clicked() {
                 // CS6 context-menu pick: if right-click hits an unselected object, select it first
                 if let Some((li, oi)) = hit_test(app, doc_pos)
@@ -448,7 +459,85 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
         }
     }
 
+    inline_text_editor(ui, app, origin, zoom);
     canvas_context_menu(ui, app);
+}
+
+fn inline_text_editor(ui: &mut egui::Ui, app: &mut FireCraft, origin: Vec2, zoom: f32) {
+    let Some(obj_idx) = app.inline_text_edit_obj else {
+        return;
+    };
+    let layer = app.selected_layer;
+    let Some((at, mut text, size, fill)) = app
+        .doc
+        .page()
+        .layers
+        .get(layer)
+        .and_then(|l| l.objects.get(obj_idx))
+        .and_then(|o| match &o.kind {
+            Shape::Text { at, text, size, .. } => {
+                Some((*at, text.clone(), *size, o.fill.unwrap_or(app.fill)))
+            }
+            _ => None,
+        })
+    else {
+        app.inline_text_edit_obj = None;
+        return;
+    };
+
+    let screen_pos = to_screen(origin, zoom, at);
+    let mut finish = ui.input(|i| i.key_pressed(egui::Key::Escape));
+    let area_resp = egui::Area::new(ui.make_persistent_id(("inline_text_edit", obj_idx)))
+        .fixed_pos(screen_pos)
+        .order(egui::Order::Foreground)
+        .show(ui.ctx(), |ui| {
+            let te = egui::TextEdit::multiline(&mut text)
+                .font(FontId::proportional((size * zoom).clamp(11.0, 72.0)))
+                .text_color(fill)
+                .desired_width(240.0)
+                .desired_rows(1);
+            let resp = ui.add(te);
+            resp.request_focus();
+            resp
+        });
+
+    if let Some(obj) = app
+        .doc
+        .page_mut()
+        .layers
+        .get_mut(layer)
+        .and_then(|l| l.objects.get_mut(obj_idx))
+    {
+        if let Shape::Text { text: t, .. } = &mut obj.kind {
+            *t = text.clone();
+        }
+        if !text.trim().is_empty() {
+            obj.name = text.clone();
+        }
+    }
+
+    let clicked_outside = ui.input(|i| {
+        i.pointer.primary_pressed()
+            && i.pointer
+                .interact_pos()
+                .is_some_and(|p| !area_resp.response.rect.expand(6.0).contains(p))
+    });
+    if clicked_outside {
+        finish = true;
+    }
+
+    if finish {
+        if text.trim().is_empty()
+            && let Some(l) = app.doc.page_mut().layers.get_mut(layer)
+            && obj_idx < l.objects.len()
+        {
+            l.objects.remove(obj_idx);
+            app.clear_selection();
+        }
+        app.doc.page_mut().sync_state();
+        app.inline_text_edit_obj = None;
+        app.tool = Tool::Select;
+    }
 }
 
 fn ctx_menu_row(

@@ -1878,7 +1878,7 @@ impl FireCraft {
                 let obj = Obj::new(
                     Shape::Text {
                         at: doc_pos,
-                        text: "FireCraft Text".to_string(),
+                        text: String::new(),
                         size: 24.0,
                         bold: false,
                         italic: false,
@@ -1888,9 +1888,11 @@ impl FireCraft {
                     None,
                 );
                 let index = self.push_object(obj);
-                self.selected = Some(index);
+                self.select_single(Some(index));
+                self.inline_text_edit_obj = Some(index);
                 self.textures.clear();
-                self.status = "Text object added".to_string();
+                self.status =
+                    "Type text directly on canvas (Esc or click outside to finish)".to_string();
             }
             Tool::Picker => {
                 if let Some((layer, index)) = canvas::hit_test(self, raw_doc_pos) {

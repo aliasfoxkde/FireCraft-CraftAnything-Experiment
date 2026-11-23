@@ -157,11 +157,20 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
         }
     }
 
-    // 7. Central Panel: Document Tab Bar + Original/Preview/2-Up/4-Up Bar + Canvas
+    // 7. Central Panel: Document Tab Bar + Canvas + CS6 Canvas Footer Bar (Transport, Resolution, Scale)
     egui::CentralPanel::default()
         .frame(egui::Frame::new().fill(app.palette.bg))
         .show(ui, |ui| {
             document_tab_strip(ui, app);
+            egui::Panel::bottom("canvas_footer_bar")
+                .exact_size(24.0)
+                .frame(
+                    egui::Frame::new()
+                        .fill(app.palette.panel)
+                        .stroke(egui::Stroke::new(1.0, app.palette.stroke))
+                        .inner_margin(egui::Margin::symmetric(8, 2)),
+                )
+                .show(ui, |ui| canvas_footer_bar(ui, app));
             canvas::show(ui, app);
         });
 
@@ -723,6 +732,93 @@ fn bottom_properties_dock(ui: &mut Ui, app: &mut FireCraft) {
 /// 2. Pages | States | Layers (160 px)
 /// 3. Styles | Color Palette | Swatches | Info (145 px)
 /// 4. Chars | Image Edit | Auto Shapes | Library | CSS (115 px)
+fn canvas_footer_bar(ui: &mut Ui, app: &mut FireCraft) {
+    let p = app.palette;
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = Vec2::new(4.0, 0.0);
+        ui.label(
+            RichText::new(format!("{} (Document)", app.doc.optimize.format))
+                .small()
+                .color(p.text_dim),
+        );
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            // Zoom Scale Dropdown (e.g. 50% ▾)
+            let zoom_pct = (app.doc.zoom * 100.0).round() as i32;
+            egui::ComboBox::from_id_salt("canvas_footer_zoom")
+                .width(62.0)
+                .selected_text(format!("{zoom_pct}%"))
+                .show_ui(ui, |ui| {
+                    for pct in [12, 25, 33, 50, 66, 100, 150, 200, 300, 400] {
+                        if ui
+                            .selectable_label(zoom_pct == pct, format!("{pct}%"))
+                            .clicked()
+                        {
+                            app.set_zoom(pct as f32 / 100.0);
+                        }
+                    }
+                    ui.separator();
+                    if ui.button("Fit in Window (Insert)").clicked() {
+                        app.fit_in_window();
+                    }
+                });
+
+            // Resolution Dropdown (e.g. 1920 x 1080 ▾)
+            let (pw, ph) = (app.doc.page().width as i32, app.doc.page().height as i32);
+            egui::ComboBox::from_id_salt("canvas_footer_res")
+                .width(108.0)
+                .selected_text(format!("{pw} x {ph}"))
+                .show_ui(ui, |ui| {
+                    for (w, h, lbl) in [
+                        (1920, 1080, "1920 × 1080 (Full HD)"),
+                        (1440, 900, "1440 × 900 (WXGA+)"),
+                        (1280, 720, "1280 × 720 (HD)"),
+                        (1024, 768, "1024 × 768 (XGA)"),
+                        (800, 600, "800 × 600 (SVGA)"),
+                    ] {
+                        if ui.selectable_label(pw == w && ph == h, lbl).clicked() {
+                            app.resize_canvas(w as f32, h as f32);
+                        }
+                    }
+                    ui.separator();
+                    if ui.button("Custom Canvas Size…").clicked() {
+                        app.open_canvas_size_dialog();
+                    }
+                });
+
+            ui.separator();
+
+            // Animation / State Transport Controls: |<  ▶/⏸  >|  <frame>  ◀  ▶
+            let state_count = app.doc.page().states.len().max(1);
+            let cur_state = app.doc.page().current_state;
+            if ui.small_button("▶").on_hover_text("Next State").clicked() {
+                app.select_state_step(1);
+            }
+            if ui
+                .small_button("◀")
+                .on_hover_text("Previous State")
+                .clicked()
+            {
+                app.select_state_step(-1);
+            }
+            ui.label(RichText::new(format!("{}", cur_state + 1)).small().strong());
+            if ui.small_button(">|").on_hover_text("Last State").clicked() {
+                app.doc.page_mut().select_state(state_count - 1);
+            }
+            if ui
+                .small_button(if app.anim_playing { "⏸" } else { "▶" })
+                .on_hover_text("Play / Pause Animation States")
+                .clicked()
+            {
+                app.anim_playing = !app.anim_playing;
+                app.anim_last_tick = ui.input(|i| i.time);
+            }
+            if ui.small_button("|<").on_hover_text("First State").clicked() {
+                app.doc.page_mut().select_state(0);
+            }
+        });
+    });
+}
+
 fn dock_column(ui: &mut Ui, app: &mut FireCraft, zone: crate::app::DockZone) {
     let p = app.palette;
     ui.horizontal(|ui| {
