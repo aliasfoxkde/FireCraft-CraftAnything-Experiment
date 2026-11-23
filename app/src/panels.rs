@@ -348,38 +348,93 @@ pub fn tools_panel(ui: &mut Ui, app: &mut FireCraft) {
             Stroke::new(1.0, p.stroke),
         );
         ui.horizontal_wrapped(|ui| {
-            ui.spacing_mut().item_spacing = Vec2::splat(2.0);
+            ui.spacing_mut().item_spacing = Vec2::splat(3.0);
+            let flyout_state_id = ui.make_persistent_id("tool_flyout_open");
+            let mut open_flyout: Option<(Tool, egui::Pos2)> =
+                ui.ctx().data(|d| d.get_temp(flyout_state_id));
             for (icon, tool, tip) in tools {
                 let active = app.tool == *tool;
                 let vars = tool_variations(*tool);
                 let full_tip = if vars.is_empty() {
                     (*tip).to_string()
                 } else {
-                    format!("{tip}\nRight-click for tool variations ▾")
+                    format!("{tip}\nClick ◢ arrow or right-click for variations")
                 };
                 let response = crate::canvas::tool_button(ui, *icon, active, &full_tip);
+                let mut opened_here = false;
                 if !vars.is_empty() {
                     let br = response.rect.right_bottom();
+                    let corner_hit = Rect::from_min_max(pos2(br.x - 9.0, br.y - 9.0), br);
+                    let hovered_arrow = response
+                        .hover_pos()
+                        .is_some_and(|hp| corner_hit.contains(hp));
                     ui.painter().add(egui::Shape::convex_polygon(
                         vec![
                             pos2(br.x - 1.5, br.y - 1.5),
-                            pos2(br.x - 6.0, br.y - 1.5),
-                            pos2(br.x - 1.5, br.y - 6.0),
+                            pos2(br.x - 7.0, br.y - 1.5),
+                            pos2(br.x - 1.5, br.y - 7.0),
                         ],
-                        if active { p.accent } else { p.text_dim },
+                        if hovered_arrow || active {
+                            p.accent
+                        } else {
+                            p.text_dim
+                        },
                         Stroke::NONE,
                     ));
-                    response.context_menu(|ui| {
-                        for &(v_tool, v_label) in vars {
-                            if ui.selectable_label(app.tool == v_tool, v_label).clicked() {
-                                app.tool = v_tool;
-                                app.status = format!("{} selected", v_tool.name());
-                                ui.close();
-                            }
+                    let clicked_arrow = response.clicked()
+                        && response
+                            .interact_pointer_pos()
+                            .is_some_and(|pp| corner_hit.contains(pp));
+                    if clicked_arrow || response.secondary_clicked() {
+                        open_flyout = Some((
+                            *tool,
+                            pos2(response.rect.right() + 4.0, response.rect.top()),
+                        ));
+                        opened_here = true;
+                    }
+                    if open_flyout.is_some_and(|(ft, _)| ft == *tool) {
+                        let anchor_pos = open_flyout
+                            .map(|(_, pos)| pos)
+                            .unwrap_or(pos2(response.rect.right() + 4.0, response.rect.top()));
+                        let area_resp = egui::Area::new(
+                            ui.make_persistent_id(("tool_flyout_menu", *tool as usize)),
+                        )
+                        .fixed_pos(anchor_pos)
+                        .order(egui::Order::Foreground)
+                        .show(ui.ctx(), |ui| {
+                            egui::Frame::menu(ui.style())
+                                .fill(p.panel)
+                                .stroke(Stroke::new(1.0, p.stroke))
+                                .inner_margin(egui::Margin::same(4))
+                                .show(ui, |ui| {
+                                    ui.set_min_width(175.0);
+                                    for &(v_tool, v_label) in vars {
+                                        if ui
+                                            .selectable_label(app.tool == v_tool, v_label)
+                                            .clicked()
+                                        {
+                                            app.tool = v_tool;
+                                            app.status = format!("{} selected", v_tool.name());
+                                            open_flyout = None;
+                                        }
+                                    }
+                                });
+                        });
+                        if !opened_here
+                            && ui.input(|i| {
+                                i.key_pressed(egui::Key::Escape)
+                                    || (i.pointer.any_pressed()
+                                        && i.pointer.interact_pos().is_some_and(|pp| {
+                                            !area_resp.response.rect.contains(pp)
+                                                && !response.rect.contains(pp)
+                                        }))
+                            })
+                        {
+                            open_flyout = None;
                         }
-                    });
+                    }
                 }
-                if response.clicked() {
+                if response.clicked() && !opened_here {
                     if *tool == Tool::Fit {
                         app.fit_in_window();
                     } else {
@@ -388,6 +443,13 @@ pub fn tools_panel(ui: &mut Ui, app: &mut FireCraft) {
                     }
                 }
             }
+            ui.ctx().data_mut(|d| {
+                if let Some(val) = open_flyout {
+                    d.insert_temp(flyout_state_id, val);
+                } else {
+                    d.remove::<(Tool, egui::Pos2)>(flyout_state_id);
+                }
+            });
         });
     }
 

@@ -82,12 +82,12 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     // 5. Left Dock: 2-Column CS6 Tool Strip
     if app.show_tools_dock {
         egui::Panel::left("tools")
-            .exact_size(64.0)
+            .exact_size(76.0)
             .resizable(false)
             .frame(
                 egui::Frame::new()
                     .fill(app.palette.panel)
-                    .inner_margin(egui::Margin::symmetric(4, 4)),
+                    .inner_margin(egui::Margin::symmetric(5, 4)),
             )
             .show(ui, |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| panels::tools_panel(ui, app));
