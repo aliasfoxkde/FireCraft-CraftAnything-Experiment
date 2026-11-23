@@ -4719,54 +4719,158 @@ impl FireCraft {
         self.mirror_selected(false);
     }
 
-    fn mirror_selected(&mut self, horizontal: bool) {
-        let Some((lo, hi)) = self.selected_object().and_then(|o| o.bounds()) else {
-            return;
-        };
-        self.push_undo("Flip");
-        let axis = if horizontal { lo.x + hi.x } else { lo.y + hi.y };
-        let apply = |p: &mut Vec2| {
+    fn mirror_obj_around(obj: &mut Obj, axis: f32, horizontal: bool) {
+        let reflect_pt = |p: &mut Vec2| {
             if horizontal {
                 p.x = axis - p.x;
             } else {
                 p.y = axis - p.y;
             }
         };
-        self.with_selected_mut(|obj| match &mut obj.kind {
-            Shape::Rect { min, max, .. }
-            | Shape::Gradient { min, max, .. }
-            | Shape::Slice { min, max, .. } => {
-                apply(min);
-                apply(max);
+        match &mut obj.kind {
+            Shape::Rect { min, max, .. } | Shape::Slice { min, max, .. } => {
+                reflect_pt(min);
+                reflect_pt(max);
+                let nlo = min.min(*max);
+                let nhi = min.max(*max);
+                *min = nlo;
+                *max = nhi;
             }
-            Shape::Ellipse { center, .. } | Shape::Polygon { center, .. } => apply(center),
+            Shape::Gradient {
+                min, max, from, to, ..
+            } => {
+                reflect_pt(min);
+                reflect_pt(max);
+                let nlo = min.min(*max);
+                let nhi = min.max(*max);
+                *min = nlo;
+                *max = nhi;
+                std::mem::swap(from, to);
+            }
+            Shape::Ellipse { center, .. } => reflect_pt(center),
+            Shape::Polygon {
+                center, angle_rad, ..
+            } => {
+                reflect_pt(center);
+                *angle_rad = if horizontal {
+                    -*angle_rad
+                } else {
+                    std::f32::consts::PI - *angle_rad
+                };
+            }
             Shape::Line { a, b } => {
-                apply(a);
-                apply(b);
+                reflect_pt(a);
+                reflect_pt(b);
             }
             Shape::Path { points, .. } => {
                 for p in points.iter_mut() {
-                    apply(p);
+                    reflect_pt(p);
                 }
             }
-            Shape::Text { at, .. }
-            | Shape::Bitmap { at, .. }
-            | Shape::SymbolInstance { at, .. } => apply(at),
-            Shape::Group { children } => {
-                for ch in children.iter_mut() {
-                    if let Some((clo, chi)) = ch.bounds() {
-                        let new_lo = Vec2::new(
-                            if horizontal { axis - chi.x } else { clo.x },
-                            if horizontal { clo.y } else { axis - chi.y },
-                        );
-                        let new_hi = new_lo + (chi - clo);
-                        ch.set_bounds(new_lo, new_hi);
+            Shape::Bitmap { at, size, pixels } => {
+                if horizontal {
+                    at.x = axis - (at.x + size.x);
+                } else {
+                    at.y = axis - (at.y + size.y);
+                }
+                let w = size.x.max(1.0) as usize;
+                let h = size.y.max(1.0) as usize;
+                if pixels.len() >= w * h * 4 {
+                    if horizontal {
+                        for row in 0..h {
+                            for col in 0..(w / 2) {
+                                let a = (row * w + col) * 4;
+                                let b = (row * w + (w - 1 - col)) * 4;
+                                for c in 0..4 {
+                                    pixels.swap(a + c, b + c);
+                                }
+                            }
+                        }
+                    } else {
+                        for row in 0..(h / 2) {
+                            for col in 0..w {
+                                let a = (row * w + col) * 4;
+                                let b = ((h - 1 - row) * w + col) * 4;
+                                for c in 0..4 {
+                                    pixels.swap(a + c, b + c);
+                                }
+                            }
+                        }
                     }
                 }
             }
-        });
+            Shape::Text { .. } | Shape::SymbolInstance { .. } => {
+                if let Some((lo, hi)) = obj.bounds() {
+                    let size = hi - lo;
+                    let new_lo = Vec2::new(
+                        if horizontal {
+                            axis - (lo.x + size.x)
+                        } else {
+                            lo.x
+                        },
+                        if horizontal {
+                            lo.y
+                        } else {
+                            axis - (lo.y + size.y)
+                        },
+                    );
+                    obj.translate(new_lo - lo);
+                }
+            }
+            Shape::Group { children } => {
+                for ch in children.iter_mut() {
+                    Self::mirror_obj_around(ch, axis, horizontal);
+                }
+            }
+        }
+    }
+
+    fn mirror_selected(&mut self, horizontal: bool) {
+        let mut indices = self.selected_set.clone();
+        if let Some(s) = self.selected
+            && !indices.contains(&s)
+        {
+            indices.push(s);
+        }
+        indices.sort_unstable();
+        indices.dedup();
+        if indices.is_empty() {
+            return;
+        }
+        let layer = self.selected_layer;
+        let mut lo = Vec2::splat(f32::MAX);
+        let mut hi = Vec2::splat(f32::MIN);
+        let mut any = false;
+        if let Some(l) = self.doc.page().layers.get(layer) {
+            for &idx in &indices {
+                if let Some((olo, ohi)) = l.objects.get(idx).and_then(|o| o.bounds()) {
+                    lo = lo.min(olo);
+                    hi = hi.max(ohi);
+                    any = true;
+                }
+            }
+        }
+        if !any {
+            return;
+        }
+        self.push_undo("Flip");
+        let axis = if horizontal { lo.x + hi.x } else { lo.y + hi.y };
+        let page = self.doc.page_mut();
+        if let Some(l) = page.layers.get_mut(layer) {
+            for idx in indices {
+                if let Some(obj) = l.objects.get_mut(idx) {
+                    Self::mirror_obj_around(obj, axis, horizontal);
+                }
+            }
+        }
+        page.sync_state();
         self.textures.clear();
-        self.status = "Flipped".to_string();
+        self.doc.dirty = true;
+        self.status = if horizontal {
+            "Flipped horizontally".to_string()
+        } else {
+            "Flipped vertically".to_string()
+        };
     }
 
     pub fn rotate_90(&mut self) {
@@ -5300,5 +5404,34 @@ mod tests {
         let (lo, hi) = app.selected_object().unwrap().bounds().unwrap();
         assert!((lo.x - 160.0).abs() < 1.0 && (lo.y - 140.0).abs() < 1.0);
         assert!((hi.x - 220.0).abs() < 1.0 && (hi.y - 220.0).abs() < 1.0);
+    }
+
+    #[test]
+    fn flip_horizontal_and_vertical_keeps_bounds() {
+        let mut app = FireCraft::new(None);
+        app.push_object(Obj::new(
+            Shape::Polygon {
+                center: Vec2::new(300.0, 300.0),
+                radius: 60.0,
+                sides: 5,
+                star_inner: 0.45,
+                angle_rad: 0.3,
+            },
+            Some(Color32::GOLD),
+            None,
+        ));
+        app.select_single(Some(0));
+        let before_bounds = app.selected_object().unwrap().bounds().unwrap();
+        app.flip_horizontal();
+        let after_h = app.selected_object().unwrap();
+        let (blo, bhi) = before_bounds;
+        let (alo, ahi) = after_h.bounds().unwrap();
+        assert!((alo.x - blo.x).abs() < 1e-3 && (ahi.x - bhi.x).abs() < 1e-3);
+        assert!((alo.y - blo.y).abs() < 1e-3 && (ahi.y - bhi.y).abs() < 1e-3);
+        if let Shape::Polygon { angle_rad, .. } = after_h.kind {
+            assert!((angle_rad - (-0.3)).abs() < 1e-4);
+        } else {
+            panic!("Expected Polygon");
+        }
     }
 }
