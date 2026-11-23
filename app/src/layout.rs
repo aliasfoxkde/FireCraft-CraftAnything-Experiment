@@ -85,11 +85,37 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
             });
     }
 
-    // 6. Right Dock: CS6 Stacked Tab-Groups with pinned section heights
+    app.panel_title_rects.clear();
+    let now = ui.input(|i| i.time);
+    app.tick_animation(ui.ctx(), now);
+
+    let has_left_inner = app
+        .panel_groups
+        .iter()
+        .any(|g| g.zone == crate::app::DockZone::LeftInner && !g.tabs.is_empty());
+    if app.show_right_dock && has_left_inner {
+        egui::Panel::left("dock_left_inner")
+            .default_size(240.0)
+            .min_size(200.0)
+            .max_size(320.0)
+            .resizable(true)
+            .frame(
+                egui::Frame::new()
+                    .fill(app.palette.panel)
+                    .inner_margin(egui::Margin::same(3)),
+            )
+            .show(ui, |ui| {
+                dock_column(ui, app, crate::app::DockZone::LeftInner);
+            });
+    }
+
+    // 6. Right Dock: CS6 Stacked Tab-Groups (Outer + optional Inner 2-Column)
+    let mut right_outer_rect = None;
+    let mut right_inner_rect = None;
     if app.show_right_dock {
-        egui::Panel::right("dock")
-            .default_size(300.0)
-            .min_size(285.0)
+        let resp = egui::Panel::right("dock")
+            .default_size(275.0)
+            .min_size(240.0)
             .max_size(360.0)
             .resizable(true)
             .frame(
@@ -98,6 +124,28 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
                     .inner_margin(egui::Margin::same(3)),
             )
             .show(ui, |ui| right_dock(ui, app));
+        right_outer_rect = Some(resp.response.rect);
+
+        let has_right_inner = app
+            .panel_groups
+            .iter()
+            .any(|g| g.zone == crate::app::DockZone::RightInner && !g.tabs.is_empty());
+        if has_right_inner {
+            let resp2 = egui::Panel::right("dock_inner")
+                .default_size(245.0)
+                .min_size(210.0)
+                .max_size(330.0)
+                .resizable(true)
+                .frame(
+                    egui::Frame::new()
+                        .fill(app.palette.panel)
+                        .inner_margin(egui::Margin::same(3)),
+                )
+                .show(ui, |ui| {
+                    dock_column(ui, app, crate::app::DockZone::RightInner);
+                });
+            right_inner_rect = Some(resp2.response.rect);
+        }
     }
 
     // 7. Central Panel: Document Tab Bar + Original/Preview/2-Up/4-Up Bar + Canvas
@@ -107,6 +155,79 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
             document_tab_strip(ui, app);
             canvas::show(ui, app);
         });
+
+    // 8. Floating Panel Windows with Magnetic Snapping
+    let floating_indices: Vec<usize> = app
+        .panel_groups
+        .iter()
+        .enumerate()
+        .filter(|(_, g)| g.zone == crate::app::DockZone::Floating && !g.tabs.is_empty())
+        .map(|(i, _)| i)
+        .collect();
+    for idx in floating_indices {
+        let (gid, fpos, fwidth, fheight, collapsed) = {
+            let g = &app.panel_groups[idx];
+            (
+                g.id,
+                g.floating_pos,
+                g.floating_width,
+                g.body_height,
+                g.collapsed,
+            )
+        };
+        let area_resp = egui::Area::new(ui.make_persistent_id(("floating_pg", gid)))
+            .order(egui::Order::Middle)
+            .current_pos(fpos)
+            .movable(true)
+            .show(ui.ctx(), |ui| {
+                ui.set_width(fwidth);
+                panels::panel_group_widget(ui, app, idx, true);
+            });
+        let new_pos = area_resp.response.rect.min;
+        if (new_pos - fpos).length() > 0.5 {
+            let est_h = if collapsed { 24.0 } else { fheight + 28.0 };
+            let snapped = app.snap_floating_pos(
+                gid,
+                new_pos,
+                Vec2::new(fwidth, est_h),
+                ui.ctx().content_rect(),
+            );
+            if let Some(g) = app.panel_groups.get_mut(idx) {
+                g.floating_pos = snapped;
+            }
+        }
+    }
+
+    // 9. Resolve Dragging Panel Tab Drop (Group / Dock / Tear-off Floating)
+    if let Some(dragged) = app.dragging_panel {
+        let pointer_pos = ui.ctx().pointer_latest_pos();
+        let released = ui.input(|i| !i.pointer.primary_down());
+        if released {
+            app.dragging_panel = None;
+            if let Some(pos) = pointer_pos {
+                if let Some((target_gid, _)) = app
+                    .panel_title_rects
+                    .iter()
+                    .find(|(_, r)| r.contains(pos))
+                    .copied()
+                {
+                    app.group_panel_into(dragged, target_gid);
+                } else if right_inner_rect.is_some_and(|r| r.contains(pos)) {
+                    app.ungroup_panel_to_floating(dragged, pos);
+                    if let Some(last_id) = app.panel_groups.last().map(|g| g.id) {
+                        app.move_group_to_zone(last_id, crate::app::DockZone::RightInner, None);
+                    }
+                } else if right_outer_rect.is_some_and(|r| r.contains(pos)) {
+                    app.ungroup_panel_to_floating(dragged, pos);
+                    if let Some(last_id) = app.panel_groups.last().map(|g| g.id) {
+                        app.move_group_to_zone(last_id, crate::app::DockZone::RightOuter, None);
+                    }
+                } else {
+                    app.ungroup_panel_to_floating(dragged, pos - Vec2::new(110.0, 10.0));
+                }
+            }
+        }
+    }
 
     dialogs::new_document_dialog(app);
     dialogs::canvas_size_dialog(app);
@@ -513,89 +634,55 @@ fn bottom_properties_dock(ui: &mut Ui, app: &mut FireCraft) {
 /// 2. Pages | States | Layers (160 px)
 /// 3. Styles | Color Palette | Swatches | Info (145 px)
 /// 4. Chars | Image Edit | Auto Shapes | Library | CSS (115 px)
-fn right_dock(ui: &mut Ui, app: &mut FireCraft) {
-    let palette = app.palette;
-    egui::ScrollArea::vertical().show(ui, |ui| {
-        // Group 1: Optimize | History | Align | Path
-        const G1_TABS: &[&str] = &["Optimize", "History", "Align", "Path"];
-        let c1 = app.top_right_tab.min(G1_TABS.len() - 1);
-        let mut g1 = c1;
-        panels::panel(
-            ui,
-            G1_TABS[c1],
-            G1_TABS,
-            &mut g1,
-            palette,
-            Some(182.0),
-            |ui| match c1 {
-                0 => panels::optimize_panel(ui, app),
-                1 => panels::history_panel(ui, app),
-                2 => panels::align_panel(ui, app),
-                _ => panels::paths_panel(ui, app),
-            },
-        );
-        app.top_right_tab = g1;
-
-        ui.add_space(2.0);
-
-        // Group 2: Pages | States | Layers
-        const G2_TABS: &[&str] = &["Pages", "States", "Layers"];
-        let c2 = app.layers_tab.min(G2_TABS.len() - 1);
-        let mut g2 = c2;
-        panels::panel(
-            ui,
-            G2_TABS[c2],
-            G2_TABS,
-            &mut g2,
-            palette,
-            Some(138.0),
-            |ui| {
-                panels::pages_panel(ui, app);
-            },
-        );
-        app.layers_tab = g2;
-
-        ui.add_space(2.0);
-
-        // Group 3: Styles | Color Palette | Swatches | Info
-        const G3_TABS: &[&str] = &["Styles", "Color Palette", "Swatches", "Info"];
-        let c3 = app.middle_right_tab.min(G3_TABS.len() - 1);
-        let mut g3 = c3;
-        panels::panel(
-            ui,
-            G3_TABS[c3],
-            G3_TABS,
-            &mut g3,
-            palette,
-            Some(142.0),
-            |ui| match c3 {
-                0 => panels::styles_panel(ui, app),
-                1 => panels::color_panel(ui, app),
-                2 => panels::swatches_panel(ui, app),
-                _ => panels::info_panel(ui, app),
-            },
-        );
-        app.middle_right_tab = g3;
-
-        ui.add_space(2.0);
-
-        // Group 4: Chars | Image Edit | Auto Shapes | Library | CSS
-        const G4_TABS: &[&str] = &["Chars", "Image Edit", "Auto Shapes", "Library", "CSS"];
-        let c4 = app.library_tab.min(G4_TABS.len() - 1);
-        let mut g4 = c4;
-        panels::panel(
-            ui,
-            G4_TABS[c4],
-            G4_TABS,
-            &mut g4,
-            palette,
-            Some(108.0),
-            |ui| {
-                panels::library_panel(ui, app);
-            },
-        );
-        app.library_tab = g4;
+fn dock_column(ui: &mut Ui, app: &mut FireCraft, zone: crate::app::DockZone) {
+    let p = app.palette;
+    ui.horizontal(|ui| {
+        if ui
+            .small_button("▾ Collapse All")
+            .on_hover_text("Collapse all panels in dock")
+            .clicked()
+        {
+            app.collapse_all_panels(true);
+        }
+        if ui
+            .small_button("▸ Expand All")
+            .on_hover_text("Expand all panels in dock")
+            .clicked()
+        {
+            app.collapse_all_panels(false);
+        }
     });
+    ui.add_space(2.0);
+    let indices: Vec<usize> = app
+        .panel_groups
+        .iter()
+        .enumerate()
+        .filter(|(_, g)| g.zone == zone && !g.tabs.is_empty())
+        .map(|(i, _)| i)
+        .collect();
+    egui::ScrollArea::vertical()
+        .id_salt(("dock_scroll", zone as u8))
+        .show(ui, |ui| {
+            for idx in indices {
+                panels::panel_group_widget(ui, app, idx, false);
+                ui.add_space(3.0);
+            }
+            if app.dragging_panel.is_some() {
+                let drop_r = ui.available_rect_before_wrap();
+                if drop_r.height() > 20.0 {
+                    ui.painter().rect_stroke(
+                        drop_r,
+                        2.0,
+                        egui::Stroke::new(1.5, p.accent),
+                        egui::StrokeKind::Inside,
+                    );
+                }
+            }
+        });
+}
+
+fn right_dock(ui: &mut Ui, app: &mut FireCraft) {
+    dock_column(ui, app, crate::app::DockZone::RightOuter);
 }
 
 /// The bottom status bar + CS6 animation playback transport controls.

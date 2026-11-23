@@ -14,7 +14,7 @@ use crate::doc::LiveEffect;
 use crate::theme::ThemeMode;
 
 use eframe::egui::{
-    self, Align2, Color32, FontId, Key, Order, Pos2, Rect, RichText, Sense, Stroke, Ui, Vec2, pos2,
+    self, Align2, Color32, FontId, Key, Order, Pos2, Rect, Sense, Stroke, Ui, Vec2, pos2,
 };
 
 pub const MENU_TITLES: [(&str, usize); 10] = [
@@ -336,7 +336,25 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
                         app.show_tools_dock = true;
                         app.show_right_dock = true;
                         app.show_bottom_inspector = true;
-                        app.status = "Workspace set to Expanded Mode".to_string();
+                        app.apply_workspace_preset("Expanded Mode");
+                    }
+                    if ui
+                        .selectable_label(
+                            app.workspace_preset == "CS6 Dual-Column",
+                            "CS6 Dual-Column",
+                        )
+                        .clicked()
+                    {
+                        app.apply_workspace_preset("CS6 Dual-Column");
+                    }
+                    if ui
+                        .selectable_label(
+                            app.workspace_preset == "All Panels Floating",
+                            "All Panels Floating",
+                        )
+                        .clicked()
+                    {
+                        app.apply_workspace_preset("All Panels Floating");
                     }
                     if ui
                         .selectable_label(

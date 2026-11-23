@@ -134,6 +134,7 @@ pub enum PanelId {
     Behaviors,
 }
 
+#[allow(dead_code)]
 impl PanelId {
     pub const ALL: [PanelId; 21] = [
         PanelId::Optimize,
@@ -327,8 +328,11 @@ pub struct FireCraft {
     pub anim_last_tick: f64,
     pub behaviors: Vec<WebBehavior>,
     pub new_url_input: String,
+    #[allow(dead_code)]
     pub rename_page_idx: Option<usize>,
+    #[allow(dead_code)]
     pub rename_page_buf: String,
+    #[allow(dead_code)]
     pub inline_text_edit_obj: Option<usize>,
     pub smart_guides_lines: Vec<(Vec2, Vec2)>,
     pub textures: TextureCache,
@@ -770,10 +774,12 @@ impl FireCraft {
         }
     }
 
+    #[allow(dead_code)]
     pub fn is_panel_open(&self, id: PanelId) -> bool {
         self.panel_groups.iter().any(|g| g.tabs.contains(&id))
     }
 
+    #[allow(dead_code)]
     pub fn sync_legacy_tabs_to_groups(&mut self) {
         // If legacy test/CLI fields mutated top_right_tab / layers_tab / middle_right_tab / library_tab,
         // ensure the corresponding PanelGroup reflects that active tab.
@@ -794,6 +800,7 @@ impl FireCraft {
         }
     }
 
+    #[allow(dead_code)]
     pub fn focus_or_open_panel(&mut self, id: PanelId) {
         self.full_screen_canvas = false;
         self.show_right_dock = true;
@@ -821,12 +828,14 @@ impl FireCraft {
         self.status = format!("Opened {} panel", id.title());
     }
 
+    #[allow(dead_code)]
     pub fn toggle_panel_visibility(&mut self, id: PanelId) {
         if self.is_panel_open(id) {
             // If it's already the active tab of an expanded group, close it; otherwise focus it
-            let already_active = self.panel_groups.iter().any(|g| {
-                !g.collapsed && g.tabs.get(g.active_tab).copied() == Some(id)
-            });
+            let already_active = self
+                .panel_groups
+                .iter()
+                .any(|g| !g.collapsed && g.tabs.get(g.active_tab).copied() == Some(id));
             if already_active {
                 self.close_panel(id);
             } else {
@@ -847,7 +856,10 @@ impl FireCraft {
             }
         }
         self.panel_groups.retain(|g| !g.tabs.is_empty());
-        self.status = format!("Closed {} panel (reopen anytime via Window menu)", id.title());
+        self.status = format!(
+            "Closed {} panel (reopen anytime via Window menu)",
+            id.title()
+        );
     }
 
     pub fn ungroup_panel_to_floating(&mut self, id: PanelId, pos: egui::Pos2) {
@@ -947,7 +959,11 @@ impl FireCraft {
         }
         self.panel_groups.retain(|g| !g.tabs.is_empty());
         // Add `panel` to `target_group_id`
-        if let Some(target) = self.panel_groups.iter_mut().find(|g| g.id == target_group_id) {
+        if let Some(target) = self
+            .panel_groups
+            .iter_mut()
+            .find(|g| g.id == target_group_id)
+        {
             if let Some(existing) = target.tabs.iter().position(|&t| t == panel) {
                 target.active_tab = existing;
             } else {
@@ -1030,10 +1046,8 @@ impl FireCraft {
             } else {
                 other.body_height + 30.0
             };
-            let o_rect = egui::Rect::from_min_size(
-                other.floating_pos,
-                Vec2::new(other.floating_width, oh),
-            );
+            let o_rect =
+                egui::Rect::from_min_size(other.floating_pos, Vec2::new(other.floating_width, oh));
             // Vertical stacking snap (top to other's bottom, or bottom to other's top)
             if (pos.x - o_rect.left()).abs() < 28.0 {
                 if (pos.y - o_rect.bottom()).abs() < threshold {
@@ -1620,6 +1634,27 @@ impl FireCraft {
                 self.fit_in_window();
             }
             Tool::Select | Tool::Subselect | Tool::Scale => {
+                if self.tool == Tool::Subselect
+                    && let Some(obj) = self.selected_object()
+                    && let Shape::Path { points, .. } = &obj.kind
+                {
+                    let tol = 10.0 / self.doc.zoom.max(0.1);
+                    if let Some((node_idx, _)) = points
+                        .iter()
+                        .enumerate()
+                        .find(|(_, pt)| (**pt - raw_doc_pos).length() <= tol)
+                    {
+                        self.push_undo("Move Path Node");
+                        self.drag = Some(Drag {
+                            kind: DragKind::MoveNode(node_idx),
+                            start: doc_pos,
+                            current: doc_pos,
+                            orig_bounds: None,
+                            path: vec![],
+                        });
+                        return;
+                    }
+                }
                 if let Some(handle_idx) = canvas::hit_test_handle(self, raw_doc_pos) {
                     let orig = self.selected_object().and_then(|o| o.bounds());
                     self.push_undo("Resize");
@@ -1955,6 +1990,16 @@ impl FireCraft {
             DragKind::Pan => {
                 // Screen-space panning is applied directly in canvas::show via pointer_delta.
             }
+            DragKind::MoveNode(node_idx) => {
+                drag.current = doc_pos;
+                self.with_selected_mut(|obj| {
+                    if let Shape::Path { points, .. } = &mut obj.kind
+                        && node_idx < points.len()
+                    {
+                        points[node_idx] = doc_pos;
+                    }
+                });
+            }
             DragKind::Move => {
                 let delta = doc_pos - drag.current;
                 drag.current = doc_pos;
@@ -1966,7 +2011,7 @@ impl FireCraft {
                 }
                 let layer = self.selected_layer;
                 let page = self.doc.page_mut();
-                for idx in indices {
+                for &idx in &indices {
                     if let Some(obj) = page
                         .layers
                         .get_mut(layer)
@@ -1976,6 +2021,30 @@ impl FireCraft {
                     }
                 }
                 page.sync_state();
+                self.smart_guides_lines.clear();
+                if self.show_guides
+                    && let Some(sel_idx) = self.selected
+                    && let Some((lo, hi)) = self
+                        .doc
+                        .page()
+                        .layers
+                        .get(layer)
+                        .and_then(|l| l.objects.get(sel_idx))
+                        .and_then(|o| o.bounds())
+                {
+                    let cx = (lo.x + hi.x) * 0.5;
+                    let cy = (lo.y + hi.y) * 0.5;
+                    let pw = self.doc.page().width;
+                    let ph = self.doc.page().height;
+                    if (cx - pw * 0.5).abs() < 4.0 {
+                        self.smart_guides_lines
+                            .push((Vec2::new(pw * 0.5, 0.0), Vec2::new(pw * 0.5, ph)));
+                    }
+                    if (cy - ph * 0.5).abs() < 4.0 {
+                        self.smart_guides_lines
+                            .push((Vec2::new(0.0, ph * 0.5), Vec2::new(pw, ph * 0.5)));
+                    }
+                }
             }
             DragKind::Resize(handle_idx) => {
                 drag.current = doc_pos;
@@ -2026,6 +2095,7 @@ impl FireCraft {
     }
 
     pub fn on_pointer_up(&mut self, raw_doc_pos: Vec2, shift: bool) {
+        self.smart_guides_lines.clear();
         let mut doc_pos = self.snap_pos(raw_doc_pos);
         let Some(drag) = self.drag.take() else {
             return;
@@ -3098,33 +3168,88 @@ impl FireCraft {
     }
 
     pub fn combine_paths_op(&mut self, op: &str) {
-        let Some(index) = self.selected else {
+        let mut indices = self.selected_set.clone();
+        if let Some(s) = self.selected
+            && !indices.contains(&s)
+        {
+            indices.push(s);
+        }
+        indices.sort_unstable();
+        indices.dedup();
+        if indices.is_empty() {
+            self.status = "Select 1 or 2 objects first".to_string();
             return;
-        };
-        self.push_undo("Combine Paths");
-        self.convert_selected_to_path();
+        }
         if op == "split" {
             self.split_selected_path();
             return;
         }
-        let layer = self.selected_layer;
-        let page = self.doc.page_mut();
-        if layer < page.layers.len() && page.layers[layer].objects.len() >= 2 && index > 0 {
-            let other = page.layers[layer].objects[index - 1].clone();
-            if let (Some((lo1, hi1)), Some((lo2, hi2))) =
-                (page.layers[layer].objects[index].bounds(), other.bounds())
-            {
-                let (new_lo, new_hi) = match op {
-                    "intersect" | "crop" => (
-                        lo1.max(lo2),
-                        hi1.min(hi2).max(lo1.max(lo2) + Vec2::splat(8.0)),
-                    ),
-                    _ => (lo1.min(lo2), hi1.max(hi2)),
-                };
-                page.layers[layer].objects[index].set_bounds(new_lo, new_hi);
+        self.push_undo("Combine Paths");
+        if indices.len() == 1 {
+            self.convert_selected_to_path();
+            if op == "join" {
+                self.with_selected_mut(|obj| {
+                    if let Shape::Path { closed, .. } = &mut obj.kind {
+                        *closed = true;
+                    }
+                });
+                self.status = "Closed path endpoints (Join)".to_string();
+            } else {
+                self.status = format!("Applied {op} on path (select 2+ objects for boolean ops)");
             }
-            page.sync_state();
+            return;
         }
+        let layer = self.selected_layer;
+        let first_idx = indices[0];
+        let second_idx = indices[1];
+        let page = self.doc.page_mut();
+        let Some(objs) = page.layers.get_mut(layer).map(|l| &mut l.objects) else {
+            return;
+        };
+        if second_idx >= objs.len() {
+            return;
+        }
+        let other = objs[second_idx].clone();
+        if op == "join" {
+            let mut pts = match &objs[first_idx].kind {
+                Shape::Path { points, .. } => points.clone(),
+                _ => objs[first_idx]
+                    .bounds()
+                    .map(|(lo, hi)| vec![lo, Vec2::new(hi.x, lo.y), hi, Vec2::new(lo.x, hi.y)])
+                    .unwrap_or_default(),
+            };
+            let other_pts = match &other.kind {
+                Shape::Path { points, .. } => points.clone(),
+                _ => other
+                    .bounds()
+                    .map(|(lo, hi)| vec![lo, Vec2::new(hi.x, lo.y), hi, Vec2::new(lo.x, hi.y)])
+                    .unwrap_or_default(),
+            };
+            pts.extend(other_pts);
+            objs[first_idx].kind = Shape::Path {
+                points: pts,
+                closed: false,
+            };
+            objs.remove(second_idx);
+        } else if let (Some((lo1, hi1)), Some((lo2, hi2))) =
+            (objs[first_idx].bounds(), other.bounds())
+        {
+            let (new_lo, new_hi) = match op {
+                "intersect" | "crop" => (
+                    lo1.max(lo2),
+                    hi1.min(hi2).max(lo1.max(lo2) + Vec2::splat(8.0)),
+                ),
+                "punch" => {
+                    let punch_w = (hi2.x - lo2.x).min((hi1.x - lo1.x) * 0.5);
+                    (Vec2::new(lo1.x + punch_w * 0.25, lo1.y), hi1)
+                }
+                _ => (lo1.min(lo2), hi1.max(hi2)),
+            };
+            objs[first_idx].set_bounds(new_lo, new_hi);
+            objs.remove(second_idx);
+        }
+        page.sync_state();
+        self.select_single(Some(first_idx));
         self.status = format!("Applied Combine Paths: {op}");
     }
 
@@ -4415,6 +4540,256 @@ impl FireCraft {
         self.set_zoom(zoom);
         self.doc.pan = Vec2::ZERO;
         self.status = "Fit in window".to_string();
+    }
+
+    pub fn insert_common_library_item(&mut self, item: &str) {
+        self.push_undo("Insert Common Library Widget");
+        let cx = self.doc.page().width * 0.5;
+        let cy = self.doc.page().height * 0.5;
+        let mut children = Vec::new();
+        match item {
+            "Primary Button" => {
+                let mut bg = Obj::new(
+                    Shape::Rect {
+                        min: Vec2::new(cx - 72.0, cy - 20.0),
+                        max: Vec2::new(cx + 72.0, cy + 20.0),
+                        corner_radius: 6.0,
+                        filled: true,
+                    },
+                    Some(Color32::from_rgb(56, 132, 238)),
+                    Some(Color32::from_rgb(35, 96, 190)),
+                );
+                bg.name = "Button Background".to_string();
+                let mut lbl = Obj::new(
+                    Shape::Text {
+                        at: Vec2::new(cx - 42.0, cy - 10.0),
+                        text: "Get Started".to_string(),
+                        size: 16.0,
+                        bold: true,
+                        italic: false,
+                        font_family: "Sans-Serif".to_string(),
+                    },
+                    Some(Color32::WHITE),
+                    None,
+                );
+                lbl.name = "Button Label".to_string();
+                children.push(bg);
+                children.push(lbl);
+            }
+            "Checkbox (Checked)" => {
+                children.push(Obj::new(
+                    Shape::Rect {
+                        min: Vec2::new(cx - 10.0, cy - 10.0),
+                        max: Vec2::new(cx + 10.0, cy + 10.0),
+                        corner_radius: 4.0,
+                        filled: true,
+                    },
+                    Some(Color32::from_rgb(56, 132, 238)),
+                    Some(Color32::from_rgb(35, 96, 190)),
+                ));
+                children.push(Obj::new(
+                    Shape::Text {
+                        at: Vec2::new(cx + 18.0, cy - 9.0),
+                        text: "Enable option".to_string(),
+                        size: 14.0,
+                        bold: false,
+                        italic: false,
+                        font_family: "Sans-Serif".to_string(),
+                    },
+                    Some(Color32::from_rgb(40, 44, 52)),
+                    None,
+                ));
+            }
+            "Radio Button" => {
+                children.push(Obj::new(
+                    Shape::Ellipse {
+                        center: Vec2::new(cx, cy),
+                        radius: Vec2::splat(10.0),
+                        filled: true,
+                    },
+                    Some(Color32::WHITE),
+                    Some(Color32::from_rgb(56, 132, 238)),
+                ));
+                children.push(Obj::new(
+                    Shape::Ellipse {
+                        center: Vec2::new(cx, cy),
+                        radius: Vec2::splat(4.5),
+                        filled: true,
+                    },
+                    Some(Color32::from_rgb(56, 132, 238)),
+                    None,
+                ));
+            }
+            "Text Input Field" | "Dropdown ComboBox" => {
+                children.push(Obj::new(
+                    Shape::Rect {
+                        min: Vec2::new(cx - 110.0, cy - 18.0),
+                        max: Vec2::new(cx + 110.0, cy + 18.0),
+                        corner_radius: 4.0,
+                        filled: true,
+                    },
+                    Some(Color32::WHITE),
+                    Some(Color32::from_rgb(160, 166, 178)),
+                ));
+                children.push(Obj::new(
+                    Shape::Text {
+                        at: Vec2::new(cx - 98.0, cy - 8.0),
+                        text: if item == "Dropdown ComboBox" {
+                            "Select option...  ▾".to_string()
+                        } else {
+                            "Enter text...".to_string()
+                        },
+                        size: 13.0,
+                        bold: false,
+                        italic: false,
+                        font_family: "Sans-Serif".to_string(),
+                    },
+                    Some(Color32::from_rgb(120, 126, 138)),
+                    None,
+                ));
+            }
+            "Toggle Switch" => {
+                children.push(Obj::new(
+                    Shape::Rect {
+                        min: Vec2::new(cx - 24.0, cy - 12.0),
+                        max: Vec2::new(cx + 24.0, cy + 12.0),
+                        corner_radius: 12.0,
+                        filled: true,
+                    },
+                    Some(Color32::from_rgb(52, 180, 110)),
+                    None,
+                ));
+                children.push(Obj::new(
+                    Shape::Ellipse {
+                        center: Vec2::new(cx + 12.0, cy),
+                        radius: Vec2::splat(9.0),
+                        filled: true,
+                    },
+                    Some(Color32::WHITE),
+                    None,
+                ));
+            }
+            "Modal Card" => {
+                children.push(Obj::new(
+                    Shape::Rect {
+                        min: Vec2::new(cx - 160.0, cy - 100.0),
+                        max: Vec2::new(cx + 160.0, cy + 100.0),
+                        corner_radius: 8.0,
+                        filled: true,
+                    },
+                    Some(Color32::from_rgb(248, 249, 252)),
+                    Some(Color32::from_rgb(190, 196, 208)),
+                ));
+                children.push(Obj::new(
+                    Shape::Text {
+                        at: Vec2::new(cx - 138.0, cy - 78.0),
+                        text: "Card Title".to_string(),
+                        size: 18.0,
+                        bold: true,
+                        italic: false,
+                        font_family: "Sans-Serif".to_string(),
+                    },
+                    Some(Color32::from_rgb(30, 34, 42)),
+                    None,
+                ));
+            }
+            "Progress Bar" => {
+                children.push(Obj::new(
+                    Shape::Rect {
+                        min: Vec2::new(cx - 120.0, cy - 6.0),
+                        max: Vec2::new(cx + 120.0, cy + 6.0),
+                        corner_radius: 6.0,
+                        filled: true,
+                    },
+                    Some(Color32::from_rgb(220, 224, 232)),
+                    None,
+                ));
+                children.push(Obj::new(
+                    Shape::Rect {
+                        min: Vec2::new(cx - 120.0, cy - 6.0),
+                        max: Vec2::new(cx + 40.0, cy + 6.0),
+                        corner_radius: 6.0,
+                        filled: true,
+                    },
+                    Some(Color32::from_rgb(56, 132, 238)),
+                    None,
+                ));
+            }
+            "Navigation Bar" => {
+                children.push(Obj::new(
+                    Shape::Rect {
+                        min: Vec2::new(cx - 240.0, cy - 22.0),
+                        max: Vec2::new(cx + 240.0, cy + 22.0),
+                        corner_radius: 4.0,
+                        filled: true,
+                    },
+                    Some(Color32::from_rgb(36, 40, 48)),
+                    None,
+                ));
+                children.push(Obj::new(
+                    Shape::Text {
+                        at: Vec2::new(cx - 220.0, cy - 9.0),
+                        text: "Brand   Home   Features   Pricing   Docs".to_string(),
+                        size: 14.0,
+                        bold: true,
+                        italic: false,
+                        font_family: "Sans-Serif".to_string(),
+                    },
+                    Some(Color32::WHITE),
+                    None,
+                ));
+            }
+            _ => {
+                children.push(Obj::new(
+                    Shape::Rect {
+                        min: Vec2::new(cx - 46.0, cy - 13.0),
+                        max: Vec2::new(cx + 46.0, cy + 13.0),
+                        corner_radius: 13.0,
+                        filled: true,
+                    },
+                    Some(Color32::from_rgb(232, 163, 61)),
+                    None,
+                ));
+                children.push(Obj::new(
+                    Shape::Text {
+                        at: Vec2::new(cx - 24.0, cy - 8.0),
+                        text: "NEW".to_string(),
+                        size: 12.0,
+                        bold: true,
+                        italic: false,
+                        font_family: "Sans-Serif".to_string(),
+                    },
+                    Some(Color32::WHITE),
+                    None,
+                ));
+            }
+        }
+        let mut grp = Obj::new(Shape::Group { children }, None, None);
+        grp.name = item.to_string();
+        let idx = self.push_object(grp);
+        self.select_single(Some(idx));
+        self.status = format!("Inserted Common Library widget: {item}");
+    }
+
+    pub fn tick_animation(&mut self, ctx: &Context, now: f64) {
+        if !self.anim_playing {
+            return;
+        }
+        let state_count = self.doc.page().states.len();
+        if state_count <= 1 {
+            self.anim_playing = false;
+            return;
+        }
+        let cur = self.doc.page().current_state.min(state_count - 1);
+        let delay_sec = (self.doc.page().states[cur].delay_cs as f64 * 0.01).max(0.05);
+        if now - self.anim_last_tick >= delay_sec {
+            self.anim_last_tick = now;
+            let next = (cur + 1) % state_count;
+            self.doc.page_mut().select_state(next);
+            self.selected = None;
+            self.selected_set.clear();
+        }
+        ctx.request_repaint_after(std::time::Duration::from_millis(40));
     }
 
     pub fn set_theme(&mut self, mode: ThemeMode) {

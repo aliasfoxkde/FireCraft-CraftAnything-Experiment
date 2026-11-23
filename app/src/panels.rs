@@ -7,7 +7,7 @@
 //!   - Group 4: Special Characters | Image Editing | Auto Shapes | Document Library | CSS / URL
 //! - Bottom dock: Properties & Symbol Properties inspector with Live Filters (+) stack.
 
-use crate::app::{FileMode, FireCraft, Tool};
+use crate::app::{DockZone, FileMode, FireCraft, PanelId, Tool};
 use crate::colors;
 use crate::constants;
 use crate::doc::{AutoShapeKind, BlendMode, LiveEffect, Obj, Shape};
@@ -3131,4 +3131,576 @@ pub fn start_panel(ui: &mut Ui, app: &mut FireCraft) {
     }
 
     let _ = Label::new(RichText::new("").small());
+}
+
+// ============================================================================
+// Dynamic CS6 Panel Group Container & 5 New CS6 Panels
+// ============================================================================
+
+pub fn render_panel_by_id(ui: &mut Ui, app: &mut FireCraft, id: PanelId) {
+    match id {
+        PanelId::Optimize => optimize_panel(ui, app),
+        PanelId::History => history_panel(ui, app),
+        PanelId::Align => align_panel(ui, app),
+        PanelId::Path => paths_panel(ui, app),
+        PanelId::Pages => {
+            app.layers_tab = 0;
+            pages_panel(ui, app);
+        }
+        PanelId::States => {
+            app.layers_tab = 1;
+            pages_panel(ui, app);
+        }
+        PanelId::Layers => {
+            app.layers_tab = 2;
+            pages_panel(ui, app);
+        }
+        PanelId::Styles => styles_panel(ui, app),
+        PanelId::ColorPalette => color_panel(ui, app),
+        PanelId::ColorMixer => color_mixer_panel(ui, app),
+        PanelId::Swatches => swatches_panel(ui, app),
+        PanelId::Info => info_panel(ui, app),
+        PanelId::SpecialChars => {
+            app.library_tab = 0;
+            library_panel(ui, app);
+        }
+        PanelId::ImageEditing => {
+            app.library_tab = 1;
+            library_panel(ui, app);
+        }
+        PanelId::AutoShapes => {
+            app.library_tab = 2;
+            library_panel(ui, app);
+        }
+        PanelId::AutoShapeProps => auto_shape_props_panel(ui, app),
+        PanelId::DocumentLibrary => {
+            app.library_tab = 3;
+            library_panel(ui, app);
+        }
+        PanelId::CommonLibrary => common_library_panel(ui, app),
+        PanelId::CssProperties => {
+            app.library_tab = 4;
+            library_panel(ui, app);
+        }
+        PanelId::Url => url_panel(ui, app),
+        PanelId::Behaviors => behaviors_panel(ui, app),
+    }
+}
+
+pub fn color_mixer_panel(ui: &mut Ui, app: &mut FireCraft) {
+    let p = app.palette;
+    ui.horizontal(|ui| {
+        ui.label(RichText::new("Fill:").small().color(p.text_dim));
+        let mut fill_c = app.fill;
+        if ui.color_edit_button_srgba(&mut fill_c).changed() {
+            app.fill = fill_c;
+            app.set_selected_fill(Some(fill_c));
+        }
+        ui.add_space(6.0);
+        ui.label(RichText::new("Stroke:").small().color(p.text_dim));
+        let mut stroke_c = app.stroke;
+        if ui.color_edit_button_srgba(&mut stroke_c).changed() {
+            app.stroke = stroke_c;
+            app.set_selected_stroke(Some(stroke_c));
+        }
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            ui.label(RichText::new(colors::hex_of(app.fill)).monospace().small());
+        });
+    });
+    ui.add_space(4.0);
+    let mut r = app.fill.r() as i32;
+    let mut g = app.fill.g() as i32;
+    let mut b = app.fill.b() as i32;
+    let mut changed = false;
+    for (label, val) in [("R:", &mut r), ("G:", &mut g), ("B:", &mut b)] {
+        ui.horizontal(|ui| {
+            ui.label(RichText::new(label).small().color(p.text_dim));
+            if ui
+                .add(egui::Slider::new(val, 0..=255).show_value(true))
+                .changed()
+            {
+                changed = true;
+            }
+        });
+    }
+    if changed {
+        let c = Color32::from_rgb(r as u8, g as u8, b as u8);
+        app.fill = c;
+        app.set_selected_fill(Some(c));
+    }
+    ui.add_space(4.0);
+    let (bar_rect, bar_resp) = ui.allocate_exact_size(
+        Vec2::new(ui.available_width(), 16.0),
+        Sense::click_and_drag(),
+    );
+    let painter = ui.painter();
+    let steps = 24;
+    let step_w = bar_rect.width() / steps as f32;
+    for i in 0..steps {
+        let hue = i as f32 / steps as f32;
+        let c: Color32 = egui::ecolor::Hsva::new(hue, 0.9, 0.95, 1.0).into();
+        let r = Rect::from_min_size(
+            pos2(bar_rect.left() + i as f32 * step_w, bar_rect.top()),
+            Vec2::new(step_w + 0.5, bar_rect.height()),
+        );
+        painter.rect_filled(r, 0.0, c);
+    }
+    painter.rect_stroke(
+        bar_rect,
+        0.0,
+        Stroke::new(1.0, p.stroke),
+        egui::StrokeKind::Inside,
+    );
+    if (bar_resp.clicked() || bar_resp.dragged())
+        && let Some(pos) = bar_resp.interact_pointer_pos()
+    {
+        let t = ((pos.x - bar_rect.left()) / bar_rect.width()).clamp(0.0, 1.0);
+        let c: Color32 = egui::ecolor::Hsva::new(t, 0.9, 0.95, 1.0).into();
+        app.fill = c;
+        app.set_selected_fill(Some(c));
+    }
+}
+
+pub fn auto_shape_props_panel(ui: &mut Ui, app: &mut FireCraft) {
+    let p = app.palette;
+    let Some(obj) = app.selected_object() else {
+        ui.label(
+            RichText::new("Select an Auto Shape (Rect, Polygon, Star) to edit live geometry.")
+                .small()
+                .color(p.text_dim),
+        );
+        return;
+    };
+    ui.label(
+        RichText::new(format!("Shape: {}", obj.name))
+            .strong()
+            .small(),
+    );
+    ui.add_space(4.0);
+    match obj.kind {
+        Shape::Rect { corner_radius, .. } => {
+            let mut r = corner_radius;
+            ui.horizontal(|ui| {
+                ui.label(RichText::new("Corner Radius:").small());
+                if ui
+                    .add(
+                        egui::DragValue::new(&mut r)
+                            .range(0.0..=120.0)
+                            .suffix(" px"),
+                    )
+                    .changed()
+                {
+                    app.set_selected_corner_radius(r);
+                }
+            });
+        }
+        Shape::Polygon {
+            sides, star_inner, ..
+        } => {
+            let mut s = sides;
+            let mut inner = star_inner;
+            let mut changed = false;
+            ui.horizontal(|ui| {
+                ui.label(RichText::new("Sides:").small());
+                if ui.add(egui::DragValue::new(&mut s).range(3..=36)).changed() {
+                    changed = true;
+                }
+            });
+            ui.horizontal(|ui| {
+                ui.label(RichText::new("Inner Ratio:").small());
+                if ui
+                    .add(egui::Slider::new(&mut inner, 0.1..=1.0).fixed_decimals(2))
+                    .changed()
+                {
+                    changed = true;
+                }
+            });
+            if changed {
+                app.set_selected_polygon_params(s, inner);
+            }
+        }
+        _ => {
+            let mut w = obj.width;
+            ui.horizontal(|ui| {
+                ui.label(RichText::new("Stroke Width:").small());
+                if ui
+                    .add(egui::DragValue::new(&mut w).range(0.0..=64.0).suffix(" px"))
+                    .changed()
+                {
+                    app.set_selected_width(w);
+                }
+            });
+        }
+    }
+}
+
+pub fn common_library_panel(ui: &mut Ui, app: &mut FireCraft) {
+    let p = app.palette;
+    ui.label(
+        RichText::new("Click a UI component to insert onto canvas:")
+            .small()
+            .color(p.text_dim),
+    );
+    ui.add_space(4.0);
+    let items = [
+        "Primary Button",
+        "Checkbox (Checked)",
+        "Radio Button",
+        "Text Input Field",
+        "Dropdown ComboBox",
+        "Toggle Switch",
+        "Modal Card",
+        "Progress Bar",
+        "Navigation Bar",
+        "Badge Pill",
+    ];
+    egui::ScrollArea::vertical().show(ui, |ui| {
+        for item in items {
+            if ui.selectable_label(false, format!("+ {item}")).clicked() {
+                app.insert_common_library_item(item);
+            }
+        }
+    });
+}
+
+pub fn url_panel(ui: &mut Ui, app: &mut FireCraft) {
+    let p = app.palette;
+    ui.horizontal(|ui| {
+        ui.label(RichText::new("URL:").small().color(p.text_dim));
+        ui.add(
+            egui::TextEdit::singleline(&mut app.new_url_input)
+                .desired_width(130.0)
+                .hint_text("https://..."),
+        );
+        if ui
+            .button("+")
+            .on_hover_text("Assign URL to selection")
+            .clicked()
+        {
+            let url = app.new_url_input.trim().to_string();
+            if !url.is_empty() {
+                app.set_selected_slice_meta(url.clone(), "Linked Slice".to_string());
+                app.status = format!("Assigned URL: {url}");
+            }
+        }
+    });
+    ui.add_space(4.0);
+    let presets = [
+        "https://github.com/aliasfoxkde/FireCraft",
+        "index.html",
+        "about.html",
+        "mailto:hello@firecraft.app",
+    ];
+    for preset in presets {
+        if ui
+            .selectable_label(app.new_url_input == preset, preset)
+            .clicked()
+        {
+            app.new_url_input = preset.to_string();
+            app.set_selected_slice_meta(preset.to_string(), "Linked Slice".to_string());
+        }
+    }
+}
+
+pub fn behaviors_panel(ui: &mut Ui, app: &mut FireCraft) {
+    let p = app.palette;
+    ui.horizontal(|ui| {
+        ui.menu_button("+ Add", |ui| {
+            for (ev, act, info) in [
+                ("onMouseOver", "Simple Rollover", "State 2"),
+                ("onMouseOver", "Swap Image", "image.png"),
+                ("onClick", "Pop-up Menu", "Nav Menu"),
+                ("onClick", "Set Nav Bar Image", "Down"),
+                ("onMouseOver", "Set Text of Status Bar", "Ready"),
+            ] {
+                if ui.button(act).clicked() {
+                    app.behaviors.push(crate::app::WebBehavior {
+                        event: ev.to_string(),
+                        action: act.to_string(),
+                        info: info.to_string(),
+                    });
+                    ui.close();
+                }
+            }
+        });
+        if ui.button("- Remove").clicked() && !app.behaviors.is_empty() {
+            app.behaviors.pop();
+        }
+    });
+    ui.separator();
+    if app.behaviors.is_empty() {
+        ui.label(
+            RichText::new("No web behaviors attached.")
+                .small()
+                .color(p.text_dim),
+        );
+    } else {
+        for b in &app.behaviors {
+            ui.horizontal(|ui| {
+                ui.label(RichText::new(&b.event).small().color(p.accent));
+                ui.label(RichText::new(&b.action).small());
+                ui.label(RichText::new(&b.info).small().color(p.text_dim));
+            });
+        }
+    }
+}
+
+pub fn panel_group_widget(ui: &mut Ui, app: &mut FireCraft, group_idx: usize, is_floating: bool) {
+    let Some(group) = app.panel_groups.get(group_idx).cloned() else {
+        return;
+    };
+    if group.tabs.is_empty() {
+        return;
+    }
+    let p = app.palette;
+    let active_idx = group.active_tab.min(group.tabs.len() - 1);
+    let active_panel = group.tabs[active_idx];
+    let other_groups: Vec<(u64, String)> = app
+        .panel_groups
+        .iter()
+        .filter(|g| g.id != group.id && !g.tabs.is_empty())
+        .map(|g| {
+            let title = g
+                .tabs
+                .get(g.active_tab.min(g.tabs.len() - 1))
+                .map(|t| t.title().to_string())
+                .unwrap_or_else(|| "Panel".to_string());
+            (g.id, title)
+        })
+        .collect();
+
+    egui::Frame::NONE
+        .fill(p.panel)
+        .stroke(Stroke::new(1.0, p.stroke))
+        .show(ui, |ui| {
+            ui.spacing_mut().item_spacing = Vec2::ZERO;
+            let header_h = 22.0;
+            let (header_rect, header_resp) =
+                ui.allocate_exact_size(Vec2::new(ui.available_width(), header_h), Sense::click());
+            app.panel_title_rects.push((group.id, header_rect));
+
+            ui.painter().rect_filled(header_rect, 0.0, p.panel_alt);
+            ui.painter().line_segment(
+                [header_rect.left_bottom(), header_rect.right_bottom()],
+                Stroke::new(1.0, p.stroke),
+            );
+
+            if header_resp.double_clicked()
+                && let Some(g) = app.panel_groups.get_mut(group_idx)
+            {
+                g.collapsed = !g.collapsed;
+            }
+
+            // Left collapse chevron
+            let chev_r = Rect::from_min_size(header_rect.min, Vec2::new(18.0, header_h));
+            let chev_resp = ui.interact(
+                chev_r,
+                ui.make_persistent_id(("pg_chev", group.id)),
+                Sense::click(),
+            );
+            ui.painter().text(
+                chev_r.center(),
+                Align2::CENTER_CENTER,
+                if group.collapsed { "▸" } else { "▾" },
+                FontId::proportional(11.0),
+                p.text_dim,
+            );
+            if chev_resp.clicked()
+                && let Some(g) = app.panel_groups.get_mut(group_idx)
+            {
+                g.collapsed = !g.collapsed;
+            }
+
+            // Right-side header controls
+            let ctrl_w = 56.0;
+            let close_r = Rect::from_min_size(
+                pos2(header_rect.right() - 18.0, header_rect.top()),
+                Vec2::new(18.0, header_h),
+            );
+            let menu_r = Rect::from_min_size(
+                pos2(header_rect.right() - 36.0, header_rect.top()),
+                Vec2::new(18.0, header_h),
+            );
+            let dock_r = Rect::from_min_size(
+                pos2(header_rect.right() - 54.0, header_rect.top()),
+                Vec2::new(18.0, header_h),
+            );
+
+            ui.painter().text(
+                close_r.center(),
+                Align2::CENTER_CENTER,
+                "×",
+                FontId::proportional(12.0),
+                p.text_dim,
+            );
+            if ui
+                .interact(
+                    close_r,
+                    ui.make_persistent_id(("pg_close", group.id)),
+                    Sense::click(),
+                )
+                .on_hover_text("Close active tab")
+                .clicked()
+            {
+                app.close_panel(active_panel);
+            }
+
+            ui.painter().text(
+                dock_r.center(),
+                Align2::CENTER_CENTER,
+                if is_floating { "📌" } else { "⧉" },
+                FontId::proportional(10.0),
+                p.text_dim,
+            );
+            if ui
+                .interact(
+                    dock_r,
+                    ui.make_persistent_id(("pg_dock", group.id)),
+                    Sense::click(),
+                )
+                .on_hover_text(if is_floating {
+                    "Pin to Right Dock"
+                } else {
+                    "Undock to Floating Window"
+                })
+                .clicked()
+            {
+                if is_floating {
+                    app.move_group_to_zone(group.id, DockZone::RightOuter, None);
+                } else {
+                    app.ungroup_panel_to_floating(
+                        active_panel,
+                        header_rect.left_top() - Vec2::new(260.0, 0.0),
+                    );
+                }
+            }
+
+            // Panel Options menu button
+            let mut menu_ui = ui.new_child(egui::UiBuilder::new().max_rect(menu_r));
+            menu_ui.menu_button(RichText::new("≡").small().color(p.text_dim), |ui| {
+                if ui
+                    .button(if group.collapsed {
+                        "Expand Panel"
+                    } else {
+                        "Collapse Panel"
+                    })
+                    .clicked()
+                {
+                    if let Some(g) = app.panel_groups.get_mut(group_idx) {
+                        g.collapsed = !g.collapsed;
+                    }
+                    ui.close();
+                }
+                if ui.button("Undock to Floating Window").clicked() {
+                    app.ungroup_panel_to_floating(
+                        active_panel,
+                        header_rect.left_top() - Vec2::new(260.0, 0.0),
+                    );
+                    ui.close();
+                }
+                if ui.button("Pin to Primary Right Dock").clicked() {
+                    app.move_group_to_zone(group.id, DockZone::RightOuter, None);
+                    ui.close();
+                }
+                if ui.button("Pin to Inner-Right Dock (2-Col)").clicked() {
+                    app.move_group_to_zone(group.id, DockZone::RightInner, None);
+                    ui.close();
+                }
+                if ui.button("Pin to Left Dock").clicked() {
+                    app.move_group_to_zone(group.id, DockZone::LeftInner, None);
+                    ui.close();
+                }
+                if group.tabs.len() > 1 && ui.button("Ungroup Active Tab Below").clicked() {
+                    app.ungroup_panel_below(active_panel);
+                    ui.close();
+                }
+                ui.menu_button("Group With...", |ui| {
+                    for (tid, ttitle) in &other_groups {
+                        if ui.button(ttitle).clicked() {
+                            app.group_panel_into(active_panel, *tid);
+                            ui.close();
+                        }
+                    }
+                });
+                ui.separator();
+                if ui.button("Collapse All Panels").clicked() {
+                    app.collapse_all_panels(true);
+                    ui.close();
+                }
+                if ui.button("Expand All Panels").clicked() {
+                    app.collapse_all_panels(false);
+                    ui.close();
+                }
+            });
+
+            // Draggable Tabs
+            let tabs_area_w = (header_rect.width() - 18.0 - ctrl_w).max(40.0);
+            let tab_w = (tabs_area_w / group.tabs.len() as f32).clamp(38.0, 130.0);
+            for (ti, &tab_id) in group.tabs.iter().enumerate() {
+                let tab_r = Rect::from_min_size(
+                    pos2(chev_r.right() + ti as f32 * tab_w, header_rect.top() + 2.0),
+                    Vec2::new(tab_w - 1.0, header_h - 2.0),
+                );
+                let is_active = ti == active_idx;
+                if is_active {
+                    ui.painter().rect_filled(tab_r, 0.0, p.panel);
+                }
+                let label = if group.tabs.len() > 1 {
+                    tab_id.short_tab()
+                } else {
+                    tab_id.title()
+                };
+                ui.painter().text(
+                    tab_r.center(),
+                    Align2::CENTER_CENTER,
+                    label,
+                    FontId::proportional(10.5),
+                    if is_active { p.text } else { p.text_dim },
+                );
+                let tab_resp = ui.interact(
+                    tab_r,
+                    ui.make_persistent_id(("pg_tab", group.id, ti)),
+                    Sense::click_and_drag(),
+                );
+                if tab_resp.clicked()
+                    && let Some(g) = app.panel_groups.get_mut(group_idx)
+                {
+                    g.active_tab = ti;
+                    g.collapsed = false;
+                }
+                if tab_resp.drag_started() {
+                    app.dragging_panel = Some(tab_id);
+                }
+            }
+
+            if !group.collapsed {
+                let body_h = group.body_height;
+                ui.allocate_ui(Vec2::new(ui.available_width(), body_h), |ui| {
+                    egui::Frame::NONE
+                        .inner_margin(egui::Margin::symmetric(6, 5))
+                        .show(ui, |ui| {
+                            egui::ScrollArea::vertical()
+                                .id_salt(("pg_scroll", group.id, active_panel))
+                                .max_height(body_h - 10.0)
+                                .show(ui, |ui| {
+                                    render_panel_by_id(ui, app, active_panel);
+                                });
+                        });
+                });
+
+                // Bottom resize splitter bar
+                let (split_r, split_resp) =
+                    ui.allocate_exact_size(Vec2::new(ui.available_width(), 5.0), Sense::drag());
+                ui.painter()
+                    .rect_filled(split_r, 0.0, p.stroke.gamma_multiply(0.55));
+                if split_resp.hovered() || split_resp.dragged() {
+                    ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeVertical);
+                }
+                if split_resp.dragged()
+                    && let Some(g) = app.panel_groups.get_mut(group_idx)
+                {
+                    g.body_height = (g.body_height + split_resp.drag_delta().y).clamp(72.0, 520.0);
+                }
+            }
+        });
 }
