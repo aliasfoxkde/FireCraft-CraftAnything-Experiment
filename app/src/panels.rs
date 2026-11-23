@@ -18,7 +18,7 @@ use eframe::egui::{
     Vec2, pos2,
 };
 
-/// A titled, tabbed panel container matching the Fireworks CS6 dock look.
+/// A titled, tabbed panel container matching the Fireworks CS6 dock look (`screenshots/Fireworks_Layout_Design.jpg`).
 pub fn panel(
     ui: &mut Ui,
     title: &str,
@@ -37,25 +37,71 @@ pub fn panel(
                 ui.allocate_exact_size(Vec2::new(ui.available_width(), 20.0), Sense::hover());
             let painter = ui.painter();
             painter.rect_filled(bar, 0.0, palette.panel_alt);
+            // Bottom border of the tab strip
+            painter.line_segment(
+                [
+                    pos2(bar.left(), bar.bottom()),
+                    pos2(bar.right(), bar.bottom()),
+                ],
+                Stroke::new(1.0, palette.stroke),
+            );
+            // Left CS6 gripper dots
+            for dy in [-3.0f32, 0.0, 3.0] {
+                painter.rect_filled(
+                    Rect::from_center_size(
+                        pos2(bar.left() + 3.5, bar.center().y + dy),
+                        Vec2::splat(1.4),
+                    ),
+                    0.0,
+                    palette.text_dim,
+                );
+            }
+
             if tabs.is_empty() {
                 painter.text(
-                    pos2(bar.left() + 6.0, bar.center().y),
+                    pos2(bar.left() + 9.0, bar.center().y),
                     Align2::LEFT_CENTER,
                     title,
                     FontId::proportional(11.0),
                     palette.text,
                 );
             } else {
-                let mut x = bar.left() + 2.0;
+                let mut x = bar.left() + 8.0;
                 for (i, t) in tabs.iter().enumerate() {
-                    let w = (10.0 + t.len() as f32 * 5.8).min(98.0);
-                    let r = Rect::from_min_size(pos2(x, bar.top() + 1.0), Vec2::new(w, 18.0));
-                    if i == *tab_index {
+                    let w = (10.0 + t.len() as f32 * 5.2).min(88.0);
+                    let r = Rect::from_min_size(pos2(x, bar.top() + 1.0), Vec2::new(w, 19.0));
+                    let response = ui.interact(
+                        r,
+                        ui.make_persistent_id(("panel-tab", title, i)),
+                        Sense::click(),
+                    );
+                    let is_active = i == *tab_index;
+                    if is_active {
                         painter.rect_filled(r, 0.0, palette.panel);
+                        // Top + left + right border so active tab merges into panel body
+                        painter.line_segment(
+                            [r.left_top(), r.right_top()],
+                            Stroke::new(1.5, palette.accent),
+                        );
+                        painter.line_segment(
+                            [r.left_top(), r.left_bottom()],
+                            Stroke::new(1.0, palette.stroke),
+                        );
+                        painter.line_segment(
+                            [r.right_top(), r.right_bottom()],
+                            Stroke::new(1.0, palette.stroke),
+                        );
+                    } else {
+                        let tab_bg = if response.hovered() {
+                            palette.well
+                        } else {
+                            palette.panel_alt
+                        };
+                        painter.rect_filled(r.shrink2(Vec2::new(0.0, 0.5)), 0.0, tab_bg);
                         painter.rect_stroke(
                             r,
                             0.0,
-                            Stroke::new(1.0, palette.selection),
+                            Stroke::new(1.0, palette.stroke),
                             egui::StrokeKind::Middle,
                         );
                     }
@@ -64,16 +110,11 @@ pub fn panel(
                         Align2::CENTER_CENTER,
                         *t,
                         FontId::proportional(10.5),
-                        if i == *tab_index {
+                        if is_active {
                             palette.text
                         } else {
                             palette.text_dim
                         },
-                    );
-                    let response = ui.interact(
-                        r,
-                        ui.make_persistent_id(("panel-tab", title, i)),
-                        Sense::click(),
                     );
                     if response.clicked() {
                         *tab_index = i;
@@ -81,6 +122,45 @@ pub fn panel(
                     x += w + 1.0;
                 }
             }
+
+            // Right-end CS6 panel options menu glyph (≡▾)
+            let opt_r = Rect::from_min_size(
+                pos2(bar.right() - 18.0, bar.top() + 2.0),
+                Vec2::new(16.0, 16.0),
+            );
+            let opt_resp = ui.interact(
+                opt_r,
+                ui.make_persistent_id(("panel-opt-btn", title)),
+                Sense::click(),
+            );
+            if opt_resp.hovered() {
+                painter.rect_filled(opt_r, 0.0, palette.well);
+            }
+            let gx = opt_r.left() + 3.0;
+            for row in 0..3 {
+                let y = opt_r.top() + 5.0 + row as f32 * 2.5;
+                painter.line_segment(
+                    [pos2(gx, y), pos2(gx + 6.5, y)],
+                    Stroke::new(1.0, palette.text_dim),
+                );
+            }
+            painter.add(egui::Shape::convex_polygon(
+                vec![
+                    pos2(opt_r.right() - 5.5, opt_r.top() + 7.0),
+                    pos2(opt_r.right() - 2.0, opt_r.top() + 7.0),
+                    pos2(opt_r.right() - 3.75, opt_r.top() + 10.0),
+                ],
+                palette.text_dim,
+                Stroke::NONE,
+            ));
+            if opt_resp
+                .on_hover_text("Panel Options — Click to cycle panel tab")
+                .clicked()
+                && !tabs.is_empty()
+            {
+                *tab_index = (*tab_index + 1) % tabs.len();
+            }
+
             ui.add_space(3.0);
             if let Some(h) = body_height {
                 ui.allocate_ui_with_layout(
@@ -452,113 +532,691 @@ pub fn history_panel(ui: &mut Ui, app: &mut FireCraft) {
     });
 }
 
-/// Align panel (CS6 top-right tab 2): Align edges/centers, Distribute, Match Size.
+fn align_icon_btn(
+    ui: &mut Ui,
+    palette: crate::theme::Palette,
+    icon: icons::AlignIcon,
+    enabled: bool,
+    active: bool,
+    tooltip: &str,
+) -> egui::Response {
+    let (rect, response) = ui.allocate_exact_size(Vec2::new(22.0, 20.0), Sense::click());
+    let painter = ui.painter();
+    let bg = if active {
+        palette.accent.gamma_multiply(0.32)
+    } else if response.hovered() && enabled {
+        palette.well
+    } else {
+        palette.panel_alt
+    };
+    painter.rect_filled(rect, 0.0, bg);
+    painter.rect_stroke(
+        rect,
+        0.0,
+        Stroke::new(
+            1.0,
+            if active {
+                palette.selection
+            } else if response.hovered() && enabled {
+                palette.accent
+            } else {
+                palette.stroke
+            },
+        ),
+        egui::StrokeKind::Middle,
+    );
+    let fg = if enabled {
+        palette.text
+    } else {
+        palette.text_dim.gamma_multiply(0.6)
+    };
+    icons::draw_align(painter, rect, icon, fg);
+    response.on_hover_text(tooltip)
+}
+
+fn path_icon_btn(
+    ui: &mut Ui,
+    palette: crate::theme::Palette,
+    icon: icons::PathIcon,
+    enabled: bool,
+    tooltip: &str,
+) -> egui::Response {
+    let (rect, response) = ui.allocate_exact_size(Vec2::new(22.0, 18.0), Sense::click());
+    let painter = ui.painter();
+    let bg = if response.hovered() && enabled {
+        palette.well
+    } else {
+        palette.panel_alt
+    };
+    painter.rect_filled(rect, 0.0, bg);
+    painter.rect_stroke(
+        rect,
+        0.0,
+        Stroke::new(
+            1.0,
+            if response.hovered() && enabled {
+                palette.accent
+            } else {
+                palette.stroke
+            },
+        ),
+        egui::StrokeKind::Middle,
+    );
+    let fg = if enabled {
+        palette.text
+    } else {
+        palette.text_dim.gamma_multiply(0.6)
+    };
+    icons::draw_path(painter, rect, icon, fg);
+    response.on_hover_text(tooltip)
+}
+
+/// Align panel (CS6 top-right tab 2): exact Fireworks CS6 icon layout (`screenshots/Fireworks_Layout_Design.jpg`).
 pub fn align_panel(ui: &mut Ui, app: &mut FireCraft) {
     let p = app.palette;
-    let has_sel = app.selected.is_some();
+    let has_sel = app.selected.is_some() || !app.selected_set.is_empty();
+    ui.spacing_mut().item_spacing = Vec2::new(3.0, 2.0);
+
+    // Top row: Relative To Object / Relative To Canvas right-aligned toggle with CS6 icon
     ui.horizontal(|ui| {
-        ui.label(RichText::new("Align:").small().color(p.text_dim));
-        ui.checkbox(&mut app.align_to_canvas, "To Canvas");
-    });
-    ui.horizontal_wrapped(|ui| {
-        for (mode, label) in [
-            ("left", "◧ Left"),
-            ("center_x", "⫼ Center H"),
-            ("right", "◨ Right"),
-            ("top", "⬒ Top"),
-            ("center_y", "⫾ Center V"),
-            ("bottom", "⬓ Bottom"),
-        ] {
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            let rel_icon = if app.align_to_canvas {
+                icons::AlignIcon::RelativeToCanvas
+            } else {
+                icons::AlignIcon::RelativeToObject
+            };
+            let tip = if app.align_to_canvas {
+                "Relative To Canvas (click to switch to Relative To Object)"
+            } else {
+                "Relative To Object (click to switch to Relative To Canvas)"
+            };
+            if align_icon_btn(ui, p, rel_icon, true, app.align_to_canvas, tip).clicked() {
+                app.align_to_canvas = !app.align_to_canvas;
+                app.status = if app.align_to_canvas {
+                    "Align mode: Relative To Canvas".to_string()
+                } else {
+                    "Align mode: Relative To Object".to_string()
+                };
+            }
+            let rel_label = if app.align_to_canvas {
+                "Relative To Canvas"
+            } else {
+                "Relative To Object"
+            };
             if ui
-                .add_enabled(has_sel, egui::Button::new(label).small())
+                .add(
+                    egui::Label::new(RichText::new(rel_label).small().color(p.text))
+                        .sense(Sense::click()),
+                )
                 .clicked()
             {
+                app.align_to_canvas = !app.align_to_canvas;
+            }
+        });
+    });
+
+    // Align row: [Left, Center H, Right]   [Top, Center V, Bottom]
+    ui.label(RichText::new("Align:").small().color(p.text_dim));
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = Vec2::new(3.0, 2.0);
+        for (icon, mode, tip) in [
+            (icons::AlignIcon::AlignLeft, "left", "Align Left Edge"),
+            (
+                icons::AlignIcon::AlignCenterH,
+                "center_x",
+                "Align Horizontal Center",
+            ),
+            (icons::AlignIcon::AlignRight, "right", "Align Right Edge"),
+        ] {
+            if align_icon_btn(ui, p, icon, has_sel, false, tip).clicked() && has_sel {
+                app.align_selected_to_canvas(mode);
+            }
+        }
+        ui.add_space(10.0);
+        for (icon, mode, tip) in [
+            (icons::AlignIcon::AlignTop, "top", "Align Top Edge"),
+            (
+                icons::AlignIcon::AlignCenterV,
+                "center_y",
+                "Align Vertical Center",
+            ),
+            (icons::AlignIcon::AlignBottom, "bottom", "Align Bottom Edge"),
+        ] {
+            if align_icon_btn(ui, p, icon, has_sel, false, tip).clicked() && has_sel {
                 app.align_selected_to_canvas(mode);
             }
         }
     });
-    ui.add_space(3.0);
-    ui.label(
-        RichText::new("Match Size & Space:")
-            .small()
-            .color(p.text_dim),
-    );
-    ui.horizontal_wrapped(|ui| {
-        if ui
-            .add_enabled(has_sel, egui::Button::new("Full Canvas W").small())
-            .clicked()
-        {
-            app.match_canvas_dimension(true, false);
+
+    // Distribute row: [Top, Center V, Bottom]   [Left, Center H, Right]
+    ui.label(RichText::new("Distribute:").small().color(p.text_dim));
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = Vec2::new(3.0, 2.0);
+        for (icon, mode, tip) in [
+            (
+                icons::AlignIcon::DistributeTop,
+                "top",
+                "Distribute Top Edges",
+            ),
+            (
+                icons::AlignIcon::DistributeCenterV,
+                "center_v",
+                "Distribute Vertical Centers",
+            ),
+            (
+                icons::AlignIcon::DistributeBottom,
+                "bottom",
+                "Distribute Bottom Edges",
+            ),
+        ] {
+            if align_icon_btn(ui, p, icon, has_sel, false, tip).clicked() && has_sel {
+                app.distribute_selected(mode);
+            }
         }
-        if ui
-            .add_enabled(has_sel, egui::Button::new("Full Canvas H").small())
-            .clicked()
-        {
-            app.match_canvas_dimension(false, true);
+        ui.add_space(10.0);
+        for (icon, mode, tip) in [
+            (
+                icons::AlignIcon::DistributeLeft,
+                "left",
+                "Distribute Left Edges",
+            ),
+            (
+                icons::AlignIcon::DistributeCenterH,
+                "center_h",
+                "Distribute Horizontal Centers",
+            ),
+            (
+                icons::AlignIcon::DistributeRight,
+                "right",
+                "Distribute Right Edges",
+            ),
+        ] {
+            if align_icon_btn(ui, p, icon, has_sel, false, tip).clicked() && has_sel {
+                app.distribute_selected(mode);
+            }
         }
-        if ui
-            .add_enabled(has_sel, egui::Button::new("Full Canvas Both").small())
-            .clicked()
-        {
-            app.match_canvas_dimension(true, true);
-        }
+    });
+
+    // Match Size & Space 2-column row
+    ui.horizontal(|ui| {
+        ui.vertical(|ui| {
+            ui.label(RichText::new("Match Size:").small().color(p.text_dim));
+            ui.horizontal(|ui| {
+                ui.spacing_mut().item_spacing = Vec2::new(3.0, 2.0);
+                if align_icon_btn(
+                    ui,
+                    p,
+                    icons::AlignIcon::MatchWidth,
+                    has_sel,
+                    false,
+                    "Match Width",
+                )
+                .clicked()
+                    && has_sel
+                {
+                    app.match_canvas_dimension(true, false);
+                }
+                if align_icon_btn(
+                    ui,
+                    p,
+                    icons::AlignIcon::MatchHeight,
+                    has_sel,
+                    false,
+                    "Match Height",
+                )
+                .clicked()
+                    && has_sel
+                {
+                    app.match_canvas_dimension(false, true);
+                }
+                if align_icon_btn(
+                    ui,
+                    p,
+                    icons::AlignIcon::MatchBoth,
+                    has_sel,
+                    false,
+                    "Match Width and Height",
+                )
+                .clicked()
+                    && has_sel
+                {
+                    app.match_canvas_dimension(true, true);
+                }
+            });
+        });
+
+        ui.add_space(8.0);
+
+        ui.vertical(|ui| {
+            ui.label(RichText::new("Space:").small().color(p.text_dim));
+            ui.horizontal(|ui| {
+                ui.spacing_mut().item_spacing = Vec2::new(3.0, 2.0);
+                if align_icon_btn(
+                    ui,
+                    p,
+                    icons::AlignIcon::SpaceVertical,
+                    has_sel,
+                    false,
+                    "Space Vertically",
+                )
+                .clicked()
+                    && has_sel
+                {
+                    app.space_selected(false);
+                }
+                if align_icon_btn(
+                    ui,
+                    p,
+                    icons::AlignIcon::SpaceHorizontal,
+                    has_sel,
+                    false,
+                    "Space Horizontally",
+                )
+                .clicked()
+                    && has_sel
+                {
+                    app.space_selected(true);
+                }
+                egui::ComboBox::from_id_salt("align_space_mode_combo")
+                    .width(64.0)
+                    .selected_text(&app.space_mode)
+                    .show_ui(ui, |ui| {
+                        for opt in ["Evenly", "4 px", "8 px", "16 px", "24 px", "32 px"] {
+                            if ui.selectable_label(app.space_mode == opt, opt).clicked() {
+                                app.space_mode = opt.to_string();
+                            }
+                        }
+                    });
+            });
+        });
     });
 }
 
-/// Path panel (CS6 top-right tab 3): functional Combine Paths, Alter Paths, Edit Points.
+/// Path panel (CS6 top-right tab 3): exact Fireworks CS6 4-group icon grid (`screenshots/Fireworks_Layout_Design.jpg`).
 pub fn paths_panel(ui: &mut Ui, app: &mut FireCraft) {
     let p = app.palette;
-    let has_sel = app.selected.is_some();
+    let has_sel = app.selected.is_some() || !app.selected_set.is_empty();
+    ui.spacing_mut().item_spacing = Vec2::new(3.0, 2.0);
+
+    // 1. Combine Paths (6 icons)
     ui.label(RichText::new("Combine Paths:").small().color(p.text_dim));
-    ui.horizontal_wrapped(|ui| {
-        for (op, label) in [
-            ("join", "Join"),
-            ("split", "Split"),
-            ("union", "Union"),
-            ("intersect", "Intersect"),
-            ("punch", "Punch"),
-            ("crop", "Crop"),
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = Vec2::new(3.0, 2.0);
+        for (icon, op, tip) in [
+            (icons::PathIcon::Join, "join", "Join Paths (Ctrl+J)"),
+            (
+                icons::PathIcon::Split,
+                "split",
+                "Split Paths (Ctrl+Shift+J)",
+            ),
+            (icons::PathIcon::Union, "union", "Union Paths"),
+            (icons::PathIcon::Intersect, "intersect", "Intersect Paths"),
+            (icons::PathIcon::Punch, "punch", "Punch Paths"),
+            (icons::PathIcon::Crop, "crop", "Crop Paths"),
         ] {
-            if ui
-                .add_enabled(has_sel, egui::Button::new(label).small())
-                .clicked()
-            {
+            if path_icon_btn(ui, p, icon, has_sel, tip).clicked() && has_sel {
                 app.combine_paths_op(op);
             }
         }
     });
-    ui.add_space(3.0);
+
+    // 2. Alter Paths (2 rows: 7 icons + 6 icons)
     ui.label(RichText::new("Alter Paths:").small().color(p.text_dim));
-    ui.horizontal_wrapped(|ui| {
-        if ui
-            .add_enabled(has_sel, egui::Button::new("Simplify").small())
-            .clicked()
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = Vec2::new(3.0, 2.0);
+        if path_icon_btn(ui, p, icons::PathIcon::Simplify, has_sel, "Simplify Path").clicked()
+            && has_sel
         {
             app.simplify_selected_path();
         }
-        if ui
-            .add_enabled(has_sel, egui::Button::new("Expand +4px").small())
-            .clicked()
+        if path_icon_btn(
+            ui,
+            p,
+            icons::PathIcon::ExpandStroke,
+            has_sel,
+            "Expand Stroke (+4 px)",
+        )
+        .clicked()
+            && has_sel
         {
             app.expand_selected_bounds(4.0);
         }
-        if ui
-            .add_enabled(has_sel, egui::Button::new("Inset -4px").small())
-            .clicked()
+        if path_icon_btn(
+            ui,
+            p,
+            icons::PathIcon::InsetExpand,
+            has_sel,
+            "Inset Path (-4 px)",
+        )
+        .clicked()
+            && has_sel
         {
             app.expand_selected_bounds(-4.0);
         }
-        if ui
-            .add_enabled(has_sel, egui::Button::new("Close/Open Contour").small())
-            .clicked()
+        if path_icon_btn(ui, p, icons::PathIcon::HardEdge, has_sel, "Hard Path Edge").clicked()
+            && has_sel
+        {
+            app.clear_live_effects();
+        }
+        if path_icon_btn(
+            ui,
+            p,
+            icons::PathIcon::AntiAlias,
+            has_sel,
+            "Anti-Alias Edge",
+        )
+        .clicked()
+            && has_sel
+        {
+            app.status = "Path edge mode set to Anti-Alias".to_string();
+        }
+        if path_icon_btn(
+            ui,
+            p,
+            icons::PathIcon::FeatherEdge,
+            has_sel,
+            "Feather Path Edge (Gaussian Blur)",
+        )
+        .clicked()
+            && has_sel
+        {
+            app.add_live_effect(LiveEffect::GaussianBlur {
+                radius: 3.0,
+                enabled: true,
+            });
+        }
+        if path_icon_btn(
+            ui,
+            p,
+            icons::PathIcon::StrokeToFill,
+            has_sel,
+            "Convert Stroke to Fill",
+        )
+        .clicked()
+            && has_sel
+        {
+            app.convert_stroke_to_fill();
+        }
+    });
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = Vec2::new(3.0, 2.0);
+        if path_icon_btn(
+            ui,
+            p,
+            icons::PathIcon::ReverseDirection,
+            has_sel,
+            "Reverse Path Direction",
+        )
+        .clicked()
+            && has_sel
+        {
+            app.reverse_selected_path();
+        }
+        if path_icon_btn(
+            ui,
+            p,
+            icons::PathIcon::ClosePath,
+            has_sel,
+            "Close Path Contour",
+        )
+        .clicked()
+            && has_sel
         {
             app.toggle_selected_path_closed();
         }
-        if ui
-            .add_enabled(has_sel, egui::Button::new("To Path").small())
-            .clicked()
+        if path_icon_btn(
+            ui,
+            p,
+            icons::PathIcon::OpenPath,
+            has_sel,
+            "Open Path Contour",
+        )
+        .clicked()
+            && has_sel
+        {
+            app.toggle_selected_path_closed();
+        }
+        if path_icon_btn(
+            ui,
+            p,
+            icons::PathIcon::PathToMarquee,
+            has_sel,
+            "Convert Path to Marquee",
+        )
+        .clicked()
+            && has_sel
+        {
+            app.tool = Tool::Marquee;
+            app.status = "Converted path bounds to Marquee selection".to_string();
+        }
+        if path_icon_btn(
+            ui,
+            p,
+            icons::PathIcon::SnapToPixel,
+            has_sel,
+            "Snap to Pixel (Ctrl+K)",
+        )
+        .clicked()
+            && has_sel
+        {
+            app.snap_selected_to_pixel();
+        }
+        if path_icon_btn(
+            ui,
+            p,
+            icons::PathIcon::FlattenPath,
+            has_sel,
+            "Flatten Path to Editable Vector Contour",
+        )
+        .clicked()
+            && has_sel
         {
             app.convert_selected_to_path();
+        }
+    });
+
+    // 3. Edit Points (2 rows: 7 icons + 7 icons)
+    ui.label(RichText::new("Edit Points:").small().color(p.text_dim));
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = Vec2::new(3.0, 2.0);
+        if path_icon_btn(ui, p, icons::PathIcon::AddPoints, has_sel, "Add Points").clicked()
+            && has_sel
+        {
+            app.add_points_to_selected_path();
+        }
+        if path_icon_btn(
+            ui,
+            p,
+            icons::PathIcon::DeletePoints,
+            has_sel,
+            "Delete Points",
+        )
+        .clicked()
+            && has_sel
+        {
+            app.delete_point_from_selected_path();
+        }
+        if path_icon_btn(
+            ui,
+            p,
+            icons::PathIcon::CornerPoint,
+            has_sel,
+            "Convert to Corner Point",
+        )
+        .clicked()
+            && has_sel
+        {
+            app.round_selected_path_points(-4.0);
+        }
+        if path_icon_btn(
+            ui,
+            p,
+            icons::PathIcon::SmoothPoint,
+            has_sel,
+            "Convert to Smooth Point",
+        )
+        .clicked()
+            && has_sel
+        {
+            app.round_selected_path_points(4.0);
+        }
+        if path_icon_btn(
+            ui,
+            p,
+            icons::PathIcon::RoundPoints,
+            has_sel,
+            "Round Points (+6 px)",
+        )
+        .clicked()
+            && has_sel
+        {
+            app.round_selected_path_points(6.0);
+        }
+        if path_icon_btn(
+            ui,
+            p,
+            icons::PathIcon::FilletPoints,
+            has_sel,
+            "Fillet Points (+10 px)",
+        )
+        .clicked()
+            && has_sel
+        {
+            app.round_selected_path_points(10.0);
+        }
+        if path_icon_btn(
+            ui,
+            p,
+            icons::PathIcon::ChamferPoints,
+            has_sel,
+            "Chamfer Points",
+        )
+        .clicked()
+            && has_sel
+        {
+            app.convert_selected_to_path();
+        }
+    });
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = Vec2::new(3.0, 2.0);
+        if path_icon_btn(
+            ui,
+            p,
+            icons::PathIcon::BreakPath,
+            has_sel,
+            "Break Path at Points",
+        )
+        .clicked()
+            && has_sel
+        {
+            app.split_selected_path();
+        }
+        if path_icon_btn(ui, p, icons::PathIcon::JoinPoints, has_sel, "Join Points").clicked()
+            && has_sel
+        {
+            app.toggle_selected_path_closed();
+        }
+        if path_icon_btn(
+            ui,
+            p,
+            icons::PathIcon::AlignPointsH,
+            has_sel,
+            "Align Points Horizontally",
+        )
+        .clicked()
+            && has_sel
+        {
+            app.align_selected_path_points(true);
+        }
+        if path_icon_btn(
+            ui,
+            p,
+            icons::PathIcon::AlignPointsV,
+            has_sel,
+            "Align Points Vertically",
+        )
+        .clicked()
+            && has_sel
+        {
+            app.align_selected_path_points(false);
+        }
+        if path_icon_btn(
+            ui,
+            p,
+            icons::PathIcon::KnifeSplit,
+            has_sel,
+            "Knife / Split Contour",
+        )
+        .clicked()
+            && has_sel
+        {
+            app.split_selected_path();
+        }
+        if path_icon_btn(ui, p, icons::PathIcon::ExtendPath, has_sel, "Extend Path").clicked()
+            && has_sel
+        {
+            app.add_points_to_selected_path();
+        }
+        if path_icon_btn(ui, p, icons::PathIcon::SharpApex, has_sel, "Sharpen Corner").clicked()
+            && has_sel
+        {
+            app.simplify_selected_path();
+        }
+    });
+
+    // 4. Select Points (5 icons + CS6 point-chain visual indicator)
+    ui.label(RichText::new("Select Points:").small().color(p.text_dim));
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = Vec2::new(3.0, 2.0);
+        for (icon, tip) in [
+            (
+                icons::PathIcon::InversePoints,
+                "Inverse Point Selection (Subselect Tool)",
+            ),
+            (
+                icons::PathIcon::SelectAllPoints,
+                "Select All Points on Path",
+            ),
+            (icons::PathIcon::FirstPoint, "Select First Point on Contour"),
+            (
+                icons::PathIcon::PrevPoint,
+                "Select Previous Point on Contour",
+            ),
+            (icons::PathIcon::NextPoint, "Select Next Point on Contour"),
+        ] {
+            if path_icon_btn(ui, p, icon, has_sel, tip).clicked() && has_sel {
+                app.convert_selected_to_path();
+                app.tool = Tool::Subselect;
+                app.status = format!("{tip} active");
+            }
+        }
+        // CS6 node-chain schematic graphic on the right side of Select Points
+        let (diag_r, _) = ui.allocate_exact_size(Vec2::new(42.0, 20.0), Sense::hover());
+        let painter = ui.painter();
+        let y_top = diag_r.top() + 5.0;
+        let y_bot = diag_r.bottom() - 5.0;
+        painter.line_segment(
+            [
+                pos2(diag_r.left() + 4.0, y_top),
+                pos2(diag_r.right() - 4.0, y_top),
+            ],
+            Stroke::new(1.0, p.text_dim),
+        );
+        painter.rect_stroke(
+            Rect::from_min_max(
+                pos2(diag_r.left() + 8.0, y_top),
+                pos2(diag_r.right() - 8.0, y_bot),
+            ),
+            0.0,
+            Stroke::new(1.0, p.text_dim),
+            egui::StrokeKind::Middle,
+        );
+        for nx in [diag_r.left() + 4.0, diag_r.center().x, diag_r.right() - 4.0] {
+            painter.rect_filled(
+                Rect::from_center_size(pos2(nx, y_top), Vec2::splat(3.0)),
+                0.0,
+                p.text,
+            );
         }
     });
 }
@@ -608,72 +1266,149 @@ pub fn swatches_panel(ui: &mut Ui, app: &mut FireCraft) {
     }
 }
 
-/// The Color Palette / Color Mixer panel: interactive SV square, hue bar, HLS/HSV/CMYK/RGB sliders.
+/// The Color Palette / Color Mixer panel (`screenshots/Fireworks_Layout_Design.jpg`):
+/// Selector | Mixers | Blender tabs, Stroke/Fill icon+hex rows, HLS/HSV/CMYK/RGB field + sliders.
 pub fn color_panel(ui: &mut Ui, app: &mut FireCraft) {
     let p = app.palette;
+    ui.spacing_mut().item_spacing = Vec2::new(3.0, 2.0);
 
+    // Top CS6 segmented sub-tabs: Selector | Mixers | Blender
     ui.horizontal(|ui| {
-        ui.vertical(|ui| {
-            let (rect, resp) = ui.allocate_exact_size(Vec2::splat(18.0), Sense::click());
-            ui.painter().rect_filled(rect, 2.0, app.stroke);
-            ui.painter().rect_stroke(
-                rect,
-                2.0,
-                Stroke::new(1.0, p.stroke),
-                egui::StrokeKind::Middle,
-            );
-            if resp.clicked() {
+        ui.spacing_mut().item_spacing = Vec2::new(1.0, 1.0);
+        for (i, label) in ["Selector", "Mixers", "Blender"].iter().enumerate() {
+            if ui
+                .selectable_label(app.color_subtab == i, RichText::new(*label).small())
+                .clicked()
+            {
+                app.color_subtab = i;
+            }
+        }
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            if ui
+                .small_button("⇄")
+                .on_hover_text("Swap Fill & Stroke Colors (X)")
+                .clicked()
+            {
                 std::mem::swap(&mut app.fill, &mut app.stroke);
             }
-            ui.label(RichText::new("Stroke").small().color(p.text_dim));
-        });
-        ui.vertical(|ui| {
-            let (rect, _) = ui.allocate_exact_size(Vec2::splat(18.0), Sense::click());
-            ui.painter().rect_filled(rect, 2.0, app.fill);
-            ui.painter().rect_stroke(
-                rect,
-                2.0,
-                Stroke::new(1.0, p.accent),
-                egui::StrokeKind::Middle,
-            );
-            ui.label(RichText::new("Fill").small().color(p.text_dim));
-        });
-        ui.vertical(|ui| {
-            let mut hex = colors::hex_of(app.fill);
             if ui
-                .add(
-                    TextEdit::singleline(&mut hex)
-                        .desired_width(68.0)
-                        .text_color(p.text),
-                )
-                .changed()
-                && let Some(c) = colors::from_hex(&hex)
+                .small_button("⊘")
+                .on_hover_text("Set No Fill on Selection")
+                .clicked()
             {
-                app.fill = c;
-                app.set_selected_fill(Some(c));
-            }
-            let mut hex2 = colors::hex_of(app.stroke);
-            if ui
-                .add(
-                    TextEdit::singleline(&mut hex2)
-                        .desired_width(68.0)
-                        .text_color(p.text),
-                )
-                .changed()
-                && let Some(c) = colors::from_hex(&hex2)
-            {
-                app.stroke = c;
-                app.set_selected_stroke(Some(c));
+                app.set_selected_fill(None);
             }
         });
     });
 
-    ui.add_space(3.0);
+    // Stroke & Fill icon + swatch + hex rows matching CS6 Color Palette
+    ui.horizontal(|ui| {
+        // Stroke box
+        let (pen_r, _) = ui.allocate_exact_size(Vec2::new(14.0, 14.0), Sense::hover());
+        icons::draw(ui.painter(), pen_r, icons::Icon::Pencil, p.text_dim, 1.0);
+        let (st_rect, st_resp) = ui.allocate_exact_size(Vec2::new(18.0, 14.0), Sense::click());
+        ui.painter().rect_filled(st_rect, 0.0, app.stroke);
+        ui.painter().rect_stroke(
+            st_rect,
+            0.0,
+            Stroke::new(1.0, p.stroke),
+            egui::StrokeKind::Middle,
+        );
+        if st_resp
+            .on_hover_text("Stroke Color (click to swap with Fill)")
+            .clicked()
+        {
+            std::mem::swap(&mut app.fill, &mut app.stroke);
+        }
+        let mut hex2 = colors::hex_of(app.stroke);
+        if ui
+            .add(
+                TextEdit::singleline(&mut hex2)
+                    .desired_width(68.0)
+                    .font(FontId::monospace(10.5))
+                    .text_color(p.text),
+            )
+            .changed()
+            && let Some(c) = colors::from_hex(&hex2)
+        {
+            app.stroke = c;
+            app.set_selected_stroke(Some(c));
+        }
+
+        ui.add_space(4.0);
+
+        // Fill box
+        let (fill_ic_r, _) = ui.allocate_exact_size(Vec2::new(14.0, 14.0), Sense::hover());
+        icons::draw(ui.painter(), fill_ic_r, icons::Icon::Fill, p.text_dim, 1.0);
+        let (fl_rect, _) = ui.allocate_exact_size(Vec2::new(18.0, 14.0), Sense::click());
+        ui.painter().rect_filled(fl_rect, 0.0, app.fill);
+        ui.painter().rect_stroke(
+            fl_rect,
+            0.0,
+            Stroke::new(1.0, p.accent),
+            egui::StrokeKind::Middle,
+        );
+        let mut hex = colors::hex_of(app.fill);
+        if ui
+            .add(
+                TextEdit::singleline(&mut hex)
+                    .desired_width(68.0)
+                    .font(FontId::monospace(10.5))
+                    .text_color(p.text),
+            )
+            .changed()
+            && let Some(c) = colors::from_hex(&hex)
+        {
+            app.fill = c;
+            app.set_selected_fill(Some(c));
+        }
+    });
+
+    if app.color_subtab == 2 {
+        // Blender tab: live 12-step interpolation ramp between Stroke and Fill
+        ui.label(
+            RichText::new("Blend Ramp (Left-click: Fill, Right-click: Stroke):")
+                .small()
+                .color(p.text_dim),
+        );
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing = Vec2::new(2.0, 2.0);
+            for step in 0..12 {
+                let t = step as f32 / 11.0;
+                let r = (app.stroke.r() as f32 * (1.0 - t) + app.fill.r() as f32 * t) as u8;
+                let g = (app.stroke.g() as f32 * (1.0 - t) + app.fill.g() as f32 * t) as u8;
+                let b = (app.stroke.b() as f32 * (1.0 - t) + app.fill.b() as f32 * t) as u8;
+                let c = Color32::from_rgb(r, g, b);
+                let (cell, resp) = ui.allocate_exact_size(Vec2::new(20.0, 52.0), Sense::click());
+                ui.painter().rect_filled(cell, 0.0, c);
+                ui.painter().rect_stroke(
+                    cell,
+                    0.0,
+                    Stroke::new(1.0, p.stroke),
+                    egui::StrokeKind::Middle,
+                );
+                if resp.clicked() {
+                    app.fill = c;
+                    app.set_selected_fill(Some(c));
+                }
+                if resp.secondary_clicked() {
+                    app.stroke = c;
+                    app.set_selected_stroke(Some(c));
+                }
+                resp.on_hover_text(colors::hex_of(c));
+            }
+        });
+        return;
+    }
+
     let spaces = ["HLS", "HSV", "CMYK", "RGB"];
     ui.horizontal(|ui| {
         for (i, name) in spaces.iter().enumerate() {
             let selected = app.color_tab == i;
-            if ui.selectable_label(selected, *name).clicked() {
+            if ui
+                .selectable_label(selected, RichText::new(*name).small())
+                .clicked()
+            {
                 app.color_tab = i;
             }
         }
@@ -682,22 +1417,23 @@ pub fn color_panel(ui: &mut Ui, app: &mut FireCraft) {
     ui.horizontal(|ui| {
         let mut hsv = colors::rgb_to_hsv(app.fill);
         let (square, sq_resp) =
-            ui.allocate_exact_size(Vec2::new(96.0, 76.0), Sense::click_and_drag());
+            ui.allocate_exact_size(Vec2::new(92.0, 68.0), Sense::click_and_drag());
         let painter = ui.painter();
-        let steps = 16;
-        for iy in 0..steps {
-            for ix in 0..steps {
-                let s = ix as f32 / (steps - 1) as f32;
-                let v = 1.0 - iy as f32 / (steps - 1) as f32;
+        let steps_x = 24;
+        let steps_y = 18;
+        for iy in 0..steps_y {
+            for ix in 0..steps_x {
+                let s = ix as f32 / (steps_x - 1) as f32;
+                let v = 1.0 - iy as f32 / (steps_y - 1) as f32;
                 let c = colors::hsv_to_rgb(colors::Hsv { h: hsv.h, s, v });
                 let cell = Rect::from_min_size(
                     pos2(
-                        square.left() + square.width() * ix as f32 / steps as f32,
-                        square.top() + square.height() * iy as f32 / steps as f32,
+                        square.left() + square.width() * ix as f32 / steps_x as f32,
+                        square.top() + square.height() * iy as f32 / steps_y as f32,
                     ),
                     Vec2::new(
-                        square.width() / steps as f32 + 1.0,
-                        square.height() / steps as f32 + 1.0,
+                        square.width() / steps_x as f32 + 0.8,
+                        square.height() / steps_y as f32 + 0.8,
                     ),
                 );
                 painter.rect_filled(cell, 0.0, c);
@@ -709,6 +1445,14 @@ pub fn color_panel(ui: &mut Ui, app: &mut FireCraft) {
             Stroke::new(1.0, p.stroke),
             egui::StrokeKind::Middle,
         );
+        // Active SV crosshair ring
+        let cur_pt = pos2(
+            square.left() + hsv.s.clamp(0.0, 1.0) * square.width(),
+            square.top() + (1.0 - hsv.v.clamp(0.0, 1.0)) * square.height(),
+        );
+        painter.circle_stroke(cur_pt, 3.5, Stroke::new(1.2, Color32::WHITE));
+        painter.circle_stroke(cur_pt, 4.5, Stroke::new(1.0, Color32::BLACK));
+
         if (sq_resp.clicked() || sq_resp.dragged())
             && let Some(pos) = sq_resp.interact_pointer_pos()
         {
@@ -719,14 +1463,14 @@ pub fn color_panel(ui: &mut Ui, app: &mut FireCraft) {
         }
 
         let (bar, bar_resp) =
-            ui.allocate_exact_size(Vec2::new(14.0, 76.0), Sense::click_and_drag());
+            ui.allocate_exact_size(Vec2::new(14.0, 68.0), Sense::click_and_drag());
         let painter = ui.painter();
-        for iy in 0..24 {
-            let h = iy as f32 / 24.0 * 360.0;
+        for iy in 0..32 {
+            let h = iy as f32 / 32.0 * 360.0;
             let c = colors::hsv_to_rgb(colors::Hsv { h, s: 1.0, v: 1.0 });
             let cell = Rect::from_min_size(
-                pos2(bar.left(), bar.top() + bar.height() * iy as f32 / 24.0),
-                Vec2::new(bar.width(), bar.height() / 24.0 + 1.0),
+                pos2(bar.left(), bar.top() + bar.height() * iy as f32 / 32.0),
+                Vec2::new(bar.width(), bar.height() / 32.0 + 0.8),
             );
             painter.rect_filled(cell, 0.0, c);
         }
@@ -735,6 +1479,12 @@ pub fn color_panel(ui: &mut Ui, app: &mut FireCraft) {
             0.0,
             Stroke::new(1.0, p.stroke),
             egui::StrokeKind::Middle,
+        );
+        // Hue indicator tick
+        let hy = bar.top() + (hsv.h / 360.0).clamp(0.0, 1.0) * bar.height();
+        painter.line_segment(
+            [pos2(bar.left(), hy), pos2(bar.right(), hy)],
+            Stroke::new(1.5, Color32::WHITE),
         );
         if (bar_resp.clicked() || bar_resp.dragged())
             && let Some(pos) = bar_resp.interact_pointer_pos()
@@ -870,50 +1620,93 @@ pub fn info_panel(ui: &mut Ui, app: &mut FireCraft) {
         });
 }
 
-/// Pages, States (Animation frames), and Hierarchical Layers + Objects panel.
+fn small_icon_cell(
+    ui: &mut Ui,
+    palette: crate::theme::Palette,
+    icon: icons::Icon,
+    active: bool,
+    tooltip: &str,
+) -> egui::Response {
+    let (rect, resp) = ui.allocate_exact_size(Vec2::splat(16.0), Sense::click());
+    if resp.hovered() {
+        ui.painter().rect_filled(rect, 0.0, palette.well);
+    }
+    let fg = if active {
+        palette.text
+    } else {
+        palette.text_dim
+    };
+    icons::draw(ui.painter(), rect, icon, fg, 1.0);
+    resp.on_hover_text(tooltip)
+}
+
+/// Pages, States (Animation frames), and Hierarchical Layers + Objects panel (`screenshots/Fireworks-All_Window_Panels.jpg`).
 pub fn pages_panel(ui: &mut Ui, app: &mut FireCraft) {
+    let p = app.palette;
     match app.layers_tab {
         0 => {
-            // Pages tab
+            // Pages tab with CS6 page preview thumbnail box + bottom status/action bar
             let count = app.doc.pages.len();
             egui::ScrollArea::vertical()
-                .max_height(110.0)
+                .max_height(114.0)
                 .show(ui, |ui| {
                     for i in 0..count {
                         let selected = app.doc.current_page == i;
-                        let page = &app.doc.pages[i];
-                        let label = format!(
-                            "{:02}  {} ({:.0}×{:.0})",
-                            i + 1,
-                            page.name,
-                            page.width,
-                            page.height
-                        );
-                        if ui.selectable_label(selected, label).clicked() {
-                            app.doc.current_page = i;
-                            app.selected = None;
-                            app.selected_layer = 0;
-                        }
+                        let (pname, pw, ph, pbg) = {
+                            let page = &app.doc.pages[i];
+                            (page.name.clone(), page.width, page.height, page.bg_color)
+                        };
+                        ui.horizontal(|ui| {
+                            let (thumb, _) =
+                                ui.allocate_exact_size(Vec2::new(22.0, 16.0), Sense::hover());
+                            ui.painter().rect_filled(thumb, 0.0, pbg);
+                            ui.painter().rect_stroke(
+                                thumb,
+                                0.0,
+                                Stroke::new(1.0, if selected { p.selection } else { p.stroke }),
+                                egui::StrokeKind::Middle,
+                            );
+                            let label = format!("{:02}  {} ({:.0}×{:.0})", i + 1, pname, pw, ph);
+                            if ui
+                                .selectable_label(selected, RichText::new(label).small())
+                                .clicked()
+                            {
+                                app.doc.current_page = i;
+                                app.selected = None;
+                                app.selected_layer = 0;
+                            }
+                        });
                     }
                 });
+            ui.separator();
             ui.horizontal(|ui| {
-                if ui.small_button("+ New Page").clicked() {
-                    app.add_page();
-                }
-                if ui.small_button("Duplicate").clicked() && count > 0 {
-                    let page = app.doc.page().clone();
-                    let mut new_page = page.clone();
-                    new_page.name = format!("{} copy", page.name);
-                    app.doc.pages.push(new_page);
-                    app.doc.current_page = app.doc.pages.len() - 1;
-                }
-                if ui
-                    .add_enabled(count > 1, egui::Button::new("Delete").small())
-                    .clicked()
-                {
-                    app.doc.pages.remove(app.doc.current_page);
-                    app.doc.current_page = app.doc.current_page.saturating_sub(1);
-                }
+                ui.label(
+                    RichText::new(format!("{count} Page{}", if count == 1 { "" } else { "s" }))
+                        .small()
+                        .color(p.text_dim),
+                );
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if small_icon_cell(ui, p, icons::Icon::Trash, count > 1, "Delete Page")
+                        .clicked()
+                        && count > 1
+                    {
+                        app.doc.pages.remove(app.doc.current_page);
+                        app.doc.current_page = app.doc.current_page.saturating_sub(1);
+                    }
+                    if small_icon_cell(ui, p, icons::Icon::New, true, "New Page").clicked() {
+                        app.add_page();
+                    }
+                    if small_icon_cell(ui, p, icons::Icon::Duplicate, true, "Duplicate Page")
+                        .clicked()
+                        && count > 0
+                    {
+                        let page = app.doc.page().clone();
+                        let mut new_page = page.clone();
+                        new_page.name = format!("{} copy", page.name);
+                        app.doc.pages.push(new_page);
+                        app.doc.current_page = app.doc.pages.len() - 1;
+                    }
+                });
             });
         }
         1 => {
@@ -922,7 +1715,7 @@ pub fn pages_panel(ui: &mut Ui, app: &mut FireCraft) {
             let state_count = app.doc.page().states.len();
             let current_st = app.doc.page().current_state;
             egui::ScrollArea::vertical()
-                .max_height(100.0)
+                .max_height(110.0)
                 .show(ui, |ui| {
                     for i in 0..state_count {
                         let (name, delay, obj_cnt) = {
@@ -931,45 +1724,62 @@ pub fn pages_panel(ui: &mut Ui, app: &mut FireCraft) {
                             (st.name.clone(), st.delay_cs, cnt)
                         };
                         ui.horizontal(|ui| {
+                            ui.label(
+                                RichText::new(format!("{:02}", i + 1))
+                                    .small()
+                                    .color(p.text_dim),
+                            );
                             if ui
                                 .selectable_label(
                                     current_st == i,
-                                    format!("{} ({obj_cnt} obj)", name),
+                                    RichText::new(format!("{name} ({obj_cnt})")).small(),
                                 )
                                 .clicked()
                             {
                                 app.doc.page_mut().select_state(i);
                                 app.selected = None;
                             }
-                            let mut d = delay;
-                            if ui
-                                .add(
-                                    egui::DragValue::new(&mut d)
-                                        .range(1..=1000)
-                                        .suffix(" /100s"),
-                                )
-                                .changed()
-                            {
-                                app.doc.page_mut().states[i].delay_cs = d;
-                            }
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    let mut d = delay;
+                                    if ui
+                                        .add(
+                                            egui::DragValue::new(&mut d)
+                                                .range(1..=1000)
+                                                .suffix(" /100s"),
+                                        )
+                                        .changed()
+                                    {
+                                        app.doc.page_mut().states[i].delay_cs = d;
+                                    }
+                                },
+                            );
                         });
                     }
                 });
+            ui.separator();
             ui.horizontal(|ui| {
-                if ui.small_button("+ State").clicked() {
-                    app.add_state();
-                }
-                if ui.small_button("Duplicate").clicked() {
-                    app.duplicate_state();
-                }
+                ui.checkbox(&mut app.onion_skin, "Onion");
                 if ui.small_button("Tween 3x").clicked() {
                     app.tween_selected_across_states();
                 }
-                ui.checkbox(&mut app.onion_skin, "Onion");
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if small_icon_cell(ui, p, icons::Icon::New, true, "New Animation State")
+                        .clicked()
+                    {
+                        app.add_state();
+                    }
+                    if small_icon_cell(ui, p, icons::Icon::Duplicate, true, "Duplicate State")
+                        .clicked()
+                    {
+                        app.duplicate_state();
+                    }
+                });
             });
         }
         _ => {
-            // Layers & Objects tree tab (matching CS6 Layers panel with Blend Mode + Opacity header)
+            // Layers & Objects tree tab (matching CS6 Layers panel with Blend Mode + Opacity header + Eye/Lock columns)
             ui.horizontal(|ui| {
                 let cur_blend = app
                     .doc
@@ -979,7 +1789,7 @@ pub fn pages_panel(ui: &mut Ui, app: &mut FireCraft) {
                     .map(|l| l.blend_mode)
                     .unwrap_or(BlendMode::Normal);
                 egui::ComboBox::from_id_salt("layer_blend_combo")
-                    .width(88.0)
+                    .width(96.0)
                     .selected_text(cur_blend.label())
                     .show_ui(ui, |ui| {
                         for bm in BlendMode::ALL {
@@ -991,6 +1801,7 @@ pub fn pages_panel(ui: &mut Ui, app: &mut FireCraft) {
                             }
                         }
                     });
+                ui.label(RichText::new("Opacity:").small().color(p.text_dim));
                 let mut opacity_pct = app
                     .doc
                     .page()
@@ -1012,38 +1823,55 @@ pub fn pages_panel(ui: &mut Ui, app: &mut FireCraft) {
                 }
             });
 
-            ui.separator();
             let layers = app.doc.page().layers.clone();
             egui::ScrollArea::vertical()
-                .max_height(130.0)
+                .max_height(84.0)
                 .show(ui, |ui| {
                     for (li, layer) in layers.iter().enumerate().rev() {
                         ui.horizontal(|ui| {
-                            let mut visible = layer.visible;
-                            let mut locked = layer.locked;
-                            if ui
-                                .checkbox(&mut visible, "")
-                                .on_hover_text("Visible")
-                                .changed()
+                            ui.spacing_mut().item_spacing = Vec2::new(3.0, 1.0);
+                            let eye_icon = if layer.visible {
+                                icons::Icon::Eye
+                            } else {
+                                icons::Icon::EyeOff
+                            };
+                            if small_icon_cell(
+                                ui,
+                                p,
+                                eye_icon,
+                                layer.visible,
+                                "Toggle Layer Visibility",
+                            )
+                            .clicked()
                                 && let Some(l) = app.doc.page_mut().layers.get_mut(li)
                             {
-                                l.visible = visible;
+                                l.visible = !l.visible;
                             }
-                            if ui
-                                .checkbox(&mut locked, "")
-                                .on_hover_text("Locked")
-                                .changed()
+                            let lock_icon = if layer.locked {
+                                icons::Icon::Lock
+                            } else {
+                                icons::Icon::Unlock
+                            };
+                            if small_icon_cell(ui, p, lock_icon, layer.locked, "Toggle Layer Lock")
+                                .clicked()
                                 && let Some(l) = app.doc.page_mut().layers.get_mut(li)
                             {
-                                l.locked = locked;
+                                l.locked = !l.locked;
                             }
-                            let prefix = if layer.is_web_layer { "[Web]" } else { "[L]" };
-                            let label =
-                                format!("{prefix} {} ({})", layer.name, layer.objects.len());
+                            let (fold_r, _) =
+                                ui.allocate_exact_size(Vec2::splat(14.0), Sense::hover());
+                            let folder_ic = if layer.is_web_layer {
+                                icons::Icon::Slice
+                            } else {
+                                icons::Icon::Folder
+                            };
+                            icons::draw(ui.painter(), fold_r, folder_ic, p.accent, 1.0);
+
+                            let label = format!("{} ({})", layer.name, layer.objects.len());
                             if ui
                                 .selectable_label(
                                     app.selected_layer == li,
-                                    RichText::new(label).strong(),
+                                    RichText::new(label).small().strong(),
                                 )
                                 .clicked()
                             {
@@ -1051,12 +1879,24 @@ pub fn pages_panel(ui: &mut Ui, app: &mut FireCraft) {
                                 app.selected = None;
                             }
                         });
-                        // Expand objects inside the layer
+                        // Expand objects inside the layer with Eye toggle + mini color swatch
                         for (oi, obj) in layer.objects.iter().enumerate().rev() {
                             ui.horizontal(|ui| {
-                                ui.add_space(20.0);
-                                let mut o_vis = obj.visible;
-                                if ui.checkbox(&mut o_vis, "").changed()
+                                ui.spacing_mut().item_spacing = Vec2::new(3.0, 1.0);
+                                ui.add_space(16.0);
+                                let o_eye = if obj.visible {
+                                    icons::Icon::Eye
+                                } else {
+                                    icons::Icon::EyeOff
+                                };
+                                if small_icon_cell(
+                                    ui,
+                                    p,
+                                    o_eye,
+                                    obj.visible,
+                                    "Toggle Object Visibility",
+                                )
+                                .clicked()
                                     && let Some(o) = app
                                         .doc
                                         .page_mut()
@@ -1064,10 +1904,24 @@ pub fn pages_panel(ui: &mut Ui, app: &mut FireCraft) {
                                         .get_mut(li)
                                         .and_then(|l| l.objects.get_mut(oi))
                                 {
-                                    o.visible = o_vis;
+                                    o.visible = !o.visible;
                                 }
+                                let (sw_r, _) =
+                                    ui.allocate_exact_size(Vec2::splat(10.0), Sense::hover());
+                                let sw_col = obj
+                                    .fill
+                                    .or(obj.stroke)
+                                    .unwrap_or(Color32::from_rgb(70, 185, 95));
+                                ui.painter().rect_filled(sw_r, 0.0, sw_col);
+                                ui.painter().rect_stroke(
+                                    sw_r,
+                                    0.0,
+                                    Stroke::new(0.8, p.stroke),
+                                    egui::StrokeKind::Middle,
+                                );
+
                                 let is_sel = app.selected_layer == li && app.is_selected(oi);
-                                let obj_label = format!("  • {} [{}]", obj.name, obj.type_label());
+                                let obj_label = format!("{} [{}]", obj.name, obj.type_label());
                                 let resp =
                                     ui.selectable_label(is_sel, RichText::new(obj_label).small());
                                 if resp.clicked() {
@@ -1085,58 +1939,99 @@ pub fn pages_panel(ui: &mut Ui, app: &mut FireCraft) {
                     }
                 });
 
+            ui.separator();
             ui.horizontal(|ui| {
+                if ui.small_button("+ Web Slice").clicked() {
+                    app.insert_slice(false);
+                }
                 if ui.small_button("+ Layer").clicked() {
                     app.add_layer();
                 }
-                if ui.small_button("+ Slice").clicked() {
-                    app.insert_slice(false);
-                }
-                if ui.small_button("Delete Layer").clicked() {
-                    let count = app.doc.page().layers.len();
-                    if count > 1 && app.selected_layer < count {
-                        let is_web = app.doc.page().layers[app.selected_layer].is_web_layer;
-                        if !is_web {
-                            app.doc.page_mut().layers.remove(app.selected_layer);
-                            app.selected_layer = app.selected_layer.saturating_sub(1);
-                            app.selected = None;
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if small_icon_cell(
+                        ui,
+                        p,
+                        icons::Icon::Trash,
+                        true,
+                        "Delete Selected Object or Layer",
+                    )
+                    .clicked()
+                    {
+                        if app.selected.is_some() || !app.selected_set.is_empty() {
+                            app.delete_selected();
                         } else {
-                            app.status = "Web Layer cannot be deleted".to_string();
+                            let count = app.doc.page().layers.len();
+                            if count > 1 && app.selected_layer < count {
+                                let is_web = app.doc.page().layers[app.selected_layer].is_web_layer;
+                                if !is_web {
+                                    app.doc.page_mut().layers.remove(app.selected_layer);
+                                    app.selected_layer = app.selected_layer.saturating_sub(1);
+                                    app.selected = None;
+                                } else {
+                                    app.status = "Web Layer cannot be deleted".to_string();
+                                }
+                            }
                         }
                     }
-                }
+                    if small_icon_cell(
+                        ui,
+                        p,
+                        icons::Icon::Duplicate,
+                        app.selected.is_some(),
+                        "Duplicate Selection",
+                    )
+                    .clicked()
+                    {
+                        app.duplicate_selected();
+                    }
+                });
             });
         }
     }
 }
 
-/// The Styles panel: apply pre-built or saved Fireworks CS6 styles to the selected object,
-/// or capture the selected object's appearance as a new style.
+/// The Styles panel (`screenshots/Fireworks_Layout_Design.jpg`): sharp CS6 style cards + Current Document header.
 pub fn styles_panel(ui: &mut Ui, app: &mut FireCraft) {
     let p = app.palette;
+    ui.horizontal(|ui| {
+        ui.label(RichText::new("Current Document").small().color(p.text_dim));
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            if ui
+                .add_enabled(
+                    app.selected.is_some(),
+                    egui::Button::new("+ New Style").small(),
+                )
+                .on_hover_text("Capture selected object's appearance as a Style Preset")
+                .clicked()
+            {
+                app.save_selection_as_style();
+            }
+        });
+    });
     let styles = app.doc.styles.clone();
     egui::ScrollArea::vertical()
-        .max_height(105.0)
+        .max_height(112.0)
         .show(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
+                ui.spacing_mut().item_spacing = Vec2::new(4.0, 4.0);
                 for (idx, preset) in styles.iter().enumerate() {
                     let (rect, resp) =
-                        ui.allocate_exact_size(Vec2::new(124.0, 26.0), Sense::click());
+                        ui.allocate_exact_size(Vec2::new(134.0, 26.0), Sense::click());
                     let painter = ui.painter();
-                    painter.rect_filled(rect, 3.0, p.well);
+                    painter.rect_filled(rect, 0.0, p.well);
                     let swatch_r = Rect::from_min_size(
                         pos2(rect.left() + 4.0, rect.top() + 4.0),
                         Vec2::splat(18.0),
                     );
                     painter.rect_filled(
                         swatch_r,
-                        3.0,
+                        0.0,
                         preset.fill.unwrap_or(Color32::from_rgb(90, 90, 90)),
                     );
                     if let Some(st) = preset.stroke {
                         painter.rect_stroke(
                             swatch_r,
-                            3.0,
+                            0.0,
                             Stroke::new(1.5, st),
                             egui::StrokeKind::Middle,
                         );
@@ -1150,7 +2045,7 @@ pub fn styles_panel(ui: &mut Ui, app: &mut FireCraft) {
                     );
                     painter.rect_stroke(
                         rect,
-                        3.0,
+                        0.0,
                         Stroke::new(1.0, if resp.hovered() { p.accent } else { p.stroke }),
                         egui::StrokeKind::Middle,
                     );
@@ -1160,17 +2055,6 @@ pub fn styles_panel(ui: &mut Ui, app: &mut FireCraft) {
                 }
             });
         });
-    ui.horizontal(|ui| {
-        if ui
-            .add_enabled(
-                app.selected.is_some(),
-                egui::Button::new("+ Save Selection as Style").small(),
-            )
-            .clicked()
-        {
-            app.save_selection_as_style();
-        }
-    });
 }
 
 /// Bottom-right dock group: Special Characters | Image Editing | Auto Shapes | Document Library | CSS/URL.
@@ -1178,35 +2062,76 @@ pub fn library_panel(ui: &mut Ui, app: &mut FireCraft) {
     let p = app.palette;
     match app.library_tab {
         0 => {
-            // Special Characters — clicking any glyph inserts or appends it to the active text object
-            ui.label(
-                RichText::new("Click a character to insert into canvas / selected Text:")
-                    .small()
-                    .color(p.text_dim),
-            );
+            // Special Characters — uniform 9-column CS6 character matrix (`screenshots/Fireworks-All_Window_Panels.jpg`)
             let glyphs = [
-                "©", "®", "™", "€", "£", "¥", "¢", "§", "¶", "†", "‡", "•", "…", "‰", "°", "±",
-                "×", "÷", "≈", "≠", "≤", "≥", "∞", "←", "↑", "→", "↓", "↔", "⇒", "♠", "♣", "♥",
-                "♦", "Δ", "Ω", "π",
+                "¡", "¢", "£", "¥", "€", "§", "©", "®", "™", "«", "»", "°", "±", "×", "÷", "≈",
+                "≠", "≤", "≥", "∞", "‰", "†", "‡", "•", "…", "¶", "←", "↑", "→", "↓", "↔", "⇒",
+                "Δ", "Ω", "π", "µ", "♠", "♣", "♥", "♦", "★", "☆", "✓", "✕", "◊",
             ];
-            ui.horizontal_wrapped(|ui| {
-                for g in glyphs {
-                    if ui.small_button(g).clicked() {
-                        app.insert_special_glyph(g);
+            ui.spacing_mut().item_spacing = Vec2::new(2.0, 2.0);
+            for row in glyphs.chunks(9) {
+                ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing = Vec2::new(2.0, 2.0);
+                    for g in row {
+                        let (r, resp) =
+                            ui.allocate_exact_size(Vec2::new(28.0, 20.0), Sense::click());
+                        ui.painter().rect_filled(
+                            r,
+                            0.0,
+                            if resp.hovered() { p.well } else { p.panel_alt },
+                        );
+                        ui.painter().rect_stroke(
+                            r,
+                            0.0,
+                            Stroke::new(1.0, if resp.hovered() { p.accent } else { p.stroke }),
+                            egui::StrokeKind::Middle,
+                        );
+                        ui.painter().text(
+                            r.center(),
+                            Align2::CENTER_CENTER,
+                            *g,
+                            FontId::proportional(11.5),
+                            p.text,
+                        );
+                        if resp
+                            .on_hover_text(format!("Insert '{g}' into canvas or selected text"))
+                            .clicked()
+                        {
+                            app.insert_special_glyph(g);
+                        }
                     }
-                }
-            });
+                });
+            }
         }
         1 => {
-            // Image Editing — real pixel & color operations
-            ui.label(
-                RichText::new("Transform & Adjust:")
-                    .small()
-                    .color(p.text_dim),
-            );
+            // Image Editing — CS6 top icon bar + categorized action rows (`screenshots/Fireworks-All_Window_Panels.jpg`)
+            ui.horizontal(|ui| {
+                ui.spacing_mut().item_spacing = Vec2::new(4.0, 2.0);
+                for (ic, tool, tip) in [
+                    (icons::Icon::Wand, Tool::Wand, "Magic Wand Tool (W)"),
+                    (icons::Icon::Crop, Tool::Crop, "Crop Tool (C)"),
+                    (icons::Icon::Blur, Tool::Blur, "Blur Tool"),
+                    (icons::Icon::Sharpen, Tool::Sharpen, "Sharpen Tool"),
+                    (icons::Icon::Dodge, Tool::Dodge, "Dodge / Burn Tool"),
+                ] {
+                    if crate::canvas::tool_button(ui, ic, app.tool == tool, tip).clicked() {
+                        app.tool = tool;
+                    }
+                }
+                if ui
+                    .small_button("Flatten Bitmap")
+                    .on_hover_text("Rasterize selection into editable RGBA Bitmap")
+                    .clicked()
+                {
+                    app.flatten_selected_to_bitmap();
+                }
+            });
+            ui.separator();
+            ui.label(RichText::new("ADJUST COLORS ▾").small().color(p.text_dim));
             ui.horizontal_wrapped(|ui| {
+                ui.spacing_mut().item_spacing = Vec2::new(3.0, 2.0);
                 for (cmd, label) in [
-                    ("brighten", "Brightness +"),
+                    ("brighten", "Brighten +"),
                     ("darken", "Darken -"),
                     ("contrast", "Contrast +"),
                     ("invert", "Invert"),
@@ -1218,32 +2143,83 @@ pub fn library_panel(ui: &mut Ui, app: &mut FireCraft) {
                     }
                 }
             });
-            ui.horizontal_wrapped(|ui| {
-                if ui.small_button("Blur Bitmap").clicked() {
-                    app.run_bitmap_filter(Tool::Blur);
-                }
-                if ui.small_button("Sharpen Bitmap").clicked() {
-                    app.run_bitmap_filter(Tool::Sharpen);
-                }
-                if ui.small_button("Flatten to Bitmap").clicked() {
-                    app.flatten_selected_to_bitmap();
-                }
-            });
-        }
-        2 => {
-            // Auto Shapes — clicking any of the 12 CS6 Auto Shapes inserts it onto the active layer
             ui.label(
-                RichText::new("Click an Auto Shape to insert onto canvas:")
+                RichText::new("FILTERS & TRANSFORM ▾")
                     .small()
                     .color(p.text_dim),
             );
             ui.horizontal_wrapped(|ui| {
-                for kind in AutoShapeKind::ALL {
-                    if ui.small_button(kind.label()).clicked() {
-                        app.insert_auto_shape(kind);
-                    }
+                ui.spacing_mut().item_spacing = Vec2::new(3.0, 2.0);
+                if ui.small_button("Blur Pass").clicked() {
+                    app.run_bitmap_filter(Tool::Blur);
+                }
+                if ui.small_button("Sharpen Pass").clicked() {
+                    app.run_bitmap_filter(Tool::Sharpen);
+                }
+                if ui.small_button("Flip H").clicked() {
+                    app.flip_horizontal();
+                }
+                if ui.small_button("Flip V").clicked() {
+                    app.flip_vertical();
+                }
+                if ui.small_button("Rot 90°").clicked() {
+                    app.rotate_90();
                 }
             });
+        }
+        2 => {
+            // Auto Shapes — uniform 2-column CS6 grid with vector shape glyph + label
+            ui.spacing_mut().item_spacing = Vec2::new(3.0, 2.0);
+            for pair in AutoShapeKind::ALL.chunks(2) {
+                ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing = Vec2::new(3.0, 2.0);
+                    for kind in pair {
+                        let (r, resp) =
+                            ui.allocate_exact_size(Vec2::new(136.0, 20.0), Sense::click());
+                        let painter = ui.painter();
+                        painter.rect_filled(
+                            r,
+                            0.0,
+                            if resp.hovered() { p.well } else { p.panel_alt },
+                        );
+                        painter.rect_stroke(
+                            r,
+                            0.0,
+                            Stroke::new(1.0, if resp.hovered() { p.accent } else { p.stroke }),
+                            egui::StrokeKind::Middle,
+                        );
+                        let ic_r = Rect::from_min_size(
+                            pos2(r.left() + 3.0, r.top() + 2.0),
+                            Vec2::splat(16.0),
+                        );
+                        let shape_ic = match kind {
+                            AutoShapeKind::RoundedRect | AutoShapeKind::ChamferRect => {
+                                icons::Icon::Rounded
+                            }
+                            AutoShapeKind::Star | AutoShapeKind::Gear => icons::Icon::Star,
+                            AutoShapeKind::Polygon => icons::Icon::Polygon,
+                            AutoShapeKind::Pie | AutoShapeKind::Donut | AutoShapeKind::Spiral => {
+                                icons::Icon::Ellipse
+                            }
+                            _ => icons::Icon::Pen,
+                        };
+                        icons::draw(painter, ic_r, shape_ic, p.accent, 1.0);
+                        painter.text(
+                            pos2(ic_r.right() + 4.0, r.center().y),
+                            Align2::LEFT_CENTER,
+                            kind.label(),
+                            FontId::proportional(10.5),
+                            p.text,
+                        );
+                        if resp
+                            .on_hover_text(format!("Insert {} onto canvas", kind.label()))
+                            .clicked()
+                        {
+                            app.insert_auto_shape(*kind);
+                        }
+                    }
+                });
+            }
         }
         3 => {
             // Document Library & Symbols
@@ -1256,25 +2232,25 @@ pub fn library_panel(ui: &mut Ui, app: &mut FireCraft) {
             } else {
                 for sym in app.doc.symbols.clone() {
                     ui.horizontal(|ui| {
-                        ui.label(format!("[Sym] {} ({})", sym.name, sym.kind));
-                        if ui.small_button("Place Instance").clicked() {
-                            app.place_symbol_instance(sym.id);
-                        }
+                        ui.label(RichText::new(format!("◊ {} ({})", sym.name, sym.kind)).small());
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if ui.small_button("Place Instance").clicked() {
+                                app.place_symbol_instance(sym.id);
+                            }
+                        });
                     });
                 }
             }
+            ui.separator();
             ui.horizontal(|ui| {
                 if ui
                     .add_enabled(
                         app.selected.is_some(),
-                        egui::Button::new("+ Convert Selection to Symbol").small(),
+                        egui::Button::new("+ Convert Selection to Symbol (F8)").small(),
                     )
                     .clicked()
                 {
                     app.convert_selection_to_symbol();
-                }
-                if ui.small_button("+ Default Button Symbol").clicked() {
-                    app.create_default_button_symbol();
                 }
             });
         }
@@ -1283,7 +2259,7 @@ pub fn library_panel(ui: &mut Ui, app: &mut FireCraft) {
             if let Some(obj) = app.selected_object() {
                 let css = crate::formats::generate_css_for_object(&obj);
                 egui::ScrollArea::vertical()
-                    .max_height(85.0)
+                    .max_height(88.0)
                     .show(ui, |ui| {
                         ui.code(&css);
                     });
@@ -1356,25 +2332,60 @@ pub fn properties_panel(ui: &mut Ui, app: &mut FireCraft) {
     match obj {
         Some(obj) => {
             ui.horizontal(|ui| {
-                // Column 1: Identity & Bounds (X, Y, W, H)
+                // Column 0: CS6 Object Thumbnail Box + Type & Name
+                let (thumb_r, _) = ui.allocate_exact_size(Vec2::new(30.0, 38.0), Sense::hover());
+                ui.painter().rect_filled(thumb_r, 0.0, p.well);
+                ui.painter().rect_stroke(
+                    thumb_r,
+                    0.0,
+                    Stroke::new(1.0, p.stroke),
+                    egui::StrokeKind::Middle,
+                );
+                let thumb_ic = match obj.kind {
+                    Shape::Polygon { .. } => icons::Icon::Star,
+                    Shape::Ellipse { .. } => icons::Icon::Ellipse,
+                    Shape::Line { .. } => icons::Icon::Line,
+                    Shape::Path { .. } => icons::Icon::Pen,
+                    Shape::Text { .. } => icons::Icon::Text,
+                    Shape::Slice { .. } => icons::Icon::Slice,
+                    Shape::Group { .. } => icons::Icon::Group,
+                    _ => icons::Icon::Rectangle,
+                };
+                icons::draw(
+                    ui.painter(),
+                    thumb_r.shrink(3.0),
+                    thumb_ic,
+                    obj.fill.unwrap_or(p.accent),
+                    1.2,
+                );
+
                 ui.vertical(|ui| {
-                    ui.horizontal(|ui| {
-                        ui.label(RichText::new(obj.type_label()).strong().color(p.accent));
-                        let mut name = obj.name.clone();
-                        if ui
-                            .add(TextEdit::singleline(&mut name).desired_width(110.0))
-                            .changed()
-                        {
-                            app.set_selected_name(name);
-                        }
-                    });
-                    if let Some((lo, hi)) = obj.bounds() {
-                        let mut x = lo.x;
-                        let mut y = lo.y;
-                        let mut w = (hi.x - lo.x).max(1.0);
-                        let mut h = (hi.y - lo.y).max(1.0);
-                        let mut geom_changed = false;
-                        ui.horizontal(|ui| {
+                    ui.label(
+                        RichText::new(obj.type_label())
+                            .small()
+                            .strong()
+                            .color(p.accent),
+                    );
+                    let mut name = obj.name.clone();
+                    if ui
+                        .add(TextEdit::singleline(&mut name).desired_width(108.0))
+                        .changed()
+                    {
+                        app.set_selected_name(name);
+                    }
+                });
+
+                if let Some((lo, hi)) = obj.bounds() {
+                    let mut x = lo.x;
+                    let mut y = lo.y;
+                    let mut w = (hi.x - lo.x).max(1.0);
+                    let mut h = (hi.y - lo.y).max(1.0);
+                    let mut geom_changed = false;
+                    // CS6 2×2 W/H and X/Y stacked columns
+                    Grid::new("prop_wh_xy_grid")
+                        .num_columns(4)
+                        .spacing([4.0, 2.0])
+                        .show(ui, |ui| {
                             ui.label(RichText::new("W:").small().color(p.text_dim));
                             geom_changed |= ui
                                 .add(egui::DragValue::new(&mut w).speed(1.0).range(1.0..=16384.0))
@@ -1382,6 +2393,8 @@ pub fn properties_panel(ui: &mut Ui, app: &mut FireCraft) {
                             ui.label(RichText::new("X:").small().color(p.text_dim));
                             geom_changed |=
                                 ui.add(egui::DragValue::new(&mut x).speed(1.0)).changed();
+                            ui.end_row();
+
                             ui.label(RichText::new("H:").small().color(p.text_dim));
                             geom_changed |= ui
                                 .add(egui::DragValue::new(&mut h).speed(1.0).range(1.0..=16384.0))
@@ -1389,12 +2402,12 @@ pub fn properties_panel(ui: &mut Ui, app: &mut FireCraft) {
                             ui.label(RichText::new("Y:").small().color(p.text_dim));
                             geom_changed |=
                                 ui.add(egui::DragValue::new(&mut y).speed(1.0)).changed();
+                            ui.end_row();
                         });
-                        if geom_changed {
-                            app.set_selected_bounds(Vec2::new(x, y), Vec2::new(x + w, y + h));
-                        }
+                    if geom_changed {
+                        app.set_selected_bounds(Vec2::new(x, y), Vec2::new(x + w, y + h));
                     }
-                });
+                }
 
                 ui.separator();
 
@@ -1659,10 +2672,19 @@ pub fn properties_panel(ui: &mut Ui, app: &mut FireCraft) {
             });
         }
         None => {
-            // Document-level Properties Inspector when nothing is selected (exact CS6 layout)
+            // Document-level Properties Inspector when nothing is selected (exact CS6 layout from screenshot)
             ui.horizontal(|ui| {
+                let (doc_thumb, _) = ui.allocate_exact_size(Vec2::new(30.0, 38.0), Sense::hover());
+                ui.painter()
+                    .rect_filled(doc_thumb, 0.0, app.doc.page().bg_color);
+                ui.painter().rect_stroke(
+                    doc_thumb,
+                    0.0,
+                    Stroke::new(1.0, p.stroke),
+                    egui::StrokeKind::Middle,
+                );
                 ui.vertical(|ui| {
-                    ui.label(RichText::new("Document").strong().color(p.accent));
+                    ui.label(RichText::new("Document").small().strong().color(p.accent));
                     ui.label(RichText::new(&app.doc.name).small().color(p.text_dim));
                 });
                 ui.separator();
@@ -1685,6 +2707,9 @@ pub fn properties_panel(ui: &mut Ui, app: &mut FireCraft) {
                         }
                         ui.checkbox(&mut app.doc.page_mut().transparent_bg, "Transparent");
                         if ui.button("Canvas Size…").clicked() {
+                            app.open_canvas_size_dialog();
+                        }
+                        if ui.button("Image Size…").clicked() {
                             app.open_canvas_size_dialog();
                         }
                         if ui.button("Fit Canvas").clicked() {

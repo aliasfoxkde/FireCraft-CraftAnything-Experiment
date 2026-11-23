@@ -158,47 +158,87 @@ fn main_toolbar(ui: &mut Ui, app: &mut FireCraft) {
             app.redo_action();
         }
         ui.separator();
-        if ui
-            .small_button("Up Front")
-            .on_hover_text("Bring Selection to Front")
-            .clicked()
-        {
-            app.reorder_selected(true);
-        }
-        if ui
-            .small_button("Dn Back")
-            .on_hover_text("Send Selection to Back")
-            .clicked()
-        {
-            app.reorder_selected(false);
-        }
-        if ui
-            .small_button("Group")
-            .on_hover_text("Group Selected Objects (Ctrl+G)")
-            .clicked()
+        if canvas::tool_button(
+            ui,
+            icons::Icon::Group,
+            false,
+            "Group Selected Objects (Ctrl+G)",
+        )
+        .clicked()
         {
             app.group_selected();
         }
-        if ui
-            .small_button("Ungroup")
-            .on_hover_text("Ungroup Selected Group (Ctrl+Shift+G)")
-            .clicked()
+        if canvas::tool_button(
+            ui,
+            icons::Icon::Ungroup,
+            false,
+            "Ungroup Selected Group (Ctrl+Shift+G)",
+        )
+        .clicked()
         {
             app.ungroup_selected();
         }
-        if ui
-            .small_button("Flip H")
-            .on_hover_text("Flip Horizontal")
-            .clicked()
+        ui.separator();
+        if canvas::tool_button(
+            ui,
+            icons::Icon::BringFront,
+            false,
+            "Bring to Front (Ctrl+Shift+Up)",
+        )
+        .clicked()
         {
-            app.flip_horizontal();
+            app.reorder_selected(true);
         }
-        if ui
-            .small_button("Rot 90°")
-            .on_hover_text("Rotate 90° Clockwise")
-            .clicked()
+        if canvas::tool_button(
+            ui,
+            icons::Icon::BringForward,
+            false,
+            "Bring Forward One Level (Ctrl+Up)",
+        )
+        .clicked()
+        {
+            app.reorder_selected_step(true);
+        }
+        if canvas::tool_button(
+            ui,
+            icons::Icon::SendBackward,
+            false,
+            "Send Backward One Level (Ctrl+Down)",
+        )
+        .clicked()
+        {
+            app.reorder_selected_step(false);
+        }
+        if canvas::tool_button(
+            ui,
+            icons::Icon::SendBack,
+            false,
+            "Send to Back (Ctrl+Shift+Down)",
+        )
+        .clicked()
+        {
+            app.reorder_selected(false);
+        }
+        ui.separator();
+        if canvas::tool_button(
+            ui,
+            icons::Icon::RotateCCW,
+            false,
+            "Rotate 90° Counter-Clockwise",
+        )
+        .clicked()
+        {
+            app.rotate_ccw_90();
+        }
+        if canvas::tool_button(ui, icons::Icon::RotateCW, false, "Rotate 90° Clockwise").clicked()
         {
             app.rotate_90();
+        }
+        if canvas::tool_button(ui, icons::Icon::FlipH, false, "Flip Horizontal").clicked() {
+            app.flip_horizontal();
+        }
+        if canvas::tool_button(ui, icons::Icon::FlipV, false, "Flip Vertical").clicked() {
+            app.flip_vertical();
         }
         ui.separator();
         // Canvas Resolution & DPI Dropdown right on the Main Toolbar
@@ -243,11 +283,12 @@ fn main_toolbar(ui: &mut Ui, app: &mut FireCraft) {
 fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
     let p = app.palette;
     egui::Frame::new()
-        .fill(p.panel)
-        .inner_margin(egui::Margin::symmetric(6, 2))
+        .fill(p.panel_alt)
+        .inner_margin(egui::Margin::symmetric(4, 2))
         .show(ui, |ui| {
-            // Row 1: Open Document Tabs (middle-click or '×' closes the tab)
+            // Row 1: Unified sculpted CS6 Document Tabs (middle-click or embedded '×' closes the tab)
             ui.horizontal(|ui| {
+                ui.spacing_mut().item_spacing = Vec2::new(2.0, 0.0);
                 let doc_count = app.open_docs.len();
                 let mut switch_to = None;
                 let mut close_idx = None;
@@ -264,23 +305,73 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                     } else {
                         app.open_docs[i].name.clone()
                     };
-                    let tab_resp = ui
-                        .selectable_label(is_active, &name)
-                        .on_hover_text("Left-click to switch tab · Middle-click to close tab");
-                    if tab_resp.clicked() && !is_active {
-                        switch_to = Some(i);
+                    let tab_w = (28.0 + name.len() as f32 * 6.2).clamp(112.0, 210.0);
+                    let (tab_r, tab_resp) =
+                        ui.allocate_exact_size(Vec2::new(tab_w, 21.0), egui::Sense::click());
+                    let close_r = egui::Rect::from_center_size(
+                        egui::pos2(tab_r.right() - 11.0, tab_r.center().y),
+                        Vec2::splat(14.0),
+                    );
+                    let close_resp = ui.interact(
+                        close_r,
+                        ui.make_persistent_id(("doc_tab_close", i)),
+                        egui::Sense::click(),
+                    );
+                    let painter = ui.painter();
+                    let bg = if is_active {
+                        p.panel
+                    } else if tab_resp.hovered() {
+                        p.well
+                    } else {
+                        p.panel_alt
+                    };
+                    painter.rect_filled(tab_r, 0.0, bg);
+                    painter.rect_stroke(
+                        tab_r,
+                        0.0,
+                        egui::Stroke::new(1.0, p.stroke),
+                        egui::StrokeKind::Middle,
+                    );
+                    if is_active {
+                        painter.line_segment(
+                            [tab_r.left_top(), tab_r.right_top()],
+                            egui::Stroke::new(1.5, p.accent),
+                        );
                     }
-                    if tab_resp.middle_clicked() {
-                        close_idx = Some(i);
+                    painter.text(
+                        egui::pos2(tab_r.left() + 8.0, tab_r.center().y),
+                        egui::Align2::LEFT_CENTER,
+                        &name,
+                        egui::FontId::proportional(11.0),
+                        if is_active { p.text } else { p.text_dim },
+                    );
+                    if close_resp.hovered() {
+                        painter.rect_filled(close_r, 0.0, p.accent.gamma_multiply(0.35));
                     }
-                    if ui
-                        .small_button("×")
+                    painter.text(
+                        close_r.center(),
+                        egui::Align2::CENTER_CENTER,
+                        "×",
+                        egui::FontId::proportional(11.5),
+                        if close_resp.hovered() {
+                            p.text
+                        } else {
+                            p.text_dim
+                        },
+                    );
+                    if close_resp
                         .on_hover_text("Close Document Tab (Middle-Click or Ctrl+W)")
                         .clicked()
+                        || tab_resp.middle_clicked()
                     {
                         close_idx = Some(i);
+                    } else if tab_resp
+                        .on_hover_text("Left-click to switch tab · Middle-click to close tab")
+                        .clicked()
+                        && !is_active
+                    {
+                        switch_to = Some(i);
                     }
-                    ui.separator();
                 }
                 if ui
                     .small_button("+")
@@ -297,38 +388,78 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                 }
             });
 
-            // Row 2: Original | Preview | 2-Up | 4-Up + Page Selector
-            ui.horizontal(|ui| {
-                for (mode, label) in [
-                    (CanvasViewMode::Original, "Original"),
-                    (CanvasViewMode::Preview, "Preview"),
-                    (CanvasViewMode::TwoUp, "2-Up"),
-                    (CanvasViewMode::FourUp, "4-Up"),
-                ] {
-                    if ui.selectable_label(app.view_mode == mode, label).clicked() {
-                        app.view_mode = mode;
-                    }
-                }
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let page_count = app.doc.pages.len();
-                    let cur_page_name = app.doc.page().name.clone();
-                    egui::ComboBox::from_id_salt("canvas_page_selector")
-                        .width(95.0)
-                        .selected_text(cur_page_name)
-                        .show_ui(ui, |ui| {
-                            for pi in 0..page_count {
-                                let pname = app.doc.pages[pi].name.clone();
-                                if ui
-                                    .selectable_label(app.doc.current_page == pi, pname)
-                                    .clicked()
-                                {
-                                    app.doc.current_page = pi;
-                                    app.clear_selection();
-                                }
+            // Row 2: Original | Preview | 2-Up | 4-Up with CS6 view icons + Page Selector
+            egui::Frame::new()
+                .fill(p.panel)
+                .inner_margin(egui::Margin::symmetric(4, 2))
+                .show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.spacing_mut().item_spacing = Vec2::new(4.0, 0.0);
+                        for (mode, icon, label) in [
+                            (CanvasViewMode::Original, icons::Icon::Pen, "Original"),
+                            (CanvasViewMode::Preview, icons::Icon::Eye, "Preview"),
+                            (CanvasViewMode::TwoUp, icons::Icon::Slice, "2-Up"),
+                            (CanvasViewMode::FourUp, icons::Icon::Scale, "4-Up"),
+                        ] {
+                            let active = app.view_mode == mode;
+                            let w = 24.0 + label.len() as f32 * 5.8;
+                            let (r, resp) =
+                                ui.allocate_exact_size(Vec2::new(w, 19.0), egui::Sense::click());
+                            let painter = ui.painter();
+                            if active {
+                                painter.rect_filled(r, 0.0, p.selection.gamma_multiply(0.28));
+                                painter.rect_stroke(
+                                    r,
+                                    0.0,
+                                    egui::Stroke::new(1.0, p.selection),
+                                    egui::StrokeKind::Middle,
+                                );
+                            } else if resp.hovered() {
+                                painter.rect_filled(r, 0.0, p.well);
                             }
+                            let ic_r = egui::Rect::from_min_size(
+                                egui::pos2(r.left() + 3.0, r.top() + 2.0),
+                                Vec2::splat(15.0),
+                            );
+                            icons::draw(
+                                painter,
+                                ic_r,
+                                icon,
+                                if active { p.accent } else { p.text_dim },
+                                1.0,
+                            );
+                            painter.text(
+                                egui::pos2(ic_r.right() + 3.0, r.center().y),
+                                egui::Align2::LEFT_CENTER,
+                                label,
+                                egui::FontId::proportional(10.5),
+                                if active { p.text } else { p.text_dim },
+                            );
+                            if resp.clicked() {
+                                app.view_mode = mode;
+                            }
+                        }
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            let page_count = app.doc.pages.len();
+                            let cur_page_name = app.doc.page().name.clone();
+                            egui::ComboBox::from_id_salt("canvas_page_selector")
+                                .width(95.0)
+                                .selected_text(cur_page_name)
+                                .show_ui(ui, |ui| {
+                                    for pi in 0..page_count {
+                                        let pname = app.doc.pages[pi].name.clone();
+                                        if ui
+                                            .selectable_label(app.doc.current_page == pi, pname)
+                                            .clicked()
+                                        {
+                                            app.doc.current_page = pi;
+                                            app.clear_selection();
+                                        }
+                                    }
+                                });
                         });
+                    });
                 });
-            });
         });
 }
 
@@ -393,7 +524,7 @@ fn right_dock(ui: &mut Ui, app: &mut FireCraft) {
             G1_TABS,
             &mut g1,
             palette,
-            Some(142.0),
+            Some(182.0),
             |ui| match c1 {
                 0 => panels::optimize_panel(ui, app),
                 1 => panels::history_panel(ui, app),
@@ -415,7 +546,7 @@ fn right_dock(ui: &mut Ui, app: &mut FireCraft) {
             G2_TABS,
             &mut g2,
             palette,
-            Some(158.0),
+            Some(138.0),
             |ui| {
                 panels::pages_panel(ui, app);
             },
@@ -434,7 +565,7 @@ fn right_dock(ui: &mut Ui, app: &mut FireCraft) {
             G3_TABS,
             &mut g3,
             palette,
-            Some(146.0),
+            Some(142.0),
             |ui| match c3 {
                 0 => panels::styles_panel(ui, app),
                 1 => panels::color_panel(ui, app),
@@ -456,7 +587,7 @@ fn right_dock(ui: &mut Ui, app: &mut FireCraft) {
             G4_TABS,
             &mut g4,
             palette,
-            Some(115.0),
+            Some(108.0),
             |ui| {
                 panels::library_panel(ui, app);
             },

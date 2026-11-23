@@ -37,6 +37,7 @@ fn main() {
     if args.len() > 1
         && !args[1].starts_with("--screenshot")
         && args[1] != "--demo"
+        && args[1] != "--tab"
         && let Some(code) = mcp::try_run_cli(&args)
     {
         std::process::exit(code);
@@ -44,11 +45,16 @@ fn main() {
 
     let mut screenshot_path: Option<String> = None;
     let mut load_demo = false;
+    let mut initial_top_tab: Option<usize> = None;
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
             "--screenshot" if i + 1 < args.len() => {
                 screenshot_path = Some(args[i + 1].clone());
+                i += 2;
+            }
+            "--tab" if i + 1 < args.len() => {
+                initial_top_tab = args[i + 1].parse::<usize>().ok();
                 i += 2;
             }
             "--demo" => {
@@ -88,6 +94,9 @@ fn main() {
             let mut fc = app::FireCraft::new(path_for_closure.clone());
             if load_demo {
                 fc.load_demo_showcase();
+            }
+            if let Some(t) = initial_top_tab {
+                fc.top_right_tab = t.min(3);
             }
             Ok(Box::new(fc))
         }),

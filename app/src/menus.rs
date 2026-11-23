@@ -36,22 +36,28 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
         ui.separator();
         if ui
             .small_button("Br")
-            .on_hover_text("Browse in Bridge / Open File Browser")
+            .on_hover_text("Browse in Bridge / Open File Browser (Ctrl+Alt+O)")
             .clicked()
         {
             app.begin_file_dialog(FileMode::Open);
         }
-        if ui
-            .selectable_label(app.tool == Tool::Hand, "Hand")
-            .on_hover_text("Hand Tool (H)")
-            .clicked()
+        if crate::canvas::tool_button(
+            ui,
+            crate::icons::Icon::Hand,
+            app.tool == Tool::Hand,
+            "Hand Tool (H)",
+        )
+        .clicked()
         {
             app.tool = Tool::Hand;
         }
-        if ui
-            .selectable_label(app.tool == Tool::Zoom, "Zoom")
-            .on_hover_text("Zoom Tool (Z)")
-            .clicked()
+        if crate::canvas::tool_button(
+            ui,
+            crate::icons::Icon::Zoom,
+            app.tool == Tool::Zoom,
+            "Zoom Tool (Z)",
+        )
+        .clicked()
         {
             app.tool = Tool::Zoom;
         }
@@ -60,6 +66,12 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
             .width(68.0)
             .selected_text(format!("{:.0}%", app.doc.zoom * 100.0))
             .show_ui(ui, |ui| {
+                ui.label(
+                    egui::RichText::new("Zoom Level")
+                        .small()
+                        .color(app.palette.text_dim),
+                );
+                ui.separator();
                 for &preset in constants::ZOOM_PRESETS {
                     let lbl = format!("{:.0}%", preset * 100.0);
                     if ui
@@ -73,25 +85,64 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
 
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             egui::ComboBox::from_id_salt("workspace_mode_combo")
-                .width(115.0)
-                .selected_text(if app.show_right_dock {
+                .width(122.0)
+                .selected_text(if app.show_right_dock && app.show_bottom_inspector {
                     "Expanded Mode"
+                } else if !app.show_right_dock && app.show_bottom_inspector {
+                    "Iconic Mode"
                 } else {
-                    "Compact Mode"
+                    "Netbook Mode"
                 })
                 .show_ui(ui, |ui| {
                     if ui
-                        .selectable_label(app.show_right_dock, "Expanded Mode")
+                        .selectable_label(
+                            app.show_right_dock && app.show_bottom_inspector,
+                            "Expanded Mode",
+                        )
                         .clicked()
                     {
+                        app.show_tools_dock = true;
                         app.show_right_dock = true;
                         app.show_bottom_inspector = true;
+                        app.status = "Workspace set to Expanded Mode".to_string();
                     }
                     if ui
-                        .selectable_label(!app.show_right_dock, "Compact Mode")
+                        .selectable_label(
+                            !app.show_right_dock && app.show_bottom_inspector,
+                            "Iconic Mode",
+                        )
                         .clicked()
                     {
+                        app.show_tools_dock = true;
                         app.show_right_dock = false;
+                        app.show_bottom_inspector = true;
+                        app.status = "Workspace set to Iconic Mode".to_string();
+                    }
+                    if ui
+                        .selectable_label(false, "Iconic Mode With Panel Names")
+                        .clicked()
+                    {
+                        app.show_tools_dock = true;
+                        app.show_right_dock = true;
+                        app.show_bottom_inspector = true;
+                        app.status = "Workspace set to Iconic Mode With Panel Names".to_string();
+                    }
+                    if ui
+                        .selectable_label(
+                            !app.show_right_dock && !app.show_bottom_inspector,
+                            "Netbook Mode",
+                        )
+                        .clicked()
+                    {
+                        app.show_tools_dock = true;
+                        app.show_right_dock = false;
+                        app.show_bottom_inspector = false;
+                        app.status = "Workspace set to Netbook Mode".to_string();
+                    }
+                    ui.separator();
+                    if ui.button("Save Current").clicked() {
+                        app.status = "Saved current workspace layout".to_string();
+                        ui.close();
                     }
                 });
 

@@ -49,6 +49,93 @@ pub enum Icon {
     ZoomIn,
     ZoomOut,
     Fit,
+    Group,
+    Ungroup,
+    BringFront,
+    BringForward,
+    SendBackward,
+    SendBack,
+    RotateCCW,
+    RotateCW,
+    FlipH,
+    FlipV,
+    Eye,
+    EyeOff,
+    Lock,
+    Unlock,
+    Trash,
+    Folder,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum AlignIcon {
+    RelativeToObject,
+    RelativeToCanvas,
+    AlignLeft,
+    AlignCenterH,
+    AlignRight,
+    AlignTop,
+    AlignCenterV,
+    AlignBottom,
+    DistributeTop,
+    DistributeCenterV,
+    DistributeBottom,
+    DistributeLeft,
+    DistributeCenterH,
+    DistributeRight,
+    MatchWidth,
+    MatchHeight,
+    MatchBoth,
+    SpaceVertical,
+    SpaceHorizontal,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum PathIcon {
+    // Combine Paths (6)
+    Join,
+    Split,
+    Union,
+    Intersect,
+    Punch,
+    Crop,
+    // Alter Paths Row 1 (7)
+    Simplify,
+    ExpandStroke,
+    InsetExpand,
+    HardEdge,
+    AntiAlias,
+    FeatherEdge,
+    StrokeToFill,
+    // Alter Paths Row 2 (6)
+    ReverseDirection,
+    ClosePath,
+    OpenPath,
+    PathToMarquee,
+    SnapToPixel,
+    FlattenPath,
+    // Edit Points Row 1 (7)
+    AddPoints,
+    DeletePoints,
+    CornerPoint,
+    SmoothPoint,
+    RoundPoints,
+    FilletPoints,
+    ChamferPoints,
+    // Edit Points Row 2 (7)
+    BreakPath,
+    JoinPoints,
+    AlignPointsH,
+    AlignPointsV,
+    KnifeSplit,
+    ExtendPath,
+    SharpApex,
+    // Select Points Row 1 (5)
+    InversePoints,
+    SelectAllPoints,
+    FirstPoint,
+    PrevPoint,
+    NextPoint,
 }
 
 fn stroke_of(c: Color32, w: f32) -> Stroke {
@@ -557,6 +644,869 @@ pub fn draw(painter: &Painter, rect: Rect, icon: Icon, color: Color32, width: f3
         Icon::Fit => {
             painter.rect_stroke(r, 0.0, st, egui::StrokeKind::Middle);
             painter.line_segment([pos2(cx - u * 0.45, cy), pos2(cx + u * 0.45, cy)], st);
+        }
+        Icon::Group => {
+            let b1 = Rect::from_min_size(
+                pos2(cx - u * 0.75, cy - u * 0.75),
+                Vec2::new(u * 0.85, u * 0.85),
+            );
+            let b2 = Rect::from_min_size(
+                pos2(cx - u * 0.05, cy - u * 0.05),
+                Vec2::new(u * 0.85, u * 0.85),
+            );
+            painter.rect_stroke(b1, 0.0, st, egui::StrokeKind::Middle);
+            painter.rect_filled(b2, 0.0, color.gamma_multiply(0.35));
+            painter.rect_stroke(b2, 0.0, st, egui::StrokeKind::Middle);
+            for pt in [
+                r.left_top(),
+                r.right_top(),
+                r.left_bottom(),
+                r.right_bottom(),
+            ] {
+                painter.rect_filled(Rect::from_center_size(pt, Vec2::splat(2.4)), 0.0, color);
+            }
+        }
+        Icon::Ungroup => {
+            let b1 = Rect::from_min_size(
+                pos2(cx - u * 0.85, cy - u * 0.85),
+                Vec2::new(u * 0.72, u * 0.72),
+            );
+            let b2 = Rect::from_min_size(
+                pos2(cx + u * 0.12, cy + u * 0.12),
+                Vec2::new(u * 0.72, u * 0.72),
+            );
+            painter.rect_stroke(b1, 0.0, st, egui::StrokeKind::Middle);
+            painter.rect_stroke(b2, 0.0, st, egui::StrokeKind::Middle);
+            painter.line_segment(
+                [
+                    pos2(cx - u * 0.25, cy + u * 0.25),
+                    pos2(cx + u * 0.25, cy - u * 0.25),
+                ],
+                st,
+            );
+        }
+        Icon::BringFront => {
+            let back = Rect::from_min_size(
+                pos2(cx - u * 0.75, cy - u * 0.75),
+                Vec2::new(u * 0.9, u * 0.9),
+            );
+            let front = Rect::from_min_size(
+                pos2(cx - u * 0.1, cy - u * 0.1),
+                Vec2::new(u * 0.9, u * 0.9),
+            );
+            painter.rect_stroke(back, 0.0, st, egui::StrokeKind::Middle);
+            painter.rect_filled(front, 0.0, color);
+        }
+        Icon::BringForward => {
+            let back = Rect::from_min_size(
+                pos2(cx - u * 0.75, cy - u * 0.75),
+                Vec2::new(u * 0.85, u * 0.85),
+            );
+            let front = Rect::from_min_size(
+                pos2(cx - u * 0.1, cy - u * 0.1),
+                Vec2::new(u * 0.85, u * 0.85),
+            );
+            painter.rect_stroke(back, 0.0, st, egui::StrokeKind::Middle);
+            painter.rect_filled(front, 0.0, color.gamma_multiply(0.55));
+            painter.rect_stroke(front, 0.0, st, egui::StrokeKind::Middle);
+        }
+        Icon::SendBackward => {
+            let back = Rect::from_min_size(
+                pos2(cx - u * 0.75, cy - u * 0.75),
+                Vec2::new(u * 0.85, u * 0.85),
+            );
+            let front = Rect::from_min_size(
+                pos2(cx - u * 0.1, cy - u * 0.1),
+                Vec2::new(u * 0.85, u * 0.85),
+            );
+            painter.rect_filled(back, 0.0, color.gamma_multiply(0.55));
+            painter.rect_stroke(back, 0.0, st, egui::StrokeKind::Middle);
+            painter.rect_stroke(front, 0.0, st, egui::StrokeKind::Middle);
+        }
+        Icon::SendBack => {
+            let back = Rect::from_min_size(
+                pos2(cx - u * 0.75, cy - u * 0.75),
+                Vec2::new(u * 0.9, u * 0.9),
+            );
+            let front = Rect::from_min_size(
+                pos2(cx - u * 0.1, cy - u * 0.1),
+                Vec2::new(u * 0.9, u * 0.9),
+            );
+            painter.rect_filled(back, 0.0, color);
+            painter.rect_stroke(front, 0.0, st, egui::StrokeKind::Middle);
+        }
+        Icon::RotateCCW => {
+            painter.add(egui::Shape::line(
+                arc_points(pos2(cx, cy + u * 0.1), u * 0.62, 0.0, 4.4, 12),
+                st,
+            ));
+            painter.add(egui::Shape::convex_polygon(
+                vec![
+                    pos2(cx - u * 0.65, cy - u * 0.1),
+                    pos2(cx - u * 0.25, cy - u * 0.35),
+                    pos2(cx - u * 0.25, cy + u * 0.15),
+                ],
+                color,
+                Stroke::NONE,
+            ));
+        }
+        Icon::RotateCW => {
+            painter.add(egui::Shape::line(
+                arc_points(
+                    pos2(cx, cy + u * 0.1),
+                    u * 0.62,
+                    -1.3,
+                    std::f32::consts::PI,
+                    12,
+                ),
+                st,
+            ));
+            painter.add(egui::Shape::convex_polygon(
+                vec![
+                    pos2(cx + u * 0.65, cy - u * 0.1),
+                    pos2(cx + u * 0.25, cy - u * 0.35),
+                    pos2(cx + u * 0.25, cy + u * 0.15),
+                ],
+                color,
+                Stroke::NONE,
+            ));
+        }
+        Icon::FlipH => {
+            painter.line_segment([pos2(cx, cy - u * 0.85), pos2(cx, cy + u * 0.85)], st);
+            painter.add(egui::Shape::convex_polygon(
+                vec![
+                    pos2(cx - u * 0.2, cy - u * 0.55),
+                    pos2(cx - u * 0.85, cy + u * 0.55),
+                    pos2(cx - u * 0.2, cy + u * 0.55),
+                ],
+                color,
+                Stroke::NONE,
+            ));
+            painter.add(egui::Shape::closed_line(
+                vec![
+                    pos2(cx + u * 0.2, cy - u * 0.55),
+                    pos2(cx + u * 0.85, cy + u * 0.55),
+                    pos2(cx + u * 0.2, cy + u * 0.55),
+                ],
+                st,
+            ));
+        }
+        Icon::FlipV => {
+            painter.line_segment([pos2(cx - u * 0.85, cy), pos2(cx + u * 0.85, cy)], st);
+            painter.add(egui::Shape::convex_polygon(
+                vec![
+                    pos2(cx - u * 0.55, cy - u * 0.2),
+                    pos2(cx + u * 0.55, cy - u * 0.85),
+                    pos2(cx + u * 0.55, cy - u * 0.2),
+                ],
+                color,
+                Stroke::NONE,
+            ));
+            painter.add(egui::Shape::closed_line(
+                vec![
+                    pos2(cx - u * 0.55, cy + u * 0.2),
+                    pos2(cx + u * 0.55, cy + u * 0.85),
+                    pos2(cx + u * 0.55, cy + u * 0.2),
+                ],
+                st,
+            ));
+        }
+        Icon::Eye => {
+            painter.add(egui::Shape::ellipse_stroke(
+                pos2(cx, cy),
+                Vec2::new(u * 0.85, u * 0.48),
+                st,
+            ));
+            painter.circle_filled(pos2(cx, cy), u * 0.24, color);
+        }
+        Icon::EyeOff => {
+            painter.add(egui::Shape::ellipse_stroke(
+                pos2(cx, cy),
+                Vec2::new(u * 0.85, u * 0.45),
+                Stroke::new(1.0, color.gamma_multiply(0.45)),
+            ));
+            painter.line_segment(
+                [
+                    pos2(cx - u * 0.7, cy + u * 0.55),
+                    pos2(cx + u * 0.7, cy - u * 0.55),
+                ],
+                Stroke::new(1.0, color.gamma_multiply(0.55)),
+            );
+        }
+        Icon::Lock => {
+            let body = Rect::from_center_size(pos2(cx, cy + u * 0.25), Vec2::new(u * 1.1, u * 0.8));
+            painter.rect_filled(body, 1.0, color);
+            painter.add(egui::Shape::line(
+                arc_points(
+                    pos2(cx, cy - u * 0.15),
+                    u * 0.35,
+                    std::f32::consts::PI,
+                    std::f32::consts::TAU,
+                    8,
+                ),
+                st,
+            ));
+        }
+        Icon::Unlock => {
+            let body = Rect::from_center_size(pos2(cx, cy + u * 0.25), Vec2::new(u * 1.1, u * 0.8));
+            painter.rect_stroke(
+                body,
+                1.0,
+                Stroke::new(1.0, color.gamma_multiply(0.45)),
+                egui::StrokeKind::Middle,
+            );
+        }
+        Icon::Trash => {
+            painter.line_segment(
+                [
+                    pos2(cx - u * 0.65, cy - u * 0.5),
+                    pos2(cx + u * 0.65, cy - u * 0.5),
+                ],
+                st,
+            );
+            painter.rect_stroke(
+                Rect::from_center_size(pos2(cx, cy + u * 0.15), Vec2::new(u * 0.95, u * 1.15)),
+                0.0,
+                st,
+                egui::StrokeKind::Middle,
+            );
+            painter.line_segment([pos2(cx, cy - u * 0.25), pos2(cx, cy + u * 0.5)], st);
+        }
+        Icon::Folder => {
+            painter.add(egui::Shape::closed_line(
+                vec![
+                    pos2(cx - u * 0.85, cy + u * 0.6),
+                    pos2(cx - u * 0.85, cy - u * 0.45),
+                    pos2(cx - u * 0.2, cy - u * 0.45),
+                    pos2(cx - u * 0.05, cy - u * 0.2),
+                    pos2(cx + u * 0.85, cy - u * 0.2),
+                    pos2(cx + u * 0.85, cy + u * 0.6),
+                ],
+                st,
+            ));
+        }
+    }
+}
+
+/// Draws authentic Fireworks CS6 Align panel icons (`screenshots/Fireworks_Layout_Design.jpg`).
+pub fn draw_align(painter: &Painter, rect: Rect, icon: AlignIcon, color: Color32) {
+    let r = rect.shrink(2.5);
+    let cx = r.center().x;
+    let cy = r.center().y;
+    let st = Stroke::new(1.15, color);
+    let fill_dim = color.gamma_multiply(0.42);
+    let draw_box = |b: Rect, filled: bool| {
+        if filled {
+            painter.rect_filled(b, 0.0, fill_dim);
+        }
+        painter.rect_stroke(b, 0.0, Stroke::new(1.0, color), egui::StrokeKind::Middle);
+    };
+
+    match icon {
+        AlignIcon::RelativeToObject => {
+            let box_r = r.shrink(2.0);
+            painter.rect_stroke(box_r, 0.0, st, egui::StrokeKind::Middle);
+            for pt in [
+                box_r.left_top(),
+                box_r.right_top(),
+                box_r.left_bottom(),
+                box_r.right_bottom(),
+            ] {
+                painter.rect_filled(Rect::from_center_size(pt, Vec2::splat(2.5)), 0.0, color);
+            }
+        }
+        AlignIcon::RelativeToCanvas => {
+            painter.rect_stroke(r, 0.0, st, egui::StrokeKind::Middle);
+            painter.rect_filled(r.shrink(2.5), 0.0, fill_dim);
+            painter.line_segment([pos2(r.left(), cy), pos2(r.right(), cy)], st);
+            painter.line_segment([pos2(cx, r.top()), pos2(cx, r.bottom())], st);
+        }
+        AlignIcon::AlignLeft => {
+            let x = r.left() + 1.0;
+            painter.line_segment([pos2(x, r.top()), pos2(x, r.bottom())], st);
+            draw_box(
+                Rect::from_min_size(pos2(x + 2.0, cy - 5.0), Vec2::new(9.5, 4.0)),
+                true,
+            );
+            draw_box(
+                Rect::from_min_size(pos2(x + 2.0, cy + 1.0), Vec2::new(6.0, 4.0)),
+                false,
+            );
+        }
+        AlignIcon::AlignCenterH => {
+            painter.line_segment([pos2(cx, r.top()), pos2(cx, r.bottom())], st);
+            draw_box(
+                Rect::from_center_size(pos2(cx, cy - 3.0), Vec2::new(11.0, 4.0)),
+                true,
+            );
+            draw_box(
+                Rect::from_center_size(pos2(cx, cy + 3.0), Vec2::new(6.5, 4.0)),
+                false,
+            );
+        }
+        AlignIcon::AlignRight => {
+            let x = r.right() - 1.0;
+            painter.line_segment([pos2(x, r.top()), pos2(x, r.bottom())], st);
+            draw_box(
+                Rect::from_min_size(pos2(x - 11.5, cy - 5.0), Vec2::new(9.5, 4.0)),
+                true,
+            );
+            draw_box(
+                Rect::from_min_size(pos2(x - 8.0, cy + 1.0), Vec2::new(6.0, 4.0)),
+                false,
+            );
+        }
+        AlignIcon::AlignTop => {
+            let y = r.top() + 1.0;
+            painter.line_segment([pos2(r.left(), y), pos2(r.right(), y)], st);
+            draw_box(
+                Rect::from_min_size(pos2(cx - 5.0, y + 2.0), Vec2::new(4.0, 9.5)),
+                true,
+            );
+            draw_box(
+                Rect::from_min_size(pos2(cx + 1.0, y + 2.0), Vec2::new(4.0, 6.0)),
+                false,
+            );
+        }
+        AlignIcon::AlignCenterV => {
+            painter.line_segment([pos2(r.left(), cy), pos2(r.right(), cy)], st);
+            draw_box(
+                Rect::from_center_size(pos2(cx - 3.0, cy), Vec2::new(4.0, 11.0)),
+                true,
+            );
+            draw_box(
+                Rect::from_center_size(pos2(cx + 3.0, cy), Vec2::new(4.0, 6.5)),
+                false,
+            );
+        }
+        AlignIcon::AlignBottom => {
+            let y = r.bottom() - 1.0;
+            painter.line_segment([pos2(r.left(), y), pos2(r.right(), y)], st);
+            draw_box(
+                Rect::from_min_size(pos2(cx - 5.0, y - 11.5), Vec2::new(4.0, 9.5)),
+                true,
+            );
+            draw_box(
+                Rect::from_min_size(pos2(cx + 1.0, y - 8.0), Vec2::new(4.0, 6.0)),
+                false,
+            );
+        }
+        AlignIcon::DistributeTop => {
+            let y1 = r.top() + 1.5;
+            let y2 = cy + 0.5;
+            painter.line_segment([pos2(r.left(), y1), pos2(r.right(), y1)], st);
+            painter.line_segment([pos2(r.left(), y2), pos2(r.right(), y2)], st);
+            draw_box(
+                Rect::from_min_size(pos2(cx - 4.5, y1), Vec2::new(9.0, 3.8)),
+                true,
+            );
+            draw_box(
+                Rect::from_min_size(pos2(cx - 3.0, y2), Vec2::new(6.0, 4.2)),
+                false,
+            );
+        }
+        AlignIcon::DistributeCenterV => {
+            let y1 = cy - 3.5;
+            let y2 = cy + 3.5;
+            painter.line_segment([pos2(r.left(), y1), pos2(r.right(), y1)], st);
+            painter.line_segment([pos2(r.left(), y2), pos2(r.right(), y2)], st);
+            draw_box(
+                Rect::from_center_size(pos2(cx, y1), Vec2::new(9.5, 4.0)),
+                true,
+            );
+            draw_box(
+                Rect::from_center_size(pos2(cx, y2), Vec2::new(6.5, 4.0)),
+                false,
+            );
+        }
+        AlignIcon::DistributeBottom => {
+            let y1 = cy - 0.5;
+            let y2 = r.bottom() - 1.5;
+            painter.line_segment([pos2(r.left(), y1), pos2(r.right(), y1)], st);
+            painter.line_segment([pos2(r.left(), y2), pos2(r.right(), y2)], st);
+            draw_box(
+                Rect::from_min_size(pos2(cx - 4.5, y1 - 4.0), Vec2::new(9.0, 4.0)),
+                true,
+            );
+            draw_box(
+                Rect::from_min_size(pos2(cx - 3.0, y2 - 4.0), Vec2::new(6.0, 4.0)),
+                false,
+            );
+        }
+        AlignIcon::DistributeLeft => {
+            let x1 = r.left() + 1.5;
+            let x2 = cx + 0.5;
+            painter.line_segment([pos2(x1, r.top()), pos2(x1, r.bottom())], st);
+            painter.line_segment([pos2(x2, r.top()), pos2(x2, r.bottom())], st);
+            draw_box(
+                Rect::from_min_size(pos2(x1, cy - 4.5), Vec2::new(4.0, 9.0)),
+                true,
+            );
+            draw_box(
+                Rect::from_min_size(pos2(x2, cy - 3.0), Vec2::new(4.0, 6.0)),
+                false,
+            );
+        }
+        AlignIcon::DistributeCenterH => {
+            let x1 = cy_offset(cx, -3.5);
+            let x2 = cy_offset(cx, 3.5);
+            painter.line_segment([pos2(x1, r.top()), pos2(x1, r.bottom())], st);
+            painter.line_segment([pos2(x2, r.top()), pos2(x2, r.bottom())], st);
+            draw_box(
+                Rect::from_center_size(pos2(x1, cy), Vec2::new(4.0, 9.5)),
+                true,
+            );
+            draw_box(
+                Rect::from_center_size(pos2(x2, cy), Vec2::new(4.0, 6.5)),
+                false,
+            );
+        }
+        AlignIcon::DistributeRight => {
+            let x1 = cx - 0.5;
+            let x2 = r.right() - 1.5;
+            painter.line_segment([pos2(x1, r.top()), pos2(x1, r.bottom())], st);
+            painter.line_segment([pos2(x2, r.top()), pos2(x2, r.bottom())], st);
+            draw_box(
+                Rect::from_min_size(pos2(x1 - 4.0, cy - 4.5), Vec2::new(4.0, 9.0)),
+                true,
+            );
+            draw_box(
+                Rect::from_min_size(pos2(x2 - 4.0, cy - 3.0), Vec2::new(4.0, 6.0)),
+                false,
+            );
+        }
+        AlignIcon::MatchWidth => {
+            draw_box(
+                Rect::from_center_size(pos2(cx, cy - 3.0), Vec2::new(11.0, 4.0)),
+                true,
+            );
+            draw_box(
+                Rect::from_center_size(pos2(cx, cy + 3.0), Vec2::new(11.0, 4.0)),
+                false,
+            );
+            painter.line_segment(
+                [pos2(cx - 5.5, r.top() + 0.5), pos2(cx + 5.5, r.top() + 0.5)],
+                st,
+            );
+        }
+        AlignIcon::MatchHeight => {
+            draw_box(
+                Rect::from_center_size(pos2(cx - 3.0, cy), Vec2::new(4.0, 11.0)),
+                true,
+            );
+            draw_box(
+                Rect::from_center_size(pos2(cx + 3.0, cy), Vec2::new(4.0, 11.0)),
+                false,
+            );
+            painter.line_segment(
+                [
+                    pos2(r.left() + 0.5, cy - 5.5),
+                    pos2(r.left() + 0.5, cy + 5.5),
+                ],
+                st,
+            );
+        }
+        AlignIcon::MatchBoth => {
+            draw_box(
+                Rect::from_min_size(pos2(cx - 5.5, cy - 5.5), Vec2::new(7.0, 7.0)),
+                true,
+            );
+            draw_box(
+                Rect::from_min_size(pos2(cx - 1.5, cy - 1.5), Vec2::new(7.0, 7.0)),
+                false,
+            );
+        }
+        AlignIcon::SpaceVertical => {
+            draw_box(
+                Rect::from_center_size(pos2(cx, r.top() + 2.5), Vec2::new(10.0, 3.5)),
+                true,
+            );
+            draw_box(
+                Rect::from_center_size(pos2(cx, r.bottom() - 2.5), Vec2::new(10.0, 3.5)),
+                false,
+            );
+            painter.line_segment([pos2(cx, cy - 2.0), pos2(cx, cy + 2.0)], st);
+        }
+        AlignIcon::SpaceHorizontal => {
+            draw_box(
+                Rect::from_center_size(pos2(r.left() + 2.5, cy), Vec2::new(3.5, 10.0)),
+                true,
+            );
+            draw_box(
+                Rect::from_center_size(pos2(r.right() - 2.5, cy), Vec2::new(3.5, 10.0)),
+                false,
+            );
+            painter.line_segment([pos2(cx - 2.0, cy), pos2(cx + 2.0, cy)], st);
+        }
+    }
+}
+
+#[inline]
+fn cy_offset(base: f32, d: f32) -> f32 {
+    base + d
+}
+
+/// Draws authentic Fireworks CS6 Path panel icons (`screenshots/Fireworks_Layout_Design.jpg`).
+pub fn draw_path(painter: &Painter, rect: Rect, icon: PathIcon, color: Color32) {
+    let r = rect.shrink(2.5);
+    let cx = r.center().x;
+    let cy = r.center().y;
+    let st = Stroke::new(1.1, color);
+    let fill_dim = color.gamma_multiply(0.42);
+    let fill_bright = color.gamma_multiply(0.75);
+    let b1 = Rect::from_min_size(pos2(cx - 6.0, cy - 5.5), Vec2::new(7.5, 7.5));
+    let b2 = Rect::from_min_size(pos2(cx - 1.5, cy - 1.5), Vec2::new(7.5, 7.5));
+    let node = |p: Pos2| {
+        painter.rect_filled(Rect::from_center_size(p, Vec2::splat(2.6)), 0.0, color);
+    };
+
+    match icon {
+        // ---- Combine Paths (6) ----------------------------------------------
+        PathIcon::Join => {
+            painter.rect_stroke(b1, 0.0, st, egui::StrokeKind::Middle);
+            painter.rect_stroke(b2, 0.0, st, egui::StrokeKind::Middle);
+            node(b1.left_top());
+            node(b2.right_bottom());
+        }
+        PathIcon::Split => {
+            let s1 = Rect::from_min_size(pos2(cx - 6.5, cy - 6.0), Vec2::new(5.5, 5.5));
+            let s2 = Rect::from_min_size(pos2(cx + 1.0, cy + 0.5), Vec2::new(5.5, 5.5));
+            painter.rect_stroke(s1, 0.0, st, egui::StrokeKind::Middle);
+            painter.rect_stroke(s2, 0.0, st, egui::StrokeKind::Middle);
+        }
+        PathIcon::Union => {
+            painter.rect_filled(b1, 0.0, fill_dim);
+            painter.rect_filled(b2, 0.0, fill_dim);
+            painter.add(egui::Shape::closed_line(
+                vec![
+                    b1.left_top(),
+                    pos2(b1.right(), b1.top()),
+                    pos2(b1.right(), b2.top()),
+                    b2.right_top(),
+                    b2.right_bottom(),
+                    pos2(b2.left(), b2.bottom()),
+                    pos2(b2.left(), b1.bottom()),
+                    b1.left_bottom(),
+                ],
+                st,
+            ));
+        }
+        PathIcon::Intersect => {
+            painter.rect_stroke(b1, 0.0, st, egui::StrokeKind::Middle);
+            painter.rect_stroke(b2, 0.0, st, egui::StrokeKind::Middle);
+            let inter = b1.intersect(b2);
+            painter.rect_filled(inter, 0.0, fill_bright);
+        }
+        PathIcon::Punch => {
+            painter.rect_filled(b1, 0.0, fill_bright);
+            painter.rect_stroke(b1, 0.0, st, egui::StrokeKind::Middle);
+            painter.rect_filled(b2, 0.0, Color32::from_black_alpha(160));
+            painter.rect_stroke(b2, 0.0, st, egui::StrokeKind::Middle);
+        }
+        PathIcon::Crop => {
+            let inter = b1.intersect(b2);
+            painter.rect_filled(inter, 0.0, fill_bright);
+            painter.rect_stroke(inter.expand(1.5), 0.0, st, egui::StrokeKind::Middle);
+        }
+        // ---- Alter Paths Row 1 (7) ------------------------------------------
+        PathIcon::Simplify => {
+            painter.add(egui::Shape::line(
+                vec![
+                    pos2(r.left(), cy + 3.0),
+                    pos2(cx - 2.5, cy - 4.0),
+                    pos2(cx + 2.5, cy + 4.0),
+                    pos2(r.right(), cy - 3.0),
+                ],
+                st,
+            ));
+            node(pos2(cx, cy));
+        }
+        PathIcon::ExpandStroke => {
+            painter.rect_filled(
+                Rect::from_center_size(pos2(cx, cy), Vec2::new(11.0, 5.0)),
+                0.0,
+                fill_dim,
+            );
+            painter.rect_stroke(
+                Rect::from_center_size(pos2(cx, cy), Vec2::new(11.0, 5.0)),
+                0.0,
+                st,
+                egui::StrokeKind::Middle,
+            );
+            painter.line_segment([pos2(cx - 4.5, cy), pos2(cx + 4.5, cy)], st);
+        }
+        PathIcon::InsetExpand => {
+            painter.rect_stroke(r.shrink(0.5), 0.0, st, egui::StrokeKind::Middle);
+            painter.rect_stroke(r.shrink(3.5), 0.0, st, egui::StrokeKind::Middle);
+        }
+        PathIcon::HardEdge => {
+            painter.add(egui::Shape::ellipse_filled(
+                pos2(cx, cy),
+                Vec2::splat(5.0),
+                fill_bright,
+            ));
+            painter.circle_stroke(pos2(cx, cy), 5.0, st);
+        }
+        PathIcon::AntiAlias => {
+            painter.circle_filled(pos2(cx, cy), 5.5, fill_dim);
+            painter.circle_filled(pos2(cx, cy), 3.5, fill_bright);
+        }
+        PathIcon::FeatherEdge => {
+            painter.circle_stroke(pos2(cx, cy), 5.5, Stroke::new(0.8, fill_dim));
+            painter.circle_filled(pos2(cx, cy), 3.0, fill_bright);
+        }
+        PathIcon::StrokeToFill => {
+            painter.rect_stroke(r.shrink(1.5), 1.5, st, egui::StrokeKind::Middle);
+            painter.rect_filled(r.shrink(4.0), 0.0, fill_bright);
+        }
+        // ---- Alter Paths Row 2 (6) ------------------------------------------
+        PathIcon::ReverseDirection => {
+            painter.line_segment([pos2(r.left() + 1.0, cy), pos2(r.right() - 1.0, cy)], st);
+            painter.line_segment(
+                [pos2(r.left() + 1.0, cy), pos2(r.left() + 4.5, cy - 3.5)],
+                st,
+            );
+            painter.line_segment(
+                [pos2(r.right() - 1.0, cy), pos2(r.right() - 4.5, cy + 3.5)],
+                st,
+            );
+        }
+        PathIcon::ClosePath => {
+            painter.add(egui::Shape::closed_line(
+                vec![
+                    pos2(cx - 5.0, cy + 4.0),
+                    pos2(cx, cy - 5.0),
+                    pos2(cx + 5.0, cy + 4.0),
+                ],
+                st,
+            ));
+            node(pos2(cx, cy - 5.0));
+        }
+        PathIcon::OpenPath => {
+            painter.add(egui::Shape::line(
+                vec![
+                    pos2(cx - 5.0, cy + 4.0),
+                    pos2(cx, cy - 5.0),
+                    pos2(cx + 5.0, cy + 4.0),
+                ],
+                st,
+            ));
+            node(pos2(cx - 5.0, cy + 4.0));
+            node(pos2(cx + 5.0, cy + 4.0));
+        }
+        PathIcon::PathToMarquee => {
+            for i in 0..4 {
+                let x = r.left() + i as f32 * 3.2;
+                painter.line_segment([pos2(x, r.top() + 1.0), pos2(x + 1.8, r.top() + 1.0)], st);
+                painter.line_segment(
+                    [pos2(x, r.bottom() - 1.0), pos2(x + 1.8, r.bottom() - 1.0)],
+                    st,
+                );
+            }
+            painter.line_segment(
+                [
+                    pos2(r.left() + 1.0, r.top() + 2.0),
+                    pos2(r.left() + 1.0, r.bottom() - 2.0),
+                ],
+                st,
+            );
+            painter.line_segment(
+                [
+                    pos2(r.right() - 1.0, r.top() + 2.0),
+                    pos2(r.right() - 1.0, r.bottom() - 2.0),
+                ],
+                st,
+            );
+        }
+        PathIcon::SnapToPixel => {
+            painter.line_segment([pos2(r.left(), cy), pos2(r.right(), cy)], st);
+            painter.line_segment([pos2(cx, r.top()), pos2(cx, r.bottom())], st);
+            node(pos2(cx, cy));
+        }
+        PathIcon::FlattenPath => {
+            painter.line_segment(
+                [
+                    pos2(r.left() + 1.0, cy + 3.0),
+                    pos2(r.right() - 1.0, cy + 3.0),
+                ],
+                st,
+            );
+            painter.rect_filled(
+                Rect::from_center_size(pos2(cx, cy - 1.5), Vec2::new(8.0, 5.0)),
+                0.0,
+                fill_bright,
+            );
+        }
+        // ---- Edit Points Row 1 (7) ------------------------------------------
+        PathIcon::AddPoints => {
+            painter.line_segment([pos2(r.left(), cy + 2.0), pos2(r.right(), cy + 2.0)], st);
+            node(pos2(cx, cy + 2.0));
+            painter.line_segment([pos2(cx, cy - 5.5), pos2(cx, cy - 1.5)], st);
+            painter.line_segment([pos2(cx - 2.0, cy - 3.5), pos2(cx + 2.0, cy - 3.5)], st);
+        }
+        PathIcon::DeletePoints => {
+            painter.line_segment([pos2(r.left(), cy + 2.0), pos2(r.right(), cy + 2.0)], st);
+            node(pos2(cx, cy + 2.0));
+            painter.line_segment([pos2(cx - 2.5, cy - 3.5), pos2(cx + 2.5, cy - 3.5)], st);
+        }
+        PathIcon::CornerPoint => {
+            painter.add(egui::Shape::line(
+                vec![
+                    pos2(r.left() + 1.0, cy + 4.5),
+                    pos2(cx, cy - 4.5),
+                    pos2(r.right() - 1.0, cy + 4.5),
+                ],
+                st,
+            ));
+            node(pos2(cx, cy - 4.5));
+        }
+        PathIcon::SmoothPoint => {
+            let pts = arc_points(
+                pos2(cx, cy + 4.0),
+                5.5,
+                std::f32::consts::PI,
+                std::f32::consts::TAU,
+                10,
+            );
+            painter.add(egui::Shape::line(pts, st));
+            painter.line_segment(
+                [pos2(cx - 5.5, cy - 1.5), pos2(cx + 5.5, cy - 1.5)],
+                Stroke::new(0.9, fill_bright),
+            );
+            node(pos2(cx, cy - 1.5));
+        }
+        PathIcon::RoundPoints => {
+            painter.add(egui::Shape::line(
+                vec![
+                    pos2(cx - 5.0, cy + 4.5),
+                    pos2(cx - 2.5, cy - 2.5),
+                    pos2(cx + 2.5, cy - 2.5),
+                    pos2(cx + 5.0, cy + 4.5),
+                ],
+                st,
+            ));
+            node(pos2(cx - 2.5, cy - 2.5));
+            node(pos2(cx + 2.5, cy - 2.5));
+        }
+        PathIcon::FilletPoints => {
+            painter.line_segment([pos2(cx - 4.5, cy + 4.5), pos2(cx - 4.5, cy - 1.0)], st);
+            painter.line_segment([pos2(cx - 1.0, cy - 4.5), pos2(cx + 4.5, cy - 4.5)], st);
+            painter.add(egui::Shape::line(
+                arc_points(
+                    pos2(cx - 1.0, cy - 1.0),
+                    3.5,
+                    std::f32::consts::PI,
+                    std::f32::consts::FRAC_PI_2 * 3.0,
+                    6,
+                ),
+                st,
+            ));
+        }
+        PathIcon::ChamferPoints => {
+            painter.add(egui::Shape::line(
+                vec![
+                    pos2(cx - 4.5, cy + 4.5),
+                    pos2(cx - 4.5, cy - 1.0),
+                    pos2(cx - 1.0, cy - 4.5),
+                    pos2(cx + 4.5, cy - 4.5),
+                ],
+                st,
+            ));
+            node(pos2(cx - 4.5, cy - 1.0));
+            node(pos2(cx - 1.0, cy - 4.5));
+        }
+        // ---- Edit Points Row 2 (7) ------------------------------------------
+        PathIcon::BreakPath => {
+            painter.line_segment([pos2(r.left(), cy + 2.0), pos2(cx - 2.0, cy - 2.0)], st);
+            painter.line_segment([pos2(cx + 2.0, cy - 2.0), pos2(r.right(), cy + 2.0)], st);
+            node(pos2(cx - 2.0, cy - 2.0));
+            node(pos2(cx + 2.0, cy - 2.0));
+        }
+        PathIcon::JoinPoints => {
+            painter.line_segment([pos2(r.left(), cy), pos2(r.right(), cy)], st);
+            node(pos2(cx - 3.0, cy));
+            node(pos2(cx + 3.0, cy));
+        }
+        PathIcon::AlignPointsH => {
+            painter.line_segment([pos2(r.left(), cy), pos2(r.right(), cy)], st);
+            node(pos2(cx - 4.0, cy));
+            node(pos2(cx, cy));
+            node(pos2(cx + 4.0, cy));
+        }
+        PathIcon::AlignPointsV => {
+            painter.line_segment([pos2(cx, r.top()), pos2(cx, r.bottom())], st);
+            node(pos2(cx, cy - 4.0));
+            node(pos2(cx, cy));
+            node(pos2(cx, cy + 4.0));
+        }
+        PathIcon::KnifeSplit => {
+            painter.line_segment(
+                [
+                    pos2(r.left() + 1.0, r.bottom() - 1.0),
+                    pos2(r.right() - 1.0, r.top() + 1.0),
+                ],
+                st,
+            );
+            node(pos2(cx, cy));
+        }
+        PathIcon::ExtendPath => {
+            painter.line_segment([pos2(r.left() + 1.0, cy + 3.0), pos2(cx, cy)], st);
+            painter.line_segment(
+                [pos2(cx, cy), pos2(r.right() - 1.0, cy - 3.0)],
+                Stroke::new(1.0, fill_dim),
+            );
+            node(pos2(cx, cy));
+            node(pos2(r.right() - 1.0, cy - 3.0));
+        }
+        PathIcon::SharpApex => {
+            painter.add(egui::Shape::line(
+                vec![
+                    pos2(cx - 4.0, cy + 4.5),
+                    pos2(cx, cy - 5.0),
+                    pos2(cx + 4.0, cy + 4.5),
+                ],
+                st,
+            ));
+        }
+        // ---- Select Points Row 1 (5) ----------------------------------------
+        PathIcon::InversePoints => {
+            painter.circle_stroke(pos2(cx, cy), 5.0, st);
+            node(pos2(cx - 5.0, cy));
+            painter.rect_stroke(
+                Rect::from_center_size(pos2(cx + 5.0, cy), Vec2::splat(2.8)),
+                0.0,
+                st,
+                egui::StrokeKind::Middle,
+            );
+        }
+        PathIcon::SelectAllPoints => {
+            painter.circle_stroke(pos2(cx, cy), 4.8, st);
+            for pt in [
+                pos2(cx, cy - 4.8),
+                pos2(cx + 4.8, cy),
+                pos2(cx, cy + 4.8),
+                pos2(cx - 4.8, cy),
+            ] {
+                node(pt);
+            }
+        }
+        PathIcon::FirstPoint => {
+            painter.circle_stroke(pos2(cx, cy), 4.8, st);
+            painter.rect_filled(
+                Rect::from_center_size(pos2(cx, cy - 4.8), Vec2::splat(3.6)),
+                0.0,
+                color,
+            );
+        }
+        PathIcon::PrevPoint => {
+            painter.circle_stroke(pos2(cx, cy), 4.8, st);
+            node(pos2(cx - 4.8, cy));
+            painter.line_segment([pos2(cx, cy - 2.0), pos2(cx - 2.5, cy)], st);
+        }
+        PathIcon::NextPoint => {
+            painter.circle_stroke(pos2(cx, cy), 4.8, st);
+            node(pos2(cx + 4.8, cy));
+            painter.line_segment([pos2(cx, cy - 2.0), pos2(cx + 2.5, cy)], st);
         }
     }
 }

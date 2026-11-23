@@ -159,6 +159,7 @@ pub struct FireCraft {
     pub library_tab: usize,
     pub bottom_tab: usize,
     pub color_tab: usize,
+    pub color_subtab: usize,
     pub show_tools_dock: bool,
     pub show_right_dock: bool,
     pub show_bottom_inspector: bool,
@@ -174,6 +175,7 @@ pub struct FireCraft {
     pub show_slices: bool,
     pub onion_skin: bool,
     pub align_to_canvas: bool,
+    pub space_mode: String,
     pub canvas_size: Vec2,
     pub cursor_doc_pos: Option<Vec2>,
     pub brush_size: f32,
@@ -243,6 +245,7 @@ impl FireCraft {
             library_tab: 2,
             bottom_tab: 0,
             color_tab: 0,
+            color_subtab: 0,
             show_tools_dock: true,
             show_right_dock: true,
             show_bottom_inspector: true,
@@ -257,7 +260,8 @@ impl FireCraft {
             show_guides: true,
             show_slices: true,
             onion_skin: false,
-            align_to_canvas: true,
+            align_to_canvas: false,
+            space_mode: "Evenly".to_string(),
             canvas_size: Vec2::new(980.0, 660.0),
             cursor_doc_pos: None,
             brush_size: constants::BRUSH_SIZE_DEFAULT,
@@ -1986,46 +1990,356 @@ impl FireCraft {
     // ---- Path, Alignment, Color & Document Commands ------------------------
 
     pub fn align_selected_to_canvas(&mut self, mode: &str) {
-        let Some(obj) = self.selected_object() else {
+        if self.selected_set.is_empty() && self.selected.is_none() {
             return;
-        };
-        let Some((lo, hi)) = obj.bounds() else {
-            return;
+        }
+        let indices: Vec<usize> = if self.selected_set.is_empty() {
+            self.selected.into_iter().collect()
+        } else {
+            self.selected_set.clone()
         };
         let (cw, ch) = (self.doc.page().width, self.doc.page().height);
-        let size = hi - lo;
-        self.push_undo("Align");
-        let new_lo = match mode {
-            "left" => Vec2::new(0.0, lo.y),
-            "center_x" => Vec2::new((cw - size.x) * 0.5, lo.y),
-            "right" => Vec2::new(cw - size.x, lo.y),
-            "top" => Vec2::new(lo.x, 0.0),
-            "center_y" => Vec2::new(lo.x, (ch - size.y) * 0.5),
-            "bottom" => Vec2::new(lo.x, ch - size.y),
-            _ => lo,
+        let layer = self.selected_layer;
+        let use_canvas = self.align_to_canvas || indices.len() <= 1;
+        let (ref_lo, ref_hi) = if use_canvas {
+            (Vec2::ZERO, Vec2::new(cw, ch))
+        } else {
+            let mut u_lo = Vec2::splat(f32::MAX);
+            let mut u_hi = Vec2::splat(f32::MIN);
+            if let Some(l) = self.doc.page().layers.get(layer) {
+                for &idx in &indices {
+                    if let Some((lo, hi)) = l.objects.get(idx).and_then(|o| o.bounds()) {
+                        u_lo = u_lo.min(lo);
+                        u_hi = u_hi.max(hi);
+                    }
+                }
+            }
+            if u_lo.x > u_hi.x {
+                (Vec2::ZERO, Vec2::new(cw, ch))
+            } else {
+                (u_lo, u_hi)
+            }
         };
-        self.set_selected_bounds(new_lo, new_lo + size);
-        self.status = format!("Aligned selection ({mode})");
+        let ref_size = ref_hi - ref_lo;
+        self.push_undo("Align");
+        let page = self.doc.page_mut();
+        if let Some(l) = page.layers.get_mut(layer) {
+            for &idx in &indices {
+                if let Some(obj) = l.objects.get_mut(idx)
+                    && let Some((lo, hi)) = obj.bounds()
+                {
+                    let size = hi - lo;
+                    let new_lo = match mode {
+                        "left" => Vec2::new(ref_lo.x, lo.y),
+                        "center_x" => Vec2::new(ref_lo.x + (ref_size.x - size.x) * 0.5, lo.y),
+                        "right" => Vec2::new(ref_hi.x - size.x, lo.y),
+                        "top" => Vec2::new(lo.x, ref_lo.y),
+                        "center_y" => Vec2::new(lo.x, ref_lo.y + (ref_size.y - size.y) * 0.5),
+                        "bottom" => Vec2::new(lo.x, ref_hi.y - size.y),
+                        _ => lo,
+                    };
+                    obj.set_bounds(new_lo, new_lo + size);
+                }
+            }
+        }
+        page.sync_state();
+        self.status = format!(
+            "Aligned {} object(s) ({mode}, {})",
+            indices.len(),
+            if use_canvas {
+                "Relative to Canvas"
+            } else {
+                "Relative to Object"
+            }
+        );
+    }
+
+    pub fn distribute_selected(&mut self, mode: &str) {
+        let indices: Vec<usize> = if self.selected_set.is_empty() {
+            self.selected.into_iter().collect()
+        } else {
+            self.selected_set.clone()
+        };
+        if indices.is_empty() {
+            return;
+        }
+        if indices.len() == 1 {
+            // Single selection falls back to canvas alignment for the corresponding axis
+            let fallback = match mode {
+                "top" => "top",
+                "center_v" => "center_y",
+                "bottom" => "bottom",
+                "left" => "left",
+                "center_h" => "center_x",
+                "right" => "right",
+                _ => "center_x",
+            };
+            self.align_selected_to_canvas(fallback);
+            return;
+        }
+        let layer = self.selected_layer;
+        let mut items: Vec<(usize, Vec2, Vec2)> = Vec::new();
+        if let Some(l) = self.doc.page().layers.get(layer) {
+            for &idx in &indices {
+                if let Some((lo, hi)) = l.objects.get(idx).and_then(|o| o.bounds()) {
+                    items.push((idx, lo, hi));
+                }
+            }
+        }
+        if items.len() < 2 {
+            return;
+        }
+        let vertical = matches!(mode, "top" | "center_v" | "bottom");
+        items.sort_by(|a, b| {
+            let ka = if vertical { a.1.y } else { a.1.x };
+            let kb = if vertical { b.1.y } else { b.1.x };
+            ka.partial_cmp(&kb).unwrap_or(std::cmp::Ordering::Equal)
+        });
+        let (cw, ch) = (self.doc.page().width, self.doc.page().height);
+        let first_val = match mode {
+            "top" => {
+                if self.align_to_canvas {
+                    0.0
+                } else {
+                    items.first().map(|x| x.1.y).unwrap_or(0.0)
+                }
+            }
+            "center_v" => {
+                if self.align_to_canvas {
+                    items.first().map(|x| (x.2.y - x.1.y) * 0.5).unwrap_or(0.0)
+                } else {
+                    items.first().map(|x| (x.1.y + x.2.y) * 0.5).unwrap_or(0.0)
+                }
+            }
+            "bottom" => {
+                if self.align_to_canvas {
+                    items.first().map(|x| x.2.y - x.1.y).unwrap_or(0.0)
+                } else {
+                    items.first().map(|x| x.2.y).unwrap_or(0.0)
+                }
+            }
+            "left" => {
+                if self.align_to_canvas {
+                    0.0
+                } else {
+                    items.first().map(|x| x.1.x).unwrap_or(0.0)
+                }
+            }
+            "center_h" => {
+                if self.align_to_canvas {
+                    items.first().map(|x| (x.2.x - x.1.x) * 0.5).unwrap_or(0.0)
+                } else {
+                    items.first().map(|x| (x.1.x + x.2.x) * 0.5).unwrap_or(0.0)
+                }
+            }
+            _ => {
+                if self.align_to_canvas {
+                    items.first().map(|x| x.2.x - x.1.x).unwrap_or(0.0)
+                } else {
+                    items.first().map(|x| x.2.x).unwrap_or(0.0)
+                }
+            }
+        };
+        let last_val = match mode {
+            "top" => {
+                if self.align_to_canvas {
+                    ch - items.last().map(|x| x.2.y - x.1.y).unwrap_or(0.0)
+                } else {
+                    items.last().map(|x| x.1.y).unwrap_or(ch)
+                }
+            }
+            "center_v" => {
+                if self.align_to_canvas {
+                    ch - items.last().map(|x| (x.2.y - x.1.y) * 0.5).unwrap_or(0.0)
+                } else {
+                    items.last().map(|x| (x.1.y + x.2.y) * 0.5).unwrap_or(ch)
+                }
+            }
+            "bottom" => {
+                if self.align_to_canvas {
+                    ch
+                } else {
+                    items.last().map(|x| x.2.y).unwrap_or(ch)
+                }
+            }
+            "left" => {
+                if self.align_to_canvas {
+                    cw - items.last().map(|x| x.2.x - x.1.x).unwrap_or(0.0)
+                } else {
+                    items.last().map(|x| x.1.x).unwrap_or(cw)
+                }
+            }
+            "center_h" => {
+                if self.align_to_canvas {
+                    cw - items.last().map(|x| (x.2.x - x.1.x) * 0.5).unwrap_or(0.0)
+                } else {
+                    items.last().map(|x| (x.1.x + x.2.x) * 0.5).unwrap_or(cw)
+                }
+            }
+            _ => {
+                if self.align_to_canvas {
+                    cw
+                } else {
+                    items.last().map(|x| x.2.x).unwrap_or(cw)
+                }
+            }
+        };
+        self.push_undo("Distribute");
+        let n = (items.len() - 1).max(1) as f32;
+        let page = self.doc.page_mut();
+        if let Some(l) = page.layers.get_mut(layer) {
+            for (step, (idx, lo, hi)) in items.into_iter().enumerate() {
+                let target = first_val + (last_val - first_val) * (step as f32 / n);
+                let size = hi - lo;
+                let new_lo = match mode {
+                    "top" => Vec2::new(lo.x, target),
+                    "center_v" => Vec2::new(lo.x, target - size.y * 0.5),
+                    "bottom" => Vec2::new(lo.x, target - size.y),
+                    "left" => Vec2::new(target, lo.y),
+                    "center_h" => Vec2::new(target - size.x * 0.5, lo.y),
+                    _ => Vec2::new(target - size.x, lo.y),
+                };
+                if let Some(obj) = l.objects.get_mut(idx) {
+                    obj.set_bounds(new_lo, new_lo + size);
+                }
+            }
+        }
+        page.sync_state();
+        self.status = format!("Distributed selection ({mode})");
     }
 
     pub fn match_canvas_dimension(&mut self, match_w: bool, match_h: bool) {
-        let Some(obj) = self.selected_object() else {
-            return;
+        let indices: Vec<usize> = if self.selected_set.is_empty() {
+            self.selected.into_iter().collect()
+        } else {
+            self.selected_set.clone()
         };
-        let Some((lo, hi)) = obj.bounds() else {
+        if indices.is_empty() {
             return;
-        };
+        }
+        let layer = self.selected_layer;
         let (cw, ch) = (self.doc.page().width, self.doc.page().height);
-        self.push_undo("Match Canvas Size");
-        let new_lo = Vec2::new(
-            if match_w { 0.0 } else { lo.x },
-            if match_h { 0.0 } else { lo.y },
+        let use_canvas = self.align_to_canvas || indices.len() == 1;
+        let (target_w, target_h) = if use_canvas {
+            (cw, ch)
+        } else {
+            let mut max_w = 1.0f32;
+            let mut max_h = 1.0f32;
+            if let Some(l) = self.doc.page().layers.get(layer) {
+                for &idx in &indices {
+                    if let Some((lo, hi)) = l.objects.get(idx).and_then(|o| o.bounds()) {
+                        max_w = max_w.max(hi.x - lo.x);
+                        max_h = max_h.max(hi.y - lo.y);
+                    }
+                }
+            }
+            (max_w, max_h)
+        };
+        self.push_undo("Match Size");
+        let page = self.doc.page_mut();
+        if let Some(l) = page.layers.get_mut(layer) {
+            for &idx in &indices {
+                if let Some(obj) = l.objects.get_mut(idx)
+                    && let Some((lo, hi)) = obj.bounds()
+                {
+                    let new_lo = Vec2::new(
+                        if match_w && use_canvas { 0.0 } else { lo.x },
+                        if match_h && use_canvas { 0.0 } else { lo.y },
+                    );
+                    let new_hi = Vec2::new(
+                        if match_w { new_lo.x + target_w } else { hi.x },
+                        if match_h { new_lo.y + target_h } else { hi.y },
+                    );
+                    obj.set_bounds(new_lo, new_hi);
+                }
+            }
+        }
+        page.sync_state();
+        self.status = format!(
+            "Matched size ({})",
+            if use_canvas {
+                "Relative to Canvas"
+            } else {
+                "Relative to Largest Object"
+            }
         );
-        let new_hi = Vec2::new(
-            if match_w { cw } else { hi.x },
-            if match_h { ch } else { hi.y },
+    }
+
+    pub fn space_selected(&mut self, horizontal: bool) {
+        let indices: Vec<usize> = if self.selected_set.is_empty() {
+            self.selected.into_iter().collect()
+        } else {
+            self.selected_set.clone()
+        };
+        if indices.len() < 2 {
+            self.distribute_selected(if horizontal { "center_h" } else { "center_v" });
+            return;
+        }
+        let fixed_gap: Option<f32> = self.space_mode.trim_end_matches(" px").parse::<f32>().ok();
+        let layer = self.selected_layer;
+        let mut items: Vec<(usize, Vec2, Vec2)> = Vec::new();
+        if let Some(l) = self.doc.page().layers.get(layer) {
+            for &idx in &indices {
+                if let Some((lo, hi)) = l.objects.get(idx).and_then(|o| o.bounds()) {
+                    items.push((idx, lo, hi));
+                }
+            }
+        }
+        if items.len() < 2 {
+            return;
+        }
+        items.sort_by(|a, b| {
+            let ka = if horizontal { a.1.x } else { a.1.y };
+            let kb = if horizontal { b.1.x } else { b.1.y };
+            ka.partial_cmp(&kb).unwrap_or(std::cmp::Ordering::Equal)
+        });
+        let gap = if let Some(g) = fixed_gap {
+            g
+        } else {
+            let total_span = if horizontal {
+                items.last().map(|x| x.2.x).unwrap_or(0.0)
+                    - items.first().map(|x| x.1.x).unwrap_or(0.0)
+            } else {
+                items.last().map(|x| x.2.y).unwrap_or(0.0)
+                    - items.first().map(|x| x.1.y).unwrap_or(0.0)
+            };
+            let sum_sizes: f32 = items
+                .iter()
+                .map(|(_, lo, hi)| if horizontal { hi.x - lo.x } else { hi.y - lo.y })
+                .sum();
+            ((total_span - sum_sizes) / (items.len() - 1) as f32).max(0.0)
+        };
+        self.push_undo("Space Objects");
+        let mut cursor = if horizontal {
+            items[0].1.x
+        } else {
+            items[0].1.y
+        };
+        let page = self.doc.page_mut();
+        if let Some(l) = page.layers.get_mut(layer) {
+            for (idx, lo, hi) in items {
+                let size = hi - lo;
+                let new_lo = if horizontal {
+                    Vec2::new(cursor, lo.y)
+                } else {
+                    Vec2::new(lo.x, cursor)
+                };
+                if let Some(obj) = l.objects.get_mut(idx) {
+                    obj.set_bounds(new_lo, new_lo + size);
+                }
+                cursor += if horizontal { size.x } else { size.y } + gap;
+            }
+        }
+        page.sync_state();
+        self.status = format!(
+            "Spaced objects {} ({})",
+            if horizontal {
+                "horizontally"
+            } else {
+                "vertically"
+            },
+            self.space_mode
         );
-        self.set_selected_bounds(new_lo, new_hi);
     }
 
     pub fn combine_paths_op(&mut self, op: &str) {
@@ -2163,7 +2477,185 @@ impl FireCraft {
         if let Some((lo, hi)) = self.selected_object().and_then(|o| o.bounds()) {
             self.push_undo("Alter Path Bounds");
             self.set_selected_bounds(lo - Vec2::splat(delta), hi + Vec2::splat(delta));
+            self.status = if delta >= 0.0 {
+                format!("Expanded path bounds by +{delta:.0}px")
+            } else {
+                format!("Inset path bounds by {delta:.0}px")
+            };
         }
+    }
+
+    pub fn reverse_selected_path(&mut self) {
+        self.convert_selected_to_path();
+        self.with_selected_mut(|obj| {
+            if let Shape::Path { points, .. } = &mut obj.kind {
+                points.reverse();
+            }
+        });
+        self.status = "Reversed path contour direction".to_string();
+    }
+
+    pub fn add_points_to_selected_path(&mut self) {
+        self.convert_selected_to_path();
+        self.push_undo("Add Path Points");
+        self.with_selected_mut(|obj| {
+            if let Shape::Path { points, closed } = &mut obj.kind
+                && points.len() >= 2
+                && points.len() < 128
+            {
+                let mut next = Vec::with_capacity(points.len() * 2);
+                for i in 0..points.len() {
+                    let a = points[i];
+                    next.push(a);
+                    if i + 1 < points.len() {
+                        next.push((a + points[i + 1]) * 0.5);
+                    } else if *closed {
+                        next.push((a + points[0]) * 0.5);
+                    }
+                }
+                *points = next;
+            }
+        });
+        self.status = "Subdivided path segments with new anchor points".to_string();
+    }
+
+    pub fn delete_point_from_selected_path(&mut self) {
+        self.convert_selected_to_path();
+        self.push_undo("Delete Path Point");
+        self.with_selected_mut(|obj| {
+            if let Shape::Path { points, .. } = &mut obj.kind
+                && points.len() > 3
+            {
+                points.pop();
+            }
+        });
+        self.status = "Removed anchor point from path".to_string();
+    }
+
+    pub fn round_selected_path_points(&mut self, delta_radius: f32) {
+        let Some(obj) = self.selected_object() else {
+            return;
+        };
+        if let Shape::Rect { corner_radius, .. } = obj.kind {
+            let next = (corner_radius + delta_radius).clamp(0.0, 120.0);
+            self.set_selected_corner_radius(next);
+            self.status = format!("Adjusted corner roundness to {next:.0}px");
+        } else {
+            self.add_points_to_selected_path();
+            self.simplify_selected_path();
+            self.status = "Rounded vector path corners".to_string();
+        }
+    }
+
+    pub fn align_selected_path_points(&mut self, horizontal: bool) {
+        self.convert_selected_to_path();
+        self.push_undo("Align Path Points");
+        self.with_selected_mut(|obj| {
+            if let Shape::Path { points, .. } = &mut obj.kind
+                && !points.is_empty()
+            {
+                let avg = if horizontal {
+                    points.iter().map(|p| p.y).sum::<f32>() / points.len() as f32
+                } else {
+                    points.iter().map(|p| p.x).sum::<f32>() / points.len() as f32
+                };
+                if let Some(first) = points.first_mut() {
+                    if horizontal {
+                        first.y = avg;
+                    } else {
+                        first.x = avg;
+                    }
+                }
+            }
+        });
+        self.status = if horizontal {
+            "Aligned path points horizontally".to_string()
+        } else {
+            "Aligned path points vertically".to_string()
+        };
+    }
+
+    pub fn snap_selected_to_pixel(&mut self) {
+        self.push_undo("Snap to Pixel");
+        self.with_selected_mut(|obj| {
+            if let Some((lo, hi)) = obj.bounds() {
+                obj.set_bounds(
+                    Vec2::new(lo.x.round(), lo.y.round()),
+                    Vec2::new(hi.x.round(), hi.y.round()),
+                );
+            }
+            if let Shape::Path { points, .. } = &mut obj.kind {
+                for p in points {
+                    p.x = p.x.round();
+                    p.y = p.y.round();
+                }
+            }
+        });
+        self.status = "Snapped selection coordinates to pixel grid".to_string();
+    }
+
+    pub fn convert_stroke_to_fill(&mut self) {
+        self.push_undo("Convert Stroke to Fill");
+        let default_stroke = self.stroke;
+        self.with_selected_mut(|obj| {
+            let sc = obj.stroke.unwrap_or(default_stroke);
+            obj.fill = Some(sc);
+            obj.stroke = None;
+        });
+        self.status = "Converted stroke outline to filled shape".to_string();
+    }
+
+    pub fn reorder_selected_step(&mut self, forward: bool) {
+        let Some(index) = self.selected else {
+            return;
+        };
+        let layer = self.selected_layer;
+        let len = self
+            .doc
+            .page()
+            .layers
+            .get(layer)
+            .map(|l| l.objects.len())
+            .unwrap_or(0);
+        if len < 2 {
+            return;
+        }
+        let target = if forward {
+            (index + 1).min(len - 1)
+        } else {
+            index.saturating_sub(1)
+        };
+        if target == index {
+            return;
+        }
+        self.push_undo(if forward {
+            "Bring Forward"
+        } else {
+            "Send Backward"
+        });
+        let page = self.doc.page_mut();
+        page.layers[layer].objects.swap(index, target);
+        page.sync_state();
+        self.select_single(Some(target));
+        self.status = if forward {
+            "Brought selection forward one level".to_string()
+        } else {
+            "Sent selection backward one level".to_string()
+        };
+    }
+
+    pub fn rotate_ccw_90(&mut self) {
+        let Some(obj) = self.selected_object() else {
+            return;
+        };
+        let Some((lo, hi)) = obj.bounds() else {
+            return;
+        };
+        self.push_undo("Rotate 90° CCW");
+        let center = (lo + hi) * 0.5;
+        let half = Vec2::new((hi.y - lo.y) * 0.5, (hi.x - lo.x) * 0.5);
+        self.set_selected_bounds(center - half, center + half);
+        self.status = "Rotated selection 90° counter-clockwise".to_string();
     }
 
     pub fn scale_selected(&mut self, factor: f32) {
