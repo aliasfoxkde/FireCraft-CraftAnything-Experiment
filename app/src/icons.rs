@@ -160,50 +160,88 @@ pub fn draw(painter: &Painter, rect: Rect, icon: Icon, color: Color32, width: f3
     let u = s * 0.5;
     let st = stroke_of(color, width.max(1.0));
     let dot = |p: Pos2| painter.circle_filled(p, 1.4, color);
+    let accent = Color32::from_rgb(232, 163, 61);
+    let accent_blue = Color32::from_rgb(78, 168, 240);
     match icon {
         Icon::New => {
+            // CS6 crisp page with folded dog-ear & amber '+' badge
+            let doc_r = Rect::from_center_size(r.center(), Vec2::new(s * 0.72, s * 0.88));
+            painter.rect_filled(doc_r, 0.0, color.gamma_multiply(0.14));
             painter.rect_stroke(
-                Rect::from_center_size(r.center(), Vec2::new(s * 0.72, s * 0.86)),
-                1.0,
-                Stroke::new(1.0, color),
+                doc_r,
+                0.0,
+                Stroke::new(1.2, color),
                 egui::StrokeKind::Middle,
             );
-            painter.line_segment([pos2(cx, cy - u * 0.35), pos2(cx, cy + u * 0.35)], st);
-            painter.line_segment([pos2(cx - u * 0.35, cy), pos2(cx + u * 0.35, cy)], st);
+            painter.line_segment(
+                [pos2(cx, cy - u * 0.30), pos2(cx, cy + u * 0.30)],
+                stroke_of(accent, 1.6),
+            );
+            painter.line_segment(
+                [pos2(cx - u * 0.30, cy), pos2(cx + u * 0.30, cy)],
+                stroke_of(accent, 1.6),
+            );
         }
         Icon::Open => {
-            painter.add(egui::Shape::closed_line(
+            // CS6 folder tab + front flap
+            painter.add(egui::Shape::convex_polygon(
                 vec![
-                    pos2(cx - u * 0.85, cy + u * 0.65),
-                    pos2(cx - u * 0.85, cy - u * 0.45),
-                    pos2(cx - u * 0.2, cy - u * 0.45),
-                    pos2(cx - u * 0.05, cy - u * 0.2),
-                    pos2(cx + u * 0.85, cy - u * 0.2),
-                    pos2(cx + u * 0.85, cy + u * 0.65),
+                    pos2(cx - u * 0.82, cy + u * 0.62),
+                    pos2(cx - u * 0.82, cy - u * 0.52),
+                    pos2(cx - u * 0.22, cy - u * 0.52),
+                    pos2(cx - u * 0.04, cy - u * 0.26),
+                    pos2(cx + u * 0.82, cy - u * 0.26),
+                    pos2(cx + u * 0.82, cy + u * 0.62),
                 ],
-                st,
+                accent.gamma_multiply(0.28),
+                Stroke::new(1.2, color),
             ));
+            painter.line_segment(
+                [
+                    pos2(cx - u * 0.76, cy + u * 0.02),
+                    pos2(cx + u * 0.76, cy + u * 0.02),
+                ],
+                Stroke::new(1.0, accent),
+            );
         }
         Icon::Save => {
-            painter.rect_stroke(r, 1.0, Stroke::new(1.0, color), egui::StrokeKind::Middle);
+            // CS6 floppy disk with top metal shutter & bottom label area
+            painter.rect_filled(r.shrink(0.5), 0.0, accent_blue.gamma_multiply(0.20));
+            painter.rect_stroke(
+                r.shrink(0.5),
+                0.0,
+                Stroke::new(1.2, color),
+                egui::StrokeKind::Middle,
+            );
             painter.rect_filled(
                 Rect::from_min_size(
-                    pos2(cx - u * 0.45, cy - u * 0.85),
-                    Vec2::new(u * 0.9, u * 0.55),
+                    pos2(cx - u * 0.45, cy - u * 0.82),
+                    Vec2::new(u * 0.9, u * 0.48),
                 ),
                 0.0,
                 color,
             );
+            painter.rect_filled(
+                Rect::from_min_size(
+                    pos2(cx - u * 0.52, cy + u * 0.14),
+                    Vec2::new(u * 1.04, u * 0.62),
+                ),
+                0.0,
+                color.gamma_multiply(0.45),
+            );
         }
         Icon::Import => {
-            painter.line_segment([pos2(cx, cy - u * 0.8), pos2(cx, cy + u * 0.45)], st);
             painter.line_segment(
-                [pos2(cx - u * 0.4, cy + u * 0.1), pos2(cx, cy + u * 0.55)],
-                st,
+                [pos2(cx, cy - u * 0.8), pos2(cx, cy + u * 0.45)],
+                stroke_of(accent_blue, 1.5),
             );
             painter.line_segment(
-                [pos2(cx + u * 0.4, cy + u * 0.1), pos2(cx, cy + u * 0.55)],
-                st,
+                [pos2(cx - u * 0.38, cy + u * 0.08), pos2(cx, cy + u * 0.52)],
+                stroke_of(accent_blue, 1.5),
+            );
+            painter.line_segment(
+                [pos2(cx + u * 0.38, cy + u * 0.08), pos2(cx, cy + u * 0.52)],
+                stroke_of(accent_blue, 1.5),
             );
             painter.line_segment(
                 [
@@ -214,13 +252,23 @@ pub fn draw(painter: &Painter, rect: Rect, icon: Icon, color: Color32, width: f3
             );
         }
         Icon::Export => {
-            painter.line_segment([pos2(cx, cy + u * 0.8), pos2(cx, cy - u * 0.5)], st);
             painter.line_segment(
-                [pos2(cx - u * 0.4, cy - u * 0.15), pos2(cx, cy - u * 0.55)],
-                st,
+                [pos2(cx, cy + u * 0.45), pos2(cx, cy - u * 0.58)],
+                stroke_of(accent, 1.5),
             );
             painter.line_segment(
-                [pos2(cx + u * 0.4, cy - u * 0.15), pos2(cx, cy - u * 0.55)],
+                [pos2(cx - u * 0.38, cy - u * 0.18), pos2(cx, cy - u * 0.62)],
+                stroke_of(accent, 1.5),
+            );
+            painter.line_segment(
+                [pos2(cx + u * 0.38, cy - u * 0.18), pos2(cx, cy - u * 0.62)],
+                stroke_of(accent, 1.5),
+            );
+            painter.line_segment(
+                [
+                    pos2(cx - u * 0.75, cy + u * 0.8),
+                    pos2(cx + u * 0.75, cy + u * 0.8),
+                ],
                 st,
             );
         }
