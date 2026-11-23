@@ -186,6 +186,57 @@ pub fn panel(
 type ToolSection = (&'static str, &'static [(icons::Icon, Tool, &'static str)]);
 
 /// The tool palette down the left edge, grouped into Fireworks CS6's 6 sections.
+fn tool_variations(tool: Tool) -> &'static [(Tool, &'static str)] {
+    match tool {
+        Tool::Select | Tool::Subselect => &[
+            (Tool::Select, "Pointer Tool (V)"),
+            (Tool::Subselect, "Subselection Tool (A)"),
+        ],
+        Tool::Scale | Tool::Crop => &[
+            (Tool::Scale, "Scale / Transform Tool (Q)"),
+            (Tool::Crop, "Crop / Export Area Tool (C)"),
+        ],
+        Tool::Marquee | Tool::Lasso => &[
+            (Tool::Marquee, "Marquee Tool (M)"),
+            (Tool::Lasso, "Lasso / Polygon Lasso Tool (L)"),
+        ],
+        Tool::Brush | Tool::Pencil => &[
+            (Tool::Brush, "Brush Tool (B)"),
+            (Tool::Pencil, "Pencil Tool"),
+        ],
+        Tool::Blur | Tool::Sharpen | Tool::Dodge | Tool::Burn => &[
+            (Tool::Blur, "Blur Tool"),
+            (Tool::Sharpen, "Sharpen Tool"),
+            (Tool::Dodge, "Dodge Tool"),
+            (Tool::Burn, "Burn Tool"),
+        ],
+        Tool::Rectangle | Tool::RoundedRect | Tool::Ellipse | Tool::Polygon | Tool::Star => &[
+            (Tool::Rectangle, "Rectangle Tool (U)"),
+            (Tool::RoundedRect, "Rounded Rectangle Tool"),
+            (Tool::Ellipse, "Ellipse Tool"),
+            (Tool::Polygon, "Polygon Tool"),
+            (Tool::Star, "Star Auto Shape Tool"),
+        ],
+        Tool::Line | Tool::Knife => &[
+            (Tool::Line, "Line Tool (N)"),
+            (Tool::Knife, "Knife / Split Path Tool"),
+        ],
+        Tool::Slice | Tool::Hotspot => &[
+            (Tool::Slice, "Web Slice Tool (K)"),
+            (Tool::Hotspot, "Web Hotspot Tool (J)"),
+        ],
+        Tool::Fill | Tool::Gradient => &[
+            (Tool::Fill, "Paint Bucket Tool (G)"),
+            (Tool::Gradient, "Gradient Tool"),
+        ],
+        Tool::Hand | Tool::Zoom => &[
+            (Tool::Hand, "Hand Pan Tool (H)"),
+            (Tool::Zoom, "Zoom Tool (Z)"),
+        ],
+        _ => &[],
+    }
+}
+
 pub fn tools_panel(ui: &mut Ui, app: &mut FireCraft) {
     let p = app.palette;
     let sections: [ToolSection; 6] = [
@@ -300,7 +351,34 @@ pub fn tools_panel(ui: &mut Ui, app: &mut FireCraft) {
             ui.spacing_mut().item_spacing = Vec2::splat(2.0);
             for (icon, tool, tip) in tools {
                 let active = app.tool == *tool;
-                let response = crate::canvas::tool_button(ui, *icon, active, tip);
+                let vars = tool_variations(*tool);
+                let full_tip = if vars.is_empty() {
+                    (*tip).to_string()
+                } else {
+                    format!("{tip}\nRight-click for tool variations ▾")
+                };
+                let response = crate::canvas::tool_button(ui, *icon, active, &full_tip);
+                if !vars.is_empty() {
+                    let br = response.rect.right_bottom();
+                    ui.painter().add(egui::Shape::convex_polygon(
+                        vec![
+                            pos2(br.x - 1.5, br.y - 1.5),
+                            pos2(br.x - 6.0, br.y - 1.5),
+                            pos2(br.x - 1.5, br.y - 6.0),
+                        ],
+                        if active { p.accent } else { p.text_dim },
+                        Stroke::NONE,
+                    ));
+                    response.context_menu(|ui| {
+                        for &(v_tool, v_label) in vars {
+                            if ui.selectable_label(app.tool == v_tool, v_label).clicked() {
+                                app.tool = v_tool;
+                                app.status = format!("{} selected", v_tool.name());
+                                ui.close();
+                            }
+                        }
+                    });
+                }
                 if response.clicked() {
                     if *tool == Tool::Fit {
                         app.fit_in_window();
