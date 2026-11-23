@@ -363,6 +363,14 @@ pub fn tools_panel(ui: &mut Ui, app: &mut FireCraft) {
                 std::mem::swap(&mut app.fill, &mut app.stroke);
             }
             if ui
+                .small_button("▣")
+                .on_hover_text("Default Stroke & Fill Colors (D)")
+                .clicked()
+            {
+                app.fill = Color32::WHITE;
+                app.stroke = Color32::BLACK;
+            }
+            if ui
                 .small_button("⊘")
                 .on_hover_text("Set No Fill on Selection")
                 .clicked()
@@ -370,6 +378,13 @@ pub fn tools_panel(ui: &mut Ui, app: &mut FireCraft) {
                 app.set_selected_fill(None);
             }
         });
+        if ui
+            .small_button("Full Screen")
+            .on_hover_text("Toggle Full-Screen Canvas / Hide Panels (Tab or F4)")
+            .clicked()
+        {
+            app.toggle_full_screen_canvas();
+        }
     });
 }
 

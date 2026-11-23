@@ -1,16 +1,213 @@
 //! The 10-menu Adobe Fireworks CS6 menu bar:
 //! File, Edit, View, Select, Modify, Text, Commands, Filters, Window, Help.
-//! Every item dispatches to a real editor action.
+//!
+//! Features full Windows/CS6 keyboard navigation:
+//! - `Alt+F` (File), `Alt+E` (Edit), `Alt+V` (View), `Alt+S` (Select), `Alt+M` (Modify),
+//!   `Alt+T` (Text), `Alt+C` (Commands), `Alt+L`/`Alt+I` (Filters), `Alt+W` (Window), `Alt+H` (Help)
+//! - `Left` / `Right` arrow keys cycle across the 10 top-level menus while open
+//! - `Up` / `Down` arrow keys navigate through the active menu's items
+//! - `Enter` / `Space` executes the highlighted menu item; `Escape` closes the menu.
 
 use crate::app::{CanvasViewMode, FileMode, FireCraft, Tool};
 use crate::constants;
 use crate::doc::LiveEffect;
 use crate::theme::ThemeMode;
 
-use eframe::egui::{self, Color32, RichText};
+use eframe::egui::{
+    self, Align2, Color32, FontId, Key, Order, Pos2, Rect, RichText, Sense, Stroke, Ui, Vec2, pos2,
+};
+
+pub const MENU_TITLES: [(&str, usize); 10] = [
+    ("File", 0),     // Alt+F (underline 'F')
+    ("Edit", 0),     // Alt+E (underline 'E')
+    ("View", 0),     // Alt+V (underline 'V')
+    ("Select", 0),   // Alt+S (underline 'S')
+    ("Modify", 0),   // Alt+M (underline 'M')
+    ("Text", 0),     // Alt+T (underline 'T')
+    ("Commands", 0), // Alt+C (underline 'C')
+    ("Filters", 2),  // Alt+L / Alt+I (underline 'l')
+    ("Window", 0),   // Alt+W (underline 'W')
+    ("Help", 0),     // Alt+H (underline 'H')
+];
+
+struct MenuNav {
+    cursor: usize,
+    active_idx: usize,
+    activate_key: bool,
+    closed: bool,
+}
+
+impl MenuNav {
+    fn row(
+        &mut self,
+        ui: &mut Ui,
+        palette: crate::theme::Palette,
+        enabled: bool,
+        label: &str,
+        shortcut: &str,
+    ) -> bool {
+        let idx = self.cursor;
+        self.cursor += 1;
+        let is_selected = idx == self.active_idx;
+        let width = ui.available_width().max(248.0);
+        let (rect, resp) = ui.allocate_exact_size(Vec2::new(width, 20.0), Sense::click());
+        if resp.hovered() && ui.input(|i| i.pointer.delta().length_sq() > 0.01) {
+            self.active_idx = idx;
+        }
+        let highlighted = idx == self.active_idx;
+        let painter = ui.painter();
+        if highlighted && enabled {
+            painter.rect_filled(rect, 0.0, palette.selection.gamma_multiply(0.38));
+            painter.rect_stroke(
+                rect,
+                0.0,
+                Stroke::new(1.0, palette.selection),
+                egui::StrokeKind::Middle,
+            );
+        } else if highlighted {
+            painter.rect_filled(rect, 0.0, palette.well);
+        }
+        let fg = if !enabled {
+            palette.text_dim.gamma_multiply(0.55)
+        } else {
+            palette.text
+        };
+        painter.text(
+            pos2(rect.left() + 20.0, rect.center().y),
+            Align2::LEFT_CENTER,
+            label,
+            FontId::proportional(11.0),
+            fg,
+        );
+        if !shortcut.is_empty() {
+            painter.text(
+                pos2(rect.right() - 8.0, rect.center().y),
+                Align2::RIGHT_CENTER,
+                shortcut,
+                FontId::proportional(10.5),
+                if enabled { palette.text_dim } else { fg },
+            );
+        }
+        if is_selected && self.activate_key {
+            ui.scroll_to_rect(rect, None);
+        }
+        let triggered = enabled && (resp.clicked() || (is_selected && self.activate_key));
+        if triggered {
+            self.closed = true;
+        }
+        triggered
+    }
+
+    fn check_row(
+        &mut self,
+        ui: &mut Ui,
+        palette: crate::theme::Palette,
+        checked: &mut bool,
+        label: &str,
+        shortcut: &str,
+    ) -> bool {
+        let cur = *checked;
+        let idx = self.cursor;
+        self.cursor += 1;
+        let is_selected = idx == self.active_idx;
+        let width = ui.available_width().max(248.0);
+        let (rect, resp) = ui.allocate_exact_size(Vec2::new(width, 20.0), Sense::click());
+        if resp.hovered() && ui.input(|i| i.pointer.delta().length_sq() > 0.01) {
+            self.active_idx = idx;
+        }
+        let highlighted = idx == self.active_idx;
+        let painter = ui.painter();
+        if highlighted {
+            painter.rect_filled(rect, 0.0, palette.selection.gamma_multiply(0.38));
+            painter.rect_stroke(
+                rect,
+                0.0,
+                Stroke::new(1.0, palette.selection),
+                egui::StrokeKind::Middle,
+            );
+        }
+        if cur {
+            painter.text(
+                pos2(rect.left() + 7.0, rect.center().y),
+                Align2::LEFT_CENTER,
+                "✓",
+                FontId::proportional(11.0),
+                palette.accent,
+            );
+        }
+        painter.text(
+            pos2(rect.left() + 20.0, rect.center().y),
+            Align2::LEFT_CENTER,
+            label,
+            FontId::proportional(11.0),
+            palette.text,
+        );
+        if !shortcut.is_empty() {
+            painter.text(
+                pos2(rect.right() - 8.0, rect.center().y),
+                Align2::RIGHT_CENTER,
+                shortcut,
+                FontId::proportional(10.5),
+                palette.text_dim,
+            );
+        }
+        let triggered = resp.clicked() || (is_selected && self.activate_key);
+        if triggered {
+            *checked = !*checked;
+            self.closed = true;
+        }
+        triggered
+    }
+}
 
 /// Draw the full 10-menu Fireworks CS6 application menu bar plus header controls.
 pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
+    let p = app.palette;
+    let alt_held = ui.input(|i| i.modifiers.alt);
+    let mut menu_anchors: [Pos2; 10] = [Pos2::ZERO; 10];
+    let mut menu_rects: [Rect; 10] = [Rect::NOTHING; 10];
+
+    // Keyboard navigation when a top-level menu is open
+    let mut activate_key = false;
+    let mut nav_delta: isize = 0;
+    if let Some(open_idx) = app.active_menu {
+        let mut next_menu = Some(open_idx);
+        ui.input(|i| {
+            for ev in &i.events {
+                if let egui::Event::Key {
+                    key, pressed: true, ..
+                } = ev
+                {
+                    match key {
+                        Key::Escape => {
+                            next_menu = None;
+                        }
+                        Key::ArrowRight => {
+                            next_menu = Some((open_idx + 1) % MENU_TITLES.len());
+                            app.active_menu_item = 0;
+                        }
+                        Key::ArrowLeft => {
+                            next_menu =
+                                Some((open_idx + MENU_TITLES.len() - 1) % MENU_TITLES.len());
+                            app.active_menu_item = 0;
+                        }
+                        Key::ArrowDown => {
+                            nav_delta = 1;
+                        }
+                        Key::ArrowUp => {
+                            nav_delta = -1;
+                        }
+                        Key::Enter | Key::Space => {
+                            activate_key = true;
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        });
+        app.active_menu = next_menu;
+    }
+
     ui.horizontal(|ui| {
         if let Some(ref tex) = app.logo_tex {
             ui.add(egui::Image::new(tex).fit_to_exact_size(egui::vec2(18.0, 18.0)));
@@ -22,16 +219,56 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
                 .size(14.0),
         );
         ui.separator();
-        ui.menu_button("File", |ui| file_menu(ui, app));
-        ui.menu_button("Edit", |ui| edit_menu(ui, app));
-        ui.menu_button("View", |ui| view_menu(ui, app));
-        ui.menu_button("Select", |ui| select_menu(ui, app));
-        ui.menu_button("Modify", |ui| modify_menu(ui, app));
-        ui.menu_button("Text", |ui| text_menu(ui, app));
-        ui.menu_button("Commands", |ui| commands_menu(ui, app));
-        ui.menu_button("Filters", |ui| filters_menu(ui, app));
-        ui.menu_button("Window", |ui| window_menu(ui, app));
-        ui.menu_button("Help", |ui| help_menu(ui, app));
+
+        // 10 Top-Level CS6 Menus with mnemonic underlines and keyboard/mouse focus
+        ui.spacing_mut().item_spacing = Vec2::new(2.0, 0.0);
+        for (i, (title, mnemonic_pos)) in MENU_TITLES.iter().enumerate() {
+            let is_open = app.active_menu == Some(i);
+            let w = 14.0 + title.len() as f32 * 6.4;
+            let (rect, resp) = ui.allocate_exact_size(Vec2::new(w, 20.0), Sense::click());
+            menu_anchors[i] = rect.left_bottom();
+            menu_rects[i] = rect;
+            let painter = ui.painter();
+            if is_open {
+                painter.rect_filled(rect, 0.0, p.selection.gamma_multiply(0.38));
+                painter.rect_stroke(
+                    rect,
+                    0.0,
+                    Stroke::new(1.0, p.selection),
+                    egui::StrokeKind::Middle,
+                );
+            } else if resp.hovered() {
+                painter.rect_filled(rect, 0.0, p.well);
+            }
+            painter.text(
+                rect.center(),
+                Align2::CENTER_CENTER,
+                *title,
+                FontId::proportional(11.5),
+                p.text,
+            );
+            // Underline mnemonic letter when Alt is held or a menu is open
+            if alt_held || app.active_menu.is_some() {
+                let text_w = title.len() as f32 * 6.0;
+                let start_x = rect.center().x - text_w * 0.5 + (*mnemonic_pos as f32) * 6.0;
+                let y = rect.bottom() - 3.0;
+                painter.line_segment(
+                    [pos2(start_x, y), pos2(start_x + 6.0, y)],
+                    Stroke::new(1.0, p.accent),
+                );
+            }
+            if resp.clicked() {
+                if is_open {
+                    app.active_menu = None;
+                } else {
+                    app.active_menu = Some(i);
+                    app.active_menu_item = 0;
+                }
+            } else if resp.hovered() && app.active_menu.is_some() && !is_open {
+                app.active_menu = Some(i);
+                app.active_menu_item = 0;
+            }
+        }
 
         ui.separator();
         if ui
@@ -86,7 +323,9 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             egui::ComboBox::from_id_salt("workspace_mode_combo")
                 .width(122.0)
-                .selected_text(if app.show_right_dock && app.show_bottom_inspector {
+                .selected_text(if app.full_screen_canvas {
+                    "Full Screen (Tab)"
+                } else if app.show_right_dock && app.show_bottom_inspector {
                     "Expanded Mode"
                 } else if !app.show_right_dock && app.show_bottom_inspector {
                     "Iconic Mode"
@@ -96,11 +335,15 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
                 .show_ui(ui, |ui| {
                     if ui
                         .selectable_label(
-                            app.show_right_dock && app.show_bottom_inspector,
+                            !app.full_screen_canvas
+                                && app.show_right_dock
+                                && app.show_bottom_inspector,
                             "Expanded Mode",
                         )
                         .clicked()
                     {
+                        app.full_screen_canvas = false;
+                        app.show_main_toolbar = true;
                         app.show_tools_dock = true;
                         app.show_right_dock = true;
                         app.show_bottom_inspector = true;
@@ -108,11 +351,15 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
                     }
                     if ui
                         .selectable_label(
-                            !app.show_right_dock && app.show_bottom_inspector,
+                            !app.full_screen_canvas
+                                && !app.show_right_dock
+                                && app.show_bottom_inspector,
                             "Iconic Mode",
                         )
                         .clicked()
                     {
+                        app.full_screen_canvas = false;
+                        app.show_main_toolbar = true;
                         app.show_tools_dock = true;
                         app.show_right_dock = false;
                         app.show_bottom_inspector = true;
@@ -122,6 +369,8 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
                         .selectable_label(false, "Iconic Mode With Panel Names")
                         .clicked()
                     {
+                        app.full_screen_canvas = false;
+                        app.show_main_toolbar = true;
                         app.show_tools_dock = true;
                         app.show_right_dock = true;
                         app.show_bottom_inspector = true;
@@ -129,15 +378,25 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
                     }
                     if ui
                         .selectable_label(
-                            !app.show_right_dock && !app.show_bottom_inspector,
+                            !app.full_screen_canvas
+                                && !app.show_right_dock
+                                && !app.show_bottom_inspector,
                             "Netbook Mode",
                         )
                         .clicked()
                     {
+                        app.full_screen_canvas = false;
+                        app.show_main_toolbar = true;
                         app.show_tools_dock = true;
                         app.show_right_dock = false;
                         app.show_bottom_inspector = false;
                         app.status = "Workspace set to Netbook Mode".to_string();
+                    }
+                    if ui
+                        .selectable_label(app.full_screen_canvas, "Full Screen Canvas (Tab / F4)")
+                        .clicked()
+                    {
+                        app.toggle_full_screen_canvas();
                     }
                     ui.separator();
                     if ui.button("Save Current").clicked() {
@@ -176,733 +435,590 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
             }
         });
     });
+
+    // Render the active dropdown menu popup with full keyboard + mouse support
+    if let Some(menu_idx) = app.active_menu {
+        let anchor = menu_anchors[menu_idx];
+        let mut nav = MenuNav {
+            cursor: 0,
+            active_idx: app.active_menu_item,
+            activate_key,
+            closed: false,
+        };
+        let area_resp = egui::Area::new(ui.make_persistent_id(("cs6_top_menu_popup", menu_idx)))
+            .order(Order::Foreground)
+            .fixed_pos(pos2(anchor.x, anchor.y + 2.0))
+            .show(&app.ctx.clone(), |ui| {
+                egui::Frame::new()
+                    .fill(p.panel)
+                    .stroke(Stroke::new(1.0, p.stroke))
+                    .inner_margin(egui::Margin::symmetric(3, 4))
+                    .show(ui, |ui| {
+                        ui.set_min_width(252.0);
+                        ui.set_max_width(268.0);
+                        ui.spacing_mut().item_spacing = Vec2::new(0.0, 1.0);
+                        match menu_idx {
+                            0 => file_menu(ui, app, &mut nav),
+                            1 => edit_menu(ui, app, &mut nav),
+                            2 => view_menu(ui, app, &mut nav),
+                            3 => select_menu(ui, app, &mut nav),
+                            4 => modify_menu(ui, app, &mut nav),
+                            5 => text_menu(ui, app, &mut nav),
+                            6 => commands_menu(ui, app, &mut nav),
+                            7 => filters_menu(ui, app, &mut nav),
+                            8 => window_menu(ui, app, &mut nav),
+                            _ => help_menu(ui, app, &mut nav),
+                        }
+                    });
+            });
+
+        let total = nav.cursor.max(1);
+        if nav_delta != 0 {
+            app.active_menu_item =
+                (nav.active_idx as isize + nav_delta).rem_euclid(total as isize) as usize;
+        } else {
+            app.active_menu_item = nav.active_idx.min(total - 1);
+        }
+
+        if nav.closed {
+            app.active_menu = None;
+        } else if ui.input(|i| i.pointer.primary_pressed())
+            && let Some(pos) = ui.input(|i| i.pointer.interact_pos())
+        {
+            let on_bar = menu_rects.iter().any(|r| r.contains(pos));
+            let on_popup = area_resp.response.rect.contains(pos);
+            if !on_bar && !on_popup {
+                app.active_menu = None;
+            }
+        }
+    }
 }
 
-fn file_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
-    if ui.button("New…                     Ctrl+N").clicked() {
+fn file_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
+    let p = app.palette;
+    if nav.row(ui, p, true, "New…", "Ctrl+N") {
         app.show_new_dialog = true;
-        ui.close();
     }
-    ui.menu_button("New from Template", |ui| {
-        for (name, w, h) in [
-            ("Web Hero Banner (1200×630)", 1200.0, 630.0),
-            ("Full HD UI Layout (1920×1080)", 1920.0, 1080.0),
-            ("Mobile App Screen (390×844)", 390.0, 844.0),
-            ("App Icon Grid (512×512)", 512.0, 512.0),
-        ] {
-            if ui.button(name).clicked() {
-                app.create_template_document(name, w, h);
-                ui.close();
-            }
-        }
-    });
-    if ui.button("Open…                    Ctrl+O").clicked() {
+    if nav.row(ui, p, true, "New from Template (1080p Showcase)…", "") {
+        app.create_template_document("Full_HD_1080p_Showcase", 1920.0, 1080.0);
+    }
+    if nav.row(ui, p, true, "Open…", "Ctrl+O") {
         app.begin_file_dialog(FileMode::Open);
-        ui.close();
     }
-    ui.menu_button("Open Recent", |ui| {
-        if app.recent_files.is_empty() {
-            ui.label(RichText::new("(No recent files)").small());
-        } else {
-            for path in app.recent_files.clone() {
-                let label = path.to_string_lossy().to_string();
-                if ui.button(label).clicked() {
-                    let _ = app.open_path(&path);
-                    ui.close();
-                }
-            }
-        }
-    });
+    if nav.row(ui, p, true, "Browse in Bridge…", "Ctrl+Alt+O") {
+        app.begin_file_dialog(FileMode::Open);
+    }
     ui.separator();
-    if ui.button("Close                    Ctrl+W").clicked() {
+    if nav.row(ui, p, true, "Close", "Ctrl+W") {
         app.close_active_tab();
-        ui.close();
     }
-    if ui.button("Save                     Ctrl+S").clicked() {
-        app.save_current();
-        ui.close();
-    }
-    if ui.button("Save As…           Ctrl+Shift+S").clicked() {
-        app.begin_file_dialog(FileMode::Save);
-        ui.close();
+    if nav.row(ui, p, app.open_docs.len() > 1, "Close All", "") {
+        app.close_document();
     }
     ui.separator();
-    if ui.button("Import…                  Ctrl+R").clicked() {
+    if nav.row(ui, p, true, "Save", "Ctrl+S") {
+        app.save_current();
+    }
+    if nav.row(ui, p, true, "Save As…", "Ctrl+Shift+S") {
+        app.begin_file_dialog(FileMode::Save);
+    }
+    if nav.row(ui, p, true, "Save All", "") {
+        app.save_current();
+    }
+    if nav.row(ui, p, app.current_path.is_some(), "Revert", "")
+        && let Some(path) = app.current_path.clone()
+    {
+        let _ = app.open_path(&path);
+    }
+    ui.separator();
+    if nav.row(ui, p, true, "Import…", "Ctrl+R") {
         app.begin_file_dialog(FileMode::Import);
-        ui.close();
     }
-    if ui.button("Export…            Ctrl+Shift+R").clicked() {
+    if nav.row(ui, p, true, "Export…", "Ctrl+Shift+R") {
         app.begin_file_dialog(FileMode::Export);
-        ui.close();
     }
-    if ui.button("Image Preview…     Ctrl+Shift+X").clicked() {
+    if nav.row(ui, p, true, "Image Preview (2-Up)…", "Ctrl+Shift+X") {
         app.view_mode = CanvasViewMode::TwoUp;
         app.status = "2-Up Image Preview enabled".to_string();
-        ui.close();
     }
-    if ui.button("Export HTML5 + CSS…").clicked() {
+    if nav.row(ui, p, true, "Export HTML5 + CSS…", "") {
         app.file_dialog_name = "index.html".to_string();
         app.begin_file_dialog(FileMode::Export);
         app.file_dialog_name = "index.html".to_string();
-        ui.close();
     }
     ui.separator();
-    if ui.button("Canvas Size…").clicked() {
-        app.open_canvas_size_dialog();
-        ui.close();
+    if nav.row(ui, p, true, "Batch Process / MCP Console…", "") {
+        app.show_mcp_dialog = true;
     }
-    if ui.button("Welcome Screen").clicked() {
+    if nav.row(ui, p, true, "Canvas Size / Page Setup…", "") {
+        app.open_canvas_size_dialog();
+    }
+    if nav.row(ui, p, true, "Welcome Screen…", "") {
         app.show_welcome = true;
-        ui.close();
+    }
+    ui.separator();
+    if nav.row(ui, p, true, "Exit", "Ctrl+Q") {
+        std::process::exit(0);
     }
 }
 
-fn edit_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
+fn edit_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
+    let p = app.palette;
     let can_undo = !app.undo.is_empty();
     let can_redo = !app.redo.is_empty();
-    let has_selection = app.selected.is_some();
+    let has_sel = app.selected.is_some() || !app.selected_set.is_empty();
 
-    if ui
-        .add_enabled(
-            can_undo,
-            egui::Button::new("Undo                     Ctrl+Z"),
-        )
-        .clicked()
-    {
+    if nav.row(ui, p, can_undo, "Undo", "Ctrl+Z") {
         app.undo_action();
-        ui.close();
     }
-    if ui
-        .add_enabled(
-            can_redo,
-            egui::Button::new("Redo                     Ctrl+Y"),
-        )
-        .clicked()
-    {
+    if nav.row(ui, p, can_redo, "Redo", "Ctrl+Y") {
         app.redo_action();
-        ui.close();
     }
     ui.separator();
-    ui.menu_button("Insert", |ui| {
-        if ui.button("New Layer").clicked() {
-            app.add_layer();
-            ui.close();
-        }
-        if ui.button("New Page").clicked() {
-            app.add_page();
-            ui.close();
-        }
-        if ui.button("New Animation State").clicked() {
-            app.add_state();
-            ui.close();
-        }
-        if ui.button("New Symbol from Selection…").clicked() {
-            app.convert_selection_to_symbol();
-            ui.close();
-        }
-        if ui.button("Rectangular Slice").clicked() {
-            app.insert_slice(false);
-            ui.close();
-        }
-        if ui.button("Hotspot").clicked() {
-            app.insert_slice(true);
-            ui.close();
-        }
-    });
-    if ui.button("Find and Replace…        Ctrl+F").clicked() {
+    if nav.row(ui, p, true, "Insert New Layer", "") {
+        app.add_layer();
+    }
+    if nav.row(ui, p, true, "Insert New Page", "") {
+        app.add_page();
+    }
+    if nav.row(ui, p, true, "Insert New Animation State", "") {
+        app.add_state();
+    }
+    if nav.row(ui, p, has_sel, "Insert New Symbol…", "F8") {
+        app.convert_selection_to_symbol();
+    }
+    if nav.row(ui, p, true, "Insert Rectangular Slice", "") {
+        app.insert_slice(false);
+    }
+    if nav.row(ui, p, true, "Insert Hotspot", "") {
+        app.insert_slice(true);
+    }
+    if nav.row(ui, p, true, "Find and Replace…", "Ctrl+F") {
         app.show_find_replace = true;
-        ui.close();
     }
     ui.separator();
-    if ui
-        .add_enabled(
-            has_selection,
-            egui::Button::new("Cut                      Ctrl+X"),
-        )
-        .clicked()
-    {
+    if nav.row(ui, p, has_sel, "Cut", "Ctrl+X") {
         app.cut_selected();
-        ui.close();
     }
-    if ui
-        .add_enabled(
-            has_selection,
-            egui::Button::new("Copy                     Ctrl+C"),
-        )
-        .clicked()
-    {
+    if nav.row(ui, p, has_sel, "Copy", "Ctrl+C") {
         app.copy_selected();
-        ui.close();
     }
-    if ui
-        .add_enabled(has_selection, egui::Button::new("Copy CSS Properties"))
-        .clicked()
-    {
+    if nav.row(ui, p, has_sel, "Copy HTML / CSS Code…", "Ctrl+Alt+C") {
         app.copy_selected_css();
-        ui.close();
     }
-    if ui
-        .add_enabled(
-            app.clipboard.is_some(),
-            egui::Button::new("Paste                    Ctrl+V"),
-        )
-        .clicked()
-    {
+    if nav.row(ui, p, true, "Paste", "Ctrl+V") {
         app.paste();
-        ui.close();
     }
-    if ui
-        .add_enabled(
-            has_selection,
-            egui::Button::new("Duplicate                Ctrl+D"),
-        )
-        .clicked()
-    {
-        app.duplicate_selected();
-        ui.close();
-    }
-    if ui
-        .add_enabled(
-            has_selection,
-            egui::Button::new("Clone              Ctrl+Shift+D"),
-        )
-        .clicked()
-    {
-        app.clone_selected();
-        ui.close();
-    }
-    if ui
-        .add_enabled(
-            has_selection,
-            egui::Button::new("Delete                   Del"),
-        )
-        .clicked()
-    {
+    if nav.row(ui, p, has_sel, "Clear", "Backspace") {
         app.delete_selected();
-        ui.close();
+    }
+    ui.separator();
+    if nav.row(ui, p, has_sel, "Duplicate", "Ctrl+Alt+D") {
+        app.duplicate_selected();
+    }
+    if nav.row(ui, p, has_sel, "Clone", "Ctrl+Shift+D") {
+        app.clone_selected();
+    }
+    ui.separator();
+    if nav.row(ui, p, has_sel, "Crop Document to Selection", "")
+        && let Some((lo, hi)) = app.selected_object().and_then(|o| o.bounds())
+    {
+        app.crop_canvas_to_rect(lo, hi);
+    }
+    if nav.row(ui, p, true, "Keyboard Shortcuts…", "F1") {
+        app.show_about_dialog = true;
     }
 }
 
-fn view_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
-    if ui.button("Zoom In                  Ctrl++").clicked() {
+fn view_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
+    let p = app.palette;
+    if nav.row(ui, p, true, "Zoom In", "Ctrl++") {
         app.zoom_by(constants::ZOOM_STEP);
-        ui.close();
     }
-    if ui.button("Zoom Out                 Ctrl+-").clicked() {
+    if nav.row(ui, p, true, "Zoom Out", "Ctrl+-") {
         app.zoom_by(1.0 / constants::ZOOM_STEP);
-        ui.close();
     }
-    ui.menu_button("Magnification", |ui| {
-        for &preset in constants::ZOOM_PRESETS {
-            if ui
-                .selectable_label(
-                    (app.doc.zoom - preset).abs() < 0.01,
-                    format!("{:.0}%", preset * 100.0),
-                )
-                .clicked()
-            {
-                app.set_zoom(preset);
-                ui.close();
-            }
-        }
-    });
-    if ui.button("Fit in Window            Ctrl+0").clicked() {
+    if nav.row(ui, p, true, "Magnification 100%", "Ctrl+1") {
+        app.set_zoom(1.0);
+    }
+    if nav.row(ui, p, true, "Magnification 50%", "Ctrl+5") {
+        app.set_zoom(0.5);
+    }
+    if nav.row(ui, p, true, "Magnification 200%", "Ctrl+2") {
+        app.set_zoom(2.0);
+    }
+    if nav.row(ui, p, true, "Fit All in Window", "Ctrl+0") {
         app.fit_in_window();
-        ui.close();
+    }
+    if nav.row(ui, p, true, "Full Screen / Hide Panels", "Tab / F4") {
+        app.toggle_full_screen_canvas();
     }
     ui.separator();
     for (mode, label) in [
         (CanvasViewMode::Original, "Original View"),
-        (CanvasViewMode::Preview, "Preview"),
+        (CanvasViewMode::Preview, "Preview View"),
         (CanvasViewMode::TwoUp, "2-Up Split View"),
         (CanvasViewMode::FourUp, "4-Up Compare View"),
     ] {
-        if ui.selectable_label(app.view_mode == mode, label).clicked() {
+        let mut active = app.view_mode == mode;
+        if nav.check_row(ui, p, &mut active, label, "") {
             app.view_mode = mode;
-            ui.close();
         }
     }
     ui.separator();
-    ui.checkbox(&mut app.show_rulers, "Rulers                   Ctrl+Alt+R");
-    ui.checkbox(&mut app.show_grid, "Grid                     Ctrl+Alt+G");
-    ui.checkbox(&mut app.snap_to_grid, "Snap to Grid");
-    ui.checkbox(&mut app.show_guides, "Guides                   Ctrl+;");
-    ui.checkbox(&mut app.show_slices, "Web Slices & Hotspots");
-    ui.checkbox(&mut app.onion_skin, "Onion Skinning (Animation)");
+    let mut rulers = app.show_rulers;
+    if nav.check_row(ui, p, &mut rulers, "Rulers", "Ctrl+Alt+R") {
+        app.show_rulers = rulers;
+    }
+    let mut grid = app.show_grid;
+    if nav.check_row(ui, p, &mut grid, "Grid", "Ctrl+Alt+G") {
+        app.show_grid = grid;
+    }
+    let mut snap = app.snap_to_grid;
+    if nav.check_row(ui, p, &mut snap, "Snap to Grid", "Ctrl+Alt+Shift+G") {
+        app.snap_to_grid = snap;
+    }
+    let mut guides = app.show_guides;
+    if nav.check_row(ui, p, &mut guides, "Guides", "Ctrl+;") {
+        app.show_guides = guides;
+    }
+    let mut slices = app.show_slices;
+    if nav.check_row(ui, p, &mut slices, "Slice Guides & Overlay", "") {
+        app.show_slices = slices;
+    }
+    let mut onion = app.onion_skin;
+    if nav.check_row(ui, p, &mut onion, "Onion Skinning", "") {
+        app.onion_skin = onion;
+    }
 }
 
-fn select_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
-    if ui.button("Select All               Ctrl+A").clicked() {
+fn select_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
+    let p = app.palette;
+    let has_sel = app.selected.is_some() || !app.selected_set.is_empty();
+    if nav.row(ui, p, true, "Select All", "Ctrl+A") {
         app.select_all();
-        ui.close();
     }
-    if ui.button("Deselect                 Ctrl+D").clicked() {
-        app.selected = None;
+    if nav.row(ui, p, has_sel, "Deselect", "Ctrl+D") {
+        app.clear_selection();
         app.status = "Deselected".to_string();
-        ui.close();
     }
-    ui.separator();
-    if ui.button("Select Next Object       Tab").clicked() {
+    if nav.row(ui, p, true, "Superselect / Next Object", "Ctrl+Right") {
         app.cycle_selection(true);
-        ui.close();
     }
-    if ui.button("Select Previous Object   Shift+Tab").clicked() {
+    if nav.row(ui, p, true, "Subselect / Previous Object", "Ctrl+Left") {
         app.cycle_selection(false);
-        ui.close();
     }
     ui.separator();
-    if ui.button("Select Similar Type").clicked() {
+    if nav.row(ui, p, has_sel, "Select Similar", "") {
         app.select_similar();
-        ui.close();
+    }
+    if nav.row(ui, p, true, "Select Inverse", "Ctrl+Shift+I") {
+        app.select_inverse();
+    }
+    if nav.row(ui, p, has_sel, "Feather Edge…", "Ctrl+Alt+Shift+D") {
+        app.add_live_effect(LiveEffect::GaussianBlur {
+            radius: 3.0,
+            enabled: true,
+        });
+    }
+    ui.separator();
+    if nav.row(ui, p, has_sel, "Expand Marquee (+4 px)…", "") {
+        app.expand_selected_bounds(4.0);
+    }
+    if nav.row(ui, p, has_sel, "Contract Marquee (-4 px)…", "") {
+        app.expand_selected_bounds(-4.0);
+    }
+    if nav.row(ui, p, has_sel, "Convert Marquee to Path", "") {
+        app.convert_selected_to_path();
     }
 }
 
-fn modify_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
-    let has_selection = app.selected.is_some();
-    ui.menu_button("Canvas", |ui| {
-        if ui.button("Canvas Size…").clicked() {
-            app.open_canvas_size_dialog();
-            ui.close();
-        }
-        if ui.button("Fit Canvas to Objects").clicked() {
-            app.fit_canvas_to_contents();
-            ui.close();
-        }
-        if ui.button("Rotate Canvas 90° CW").clicked() {
-            app.rotate_canvas_90();
-            ui.close();
-        }
-        if ui.button("Toggle Transparent Canvas").clicked() {
-            let page = app.doc.page_mut();
-            page.transparent_bg = !page.transparent_bg;
-            ui.close();
-        }
-    });
-    ui.menu_button("Animation", |ui| {
-        if ui.button("Add Animation State").clicked() {
-            app.add_state();
-            ui.close();
-        }
-        if ui.button("Duplicate State").clicked() {
-            app.duplicate_state();
-            ui.close();
-        }
-        if ui.button("Animate Selection (3-Step Tween)").clicked() {
-            app.tween_selected_across_states();
-            ui.close();
-        }
-    });
-    ui.menu_button("Symbol", |ui| {
-        if ui
-            .add_enabled(has_selection, egui::Button::new("Convert to Symbol…   F8"))
-            .clicked()
-        {
-            app.convert_selection_to_symbol();
-            ui.close();
-        }
-    });
-    ui.separator();
-    ui.menu_button("Transform", |ui| {
-        if ui
-            .add_enabled(has_selection, egui::Button::new("Flip Horizontal"))
-            .clicked()
-        {
-            app.flip_horizontal();
-            ui.close();
-        }
-        if ui
-            .add_enabled(has_selection, egui::Button::new("Flip Vertical"))
-            .clicked()
-        {
-            app.flip_vertical();
-            ui.close();
-        }
-        if ui
-            .add_enabled(has_selection, egui::Button::new("Rotate 90° CW"))
-            .clicked()
-        {
-            app.rotate_90();
-            ui.close();
-        }
-        if ui
-            .add_enabled(has_selection, egui::Button::new("Scale 125%"))
-            .clicked()
-        {
-            app.scale_selected(1.25);
-            ui.close();
-        }
-        if ui
-            .add_enabled(has_selection, egui::Button::new("Scale 80%"))
-            .clicked()
-        {
-            app.scale_selected(0.80);
-            ui.close();
-        }
-    });
-    ui.menu_button("Arrange", |ui| {
-        if ui
-            .add_enabled(has_selection, egui::Button::new("Bring to Front"))
-            .clicked()
-        {
-            app.reorder_selected(true);
-            ui.close();
-        }
-        if ui
-            .add_enabled(has_selection, egui::Button::new("Bring Forward"))
-            .clicked()
-        {
-            app.step_order_selected(1);
-            ui.close();
-        }
-        if ui
-            .add_enabled(has_selection, egui::Button::new("Send Backward"))
-            .clicked()
-        {
-            app.step_order_selected(-1);
-            ui.close();
-        }
-        if ui
-            .add_enabled(has_selection, egui::Button::new("Send to Back"))
-            .clicked()
-        {
-            app.reorder_selected(false);
-            ui.close();
-        }
-    });
-    ui.menu_button("Align", |ui| {
-        for (mode, label) in [
-            ("left", "Align Left Edge"),
-            ("center_x", "Align Horizontal Center"),
-            ("right", "Align Right Edge"),
-            ("top", "Align Top Edge"),
-            ("center_y", "Align Vertical Center"),
-            ("bottom", "Align Bottom Edge"),
-        ] {
-            if ui
-                .add_enabled(has_selection, egui::Button::new(label))
-                .clicked()
-            {
-                app.align_selected_to_canvas(mode);
-                ui.close();
-            }
-        }
-    });
-    ui.menu_button("Combine Paths", |ui| {
-        for (op, label) in [
-            ("union", "Union"),
-            ("intersect", "Intersect"),
-            ("punch", "Punch"),
-            ("crop", "Crop"),
-        ] {
-            if ui
-                .add_enabled(has_selection, egui::Button::new(label))
-                .clicked()
-            {
-                app.combine_paths_op(op);
-                ui.close();
-            }
-        }
-    });
-    ui.menu_button("Alter Path", |ui| {
-        if ui
-            .add_enabled(has_selection, egui::Button::new("Simplify Path"))
-            .clicked()
-        {
-            app.simplify_selected_path();
-            ui.close();
-        }
-        if ui
-            .add_enabled(has_selection, egui::Button::new("Expand Stroke (+4 px)"))
-            .clicked()
-        {
-            app.expand_selected_bounds(4.0);
-            ui.close();
-        }
-        if ui
-            .add_enabled(has_selection, egui::Button::new("Inset Path (-4 px)"))
-            .clicked()
-        {
-            app.expand_selected_bounds(-4.0);
-            ui.close();
-        }
-    });
-    ui.separator();
+fn modify_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
+    let p = app.palette;
+    let has_sel = app.selected.is_some() || !app.selected_set.is_empty();
     let multi_sel = app.selected_set.len() >= 2;
     let is_group = app
         .selected_object()
         .is_some_and(|o| matches!(o.kind, crate::doc::Shape::Group { .. }));
-    if ui
-        .add_enabled(
-            multi_sel,
-            egui::Button::new("Group                    Ctrl+G"),
-        )
-        .clicked()
-    {
-        app.group_selected();
-        ui.close();
+
+    if nav.row(ui, p, true, "Canvas Size…", "") {
+        app.open_canvas_size_dialog();
     }
-    if ui
-        .add_enabled(
-            is_group,
-            egui::Button::new("Ungroup            Ctrl+Shift+G"),
-        )
-        .clicked()
-    {
-        app.ungroup_selected();
-        ui.close();
+    if nav.row(ui, p, true, "Fit Canvas", "Ctrl+Alt+F") {
+        app.fit_canvas_to_contents();
     }
-    if ui
-        .add_enabled(
-            has_selection,
-            egui::Button::new("Flatten Selection to Bitmap"),
-        )
-        .clicked()
-    {
+    if nav.row(ui, p, true, "Rotate Canvas 90° CW", "") {
+        app.rotate_canvas_90();
+    }
+    if nav.row(
+        ui,
+        p,
+        has_sel,
+        "Animate Selection (3-Step Tween)…",
+        "Alt+Shift+F8",
+    ) {
+        app.tween_selected_across_states();
+    }
+    if nav.row(ui, p, has_sel, "Convert to Symbol…", "F8") {
+        app.convert_selection_to_symbol();
+    }
+    ui.separator();
+    if nav.row(ui, p, has_sel, "Lock / Unlock Selection", "Ctrl+Alt+L") {
+        app.toggle_lock_selection();
+    }
+    if nav.row(ui, p, has_sel, "Flatten Selection", "Ctrl+Alt+Shift+Z") {
         app.flatten_selected_to_bitmap();
-        ui.close();
+    }
+    if nav.row(ui, p, has_sel, "Merge Down", "Ctrl+E") {
+        app.flatten_selected_to_bitmap();
+    }
+    ui.separator();
+    if nav.row(ui, p, has_sel, "Bring to Front", "Ctrl+Shift+Up") {
+        app.reorder_selected(true);
+    }
+    if nav.row(ui, p, has_sel, "Bring Forward", "Ctrl+Up") {
+        app.reorder_selected_step(true);
+    }
+    if nav.row(ui, p, has_sel, "Send Backward", "Ctrl+Down") {
+        app.reorder_selected_step(false);
+    }
+    if nav.row(ui, p, has_sel, "Send to Back", "Ctrl+Shift+Down") {
+        app.reorder_selected(false);
+    }
+    ui.separator();
+    if nav.row(ui, p, has_sel, "Rotate 90° CW", "Ctrl+9") {
+        app.rotate_90();
+    }
+    if nav.row(ui, p, has_sel, "Rotate 90° CCW", "Ctrl+7") {
+        app.rotate_ccw_90();
+    }
+    if nav.row(ui, p, has_sel, "Flip Horizontal", "") {
+        app.flip_horizontal();
+    }
+    if nav.row(ui, p, has_sel, "Flip Vertical", "") {
+        app.flip_vertical();
+    }
+    ui.separator();
+    if nav.row(ui, p, has_sel, "Join Paths", "Ctrl+J") {
+        app.combine_paths_op("join");
+    }
+    if nav.row(ui, p, has_sel, "Split Paths", "Ctrl+Shift+J") {
+        app.combine_paths_op("split");
+    }
+    if nav.row(ui, p, has_sel, "Union Paths", "") {
+        app.combine_paths_op("union");
+    }
+    if nav.row(ui, p, has_sel, "Punch Paths", "") {
+        app.combine_paths_op("punch");
+    }
+    if nav.row(ui, p, has_sel, "Snap To Pixel", "") {
+        app.snap_selected_to_pixel();
+    }
+    ui.separator();
+    if nav.row(ui, p, multi_sel, "Group", "Ctrl+G") {
+        app.group_selected();
+    }
+    if nav.row(ui, p, is_group, "Ungroup", "Ctrl+Shift+G") {
+        app.ungroup_selected();
     }
 }
 
-fn text_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
-    ui.menu_button("Font", |ui| {
-        for fam in ["Sans-Serif", "Serif", "Monospace", "Display", "Geometric"] {
-            if ui.button(fam).clicked() {
-                app.set_selected_font_family(fam);
-                ui.close();
-            }
+fn text_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
+    let p = app.palette;
+    for fam in ["Sans-Serif", "Serif", "Monospace", "Display", "Geometric"] {
+        if nav.row(ui, p, true, &format!("Font: {fam}"), "") {
+            app.set_selected_font_family(fam);
         }
-    });
-    ui.menu_button("Size", |ui| {
-        for sz in [10.0, 12.0, 14.0, 18.0, 24.0, 32.0, 48.0, 64.0, 96.0] {
-            if ui.button(format!("{sz:.0} pt")).clicked() {
-                app.set_selected_text_size(sz);
-                ui.close();
-            }
-        }
-    });
-    ui.menu_button("Style", |ui| {
-        if ui.button("Toggle Bold              Ctrl+B").clicked() {
-            app.toggle_selected_text_bold();
-            ui.close();
-        }
-        if ui.button("Toggle Italic            Ctrl+I").clicked() {
-            app.toggle_selected_text_italic();
-            ui.close();
-        }
-    });
+    }
     ui.separator();
-    if ui.button("Convert Text to Path").clicked() {
+    for sz in [12.0, 18.0, 24.0, 36.0, 48.0, 72.0] {
+        if nav.row(ui, p, true, &format!("Size: {sz:.0} pt"), "") {
+            app.set_selected_text_size(sz);
+        }
+    }
+    ui.separator();
+    if nav.row(ui, p, true, "Bold", "Ctrl+B") {
+        app.toggle_selected_text_bold();
+    }
+    if nav.row(ui, p, true, "Italic", "Ctrl+I") {
+        app.toggle_selected_text_italic();
+    }
+    ui.separator();
+    if nav.row(ui, p, true, "Convert Text to Path", "Ctrl+Shift+P") {
         app.convert_selected_to_path();
-        ui.close();
     }
-    if ui.button("Check Spelling…").clicked() {
+    if nav.row(ui, p, true, "Check Spelling…", "Shift+F7") {
         app.check_spelling();
-        ui.close();
     }
 }
 
-fn commands_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
-    if ui.button("Command Palette…         Ctrl+K").clicked() {
+fn commands_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
+    let p = app.palette;
+    if nav.row(ui, p, true, "Command Palette…", "Ctrl+K") {
         app.show_command_palette = true;
-        ui.close();
     }
-    if ui.button("MCP & Headless CLI Console…").clicked() {
+    if nav.row(ui, p, true, "MCP & Headless CLI Console…", "") {
         app.show_mcp_dialog = true;
-        ui.close();
     }
-    if ui.button("Manage Saved Commands…").clicked() {
+    if nav.row(ui, p, true, "Manage Saved Commands…", "") {
         app.show_commands_dialog = true;
-        ui.close();
     }
-    if ui.button("Run Script / Replay History Steps").clicked() {
+    if nav.row(ui, p, true, "Run Script / Replay History Steps", "") {
         app.replay_last_action();
-        ui.close();
     }
     ui.separator();
-    ui.menu_button("Creative", |ui| {
-        if ui.button("Add Picture Frame").clicked() {
-            app.command_add_picture_frame();
-            ui.close();
-        }
-        if ui.button("Add Drop Shadow Card").clicked() {
-            app.command_add_shadow_card();
-            ui.close();
-        }
-        if ui.button("Convert to Grayscale").clicked() {
-            app.apply_color_command("grayscale");
-            ui.close();
-        }
-        if ui.button("Convert to Sepia Tone").clicked() {
-            app.apply_color_command("sepia");
-            ui.close();
-        }
-    });
-    ui.menu_button("Document", |ui| {
-        if ui.button("Center All Objects on Canvas").clicked() {
-            app.align_selected_to_canvas("center_x");
-            app.align_selected_to_canvas("center_y");
-            ui.close();
-        }
-        if ui.button("Distribute Guides 3×3 Grid").clicked() {
-            app.command_add_thirds_guides();
-            ui.close();
-        }
-    });
-    ui.menu_button("Web", |ui| {
-        if ui.button("Create Slice from Selection").clicked() {
-            app.create_slice_from_selection();
-            ui.close();
-        }
-        if ui.button("Export CSS Rules to Status").clicked() {
-            app.copy_selected_css();
-            ui.close();
-        }
-    });
+    if nav.row(ui, p, true, "Creative ▸ Add Picture Frame", "") {
+        app.command_add_picture_frame();
+    }
+    if nav.row(ui, p, true, "Creative ▸ Add Drop Shadow Card", "") {
+        app.command_add_shadow_card();
+    }
+    if nav.row(ui, p, true, "Creative ▸ Convert to Grayscale", "") {
+        app.apply_color_command("grayscale");
+    }
+    if nav.row(ui, p, true, "Creative ▸ Convert to Sepia Tone", "") {
+        app.apply_color_command("sepia");
+    }
+    ui.separator();
+    if nav.row(ui, p, true, "Document ▸ Center Selection on Canvas", "") {
+        app.align_selected_to_canvas("center_x");
+        app.align_selected_to_canvas("center_y");
+    }
+    if nav.row(ui, p, true, "Document ▸ Distribute 3×3 Guides", "") {
+        app.command_add_thirds_guides();
+    }
+    if nav.row(ui, p, true, "Web ▸ Create Slice from Selection", "") {
+        app.create_slice_from_selection();
+    }
+    if nav.row(ui, p, true, "Web ▸ Copy CSS3 Rules to Clipboard", "") {
+        app.copy_selected_css();
+    }
 }
 
-fn filters_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
-    let has_selection = app.selected.is_some();
-    if ui
-        .add_enabled(
-            has_selection,
-            egui::Button::new("Repeat Last Filter       Ctrl+Alt+Shift+X"),
-        )
-        .clicked()
-    {
+fn filters_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
+    let p = app.palette;
+    let has_sel = app.selected.is_some() || !app.selected_set.is_empty();
+    if nav.row(ui, p, has_sel, "Repeat Filter", "Ctrl+Alt+Shift+X") {
         app.repeat_last_filter();
-        ui.close();
     }
     ui.separator();
-    ui.menu_button("Shadow and Glow", |ui| {
-        if ui.button("Drop Shadow").clicked() {
-            app.add_live_effect(LiveEffect::DropShadow {
-                distance: 5.0,
-                angle_deg: 45.0,
-                blur: 5.0,
-                color: Color32::from_black_alpha(150),
-                enabled: true,
-            });
-            ui.close();
-        }
-        if ui.button("Inner Shadow").clicked() {
-            app.add_live_effect(LiveEffect::InnerShadow {
-                distance: 3.0,
-                blur: 4.0,
-                color: Color32::from_black_alpha(140),
-                enabled: true,
-            });
-            ui.close();
-        }
-        if ui.button("Outer Glow").clicked() {
-            app.add_live_effect(LiveEffect::Glow {
-                radius: 6.0,
-                color: Color32::from_rgba_unmultiplied(255, 190, 40, 180),
-                inner: false,
-                enabled: true,
-            });
-            ui.close();
-        }
-        if ui.button("Inner Glow").clicked() {
-            app.add_live_effect(LiveEffect::Glow {
-                radius: 4.0,
-                color: Color32::from_rgba_unmultiplied(255, 255, 255, 160),
-                inner: true,
-                enabled: true,
-            });
-            ui.close();
-        }
-    });
-    ui.menu_button("Bevel and Emboss", |ui| {
-        if ui.button("Inner Bevel").clicked() {
-            app.add_live_effect(LiveEffect::Bevel {
-                width: 2.0,
-                highlight: Color32::from_white_alpha(190),
-                shadow: Color32::from_black_alpha(160),
-                enabled: true,
-            });
-            ui.close();
-        }
-    });
-    ui.menu_button("Adjust Color", |ui| {
-        if ui.button("Brightness / Contrast (Live)").clicked() {
-            app.add_live_effect(LiveEffect::ColorAdjust {
-                brightness: 10.0,
-                contrast: 15.0,
-                saturation: 0.0,
-                enabled: true,
-            });
-            app.apply_color_command("brighten");
-            ui.close();
-        }
-        if ui.button("Invert Colors").clicked() {
-            app.apply_color_command("invert");
-            ui.close();
-        }
-        if ui.button("Grayscale").clicked() {
-            app.apply_color_command("grayscale");
-            ui.close();
-        }
-        if ui.button("Sepia").clicked() {
-            app.apply_color_command("sepia");
-            ui.close();
-        }
-    });
-    ui.menu_button("Blur", |ui| {
-        if ui.button("Box Blur (Bitmap)").clicked() {
-            app.run_bitmap_filter(Tool::Blur);
-            ui.close();
-        }
-        if ui.button("Gaussian Blur (Live)").clicked() {
-            app.add_live_effect(LiveEffect::GaussianBlur {
-                radius: 4.0,
-                enabled: true,
-            });
-            ui.close();
-        }
-    });
-    ui.menu_button("Sharpen", |ui| {
-        if ui.button("Unsharp Mask (Bitmap)").clicked() {
-            app.run_bitmap_filter(Tool::Sharpen);
-            ui.close();
-        }
-    });
+    if nav.row(ui, p, has_sel, "Adjust Color ▸ Brightness / Contrast", "") {
+        app.add_live_effect(LiveEffect::ColorAdjust {
+            brightness: 10.0,
+            contrast: 15.0,
+            saturation: 0.0,
+            enabled: true,
+        });
+        app.apply_color_command("brighten");
+    }
+    if nav.row(ui, p, has_sel, "Adjust Color ▸ Invert", "Ctrl+Alt+Shift+I") {
+        app.apply_color_command("invert");
+    }
+    if nav.row(ui, p, has_sel, "Adjust Color ▸ Grayscale", "") {
+        app.apply_color_command("grayscale");
+    }
+    if nav.row(ui, p, has_sel, "Adjust Color ▸ Sepia Tone", "") {
+        app.apply_color_command("sepia");
+    }
     ui.separator();
-    if ui
-        .add_enabled(has_selection, egui::Button::new("Clear All Live Filters"))
-        .clicked()
-    {
+    if nav.row(ui, p, has_sel, "Shadow and Glow ▸ Drop Shadow", "") {
+        app.add_live_effect(LiveEffect::DropShadow {
+            distance: 5.0,
+            angle_deg: 45.0,
+            blur: 5.0,
+            color: Color32::from_black_alpha(150),
+            enabled: true,
+        });
+    }
+    if nav.row(ui, p, has_sel, "Shadow and Glow ▸ Inner Shadow", "") {
+        app.add_live_effect(LiveEffect::InnerShadow {
+            distance: 3.0,
+            blur: 4.0,
+            color: Color32::from_black_alpha(140),
+            enabled: true,
+        });
+    }
+    if nav.row(ui, p, has_sel, "Shadow and Glow ▸ Outer Glow", "") {
+        app.add_live_effect(LiveEffect::Glow {
+            radius: 6.0,
+            color: Color32::from_rgba_unmultiplied(255, 190, 40, 180),
+            inner: false,
+            enabled: true,
+        });
+    }
+    if nav.row(ui, p, has_sel, "Bevel and Emboss ▸ Inner Bevel", "") {
+        app.add_live_effect(LiveEffect::Bevel {
+            width: 2.0,
+            highlight: Color32::from_white_alpha(190),
+            shadow: Color32::from_black_alpha(160),
+            enabled: true,
+        });
+    }
+    ui.separator();
+    if nav.row(ui, p, has_sel, "Blur ▸ Gaussian Blur…", "") {
+        app.add_live_effect(LiveEffect::GaussianBlur {
+            radius: 4.0,
+            enabled: true,
+        });
+    }
+    if nav.row(ui, p, has_sel, "Blur ▸ Box Blur (Bitmap)", "") {
+        app.run_bitmap_filter(Tool::Blur);
+    }
+    if nav.row(ui, p, has_sel, "Sharpen ▸ Unsharp Mask (Bitmap)", "") {
+        app.run_bitmap_filter(Tool::Sharpen);
+    }
+    ui.separator();
+    if nav.row(ui, p, has_sel, "Clear All Live Filters", "") {
         app.clear_live_effects();
-        ui.close();
     }
 }
 
-fn window_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
-    ui.checkbox(&mut app.show_tools_dock, "Tools                    Ctrl+F2");
-    ui.checkbox(
-        &mut app.show_bottom_inspector,
-        "Properties               Ctrl+F3",
-    );
-    ui.checkbox(&mut app.show_right_dock, "Right Panels             F4");
+fn window_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
+    let p = app.palette;
+    let mut hide_panels = app.full_screen_canvas;
+    if nav.check_row(ui, p, &mut hide_panels, "Hide Panels", "F4 / Tab") {
+        app.toggle_full_screen_canvas();
+    }
+    let mut main_tb = app.show_main_toolbar;
+    if nav.check_row(ui, p, &mut main_tb, "Main Toolbar", "") {
+        app.show_main_toolbar = main_tb;
+    }
+    let mut tools = app.show_tools_dock;
+    if nav.check_row(ui, p, &mut tools, "Tools", "Ctrl+F2") {
+        app.show_tools_dock = tools;
+    }
+    let mut props = app.show_bottom_inspector;
+    if nav.check_row(ui, p, &mut props, "Properties", "Ctrl+F3") {
+        app.show_bottom_inspector = props;
+    }
     ui.separator();
-    for (label, group, tab) in [
-        ("Optimize                 F6", 0usize, 0usize),
-        ("History                  Shift+F10", 0, 1),
-        ("Align", 0, 2),
-        ("Path", 0, 3),
-        ("Pages                    F5", 1, 0),
-        ("States                   Shift+F2", 1, 1),
-        ("Layers                   F2", 1, 2),
-        ("Styles                   Ctrl+F11", 2, 0),
-        ("Color Palette            Shift+F9", 2, 1),
-        ("Swatches                 Ctrl+F9", 2, 2),
-        ("Info                     Alt+Shift+F12", 2, 3),
-        ("Special Characters", 3, 0),
-        ("Image Editing", 3, 1),
-        ("Auto Shapes", 3, 2),
-        ("Document Library         F11", 3, 3),
-        ("CSS Properties / URL", 3, 4),
+    for (label, shortcut, group, tab) in [
+        ("Optimize", "F6", 0usize, 0usize),
+        ("Layers", "F2", 1, 2),
+        ("Common / Document Library", "F7 / F11", 3, 3),
+        ("CSS Properties", "Ctrl+F7", 3, 4),
+        ("Pages", "F5", 1, 0),
+        ("States", "Shift+F2", 1, 1),
+        ("History", "Shift+F10", 0, 1),
+        ("Auto Shapes", "", 3, 2),
+        ("Styles", "Ctrl+F11", 2, 0),
+        ("Color Mixer / Palette", "Shift+F9", 2, 1),
+        ("Swatches", "Ctrl+F9", 2, 2),
+        ("Info", "Alt+Shift+F12", 2, 3),
+        ("Align", "Ctrl+Alt+1", 0, 2),
+        ("Path", "", 0, 3),
+        ("Special Characters", "", 3, 0),
+        ("Image Editing", "", 3, 1),
     ] {
-        if ui.button(label).clicked() {
+        let mut active = app.show_right_dock
+            && match group {
+                0 => app.top_right_tab == tab,
+                1 => app.layers_tab == tab,
+                2 => app.middle_right_tab == tab,
+                _ => app.library_tab == tab,
+            };
+        if nav.check_row(ui, p, &mut active, label, shortcut) {
+            app.full_screen_canvas = false;
             app.show_right_dock = true;
             match group {
                 0 => app.top_right_tab = tab,
@@ -910,26 +1026,19 @@ fn window_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
                 2 => app.middle_right_tab = tab,
                 _ => app.library_tab = tab,
             }
-            ui.close();
         }
     }
     ui.separator();
-    ui.label(
-        RichText::new("Appearance Theme")
-            .small()
-            .color(app.palette.text_dim),
-    );
     for mode in [ThemeMode::Dark, ThemeMode::Light, ThemeMode::System] {
-        if ui
-            .selectable_label(app.theme_mode == mode, mode.label())
-            .clicked()
-        {
+        let mut active = app.theme_mode == mode;
+        if nav.check_row(ui, p, &mut active, mode.label(), "") {
             app.set_theme(mode);
-            ui.close();
         }
     }
     ui.separator();
-    if ui.button("Reset Workspace Layout").clicked() {
+    if nav.row(ui, p, true, "Reset Workspace Layout", "") {
+        app.full_screen_canvas = false;
+        app.show_main_toolbar = true;
         app.show_tools_dock = true;
         app.show_right_dock = true;
         app.show_bottom_inspector = true;
@@ -938,35 +1047,25 @@ fn window_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
         app.middle_right_tab = 1;
         app.library_tab = 2;
         app.status = "Workspace layout reset to CS6 Expanded Mode".to_string();
-        ui.close();
     }
 }
 
-fn help_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
-    if ui.button("FireCraft User Guide &Shortcuts…").clicked() {
+fn help_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
+    let p = app.palette;
+    if nav.row(ui, p, true, "FireCraft Help & Keyboard Shortcuts…", "F1") {
         app.show_about_dialog = true;
-        ui.close();
     }
-    if ui.button("Welcome Screen…").clicked() {
+    if nav.row(ui, p, true, "Welcome Screen…", "") {
         app.show_welcome = true;
-        ui.close();
     }
-    ui.separator();
-    ui.hyperlink_to(
-        "FireCraft Wiki (GitHub)",
-        "https://github.com/aliasfoxkde/FireCraft/wiki",
-    );
-    ui.hyperlink_to(
-        "FireCraft Repository & Docs",
-        "https://github.com/aliasfoxkde/FireCraft/blob/main/README.md",
-    );
-    ui.separator();
-    if ui.button("Load Demo Vector & Web Showcase").clicked() {
+    if nav.row(ui, p, true, "FireCraft Exchange (MCP / CLI)…", "") {
+        app.show_mcp_dialog = true;
+    }
+    if nav.row(ui, p, true, "Load 1080p Demo Showcase", "") {
         app.load_demo_showcase();
-        ui.close();
     }
-    if ui.button("About FireCraft…").clicked() {
+    ui.separator();
+    if nav.row(ui, p, true, "About FireCraft CS6…", "") {
         app.show_about_dialog = true;
-        ui.close();
     }
 }

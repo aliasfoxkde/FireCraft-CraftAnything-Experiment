@@ -160,9 +160,13 @@ pub struct FireCraft {
     pub bottom_tab: usize,
     pub color_tab: usize,
     pub color_subtab: usize,
+    pub active_menu: Option<usize>,
+    pub active_menu_item: usize,
+    pub show_main_toolbar: bool,
     pub show_tools_dock: bool,
     pub show_right_dock: bool,
     pub show_bottom_inspector: bool,
+    pub full_screen_canvas: bool,
     pub textures: TextureCache,
     pub logo_tex: Option<egui::TextureHandle>,
     pub frames: u32,
@@ -250,9 +254,13 @@ impl FireCraft {
             bottom_tab: 0,
             color_tab: 0,
             color_subtab: 0,
+            active_menu: None,
+            active_menu_item: 0,
+            show_main_toolbar: true,
             show_tools_dock: true,
             show_right_dock: true,
             show_bottom_inspector: true,
+            full_screen_canvas: false,
             textures: TextureCache::new(),
             logo_tex: None,
             frames: 0,
@@ -3370,6 +3378,94 @@ impl FireCraft {
         self.status = format!("Selected {count} object(s)");
     }
 
+    pub fn select_inverse(&mut self) {
+        let layer = self.selected_layer;
+        let count = self
+            .doc
+            .page()
+            .layers
+            .get(layer)
+            .map(|l| l.objects.len())
+            .unwrap_or(0);
+        let prev = self.selected_set.clone();
+        self.selected_set = (0..count).filter(|i| !prev.contains(i)).collect();
+        self.selected = self.selected_set.last().copied();
+        self.status = format!(
+            "Inverted selection ({} object(s) selected)",
+            self.selected_set.len()
+        );
+    }
+
+    pub fn toggle_lock_selection(&mut self) {
+        let mut indices = self.selected_set.clone();
+        if let Some(s) = self.selected
+            && !indices.contains(&s)
+        {
+            indices.push(s);
+        }
+        if indices.is_empty() {
+            return;
+        }
+        let layer = self.selected_layer;
+        let page = self.doc.page_mut();
+        if let Some(l) = page.layers.get_mut(layer) {
+            for idx in indices {
+                if let Some(o) = l.objects.get_mut(idx) {
+                    o.locked = !o.locked;
+                }
+            }
+        }
+        page.sync_state();
+        self.status = "Toggled lock on selected object(s)".to_string();
+    }
+
+    pub fn toggle_full_screen_canvas(&mut self) {
+        let any_dock_visible = self.show_tools_dock
+            || self.show_right_dock
+            || self.show_bottom_inspector
+            || self.show_main_toolbar;
+        if any_dock_visible && !self.full_screen_canvas {
+            self.full_screen_canvas = true;
+            self.show_tools_dock = false;
+            self.show_right_dock = false;
+            self.show_bottom_inspector = false;
+            self.show_main_toolbar = false;
+            self.status =
+                "Full-Screen Canvas Preview Mode enabled (press Tab or F4 to restore panels)"
+                    .to_string();
+        } else {
+            self.full_screen_canvas = false;
+            self.show_tools_dock = true;
+            self.show_right_dock = true;
+            self.show_bottom_inspector = true;
+            self.show_main_toolbar = true;
+            self.status = "Restored CS6 workspace panels (Tab / F4)".to_string();
+        }
+    }
+
+    pub fn select_page_step(&mut self, delta: isize) {
+        let count = self.doc.pages.len();
+        if count <= 1 {
+            return;
+        }
+        let next = (self.doc.current_page as isize + delta).rem_euclid(count as isize) as usize;
+        self.doc.current_page = next;
+        self.clear_selection();
+        self.status = format!("Switched to Page {} of {count}", next + 1);
+    }
+
+    pub fn select_state_step(&mut self, delta: isize) {
+        let count = self.doc.page().states.len();
+        if count <= 1 {
+            return;
+        }
+        let cur = self.doc.page().current_state;
+        let next = (cur as isize + delta).rem_euclid(count as isize) as usize;
+        self.doc.page_mut().select_state(next);
+        self.clear_selection();
+        self.status = format!("Switched to Animation State {} of {count}", next + 1);
+    }
+
     pub fn cycle_selection(&mut self, forward: bool) {
         let layer = self.selected_layer;
         let count = self
@@ -3557,27 +3653,6 @@ impl FireCraft {
         };
     }
 
-    pub fn step_order_selected(&mut self, delta: isize) {
-        let Some(index) = self.selected else {
-            return;
-        };
-        let layer = self.selected_layer;
-        let page = self.doc.page_mut();
-        let Some(objects) = page.layers.get_mut(layer).map(|l| &mut l.objects) else {
-            return;
-        };
-        let len = objects.len();
-        if index >= len {
-            return;
-        }
-        let target = (index as isize + delta).clamp(0, len as isize - 1) as usize;
-        if target != index {
-            objects.swap(index, target);
-            page.sync_state();
-            self.selected = Some(target);
-        }
-    }
-
     // ---- View & Theme ------------------------------------------------------
 
     pub fn set_zoom(&mut self, zoom: f32) {
@@ -3699,5 +3774,22 @@ mod tests {
 
         app.paste_with_text(Some("External Pasted Headline"));
         assert_eq!(app.doc.total_objects_on_page(), 5);
+
+        app.select_inverse();
+        assert_eq!(app.selected_set.len(), 4);
+
+        app.toggle_full_screen_canvas();
+        assert!(app.full_screen_canvas);
+        assert!(!app.show_tools_dock);
+        assert!(!app.show_right_dock);
+        assert!(!app.show_bottom_inspector);
+        assert!(!app.show_main_toolbar);
+
+        app.toggle_full_screen_canvas();
+        assert!(!app.full_screen_canvas);
+        assert!(app.show_tools_dock);
+        assert!(app.show_right_dock);
+        assert!(app.show_bottom_inspector);
+        assert!(app.show_main_toolbar);
     }
 }

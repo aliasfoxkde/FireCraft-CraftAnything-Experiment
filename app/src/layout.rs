@@ -36,14 +36,16 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
         .show(ui, |ui| menus::menu_bar(ui, app));
 
     // 2. CS6 Main Toolbar (New, Open, Save, Import, Export, Cut, Copy, Paste, Undo, Redo, Align, Arrange, Resolution)
-    egui::Panel::top("main_toolbar")
-        .exact_size(28.0)
-        .frame(
-            egui::Frame::new()
-                .fill(app.palette.panel_alt)
-                .inner_margin(egui::Margin::symmetric(6, 2)),
-        )
-        .show(ui, |ui| main_toolbar(ui, app));
+    if app.show_main_toolbar {
+        egui::Panel::top("main_toolbar")
+            .exact_size(28.0)
+            .frame(
+                egui::Frame::new()
+                    .fill(app.palette.panel_alt)
+                    .inner_margin(egui::Margin::symmetric(6, 2)),
+            )
+            .show(ui, |ui| main_toolbar(ui, app));
+    }
 
     // 3. Bottom Status Bar
     egui::Panel::bottom("status")
@@ -668,40 +670,72 @@ fn status_bar(ui: &mut Ui, app: &mut FireCraft) {
 }
 
 enum Shortcut {
+    OpenMenu(usize),
+    ToggleFullScreenCanvas,
+    ToggleRightDock,
+    ToggleToolsDock,
+    TogglePropertiesDock,
+    FocusRightPanel(usize, usize),
+    HelpDialog,
     Undo,
     Redo,
     Save,
+    SaveAs,
     New,
     Open,
     CloseTab,
+    Quit,
     Import,
     Export,
+    ImagePreview,
     SelectAll,
     Deselect,
+    SelectInverse,
+    CycleSelect(bool),
     Group,
     Ungroup,
     CommandPalette,
     Copy,
+    CopyCss,
     Cut,
     Paste(Option<String>),
     Duplicate,
+    Clone,
     Delete,
     Find,
     FitWindow,
+    FitCanvas,
     ZoomIn,
     ZoomOut,
+    ZoomTo(f32),
     Tool(Tool),
     SwapColors,
+    DefaultColors,
     Nudge(Vec2),
     ConvertSymbol,
+    TweenSymbol,
+    ReorderFront(bool),
+    ReorderStep(bool),
+    JoinPaths,
+    SplitPaths,
+    FlattenBitmap,
+    ToggleLockSelection,
+    ToggleRulers,
+    ToggleGrid,
+    ToggleGuides,
+    ToggleBold,
+    ToggleItalic,
+    PageStep(isize),
+    StateStep(isize),
 }
 
 fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
     if ui.ctx().egui_wants_keyboard_input() {
         return;
     }
-    let (ctrl, shift) = ui.input(|i| (i.modifiers.ctrl, i.modifiers.shift));
+    let (ctrl, shift, alt) = ui.input(|i| (i.modifiers.ctrl, i.modifiers.shift, i.modifiers.alt));
     let step = if shift { 10.0 } else { 1.0 };
+    let menu_open = app.active_menu.is_some();
     let mut action = None;
     ui.input(|i| {
         for event in &i.events {
@@ -721,54 +755,170 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
                 egui::Event::Key {
                     key, pressed: true, ..
                 } => {
-                    action = match (key, ctrl, shift) {
-                        (Key::Z, true, false) => Some(Shortcut::Undo),
-                        (Key::Y, true, _) | (Key::Z, true, true) => Some(Shortcut::Redo),
-                        (Key::S, true, _) => Some(Shortcut::Save),
-                        (Key::N, true, _) => Some(Shortcut::New),
-                        (Key::O, true, _) => Some(Shortcut::Open),
-                        (Key::W, true, _) => Some(Shortcut::CloseTab),
-                        (Key::R, true, false) => Some(Shortcut::Import),
-                        (Key::R, true, true) => Some(Shortcut::Export),
-                        (Key::A, true, _) => Some(Shortcut::SelectAll),
-                        (Key::D, true, true) => Some(Shortcut::Deselect),
-                        (Key::G, true, false) => Some(Shortcut::Group),
-                        (Key::G, true, true) => Some(Shortcut::Ungroup),
-                        (Key::K | Key::P, true, _) => Some(Shortcut::CommandPalette),
-                        (Key::C, true, _) => Some(Shortcut::Copy),
-                        (Key::X, true, _) => Some(Shortcut::Cut),
-                        (Key::V, true, _) => Some(Shortcut::Paste(None)),
-                        (Key::D, true, false) => Some(Shortcut::Duplicate),
-                        (Key::F, true, _) => Some(Shortcut::Find),
-                        (Key::Num0, true, _) => Some(Shortcut::FitWindow),
-                        (Key::Plus | Key::Equals, true, _) => Some(Shortcut::ZoomIn),
-                        (Key::Minus, true, _) => Some(Shortcut::ZoomOut),
-                        (Key::Delete | Key::Backspace, false, _) => Some(Shortcut::Delete),
-                        (Key::F8, false, _) => Some(Shortcut::ConvertSymbol),
-                        (Key::ArrowLeft, false, _) => Some(Shortcut::Nudge(Vec2::new(-step, 0.0))),
-                        (Key::ArrowRight, false, _) => Some(Shortcut::Nudge(Vec2::new(step, 0.0))),
-                        (Key::ArrowUp, false, _) => Some(Shortcut::Nudge(Vec2::new(0.0, -step))),
-                        (Key::ArrowDown, false, _) => Some(Shortcut::Nudge(Vec2::new(0.0, step))),
-                        (Key::V, false, _) => Some(Shortcut::Tool(Tool::Select)),
-                        (Key::A, false, _) => Some(Shortcut::Tool(Tool::Subselect)),
-                        (Key::Q, false, _) => Some(Shortcut::Tool(Tool::Scale)),
-                        (Key::M, false, _) => Some(Shortcut::Tool(Tool::Marquee)),
-                        (Key::L, false, _) => Some(Shortcut::Tool(Tool::Lasso)),
-                        (Key::W, false, _) => Some(Shortcut::Tool(Tool::Wand)),
-                        (Key::C, false, _) => Some(Shortcut::Tool(Tool::Crop)),
-                        (Key::B, false, _) => Some(Shortcut::Tool(Tool::Brush)),
-                        (Key::E, false, _) => Some(Shortcut::Tool(Tool::Eraser)),
-                        (Key::N, false, _) => Some(Shortcut::Tool(Tool::Line)),
-                        (Key::P, false, _) => Some(Shortcut::Tool(Tool::Path)),
-                        (Key::U, false, _) => Some(Shortcut::Tool(Tool::Rectangle)),
-                        (Key::T, false, _) => Some(Shortcut::Tool(Tool::Text)),
-                        (Key::K, false, _) => Some(Shortcut::Tool(Tool::Slice)),
-                        (Key::J, false, _) => Some(Shortcut::Tool(Tool::Hotspot)),
-                        (Key::I, false, _) => Some(Shortcut::Tool(Tool::Picker)),
-                        (Key::G, false, _) => Some(Shortcut::Tool(Tool::Gradient)),
-                        (Key::H, false, _) => Some(Shortcut::Tool(Tool::Hand)),
-                        (Key::Z, false, _) => Some(Shortcut::Tool(Tool::Zoom)),
-                        (Key::X, false, _) => Some(Shortcut::SwapColors),
+                    // 1. Alt+Letter Menu Bar Mnemonics (Alt+F, Alt+E, Alt+V, Alt+S, Alt+M, Alt+T, Alt+C, Alt+L/I, Alt+W, Alt+H)
+                    if alt && !ctrl && !shift {
+                        let mnemonic_menu = match key {
+                            Key::F => Some(0),
+                            Key::E => Some(1),
+                            Key::V => Some(2),
+                            Key::S => Some(3),
+                            Key::M => Some(4),
+                            Key::T => Some(5),
+                            Key::C => Some(6),
+                            Key::L | Key::I => Some(7),
+                            Key::W => Some(8),
+                            Key::H => Some(9),
+                            _ => None,
+                        };
+                        if let Some(m_idx) = mnemonic_menu {
+                            action = Some(Shortcut::OpenMenu(m_idx));
+                            break;
+                        }
+                    }
+
+                    // When a top-level menu is open, arrow keys, Enter, Space, and Escape belong to menu navigation
+                    if menu_open
+                        && matches!(
+                            key,
+                            Key::ArrowUp
+                                | Key::ArrowDown
+                                | Key::ArrowLeft
+                                | Key::ArrowRight
+                                | Key::Enter
+                                | Key::Space
+                                | Key::Escape
+                        )
+                    {
+                        continue;
+                    }
+
+                    action = match (key, ctrl, shift, alt) {
+                        // Workspace & Panel toggles (Tab, Shift+Tab, F1..F12)
+                        (Key::Tab, false, false, false) | (Key::F4, false, false, false) => {
+                            Some(Shortcut::ToggleFullScreenCanvas)
+                        }
+                        (Key::Tab, false, true, false) => Some(Shortcut::ToggleRightDock),
+                        (Key::F1, false, false, false) => Some(Shortcut::HelpDialog),
+                        (Key::F2, true, false, false) => Some(Shortcut::ToggleToolsDock),
+                        (Key::F3, true, false, false) => Some(Shortcut::TogglePropertiesDock),
+                        (Key::F2, false, false, false) => Some(Shortcut::FocusRightPanel(1, 2)), // Layers
+                        (Key::F2, false, true, false) => Some(Shortcut::FocusRightPanel(1, 1)), // States
+                        (Key::F5, false, false, false) => Some(Shortcut::FocusRightPanel(1, 0)), // Pages
+                        (Key::F6, false, false, false) => Some(Shortcut::FocusRightPanel(0, 0)), // Optimize
+                        (Key::F7 | Key::F11, false, false, false) => {
+                            Some(Shortcut::FocusRightPanel(3, 3))
+                        } // Library
+                        (Key::F7, true, false, false) => Some(Shortcut::FocusRightPanel(3, 4)), // CSS
+                        (Key::F9, true, false, false) => Some(Shortcut::FocusRightPanel(2, 2)), // Swatches
+                        (Key::F9, false, true, false) => Some(Shortcut::FocusRightPanel(2, 1)), // Color Mixer
+                        (Key::F10, false, true, false) => Some(Shortcut::FocusRightPanel(0, 1)), // History
+                        (Key::F11, true, false, false) => Some(Shortcut::FocusRightPanel(2, 0)), // Styles
+                        (Key::F12, false, true, true) => Some(Shortcut::FocusRightPanel(2, 3)), // Info
+                        (Key::F8, false, false, false) => Some(Shortcut::ConvertSymbol),
+                        (Key::F8, false, true, true) => Some(Shortcut::TweenSymbol),
+
+                        // File & Edit commands
+                        (Key::Z, true, false, false) => Some(Shortcut::Undo),
+                        (Key::Y, true, _, false) | (Key::Z, true, true, false) => {
+                            Some(Shortcut::Redo)
+                        }
+                        (Key::S, true, false, false) => Some(Shortcut::Save),
+                        (Key::S, true, true, false) => Some(Shortcut::SaveAs),
+                        (Key::N, true, _, false) => Some(Shortcut::New),
+                        (Key::O, true, false, _) => Some(Shortcut::Open),
+                        (Key::W, true, _, false) => Some(Shortcut::CloseTab),
+                        (Key::Q, true, false, false) => Some(Shortcut::Quit),
+                        (Key::R, true, false, false) => Some(Shortcut::Import),
+                        (Key::R, true, true, false) => Some(Shortcut::Export),
+                        (Key::X, true, true, false) => Some(Shortcut::ImagePreview),
+                        (Key::A, true, false, false) => Some(Shortcut::SelectAll),
+                        (Key::A, true, true, false) | (Key::Escape, false, false, false) => {
+                            Some(Shortcut::Deselect)
+                        }
+                        (Key::I, true, true, false) => Some(Shortcut::SelectInverse),
+                        (Key::G, true, false, false) => Some(Shortcut::Group),
+                        (Key::G, true, true, false) => Some(Shortcut::Ungroup),
+                        (Key::K | Key::P, true, _, false) => Some(Shortcut::CommandPalette),
+                        (Key::C, true, false, false) => Some(Shortcut::Copy),
+                        (Key::C, true, false, true) => Some(Shortcut::CopyCss),
+                        (Key::X, true, false, false) => Some(Shortcut::Cut),
+                        (Key::V, true, _, false) => Some(Shortcut::Paste(None)),
+                        (Key::D, true, false, _) => Some(Shortcut::Duplicate),
+                        (Key::D, true, true, false) => Some(Shortcut::Clone),
+                        (Key::F, true, false, false) => Some(Shortcut::Find),
+                        (Key::F, true, false, true) => Some(Shortcut::FitCanvas),
+
+                        // View & Magnification
+                        (Key::Num0, true, _, false) => Some(Shortcut::FitWindow),
+                        (Key::Num1, true, false, false) => Some(Shortcut::ZoomTo(1.0)),
+                        (Key::Num2, true, false, false) => Some(Shortcut::ZoomTo(2.0)),
+                        (Key::Num5, true, false, false) => Some(Shortcut::ZoomTo(0.5)),
+                        (Key::Plus | Key::Equals, true, _, false) => Some(Shortcut::ZoomIn),
+                        (Key::Minus, true, _, false) => Some(Shortcut::ZoomOut),
+                        (Key::R, true, false, true) => Some(Shortcut::ToggleRulers),
+                        (Key::G, true, false, true) => Some(Shortcut::ToggleGrid),
+                        (Key::Semicolon, true, false, false) => Some(Shortcut::ToggleGuides),
+
+                        // Arrange, Paths & Selection cycling
+                        (Key::ArrowUp, true, true, false) => Some(Shortcut::ReorderFront(true)),
+                        (Key::ArrowDown, true, true, false) => Some(Shortcut::ReorderFront(false)),
+                        (Key::ArrowUp, true, false, false) => Some(Shortcut::ReorderStep(true)),
+                        (Key::ArrowDown, true, false, false) => Some(Shortcut::ReorderStep(false)),
+                        (Key::ArrowRight, true, false, false) => Some(Shortcut::CycleSelect(true)),
+                        (Key::ArrowLeft, true, false, false) => Some(Shortcut::CycleSelect(false)),
+                        (Key::J, true, false, false) => Some(Shortcut::JoinPaths),
+                        (Key::J, true, true, false) => Some(Shortcut::SplitPaths),
+                        (Key::E, true, false, false) | (Key::Z, true, true, true) => {
+                            Some(Shortcut::FlattenBitmap)
+                        }
+                        (Key::L, true, false, true) => Some(Shortcut::ToggleLockSelection),
+                        (Key::B, true, false, false) => Some(Shortcut::ToggleBold),
+                        (Key::I, true, false, false) => Some(Shortcut::ToggleItalic),
+
+                        // Page & Animation State stepping
+                        (Key::PageUp, false, false, false) => Some(Shortcut::PageStep(-1)),
+                        (Key::PageDown, false, false, false) => Some(Shortcut::PageStep(1)),
+                        (Key::Comma, false, false, false) => Some(Shortcut::StateStep(-1)),
+                        (Key::Period, false, false, false) => Some(Shortcut::StateStep(1)),
+
+                        // Canvas object nudging & deletion
+                        (Key::Delete | Key::Backspace, false, _, false) => Some(Shortcut::Delete),
+                        (Key::ArrowLeft, false, _, false) => {
+                            Some(Shortcut::Nudge(Vec2::new(-step, 0.0)))
+                        }
+                        (Key::ArrowRight, false, _, false) => {
+                            Some(Shortcut::Nudge(Vec2::new(step, 0.0)))
+                        }
+                        (Key::ArrowUp, false, _, false) => {
+                            Some(Shortcut::Nudge(Vec2::new(0.0, -step)))
+                        }
+                        (Key::ArrowDown, false, _, false) => {
+                            Some(Shortcut::Nudge(Vec2::new(0.0, step)))
+                        }
+
+                        // Single-key CS6 tool letters (only when no modifiers are held)
+                        (Key::V, false, false, false) => Some(Shortcut::Tool(Tool::Select)),
+                        (Key::A, false, false, false) => Some(Shortcut::Tool(Tool::Subselect)),
+                        (Key::Q, false, false, false) => Some(Shortcut::Tool(Tool::Scale)),
+                        (Key::M, false, false, false) => Some(Shortcut::Tool(Tool::Marquee)),
+                        (Key::L, false, false, false) => Some(Shortcut::Tool(Tool::Lasso)),
+                        (Key::W, false, false, false) => Some(Shortcut::Tool(Tool::Wand)),
+                        (Key::C, false, false, false) => Some(Shortcut::Tool(Tool::Crop)),
+                        (Key::B, false, false, false) => Some(Shortcut::Tool(Tool::Brush)),
+                        (Key::E, false, false, false) => Some(Shortcut::Tool(Tool::Eraser)),
+                        (Key::S, false, false, false) => Some(Shortcut::Tool(Tool::Stamp)),
+                        (Key::N, false, false, false) => Some(Shortcut::Tool(Tool::Line)),
+                        (Key::P, false, false, false) => Some(Shortcut::Tool(Tool::Path)),
+                        (Key::U, false, false, false) => Some(Shortcut::Tool(Tool::Rectangle)),
+                        (Key::T, false, false, false) => Some(Shortcut::Tool(Tool::Text)),
+                        (Key::K, false, false, false) => Some(Shortcut::Tool(Tool::Slice)),
+                        (Key::J, false, false, false) => Some(Shortcut::Tool(Tool::Hotspot)),
+                        (Key::I, false, false, false) => Some(Shortcut::Tool(Tool::Picker)),
+                        (Key::G, false, false, false) => Some(Shortcut::Tool(Tool::Gradient)),
+                        (Key::H, false, false, false) => Some(Shortcut::Tool(Tool::Hand)),
+                        (Key::Z, false, false, false) => Some(Shortcut::Tool(Tool::Zoom)),
+                        (Key::X, false, false, false) => Some(Shortcut::SwapColors),
+                        (Key::D, false, false, false) => Some(Shortcut::DefaultColors),
                         _ => None,
                     };
                     if action.is_some() {
@@ -780,35 +930,101 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
         }
     });
     match action {
+        Some(Shortcut::OpenMenu(idx)) => {
+            if app.active_menu == Some(idx) {
+                app.active_menu = None;
+            } else {
+                app.active_menu = Some(idx);
+                app.active_menu_item = 0;
+            }
+        }
+        Some(Shortcut::ToggleFullScreenCanvas) => app.toggle_full_screen_canvas(),
+        Some(Shortcut::ToggleRightDock) => {
+            app.show_right_dock = !app.show_right_dock;
+            app.full_screen_canvas = false;
+        }
+        Some(Shortcut::ToggleToolsDock) => app.show_tools_dock = !app.show_tools_dock,
+        Some(Shortcut::TogglePropertiesDock) => {
+            app.show_bottom_inspector = !app.show_bottom_inspector
+        }
+        Some(Shortcut::FocusRightPanel(group, tab)) => {
+            app.full_screen_canvas = false;
+            app.show_right_dock = true;
+            match group {
+                0 => app.top_right_tab = tab,
+                1 => app.layers_tab = tab,
+                2 => app.middle_right_tab = tab,
+                _ => app.library_tab = tab,
+            }
+        }
+        Some(Shortcut::HelpDialog) => app.show_about_dialog = !app.show_about_dialog,
         Some(Shortcut::Undo) => app.undo_action(),
         Some(Shortcut::Redo) => app.redo_action(),
         Some(Shortcut::Save) => app.save_current(),
+        Some(Shortcut::SaveAs) => app.begin_file_dialog(FileMode::Save),
         Some(Shortcut::New) => app.show_new_dialog = true,
         Some(Shortcut::Open) => app.begin_file_dialog(FileMode::Open),
         Some(Shortcut::CloseTab) => app.close_active_tab(),
+        Some(Shortcut::Quit) => std::process::exit(0),
         Some(Shortcut::Import) => app.begin_file_dialog(FileMode::Import),
         Some(Shortcut::Export) => app.begin_file_dialog(FileMode::Export),
+        Some(Shortcut::ImagePreview) => {
+            app.view_mode = if app.view_mode == CanvasViewMode::TwoUp {
+                CanvasViewMode::Original
+            } else {
+                CanvasViewMode::TwoUp
+            };
+        }
         Some(Shortcut::SelectAll) => app.select_all(),
-        Some(Shortcut::Deselect) => app.clear_selection(),
+        Some(Shortcut::Deselect) => {
+            app.show_welcome = false;
+            app.context_menu_pos = None;
+            app.clear_selection();
+        }
+        Some(Shortcut::SelectInverse) => app.select_inverse(),
+        Some(Shortcut::CycleSelect(fwd)) => app.cycle_selection(fwd),
         Some(Shortcut::Group) => app.group_selected(),
         Some(Shortcut::Ungroup) => app.ungroup_selected(),
         Some(Shortcut::CommandPalette) => app.show_command_palette = !app.show_command_palette,
         Some(Shortcut::Copy) => app.copy_selected(),
+        Some(Shortcut::CopyCss) => app.copy_selected_css(),
         Some(Shortcut::Cut) => app.cut_selected(),
         Some(Shortcut::Paste(txt)) => app.paste_with_text(txt.as_deref()),
         Some(Shortcut::Duplicate) => app.duplicate_selected(),
+        Some(Shortcut::Clone) => app.clone_selected(),
         Some(Shortcut::Delete) => app.delete_selected(),
         Some(Shortcut::Find) => app.show_find_replace = true,
         Some(Shortcut::FitWindow) => app.fit_in_window(),
+        Some(Shortcut::FitCanvas) => app.fit_canvas_to_contents(),
         Some(Shortcut::ZoomIn) => app.zoom_by(constants::ZOOM_STEP),
         Some(Shortcut::ZoomOut) => app.zoom_by(1.0 / constants::ZOOM_STEP),
+        Some(Shortcut::ZoomTo(z)) => app.set_zoom(z),
         Some(Shortcut::Tool(t)) => {
             app.tool = t;
             app.status = format!("{} selected", t.name());
         }
         Some(Shortcut::SwapColors) => std::mem::swap(&mut app.fill, &mut app.stroke),
+        Some(Shortcut::DefaultColors) => {
+            app.fill = egui::Color32::WHITE;
+            app.stroke = egui::Color32::BLACK;
+            app.status = "Reset default Stroke (Black) & Fill (White) colors (D)".to_string();
+        }
         Some(Shortcut::Nudge(delta)) => app.nudge_selected(delta),
         Some(Shortcut::ConvertSymbol) => app.convert_selection_to_symbol(),
+        Some(Shortcut::TweenSymbol) => app.tween_selected_across_states(),
+        Some(Shortcut::ReorderFront(front)) => app.reorder_selected(front),
+        Some(Shortcut::ReorderStep(fwd)) => app.reorder_selected_step(fwd),
+        Some(Shortcut::JoinPaths) => app.combine_paths_op("join"),
+        Some(Shortcut::SplitPaths) => app.combine_paths_op("split"),
+        Some(Shortcut::FlattenBitmap) => app.flatten_selected_to_bitmap(),
+        Some(Shortcut::ToggleLockSelection) => app.toggle_lock_selection(),
+        Some(Shortcut::ToggleRulers) => app.show_rulers = !app.show_rulers,
+        Some(Shortcut::ToggleGrid) => app.show_grid = !app.show_grid,
+        Some(Shortcut::ToggleGuides) => app.show_guides = !app.show_guides,
+        Some(Shortcut::ToggleBold) => app.toggle_selected_text_bold(),
+        Some(Shortcut::ToggleItalic) => app.toggle_selected_text_italic(),
+        Some(Shortcut::PageStep(d)) => app.select_page_step(d),
+        Some(Shortcut::StateStep(d)) => app.select_state_step(d),
         None => return,
     }
     ui.ctx().request_repaint();

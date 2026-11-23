@@ -540,16 +540,20 @@ pub fn about_dialog(app: &mut FireCraft) {
                 .spacing([18.0, 3.0])
                 .show(ui, |ui| {
                     for (k, d) in [
+                        ("Alt+F / E / V / S / M / T / C / L / W / H", "Open Top Menu + Arrow-Key Navigation"),
+                        ("Tab or F4 (Shift+Tab)", "Toggle Full-Screen Canvas Mode (or Right Dock)"),
+                        ("Ctrl + Mouse Wheel", "Zoom In / Out Anchored at Cursor"),
+                        ("Shift + Mouse Wheel", "Horizontal Canvas Scroll (Left / Right)"),
+                        ("Mouse Wheel", "Vertical Canvas Scroll (Up / Down)"),
+                        ("Alt + Mouse Wheel / Middle-Drag / Space", "2D Hand Pan Across Canvas"),
+                        ("Ctrl+C / Ctrl+X / Ctrl+V", "Copy / Cut / Paste Shapes, OS Images & Text"),
                         ("Right-Click on Canvas", "Adaptive CS6 Context Menu"),
                         ("Shift-Click / Marquee Drag", "Multi-Object Selection"),
                         ("Middle-Click Document Tab", "Close Document Tab"),
                         ("Ctrl+G / Ctrl+Shift+G", "Group / Ungroup Selected Objects"),
-                        ("Ctrl+K / Ctrl+P", "Searchable Command Palette"),
-                        ("V / A / Q", "Pointer / Subselection / Scale Tool"),
-                        ("U / L / N / P / T", "Rectangle / Ellipse / Line / Pen / Text"),
-                        ("B / E / I / G", "Brush / Eraser / Eyedropper / Gradient"),
-                        ("K / J", "Web Slice / Web Hotspot Tool"),
-                        ("Ctrl+Z / Ctrl+Y", "Undo / Redo (up to 32 steps)"),
+                        ("F2 / F5 / F6 / F7 / F8", "Layers / Pages / Optimize / Library / Convert Symbol"),
+                        ("Ctrl+K / Ctrl+P", "Searchable Command Palette (60 CS6 Commands)"),
+                        ("V / A / Q / U / P / T / B / E / I / G / D / X", "CS6 Single-Key Tools, Default & Swap Colors"),
                     ] {
                         ui.label(RichText::new(k).monospace().color(app.palette.selection));
                         ui.label(d);
