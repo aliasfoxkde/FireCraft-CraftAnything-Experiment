@@ -319,6 +319,7 @@ pub struct FireCraft {
     pub show_bottom_inspector: bool,
     pub bottom_collapsed: bool,
     pub full_screen_canvas: bool,
+    pub window_fullscreen: bool,
     pub panel_groups: Vec<PanelGroup>,
     pub next_panel_group_id: u64,
     pub dragging_panel: Option<PanelId>,
@@ -432,6 +433,7 @@ impl FireCraft {
             show_bottom_inspector: true,
             bottom_collapsed: false,
             full_screen_canvas: false,
+            window_fullscreen: false,
             panel_groups: Self::cs6_dual_column_groups(),
             next_panel_group_id: 100,
             dragging_panel: None,
@@ -4813,6 +4815,17 @@ impl FireCraft {
             self.selected_set.clear();
         }
         ctx.request_repaint_after(std::time::Duration::from_millis(40));
+    }
+
+    pub fn toggle_window_fullscreen(&mut self) {
+        self.window_fullscreen = !self.window_fullscreen;
+        self.ctx
+            .send_viewport_cmd(egui::ViewportCommand::Fullscreen(self.window_fullscreen));
+        self.status = if self.window_fullscreen {
+            "Window Fullscreen ON (F11 to exit)".to_string()
+        } else {
+            "Window Fullscreen OFF".to_string()
+        };
     }
 
     pub fn set_theme(&mut self, mode: ThemeMode) {

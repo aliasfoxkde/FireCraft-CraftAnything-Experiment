@@ -447,6 +447,14 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
                 });
 
             if ui
+                .small_button(if app.window_fullscreen { "🗗" } else { "⛶" })
+                .on_hover_text("Toggle App Fullscreen (F11)")
+                .clicked()
+            {
+                app.toggle_window_fullscreen();
+            }
+
+            if ui
                 .small_button("MCP / CLI")
                 .on_hover_text("Open Model Context Protocol (MCP) JSON-RPC 2.0 & CLI Console")
                 .clicked()

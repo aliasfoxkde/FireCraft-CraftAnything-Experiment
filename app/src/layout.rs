@@ -851,6 +851,7 @@ fn status_bar(ui: &mut Ui, app: &mut FireCraft) {
 enum Shortcut {
     OpenMenu(usize),
     ToggleFullScreenCanvas,
+    ToggleWindowFullscreen,
     ToggleRightDock,
     ToggleToolsDock,
     TogglePropertiesDock,
@@ -990,9 +991,10 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
 
                     action = match (key, ctrl, shift, alt) {
                         // Workspace & Panel toggles (Tab, Shift+Tab, F1..F12)
-                        (Key::Tab, false, false, false)
-                        | (Key::F4, false, false, false)
-                        | (Key::F11, false, false, false) => Some(Shortcut::ToggleFullScreenCanvas),
+                        (Key::Tab, false, false, false) | (Key::F4, false, false, false) => {
+                            Some(Shortcut::ToggleFullScreenCanvas)
+                        }
+                        (Key::F11, false, false, false) => Some(Shortcut::ToggleWindowFullscreen),
                         (Key::Tab, false, true, false) => Some(Shortcut::ToggleRightDock),
                         (Key::F1, false, false, false) => Some(Shortcut::HelpDialog),
                         (Key::F2, true, false, false) => Some(Shortcut::ToggleToolsDock),
@@ -1134,6 +1136,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
             }
         }
         Some(Shortcut::ToggleFullScreenCanvas) => app.toggle_full_screen_canvas(),
+        Some(Shortcut::ToggleWindowFullscreen) => app.toggle_window_fullscreen(),
         Some(Shortcut::ToggleRightDock) => {
             app.show_right_dock = !app.show_right_dock;
             app.full_screen_canvas = false;
