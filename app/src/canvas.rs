@@ -147,6 +147,7 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
             i.modifiers.shift,
             i.key_down(egui::Key::Space),
             i.smooth_scroll_delta(),
+            i.zoom_delta(),
         )
     });
     let (
@@ -163,6 +164,7 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
         shift,
         space_down,
         scroll_vec,
+        egui_zoom_delta,
     ) = pointer;
 
     if !alt {
@@ -228,10 +230,17 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
         } else {
             scroll_vec.x
         };
-        if scroll_vec.length_sq() > 0.05 {
-            if ctrl {
+        let has_egui_zoom = (egui_zoom_delta - 1.0).abs() > 0.001;
+        if has_egui_zoom || scroll_vec.length_sq() > 0.05 {
+            if ctrl || has_egui_zoom {
                 let before = doc_pos;
-                let factor = if wheel_delta > 0.0 { 1.12 } else { 1.0 / 1.12 };
+                let factor = if has_egui_zoom {
+                    egui_zoom_delta
+                } else if wheel_delta > 0.0 {
+                    1.12
+                } else {
+                    1.0 / 1.12
+                };
                 app.doc.zoom =
                     (app.doc.zoom * factor).clamp(constants::ZOOM_MIN, constants::ZOOM_MAX);
                 let new_page_size = Vec2::new(
