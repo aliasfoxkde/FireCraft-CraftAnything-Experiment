@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 //! FireCraft — a modern, dark-first raster and vector editor in the shape of
 //! Adobe Fireworks CS6.
 
