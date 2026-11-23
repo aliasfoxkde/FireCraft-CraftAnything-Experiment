@@ -1,0 +1,102 @@
+{
+  "id": "ev_5449ef50225adb8dd7ecbb429a8e657302406dcb7dad56067461680871335c9b",
+  "subject": {
+    "kind": "pe",
+    "sha256": "ab9a267ffe6a9fd23f8f3f09446997c770effceeaae66babcb3f10d15433053f",
+    "name": "Fireworks.exe"
+  },
+  "operation": "native_sections_list",
+  "params": {},
+  "result": {
+    "sections": [
+      {
+        "end": "0x17999ce",
+        "entropy": 6.429811954498291,
+        "exec": true,
+        "file_offset": 1024,
+        "file_size": 20548046,
+        "kind": "code",
+        "name": ".text",
+        "read": true,
+        "segment": null,
+        "size": 20548046,
+        "start": "0x401000",
+        "write": false
+      },
+      {
+        "end": "0x1b40b89",
+        "entropy": 4.544088363647461,
+        "exec": false,
+        "file_offset": 20549120,
+        "file_size": 3828617,
+        "kind": "rodata",
+        "name": ".rdata",
+        "read": true,
+        "segment": null,
+        "size": 3828617,
+        "start": "0x179a000",
+        "write": false
+      },
+      {
+        "end": "0x1c9bc20",
+        "entropy": 4.65602970123291,
+        "exec": false,
+        "file_offset": 24377856,
+        "file_size": 258560,
+        "kind": "data",
+        "name": ".data",
+        "read": true,
+        "segment": null,
+        "size": 1420320,
+        "start": "0x1b41000",
+        "write": true
+      },
+      {
+        "end": "0x1c9c015",
+        "entropy": 0.0,
+        "exec": false,
+        "file_offset": 24636416,
+        "file_size": 21,
+        "kind": "data",
+        "name": ".tls",
+        "read": true,
+        "segment": null,
+        "size": 21,
+        "start": "0x1c9c000",
+        "write": true
+      },
+      {
+        "end": "0x1f78168",
+        "entropy": 7.758535385131836,
+        "exec": false,
+        "file_offset": 24636928,
+        "file_size": 2994536,
+        "kind": "rodata",
+        "name": ".rsrc",
+        "read": true,
+        "segment": null,
+        "size": 2994536,
+        "start": "0x1c9d000",
+        "write": false
+      }
+    ],
+    "segments": []
+  },
+  "summary": "0 segments and 5 sections.",
+  "confidence": "observed",
+  "authority": "original-files",
+  "environment": {
+    "clean_room": false,
+    "engine": "builtin",
+    "engine_version": "0.6.1",
+    "host": "windows-x86_64"
+  },
+  "limitations": [],
+  "coverage": {
+    "status": "complete",
+    "examined": 5,
+    "total": 5
+  },
+  "locations": [],
+  "links": []
+}

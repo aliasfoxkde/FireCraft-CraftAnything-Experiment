@@ -1,0 +1,553 @@
+{
+  "id": "ev_b0300e05d9d483b37cc7d79886594e3eded23f36d2f1c451be472718d5196909",
+  "subject": {
+    "kind": "pe",
+    "sha256": "ab9a267ffe6a9fd23f8f3f09446997c770effceeaae66babcb3f10d15433053f",
+    "name": "Fireworks.exe"
+  },
+  "operation": "native_functions_list",
+  "params": {
+    "limit": 50,
+    "offset": 0
+  },
+  "result": {
+    "functions": [
+      {
+        "address": "0x401000",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 29,
+        "name": "sub_401000",
+        "name_source": "generated",
+        "size": 91,
+        "thunk_of": null
+      },
+      {
+        "address": "0x401060",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 22,
+        "name": "sub_401060",
+        "name_source": "generated",
+        "size": 72,
+        "thunk_of": null
+      },
+      {
+        "address": "0x4010b0",
+        "blocks": 3,
+        "found_by": "prologue",
+        "instructions": 31,
+        "name": "sub_4010b0",
+        "name_source": "generated",
+        "size": 95,
+        "thunk_of": null
+      },
+      {
+        "address": "0x401110",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 13,
+        "name": "sub_401110",
+        "name_source": "generated",
+        "size": 28,
+        "thunk_of": null
+      },
+      {
+        "address": "0x401130",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 13,
+        "name": "sub_401130",
+        "name_source": "generated",
+        "size": 29,
+        "thunk_of": null
+      },
+      {
+        "address": "0x401150",
+        "blocks": 3,
+        "found_by": "prologue",
+        "instructions": 13,
+        "name": "sub_401150",
+        "name_source": "generated",
+        "size": 33,
+        "thunk_of": null
+      },
+      {
+        "address": "0x401180",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 13,
+        "name": "sub_401180",
+        "name_source": "generated",
+        "size": 28,
+        "thunk_of": null
+      },
+      {
+        "address": "0x4011a0",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 13,
+        "name": "sub_4011a0",
+        "name_source": "generated",
+        "size": 29,
+        "thunk_of": null
+      },
+      {
+        "address": "0x4011c0",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 8,
+        "name": "sub_4011c0",
+        "name_source": "generated",
+        "size": 17,
+        "thunk_of": null
+      },
+      {
+        "address": "0x401240",
+        "blocks": 5,
+        "found_by": "prologue",
+        "instructions": 20,
+        "name": "sub_401240",
+        "name_source": "generated",
+        "size": 35,
+        "thunk_of": null
+      },
+      {
+        "address": "0x401280",
+        "blocks": 3,
+        "found_by": "prologue",
+        "instructions": 32,
+        "name": "sub_401280",
+        "name_source": "generated",
+        "size": 74,
+        "thunk_of": null
+      },
+      {
+        "address": "0x4012d0",
+        "blocks": 5,
+        "found_by": "prologue",
+        "instructions": 41,
+        "name": "sub_4012d0",
+        "name_source": "generated",
+        "size": 95,
+        "thunk_of": null
+      },
+      {
+        "address": "0x401330",
+        "blocks": 6,
+        "found_by": "prologue",
+        "instructions": 45,
+        "name": "sub_401330",
+        "name_source": "generated",
+        "size": 134,
+        "thunk_of": null
+      },
+      {
+        "address": "0x401470",
+        "blocks": 12,
+        "found_by": "prologue",
+        "instructions": 123,
+        "name": "sub_401470",
+        "name_source": "generated",
+        "size": 374,
+        "thunk_of": null
+      },
+      {
+        "address": "0x4017d0",
+        "blocks": 12,
+        "found_by": "prologue",
+        "instructions": 104,
+        "name": "sub_4017d0",
+        "name_source": "generated",
+        "size": 275,
+        "thunk_of": null
+      },
+      {
+        "address": "0x4018f0",
+        "blocks": 8,
+        "found_by": "prologue",
+        "instructions": 56,
+        "name": "sub_4018f0",
+        "name_source": "generated",
+        "size": 133,
+        "thunk_of": null
+      },
+      {
+        "address": "0x401980",
+        "blocks": 41,
+        "found_by": "prologue",
+        "instructions": 272,
+        "name": "sub_401980",
+        "name_source": "generated",
+        "size": 814,
+        "thunk_of": null
+      },
+      {
+        "address": "0x401cb0",
+        "blocks": 11,
+        "found_by": "prologue",
+        "instructions": 116,
+        "name": "sub_401cb0",
+        "name_source": "generated",
+        "size": 352,
+        "thunk_of": null
+      },
+      {
+        "address": "0x401e10",
+        "blocks": 32,
+        "found_by": "prologue",
+        "instructions": 155,
+        "name": "sub_401e10",
+        "name_source": "generated",
+        "size": 556,
+        "thunk_of": null
+      },
+      {
+        "address": "0x402050",
+        "blocks": 10,
+        "found_by": "prologue",
+        "instructions": 51,
+        "name": "sub_402050",
+        "name_source": "generated",
+        "size": 137,
+        "thunk_of": null
+      },
+      {
+        "address": "0x402110",
+        "blocks": 3,
+        "found_by": "prologue",
+        "instructions": 11,
+        "name": "sub_402110",
+        "name_source": "generated",
+        "size": 28,
+        "thunk_of": null
+      },
+      {
+        "address": "0x402130",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 6,
+        "name": "sub_402130",
+        "name_source": "generated",
+        "size": 14,
+        "thunk_of": null
+      },
+      {
+        "address": "0x402140",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 6,
+        "name": "sub_402140",
+        "name_source": "generated",
+        "size": 14,
+        "thunk_of": null
+      },
+      {
+        "address": "0x402150",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 6,
+        "name": "sub_402150",
+        "name_source": "generated",
+        "size": 14,
+        "thunk_of": null
+      },
+      {
+        "address": "0x402160",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 6,
+        "name": "sub_402160",
+        "name_source": "generated",
+        "size": 14,
+        "thunk_of": null
+      },
+      {
+        "address": "0x402170",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 6,
+        "name": "sub_402170",
+        "name_source": "generated",
+        "size": 14,
+        "thunk_of": null
+      },
+      {
+        "address": "0x402180",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 6,
+        "name": "sub_402180",
+        "name_source": "generated",
+        "size": 14,
+        "thunk_of": null
+      },
+      {
+        "address": "0x4022a0",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 8,
+        "name": "sub_4022a0",
+        "name_source": "generated",
+        "size": 19,
+        "thunk_of": null
+      },
+      {
+        "address": "0x4022c0",
+        "blocks": 11,
+        "found_by": "prologue",
+        "instructions": 31,
+        "name": "sub_4022c0",
+        "name_source": "generated",
+        "size": 64,
+        "thunk_of": null
+      },
+      {
+        "address": "0x402340",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 28,
+        "name": "sub_402340",
+        "name_source": "generated",
+        "size": 89,
+        "thunk_of": null
+      },
+      {
+        "address": "0x4023a0",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 5,
+        "name": "sub_4023a0",
+        "name_source": "generated",
+        "size": 8,
+        "thunk_of": null
+      },
+      {
+        "address": "0x4023b0",
+        "blocks": 5,
+        "found_by": "prologue",
+        "instructions": 28,
+        "name": "sub_4023b0",
+        "name_source": "generated",
+        "size": 63,
+        "thunk_of": null
+      },
+      {
+        "address": "0x402400",
+        "blocks": 7,
+        "found_by": "prologue",
+        "instructions": 20,
+        "name": "sub_402400",
+        "name_source": "generated",
+        "size": 39,
+        "thunk_of": null
+      },
+      {
+        "address": "0x402440",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 28,
+        "name": "sub_402440",
+        "name_source": "generated",
+        "size": 89,
+        "thunk_of": null
+      },
+      {
+        "address": "0x4024a0",
+        "blocks": 7,
+        "found_by": "prologue",
+        "instructions": 20,
+        "name": "sub_4024a0",
+        "name_source": "generated",
+        "size": 43,
+        "thunk_of": null
+      },
+      {
+        "address": "0x4024e0",
+        "blocks": 5,
+        "found_by": "prologue",
+        "instructions": 42,
+        "name": "sub_4024e0",
+        "name_source": "generated",
+        "size": 140,
+        "thunk_of": null
+      },
+      {
+        "address": "0x402570",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 29,
+        "name": "sub_402570",
+        "name_source": "generated",
+        "size": 91,
+        "thunk_of": null
+      },
+      {
+        "address": "0x4025d0",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 4,
+        "name": "sub_4025d0",
+        "name_source": "generated",
+        "size": 9,
+        "thunk_of": null
+      },
+      {
+        "address": "0x4025e0",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 4,
+        "name": "sub_4025e0",
+        "name_source": "generated",
+        "size": 9,
+        "thunk_of": null
+      },
+      {
+        "address": "0x402600",
+        "blocks": 3,
+        "found_by": "prologue",
+        "instructions": 10,
+        "name": "sub_402600",
+        "name_source": "generated",
+        "size": 19,
+        "thunk_of": null
+      },
+      {
+        "address": "0x402650",
+        "blocks": 4,
+        "found_by": "prologue",
+        "instructions": 15,
+        "name": "sub_402650",
+        "name_source": "generated",
+        "size": 32,
+        "thunk_of": null
+      },
+      {
+        "address": "0x402670",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 29,
+        "name": "sub_402670",
+        "name_source": "generated",
+        "size": 96,
+        "thunk_of": null
+      },
+      {
+        "address": "0x4026d0",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 29,
+        "name": "sub_4026d0",
+        "name_source": "generated",
+        "size": 96,
+        "thunk_of": null
+      },
+      {
+        "address": "0x402730",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 29,
+        "name": "sub_402730",
+        "name_source": "generated",
+        "size": 96,
+        "thunk_of": null
+      },
+      {
+        "address": "0x402790",
+        "blocks": 10,
+        "found_by": "prologue",
+        "instructions": 86,
+        "name": "sub_402790",
+        "name_source": "generated",
+        "size": 247,
+        "thunk_of": null
+      },
+      {
+        "address": "0x4028a0",
+        "blocks": 3,
+        "found_by": "prologue",
+        "instructions": 11,
+        "name": "sub_4028a0",
+        "name_source": "generated",
+        "size": 27,
+        "thunk_of": null
+      },
+      {
+        "address": "0x4028d0",
+        "blocks": 1,
+        "found_by": "prologue",
+        "instructions": 9,
+        "name": "sub_4028d0",
+        "name_source": "generated",
+        "size": 21,
+        "thunk_of": null
+      },
+      {
+        "address": "0x402900",
+        "blocks": 15,
+        "found_by": "prologue",
+        "instructions": 79,
+        "name": "sub_402900",
+        "name_source": "generated",
+        "size": 183,
+        "thunk_of": null
+      },
+      {
+        "address": "0x4029d0",
+        "blocks": 16,
+        "found_by": "prologue",
+        "instructions": 84,
+        "name": "sub_4029d0",
+        "name_source": "generated",
+        "size": 196,
+        "thunk_of": null
+      },
+      {
+        "address": "0x402aa0",
+        "blocks": 3,
+        "found_by": "prologue",
+        "instructions": 34,
+        "name": "sub_402aa0",
+        "name_source": "generated",
+        "size": 108,
+        "thunk_of": null
+      }
+    ],
+    "total": 50000
+  },
+  "summary": "50000 functions (showing 50).",
+  "confidence": "derived",
+  "authority": "original-files",
+  "environment": {
+    "clean_room": false,
+    "engine": "builtin",
+    "engine_version": "0.6.1",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "function_limit",
+      "message": "function discovery stopped after 50000 functions; the function list is incomplete and some code is not analysed"
+    },
+    {
+      "code": "indirect_jumps_unresolved",
+      "message": "187 indirect jumps could not be resolved; code they reach may be missing"
+    },
+    {
+      "code": "stripped_binary",
+      "message": "no local symbols: most function names are generated (sub_…)"
+    },
+    {
+      "code": "static_analysis_only",
+      "message": "functions reached only through computed pointers or at run time may be missing; absence is not proof"
+    }
+  ],
+  "coverage": {
+    "status": "partial",
+    "examined": 50,
+    "total": 50000,
+    "next_offset": 50
+  },
+  "locations": [],
+  "links": []
+}

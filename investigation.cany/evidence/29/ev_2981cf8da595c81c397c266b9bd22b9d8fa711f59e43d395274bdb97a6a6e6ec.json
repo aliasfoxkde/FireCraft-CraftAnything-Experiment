@@ -1,0 +1,46 @@
+{
+  "id": "ev_2981cf8da595c81c397c266b9bd22b9d8fa711f59e43d395274bdb97a6a6e6ec",
+  "subject": {
+    "kind": "pe",
+    "sha256": "ab9a267ffe6a9fd23f8f3f09446997c770effceeaae66babcb3f10d15433053f",
+    "name": "Fireworks.exe"
+  },
+  "operation": "apple_objc_classes_list",
+  "params": {
+    "pattern": ""
+  },
+  "result": {
+    "classes": [],
+    "details": []
+  },
+  "summary": "0 Objective-C classes and categories.",
+  "confidence": "observed",
+  "authority": "original-files",
+  "environment": {
+    "clean_room": false,
+    "engine": "builtin",
+    "engine_version": "0.6.1",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "not_macho",
+      "message": "Objective-C metadata only exists in Mach-O images"
+    },
+    {
+      "code": "objc_parse",
+      "message": "Objective-C metadata is decoded for 64-bit images only"
+    },
+    {
+      "code": "static_metadata_only",
+      "message": "classes registered at run time (objc_allocateClassPair) are not listed"
+    }
+  ],
+  "coverage": {
+    "status": "complete",
+    "examined": 1,
+    "total": 1
+  },
+  "locations": [],
+  "links": []
+}

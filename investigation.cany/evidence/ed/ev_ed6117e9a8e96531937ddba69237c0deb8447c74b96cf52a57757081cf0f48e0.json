@@ -1,0 +1,38 @@
+{
+  "id": "ev_ed6117e9a8e96531937ddba69237c0deb8447c74b96cf52a57757081cf0f48e0",
+  "subject": {
+    "kind": "pe",
+    "sha256": "ab9a267ffe6a9fd23f8f3f09446997c770effceeaae66babcb3f10d15433053f",
+    "name": "Fireworks.exe"
+  },
+  "operation": "native_function_find",
+  "params": {
+    "address": "0x9aa430"
+  },
+  "result": {
+    "address": "0x9aa430",
+    "entry": "0x9aa430",
+    "function": "sub_9aa430",
+    "offset": 0
+  },
+  "summary": "0x9aa430 is inside sub_9aa430 (+0x0).",
+  "confidence": "derived",
+  "authority": "original-files",
+  "environment": {
+    "clean_room": false,
+    "engine": "builtin",
+    "engine_version": "0.6.1",
+    "host": "windows-x86_64"
+  },
+  "limitations": [],
+  "coverage": {
+    "status": "unknown"
+  },
+  "locations": [
+    {
+      "kind": "address",
+      "value": "0x9aa430"
+    }
+  ],
+  "links": []
+}

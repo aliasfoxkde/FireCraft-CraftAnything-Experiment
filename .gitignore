@@ -166,6 +166,7 @@ config.local.toml
 /usage.json
 /capture/window.png
 /pinned/play.log
-/inbox/build-progress.json
+/inbox/
+/checks/**/screenshot.png
 *.session.jsonl
 agent-session.jsonl

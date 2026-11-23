@@ -1,0 +1,38 @@
+{
+  "id": "ev_8457869ed06ed2dfcafe461529eb43a1c636f429f60409f6885da25b10e11713",
+  "subject": {
+    "kind": "pe",
+    "sha256": "ab9a267ffe6a9fd23f8f3f09446997c770effceeaae66babcb3f10d15433053f",
+    "name": "Fireworks.exe"
+  },
+  "operation": "native_function_find",
+  "params": {
+    "address": "0x402060"
+  },
+  "result": {
+    "address": "0x402060",
+    "entry": "0x402050",
+    "function": "sub_402050",
+    "offset": 16
+  },
+  "summary": "0x402060 is inside sub_402050 (+0x10).",
+  "confidence": "derived",
+  "authority": "original-files",
+  "environment": {
+    "clean_room": false,
+    "engine": "builtin",
+    "engine_version": "0.6.1",
+    "host": "windows-x86_64"
+  },
+  "limitations": [],
+  "coverage": {
+    "status": "unknown"
+  },
+  "locations": [
+    {
+      "kind": "address",
+      "value": "0x402060"
+    }
+  ],
+  "links": []
+}

@@ -1,0 +1,88 @@
+{
+  "id": "ev_4d0f0f0d4a78ef2ca7740200ace22db9f16b70d111ac5883603fb3a414c57aa3",
+  "subject": {
+    "kind": "script",
+    "sha256": "ab9a267ffe6a9fd23f8f3f09446997c770effceeaae66babcb3f10d15433053f",
+    "name": "Fireworks.exe"
+  },
+  "operation": "js_app_map",
+  "params": {
+    "include_node_modules": false,
+    "input_path": "C:\\Program Files (x86)\\Adobe\\Adobe Fireworks CS6\\Fireworks.exe",
+    "limit": 2000,
+    "max_nodes": 25000,
+    "offset": 0,
+    "source_paths": []
+  },
+  "result": {
+    "api_operations": [],
+    "app_kind": "unknown",
+    "bundlers": [],
+    "edges": [],
+    "effects": [],
+    "endpoints": [],
+    "entry_points": {
+      "pages": [],
+      "preloads": [],
+      "renderers": [],
+      "workers": []
+    },
+    "exposed": [],
+    "graph_id": "ag_57501e5c6808b3e14852a4ea21dc7873abf9409032a06f9b740c973e83f62cf7",
+    "input_format": "file",
+    "ipc": [],
+    "label": "Fireworks.exe",
+    "limitations": [],
+    "modules": [],
+    "modules_total": 0,
+    "native_modules": [],
+    "nodes": [],
+    "package": null,
+    "routes": [],
+    "source_maps": [],
+    "stats": {
+      "api_operations": 0,
+      "bundle_modules": 0,
+      "edges": 0,
+      "endpoints": 0,
+      "files": 1,
+      "functions": 0,
+      "ipc_channels": 0,
+      "listed": 1,
+      "modules": 0,
+      "nodes": 0,
+      "paired_channels": 0
+    },
+    "storage": [],
+    "summary": "JavaScript code Fireworks.exe: 0 source files, 0 IPC channel(s) (0 paired), 0 window(s), 0 endpoint(s), 0 route(s).",
+    "vendors": [],
+    "windows": []
+  },
+  "summary": "JavaScript code Fireworks.exe: 0 source files, 0 IPC channel(s) (0 paired), 0 window(s), 0 endpoint(s), 0 route(s).",
+  "confidence": "derived",
+  "authority": "original-files",
+  "environment": {
+    "clean_room": false,
+    "engine": "builtin",
+    "engine_version": "0.6.1",
+    "host": "windows-x86_64"
+  },
+  "limitations": [
+    {
+      "code": "static_only",
+      "message": "Static reading only: code built at run time (eval, computed requires, remote content) is invisible; IPC pairs need literal channel names."
+    }
+  ],
+  "coverage": {
+    "status": "complete",
+    "examined": 1,
+    "total": 1
+  },
+  "locations": [
+    {
+      "kind": "path",
+      "value": "C:\\Program Files (x86)\\Adobe\\Adobe Fireworks CS6\\Fireworks.exe"
+    }
+  ],
+  "links": []
+}
