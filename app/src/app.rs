@@ -4341,26 +4341,70 @@ impl FireCraft {
     }
 
     pub fn flatten_selected_to_bitmap(&mut self) {
-        let Some(obj) = self.selected_object() else {
+        let mut indices = if !self.selected_set.is_empty() {
+            self.selected_set.clone()
+        } else if let Some(idx) = self.selected {
+            vec![idx]
+        } else {
             return;
         };
-        let Some((lo, hi)) = obj.bounds() else {
-            return;
-        };
-        self.push_undo("Flatten Selection");
-        let w = (hi.x - lo.x).max(4.0) as u32;
-        let h = (hi.y - lo.y).max(4.0) as u32;
-        let c = obj.fill.unwrap_or(self.fill);
-        let img = image::RgbaImage::from_pixel(w, h, image::Rgba([c.r(), c.g(), c.b(), 255]));
-        self.with_selected_mut(|o| {
-            o.kind = Shape::Bitmap {
-                at: lo,
-                pixels: img.into_raw(),
-                size: Vec2::new(w as f32, h as f32),
+        indices.sort_unstable();
+        let layer = self.selected_layer;
+        let objs: Vec<Obj> = {
+            let Some(l) = self.doc.page().layers.get(layer) else {
+                return;
             };
-        });
+            indices
+                .iter()
+                .filter_map(|&i| l.objects.get(i).cloned())
+                .collect()
+        };
+        if objs.is_empty() {
+            return;
+        }
+        let mut lo = Vec2::splat(f32::INFINITY);
+        let mut hi = Vec2::splat(f32::NEG_INFINITY);
+        for o in &objs {
+            if let Some((a, b)) = o.bounds() {
+                lo = lo.min(a);
+                hi = hi.max(b);
+            }
+        }
+        if !lo.x.is_finite() || !hi.x.is_finite() {
+            return;
+        }
+        self.push_undo("Flatten Selection");
+        let img = crate::formats::rasterize_selection(&objs, lo, hi);
+        let (w, h) = (img.width() as f32, img.height() as f32);
+        let first_idx = indices[0];
+        if let Some(l) = self.doc.page_mut().layers.get_mut(layer) {
+            for &i in indices.iter().rev() {
+                if i < l.objects.len() {
+                    l.objects.remove(i);
+                }
+            }
+            let mut flat = Obj::new(
+                Shape::Bitmap {
+                    at: lo,
+                    pixels: img.into_raw(),
+                    size: Vec2::new(w, h),
+                },
+                None,
+                None,
+            );
+            flat.name = format!("Flattened Bitmap ({:.0}×{:.0})", w, h);
+            let insert_at = first_idx.min(l.objects.len());
+            l.objects.insert(insert_at, flat);
+            self.select_single(Some(insert_at));
+        }
+        self.doc.page_mut().sync_state();
         self.textures.clear();
-        self.status = "Flattened selection to editable Bitmap".to_string();
+        self.status = format!(
+            "Flattened {} object(s) to Bitmap ({:.0}×{:.0})",
+            objs.len(),
+            w,
+            h
+        );
     }
 
     pub fn copy_selected_css(&mut self) {
@@ -6380,5 +6424,39 @@ mod tests {
             app.selected_object().unwrap().kind,
             Shape::Path { closed: true, .. }
         ));
+    }
+
+    #[test]
+    fn flatten_selection_renders_transparent_glyphs_not_solid_box() {
+        let mut app = FireCraft::new(None);
+        let layer_idx = app.selected_layer;
+        app.doc.page_mut().layers[layer_idx].objects.push(Obj::new(
+            Shape::Text {
+                at: Vec2::new(40.0, 100.0),
+                text: "HI".to_string(),
+                size: 28.0,
+                bold: false,
+                italic: false,
+                font_family: "Sans-Serif".to_string(),
+            },
+            Some(Color32::from_rgb(255, 80, 20)),
+            None,
+        ));
+        app.select_single(Some(0));
+        app.flatten_selected_to_bitmap();
+        let flat = app.selected_object().unwrap();
+        if let Shape::Bitmap { pixels, .. } = &flat.kind {
+            let alphas: Vec<u8> = pixels.as_chunks::<4>().0.iter().map(|p| p[3]).collect();
+            assert!(
+                alphas.contains(&0),
+                "Expected transparent background pixels"
+            );
+            assert!(
+                alphas.iter().any(|&a| a > 0),
+                "Expected rasterized glyph pixels"
+            );
+        } else {
+            panic!("Expected flattened Bitmap");
+        }
     }
 }

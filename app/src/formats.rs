@@ -904,18 +904,33 @@ fn draw_obj(img: &mut image::RgbaImage, obj: &Obj, alpha: u8) {
         Shape::Text { at, text, size, .. } => {
             if let Some(c) = obj.fill {
                 let color = image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha]);
-                let (x, y) = to_px(*at);
-                let cell = (size * 0.6).round() as i32;
-                for (i, ch) in text.chars().enumerate() {
-                    if ch == ' ' {
-                        continue;
-                    }
-                    let gx = x + i as i32 * cell;
-                    for gy in (y - cell)..y {
-                        if gx >= 0 && gy >= 0 && gx < img.width() as i32 && gy < img.height() as i32
-                        {
-                            let old = img.get_pixel(gx as u32, gy as u32);
-                            img.put_pixel(gx as u32, gy as u32, blend(*old, color));
+                let (bx, by) = to_px(*at);
+                let px_scale = (size / 7.0).max(1.0);
+                let adv = (6.0 * px_scale).round() as i32;
+                let top_y = by - (7.0 * px_scale).round() as i32;
+                for (ci, ch) in text.chars().enumerate() {
+                    let rows = glyph_5x7(ch);
+                    let gx0 = bx + ci as i32 * adv;
+                    for (ry, row_bits) in rows.iter().enumerate() {
+                        for rx in 0..5 {
+                            if (row_bits >> (4 - rx)) & 1 == 1 {
+                                let x0 = gx0 + (rx as f32 * px_scale).floor() as i32;
+                                let y0 = top_y + (ry as f32 * px_scale).floor() as i32;
+                                let x1 = gx0 + ((rx + 1) as f32 * px_scale).ceil() as i32;
+                                let y1 = top_y + ((ry + 1) as f32 * px_scale).ceil() as i32;
+                                for py in y0..y1 {
+                                    for px in x0..x1 {
+                                        if px >= 0
+                                            && py >= 0
+                                            && px < img.width() as i32
+                                            && py < img.height() as i32
+                                        {
+                                            let old = img.get_pixel(px as u32, py as u32);
+                                            img.put_pixel(px as u32, py as u32, blend(*old, color));
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1034,6 +1049,145 @@ pub fn save(doc: &Document, path: &Path) -> Result<(), String> {
             };
             result.map_err(|e| format!("Could not write the file: {e}"))
         }
+    }
+}
+
+pub fn rasterize_selection(objs: &[Obj], lo: Vec2, hi: Vec2) -> image::RgbaImage {
+    let w = (hi.x - lo.x).ceil().max(4.0) as u32;
+    let h = (hi.y - lo.y).ceil().max(4.0) as u32;
+    let mut img = image::RgbaImage::from_pixel(w, h, image::Rgba([0, 0, 0, 0]));
+    for obj in objs {
+        let mut local = obj.clone();
+        local.translate(-lo);
+        let alpha = (local.opacity * 255.0).round().clamp(0.0, 255.0) as u8;
+        draw_obj(&mut img, &local, alpha);
+    }
+    img
+}
+
+fn glyph_5x7(ch: char) -> [u8; 7] {
+    match ch.to_ascii_uppercase() {
+        ' ' => [0, 0, 0, 0, 0, 0, 0],
+        'A' => [
+            0b01110, 0b10001, 0b10001, 0b11111, 0b10001, 0b10001, 0b10001,
+        ],
+        'B' => [
+            0b11110, 0b10001, 0b10001, 0b11110, 0b10001, 0b10001, 0b11110,
+        ],
+        'C' => [
+            0b01110, 0b10001, 0b10000, 0b10000, 0b10000, 0b10001, 0b01110,
+        ],
+        'D' => [
+            0b11110, 0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b11110,
+        ],
+        'E' => [
+            0b11111, 0b10000, 0b10000, 0b11110, 0b10000, 0b10000, 0b11111,
+        ],
+        'F' => [
+            0b11111, 0b10000, 0b10000, 0b11110, 0b10000, 0b10000, 0b10000,
+        ],
+        'G' => [
+            0b01110, 0b10001, 0b10000, 0b10111, 0b10001, 0b10001, 0b01110,
+        ],
+        'H' => [
+            0b10001, 0b10001, 0b10001, 0b11111, 0b10001, 0b10001, 0b10001,
+        ],
+        'I' => [
+            0b01110, 0b00100, 0b00100, 0b00100, 0b00100, 0b00100, 0b01110,
+        ],
+        'J' => [
+            0b00111, 0b00010, 0b00010, 0b00010, 0b10010, 0b10010, 0b01100,
+        ],
+        'K' => [
+            0b10001, 0b10010, 0b10100, 0b11000, 0b10100, 0b10010, 0b10001,
+        ],
+        'L' => [
+            0b10000, 0b10000, 0b10000, 0b10000, 0b10000, 0b10000, 0b11111,
+        ],
+        'M' => [
+            0b10001, 0b11011, 0b10101, 0b10101, 0b10001, 0b10001, 0b10001,
+        ],
+        'N' => [
+            0b10001, 0b11001, 0b10101, 0b10011, 0b10001, 0b10001, 0b10001,
+        ],
+        'O' => [
+            0b01110, 0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b01110,
+        ],
+        'P' => [
+            0b11110, 0b10001, 0b10001, 0b11110, 0b10000, 0b10000, 0b10000,
+        ],
+        'Q' => [
+            0b01110, 0b10001, 0b10001, 0b10001, 0b10101, 0b10010, 0b01101,
+        ],
+        'R' => [
+            0b11110, 0b10001, 0b10001, 0b11110, 0b10100, 0b10010, 0b10001,
+        ],
+        'S' => [
+            0b01111, 0b10000, 0b10000, 0b01110, 0b00001, 0b00001, 0b11110,
+        ],
+        'T' => [
+            0b11111, 0b00100, 0b00100, 0b00100, 0b00100, 0b00100, 0b00100,
+        ],
+        'U' => [
+            0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b01110,
+        ],
+        'V' => [
+            0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b01010, 0b00100,
+        ],
+        'W' => [
+            0b10001, 0b10001, 0b10001, 0b10101, 0b10101, 0b11011, 0b10001,
+        ],
+        'X' => [
+            0b10001, 0b10001, 0b01010, 0b00100, 0b01010, 0b10001, 0b10001,
+        ],
+        'Y' => [
+            0b10001, 0b10001, 0b01010, 0b00100, 0b00100, 0b00100, 0b00100,
+        ],
+        'Z' => [
+            0b11111, 0b00001, 0b00010, 0b00100, 0b01000, 0b10000, 0b11111,
+        ],
+        '0' => [
+            0b01110, 0b10011, 0b10101, 0b10101, 0b11001, 0b10001, 0b01110,
+        ],
+        '1' => [
+            0b00100, 0b01100, 0b00100, 0b00100, 0b00100, 0b00100, 0b01110,
+        ],
+        '2' => [
+            0b01110, 0b10001, 0b00001, 0b00110, 0b01000, 0b10000, 0b11111,
+        ],
+        '3' => [
+            0b11110, 0b00001, 0b00001, 0b01110, 0b00001, 0b00001, 0b11110,
+        ],
+        '4' => [
+            0b00010, 0b00110, 0b01010, 0b10010, 0b11111, 0b00010, 0b00010,
+        ],
+        '5' => [
+            0b11111, 0b10000, 0b11110, 0b00001, 0b00001, 0b10001, 0b01110,
+        ],
+        '6' => [
+            0b01110, 0b10000, 0b11110, 0b10001, 0b10001, 0b10001, 0b01110,
+        ],
+        '7' => [
+            0b11111, 0b00001, 0b00010, 0b00100, 0b01000, 0b01000, 0b01000,
+        ],
+        '8' => [
+            0b01110, 0b10001, 0b10001, 0b01110, 0b10001, 0b10001, 0b01110,
+        ],
+        '9' => [
+            0b01110, 0b10001, 0b10001, 0b01111, 0b00001, 0b00001, 0b01110,
+        ],
+        '!' => [
+            0b00100, 0b00100, 0b00100, 0b00100, 0b00100, 0b00000, 0b00100,
+        ],
+        '.' => [
+            0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00100,
+        ],
+        '-' => [
+            0b00000, 0b00000, 0b00000, 0b11111, 0b00000, 0b00000, 0b00000,
+        ],
+        _ => [
+            0b11111, 0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b11111,
+        ],
     }
 }
 
