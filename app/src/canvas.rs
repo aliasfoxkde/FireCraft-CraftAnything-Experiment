@@ -1413,7 +1413,12 @@ fn draw_obj(
     }
 
     // Selection handles (8-point resize box for every selected object in `selected_set`)
-    if !preview_mode && app.selected_layer == layer_index && app.is_selected(obj_index) {
+    if !preview_mode
+        && ((app.selected_layer == layer_index && app.is_selected(obj_index))
+            || app
+                .selected_extra_layers
+                .contains(&(layer_index, obj_index)))
+    {
         if let Some((lo, hi)) = obj.bounds() {
             let a = to_screen(origin, zoom, lo);
             let b = to_screen(origin, zoom, hi);

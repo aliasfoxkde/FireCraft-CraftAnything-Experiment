@@ -926,6 +926,12 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
             ui.ctx().request_repaint();
             return;
         }
+        let ctrl_a = ui.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, Key::A));
+        if ctrl_a {
+            app.select_all();
+            ui.ctx().request_repaint();
+            return;
+        }
     }
     if ui.ctx().egui_wants_keyboard_input() {
         return;

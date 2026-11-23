@@ -346,6 +346,7 @@ pub struct FireCraft {
     pub swatches: Vec<Color32>,
     pub selected: Option<usize>,
     pub selected_set: Vec<usize>,
+    pub selected_extra_layers: Vec<(usize, usize)>,
     pub selected_layer: usize,
     pub context_menu_pos: Option<egui::Pos2>,
     pub show_command_palette: bool,
@@ -461,6 +462,7 @@ impl FireCraft {
             swatches: colors::swatch_grid(),
             selected: None,
             selected_set: Vec::new(),
+            selected_extra_layers: Vec::new(),
             selected_layer: 0,
             context_menu_pos: None,
             show_command_palette: false,
@@ -1172,9 +1174,11 @@ impl FireCraft {
     pub fn select_single(&mut self, idx: Option<usize>) {
         self.selected = idx;
         self.selected_set = idx.into_iter().collect();
+        self.selected_extra_layers.clear();
     }
 
     pub fn toggle_select(&mut self, idx: usize) {
+        self.selected_extra_layers.clear();
         if let Some(pos) = self.selected_set.iter().position(|&i| i == idx) {
             self.selected_set.remove(pos);
         } else {
@@ -1186,6 +1190,7 @@ impl FireCraft {
     pub fn clear_selection(&mut self) {
         self.selected = None;
         self.selected_set.clear();
+        self.selected_extra_layers.clear();
     }
 
     pub fn push_object(&mut self, obj: Obj) -> usize {
@@ -1313,25 +1318,47 @@ impl FireCraft {
         {
             indices.push(s);
         }
-        if indices.is_empty() {
+        if indices.is_empty() && self.selected_extra_layers.is_empty() {
             return;
         }
         self.push_undo("Delete");
         indices.sort_unstable();
         indices.dedup();
         let layer = self.selected_layer;
+        let mut removed = 0usize;
+        let extra = self.selected_extra_layers.clone();
         let page = self.doc.page_mut();
         if layer < page.layers.len() {
             for &idx in indices.iter().rev() {
                 if idx < page.layers[layer].objects.len() {
                     page.layers[layer].objects.remove(idx);
+                    removed += 1;
                 }
             }
-            page.sync_state();
         }
+        let mut by_layer: std::collections::BTreeMap<usize, Vec<usize>> =
+            std::collections::BTreeMap::new();
+        for (li, oi) in extra {
+            if li != layer {
+                by_layer.entry(li).or_default().push(oi);
+            }
+        }
+        for (li, mut ois) in by_layer {
+            ois.sort_unstable();
+            ois.dedup();
+            if li < page.layers.len() {
+                for oi in ois.into_iter().rev() {
+                    if oi < page.layers[li].objects.len() {
+                        page.layers[li].objects.remove(oi);
+                        removed += 1;
+                    }
+                }
+            }
+        }
+        page.sync_state();
         self.clear_selection();
         self.textures.clear();
-        self.status = format!("Deleted {} object(s)", indices.len());
+        self.status = format!("Deleted {removed} object(s)");
     }
 
     pub fn duplicate_selected(&mut self) {
@@ -4313,17 +4340,41 @@ impl FireCraft {
     }
 
     pub fn select_all(&mut self) {
-        let layer = self.selected_layer;
-        let count = self
-            .doc
-            .page()
-            .layers
-            .get(layer)
-            .map(|l| l.objects.len())
-            .unwrap_or(0);
-        self.selected_set = (0..count).collect();
-        self.selected = if count > 0 { Some(count - 1) } else { None };
-        self.status = format!("Selected {count} object(s)");
+        self.selected_extra_layers.clear();
+        let layers = &self.doc.page().layers;
+        let mut total = 0usize;
+        // Prefer keeping current selected_layer if it has selectable objects; otherwise pick first non-empty visible unlocked layer
+        let cur_has_objs = layers.get(self.selected_layer).is_some_and(|l| {
+            l.visible && !l.locked && l.objects.iter().any(|o| o.visible && !o.locked)
+        });
+        if !cur_has_objs
+            && let Some((li, _)) = layers.iter().enumerate().find(|(_, l)| {
+                l.visible && !l.locked && l.objects.iter().any(|o| o.visible && !o.locked)
+            })
+        {
+            self.selected_layer = li;
+        }
+        let primary_layer = self.selected_layer;
+        let mut primary_set = Vec::new();
+        for (li, l) in layers.iter().enumerate() {
+            if !l.visible || l.locked {
+                continue;
+            }
+            for (oi, obj) in l.objects.iter().enumerate() {
+                if !obj.visible || obj.locked {
+                    continue;
+                }
+                total += 1;
+                if li == primary_layer {
+                    primary_set.push(oi);
+                } else {
+                    self.selected_extra_layers.push((li, oi));
+                }
+            }
+        }
+        self.selected_set = primary_set;
+        self.selected = self.selected_set.last().copied();
+        self.status = format!("Selected {total} object(s) across all visible layers");
     }
 
     pub fn select_inverse(&mut self) {
@@ -5000,5 +5051,24 @@ mod tests {
         assert!(app.show_right_dock);
         assert!(app.show_bottom_inspector);
         assert!(app.show_main_toolbar);
+    }
+
+    #[test]
+    fn select_all_and_delete_across_layers() {
+        let mut app = FireCraft::new(None);
+        app.insert_auto_shape(AutoShapeKind::RoundedRect);
+        app.add_layer();
+        app.insert_auto_shape(AutoShapeKind::Star);
+        app.insert_slice(false); // goes to Web Layer
+        assert_eq!(app.doc.total_objects_on_page(), 3);
+
+        // Select all even when current selected_layer is empty or different
+        app.clear_selection();
+        app.select_all();
+        assert!(!app.selected_set.is_empty());
+        assert!(!app.selected_extra_layers.is_empty());
+
+        app.delete_selected();
+        assert_eq!(app.doc.total_objects_on_page(), 0);
     }
 }
