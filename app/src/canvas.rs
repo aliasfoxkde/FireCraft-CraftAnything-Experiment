@@ -207,7 +207,7 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
                 app.context_menu_pos = None;
                 app.on_pointer_down(doc_pos, pointer_pos.to_vec2(), alt, ctrl, shift);
             }
-            if secondary_clicked {
+            if secondary_clicked || canvas_resp.secondary_clicked() {
                 // CS6 context-menu pick: if right-click hits an unselected object, select it first
                 if let Some((li, oi)) = hit_test(app, doc_pos)
                     && (app.selected_layer != li || !app.is_selected(oi))
@@ -440,8 +440,17 @@ fn canvas_context_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
     let is_group = app
         .selected_object()
         .is_some_and(|o| matches!(o.kind, Shape::Group { .. }));
+    let screen = ui.ctx().content_rect();
+    let clamped_pos = pos2(
+        menu_pos
+            .x
+            .clamp(screen.left() + 4.0, (screen.right() - 210.0).max(4.0)),
+        menu_pos
+            .y
+            .clamp(screen.top() + 4.0, (screen.bottom() - 300.0).max(4.0)),
+    );
     let area_resp = egui::Area::new(ui.make_persistent_id("cs6_canvas_context_menu"))
-        .fixed_pos(menu_pos)
+        .fixed_pos(clamped_pos)
         .order(egui::Order::Foreground)
         .show(ui.ctx(), |ui| {
             egui::Frame::menu(ui.style())

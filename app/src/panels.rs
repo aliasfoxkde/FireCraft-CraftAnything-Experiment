@@ -3700,7 +3700,7 @@ pub fn panel_group_widget(ui: &mut Ui, app: &mut FireCraft, group_idx: usize, is
                 let body_h = group.body_height;
                 ui.allocate_ui(Vec2::new(ui.available_width(), body_h), |ui| {
                     egui::Frame::NONE
-                        .inner_margin(egui::Margin::symmetric(6, 5))
+                        .inner_margin(egui::Margin::symmetric(8, 6))
                         .show(ui, |ui| {
                             egui::ScrollArea::vertical()
                                 .id_salt(("pg_scroll", group.id, active_panel))

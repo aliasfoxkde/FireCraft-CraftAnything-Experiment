@@ -69,12 +69,12 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     // 4. Bottom Dock: Properties & Symbol Properties Inspector (fixed default height so switching selection never jumps)
     if app.show_bottom_inspector {
         egui::Panel::bottom("properties_dock")
-            .exact_size(98.0)
+            .exact_size(104.0)
             .resizable(false)
             .frame(
                 egui::Frame::new()
                     .fill(app.palette.panel)
-                    .inner_margin(egui::Margin::symmetric(4, 3)),
+                    .inner_margin(egui::Margin::symmetric(8, 5)),
             )
             .show(ui, |ui| bottom_properties_dock(ui, app));
     }
@@ -82,12 +82,12 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     // 5. Left Dock: 2-Column CS6 Tool Strip
     if app.show_tools_dock {
         egui::Panel::left("tools")
-            .exact_size(60.0)
+            .exact_size(64.0)
             .resizable(false)
             .frame(
                 egui::Frame::new()
                     .fill(app.palette.panel)
-                    .inner_margin(egui::Margin::symmetric(3, 2)),
+                    .inner_margin(egui::Margin::symmetric(4, 4)),
             )
             .show(ui, |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| panels::tools_panel(ui, app));
