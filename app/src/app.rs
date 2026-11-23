@@ -3335,6 +3335,126 @@ impl FireCraft {
         );
     }
 
+    fn obj_to_polygon_points(obj: &Obj) -> Vec<Vec2> {
+        match &obj.kind {
+            Shape::Rect { min, max, .. } => {
+                let lo = min.min(*max);
+                let hi = min.max(*max);
+                vec![lo, Vec2::new(hi.x, lo.y), hi, Vec2::new(lo.x, hi.y)]
+            }
+            Shape::Ellipse { center, radius, .. } => (0..24)
+                .map(|i| {
+                    let t = i as f32 / 24.0 * std::f32::consts::TAU;
+                    *center + Vec2::new(radius.x * t.cos(), radius.y * t.sin())
+                })
+                .collect(),
+            Shape::Polygon {
+                center,
+                radius,
+                sides,
+                star_inner,
+                angle_rad,
+            } => Obj::polygon_vertices(*center, *radius, *sides, *star_inner, *angle_rad),
+            Shape::Path { points, .. } => points.clone(),
+            Shape::Line { a, b } => vec![*a, *b],
+            _ => obj
+                .bounds()
+                .map(|(lo, hi)| vec![lo, Vec2::new(hi.x, lo.y), hi, Vec2::new(lo.x, hi.y)])
+                .unwrap_or_default(),
+        }
+    }
+
+    fn sutherland_hodgman_clip(subject: &[Vec2], clip: &[Vec2]) -> Vec<Vec2> {
+        if subject.len() < 3 || clip.len() < 3 {
+            return Vec::new();
+        }
+        // Ensure clip winding is consistent (CCW in screen coords: signed area > 0)
+        let area: f32 = (0..clip.len())
+            .map(|i| {
+                let a = clip[i];
+                let b = clip[(i + 1) % clip.len()];
+                a.x * b.y - b.x * a.y
+            })
+            .sum();
+        let sign = if area >= 0.0 { 1.0 } else { -1.0 };
+        let inside = |p: Vec2, e1: Vec2, e2: Vec2| -> bool {
+            ((e2.x - e1.x) * (p.y - e1.y) - (e2.y - e1.y) * (p.x - e1.x)) * sign >= -1e-4
+        };
+        let intersect_seg = |a: Vec2, b: Vec2, e1: Vec2, e2: Vec2| -> Vec2 {
+            let dc = e1 - e2;
+            let dp = a - b;
+            let n1 = e1.x * e2.y - e1.y * e2.x;
+            let n2 = a.x * b.y - a.y * b.x;
+            let denom = dc.x * dp.y - dc.y * dp.x;
+            if denom.abs() < 1e-6 {
+                return (a + b) * 0.5;
+            }
+            Vec2::new(
+                (n1 * dp.x - n2 * dc.x) / denom,
+                (n1 * dp.y - n2 * dc.y) / denom,
+            )
+        };
+        let mut output = subject.to_vec();
+        for i in 0..clip.len() {
+            let e1 = clip[i];
+            let e2 = clip[(i + 1) % clip.len()];
+            let input = output;
+            output = Vec::new();
+            if input.is_empty() {
+                break;
+            }
+            let mut s = *input.last().unwrap();
+            for &e in &input {
+                if inside(e, e1, e2) {
+                    if !inside(s, e1, e2) {
+                        output.push(intersect_seg(s, e, e1, e2));
+                    }
+                    output.push(e);
+                } else if inside(s, e1, e2) {
+                    output.push(intersect_seg(s, e, e1, e2));
+                }
+                s = e;
+            }
+        }
+        output
+    }
+
+    fn union_polygon_hull(pts: &[Vec2]) -> Vec<Vec2> {
+        if pts.len() < 3 {
+            return pts.to_vec();
+        }
+        let mut sorted = pts.to_vec();
+        sorted.sort_by(|a, b| {
+            a.x.partial_cmp(&b.x)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| a.y.partial_cmp(&b.y).unwrap_or(std::cmp::Ordering::Equal))
+        });
+        let cross =
+            |o: Vec2, a: Vec2, b: Vec2| (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+        let mut lower: Vec<Vec2> = Vec::new();
+        for &p in &sorted {
+            while lower.len() >= 2
+                && cross(lower[lower.len() - 2], lower[lower.len() - 1], p) <= 0.0
+            {
+                lower.pop();
+            }
+            lower.push(p);
+        }
+        let mut upper: Vec<Vec2> = Vec::new();
+        for &p in sorted.iter().rev() {
+            while upper.len() >= 2
+                && cross(upper[upper.len() - 2], upper[upper.len() - 1], p) <= 0.0
+            {
+                upper.pop();
+            }
+            upper.push(p);
+        }
+        lower.pop();
+        upper.pop();
+        lower.extend(upper);
+        lower
+    }
+
     pub fn combine_paths_op(&mut self, op: &str) {
         let mut indices = self.selected_set.clone();
         if let Some(s) = self.selected
@@ -3363,58 +3483,77 @@ impl FireCraft {
                 });
                 self.status = "Closed path endpoints (Join)".to_string();
             } else {
-                self.status = format!("Applied {op} on path (select 2+ objects for boolean ops)");
+                self.status = format!("Select 2+ objects to apply {op}");
             }
             return;
         }
         let layer = self.selected_layer;
         let first_idx = indices[0];
-        let second_idx = indices[1];
         let page = self.doc.page_mut();
         let Some(objs) = page.layers.get_mut(layer).map(|l| &mut l.objects) else {
             return;
         };
-        if second_idx >= objs.len() {
+        if *indices.last().unwrap_or(&0) >= objs.len() {
             return;
         }
-        let other = objs[second_idx].clone();
-        if op == "join" {
-            let mut pts = match &objs[first_idx].kind {
-                Shape::Path { points, .. } => points.clone(),
-                _ => objs[first_idx]
-                    .bounds()
-                    .map(|(lo, hi)| vec![lo, Vec2::new(hi.x, lo.y), hi, Vec2::new(lo.x, hi.y)])
-                    .unwrap_or_default(),
-            };
-            let other_pts = match &other.kind {
-                Shape::Path { points, .. } => points.clone(),
-                _ => other
-                    .bounds()
-                    .map(|(lo, hi)| vec![lo, Vec2::new(hi.x, lo.y), hi, Vec2::new(lo.x, hi.y)])
-                    .unwrap_or_default(),
-            };
-            pts.extend(other_pts);
-            objs[first_idx].kind = Shape::Path {
-                points: pts,
-                closed: false,
-            };
-            objs.remove(second_idx);
-        } else if let (Some((lo1, hi1)), Some((lo2, hi2))) =
-            (objs[first_idx].bounds(), other.bounds())
-        {
-            let (new_lo, new_hi) = match op {
-                "intersect" | "crop" => (
-                    lo1.max(lo2),
-                    hi1.min(hi2).max(lo1.max(lo2) + Vec2::splat(8.0)),
-                ),
-                "punch" => {
-                    let punch_w = (hi2.x - lo2.x).min((hi1.x - lo1.x) * 0.5);
-                    (Vec2::new(lo1.x + punch_w * 0.25, lo1.y), hi1)
+
+        let mut acc_pts = Self::obj_to_polygon_points(&objs[first_idx]);
+        let mut closed = true;
+        for &other_idx in &indices[1..] {
+            let other_pts = Self::obj_to_polygon_points(&objs[other_idx]);
+            match op {
+                "join" => {
+                    acc_pts.extend(other_pts);
+                    closed = false;
                 }
-                _ => (lo1.min(lo2), hi1.max(hi2)),
-            };
-            objs[first_idx].set_bounds(new_lo, new_hi);
-            objs.remove(second_idx);
+                "intersect" | "crop" => {
+                    let clipped = Self::sutherland_hodgman_clip(&acc_pts, &other_pts);
+                    if clipped.len() >= 3 {
+                        acc_pts = clipped;
+                    }
+                }
+                "punch" => {
+                    // Notch/subtract `other_pts` from `acc_pts` by keeping vertices outside other's bounds
+                    if let Some((olo, ohi)) = objs[other_idx].bounds() {
+                        let mut punched = Vec::new();
+                        for &pt in &acc_pts {
+                            if pt.x >= olo.x && pt.x <= ohi.x && pt.y >= olo.y && pt.y <= ohi.y {
+                                // Project inward vertex to nearest boundary edge of puncher
+                                let dl = (pt.x - olo.x).abs();
+                                let dr = (ohi.x - pt.x).abs();
+                                let dt = (pt.y - olo.y).abs();
+                                let db = (ohi.y - pt.y).abs();
+                                let m = dl.min(dr).min(dt).min(db);
+                                if (m - dl).abs() < 0.1 {
+                                    punched.push(Vec2::new(olo.x, pt.y));
+                                } else if (m - dr).abs() < 0.1 {
+                                    punched.push(Vec2::new(ohi.x, pt.y));
+                                } else if (m - dt).abs() < 0.1 {
+                                    punched.push(Vec2::new(pt.x, olo.y));
+                                } else {
+                                    punched.push(Vec2::new(pt.x, ohi.y));
+                                }
+                            } else {
+                                punched.push(pt);
+                            }
+                        }
+                        acc_pts = punched;
+                    }
+                }
+                _ => {
+                    // Union: combine all points into outer contour hull
+                    acc_pts.extend(other_pts);
+                    acc_pts = Self::union_polygon_hull(&acc_pts);
+                }
+            }
+        }
+
+        objs[first_idx].kind = Shape::Path {
+            points: acc_pts,
+            closed,
+        };
+        for &other_idx in indices[1..].iter().rev() {
+            objs.remove(other_idx);
         }
         page.sync_state();
         self.select_single(Some(first_idx));
@@ -5130,5 +5269,36 @@ mod tests {
 
         app.delete_selected();
         assert_eq!(app.doc.total_objects_on_page(), 0);
+    }
+
+    #[test]
+    fn combine_paths_boolean_ops() {
+        let mut app = FireCraft::new(None);
+        app.push_object(Obj::new(
+            Shape::Rect {
+                min: Vec2::new(100.0, 100.0),
+                max: Vec2::new(220.0, 220.0),
+                corner_radius: 0.0,
+                filled: true,
+            },
+            Some(Color32::RED),
+            None,
+        ));
+        app.push_object(Obj::new(
+            Shape::Rect {
+                min: Vec2::new(160.0, 140.0),
+                max: Vec2::new(280.0, 260.0),
+                corner_radius: 0.0,
+                filled: true,
+            },
+            Some(Color32::BLUE),
+            None,
+        ));
+        app.select_all();
+        app.combine_paths_op("intersect");
+        assert_eq!(app.doc.total_objects_on_page(), 1);
+        let (lo, hi) = app.selected_object().unwrap().bounds().unwrap();
+        assert!((lo.x - 160.0).abs() < 1.0 && (lo.y - 140.0).abs() < 1.0);
+        assert!((hi.x - 220.0).abs() < 1.0 && (hi.y - 220.0).abs() < 1.0);
     }
 }
