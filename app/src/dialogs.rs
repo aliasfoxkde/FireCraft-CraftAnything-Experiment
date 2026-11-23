@@ -341,21 +341,43 @@ pub fn command_palette_dialog(app: &mut FireCraft) {
     if !app.show_command_palette {
         return;
     }
+    enum PaletteAction {
+        Catalog(&'static str),
+        OpenPanel(crate::app::PanelId),
+        Workspace(&'static str),
+        FullScreen,
+        ResetWorkspace,
+        FindDialog,
+        SelectObject(usize, usize),
+        ReplaceText(String, String),
+        AddFilter(&'static str),
+        InsertWidget(&'static str),
+    }
+    struct PaletteEntry {
+        badge: &'static str,
+        title: String,
+        desc: String,
+        action: PaletteAction,
+    }
+
     let mut open = app.show_command_palette;
     let mut close_now = false;
-    egui::Window::new("Command Palette (Ctrl+K)")
+    egui::Window::new("Command Palette & Search (Ctrl+K)")
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
-        .fixed_size([460.0, 320.0])
-        .anchor(Align2::CENTER_TOP, Vec2::new(0.0, 56.0))
+        .fixed_size([560.0, 390.0])
+        .anchor(Align2::CENTER_TOP, Vec2::new(0.0, 48.0))
         .show(&app.ctx.clone(), |ui| {
+            let p = app.palette;
             ui.horizontal(|ui| {
-                ui.label("Search:");
+                ui.label(RichText::new("Search:").strong());
                 let resp = ui.add(
                     egui::TextEdit::singleline(&mut app.palette_filter)
-                        .desired_width(310.0)
-                        .hint_text("Type a command (e.g. group, shadow, slice, align, theme)…"),
+                        .desired_width(410.0)
+                        .hint_text(
+                            "Panels, filters, objects, find/replace (replace:old->new), commands…",
+                        ),
                 );
                 resp.request_focus();
                 if ui.small_button("Clear").clicked() {
@@ -364,52 +386,334 @@ pub fn command_palette_dialog(app: &mut FireCraft) {
             });
             ui.separator();
 
-            let q = app.palette_filter.trim().to_lowercase();
-            let hits: Vec<(&str, &str)> = mcp::COMMAND_CATALOG
-                .iter()
-                .copied()
-                .filter(|(id, desc)| {
+            let raw_q = app.palette_filter.trim().to_string();
+            let q = raw_q.to_lowercase();
+            let mut entries: Vec<PaletteEntry> = Vec::new();
+
+            // 1. Inline Replace: `replace:old->new`
+            if let Some(rest) = raw_q
+                .strip_prefix("replace:")
+                .or_else(|| raw_q.strip_prefix("Replace:"))
+                && let Some((from_s, to_s)) = rest.split_once("->")
+                && !from_s.trim().is_empty()
+            {
+                let from_t = from_s.trim().to_string();
+                let to_t = to_s.trim().to_string();
+                entries.push(PaletteEntry {
+                    badge: "[Replace]",
+                    title: format!("Replace \"{from_t}\" -> \"{to_t}\""),
+                    desc: "Replace across all object names and text on page".to_string(),
+                    action: PaletteAction::ReplaceText(from_t, to_t),
+                });
+            }
+
+            // 2. Find & Replace Dialog + Quick Actions
+            entries.push(PaletteEntry {
+                badge: "[Action]",
+                title: "Find & Replace… (Ctrl+F)".to_string(),
+                desc: "Open Find & Replace dialog for text and object names".to_string(),
+                action: PaletteAction::FindDialog,
+            });
+            entries.push(PaletteEntry {
+                badge: "[View]",
+                title: "Full Screen Canvas (Tab / F4 / F11)".to_string(),
+                desc: "Toggle full-screen distraction-free canvas mode".to_string(),
+                action: PaletteAction::FullScreen,
+            });
+            entries.push(PaletteEntry {
+                badge: "[View]",
+                title: "Reset Workspace Layout".to_string(),
+                desc: "Restore all CS6 docks, toolbars, and default panel groups".to_string(),
+                action: PaletteAction::ResetWorkspace,
+            });
+            for preset in ["Expanded Mode", "CS6 Dual-Column", "All Panels Floating"] {
+                entries.push(PaletteEntry {
+                    badge: "[Layout]",
+                    title: format!("Workspace: {preset}"),
+                    desc: "Switch panel docking preset".to_string(),
+                    action: PaletteAction::Workspace(preset),
+                });
+            }
+
+            // 3. All 21 CS6 Panels
+            for pid in crate::app::PanelId::ALL {
+                let sc = pid.shortcut();
+                let desc = if sc.is_empty() {
+                    "Open or focus panel".to_string()
+                } else {
+                    format!("Open or focus panel ({sc})")
+                };
+                entries.push(PaletteEntry {
+                    badge: "[Panel]",
+                    title: format!("Open / Focus {}", pid.title()),
+                    desc,
+                    action: PaletteAction::OpenPanel(pid),
+                });
+            }
+
+            // 4. Live Filters & Bitmap Filters
+            for (fkey, fname, fdesc) in [
+                (
+                    "drop_shadow",
+                    "Drop Shadow",
+                    "Add non-destructive Live Drop Shadow",
+                ),
+                (
+                    "inner_shadow",
+                    "Inner Shadow",
+                    "Add non-destructive Live Inner Shadow",
+                ),
+                (
+                    "outer_glow",
+                    "Outer Glow",
+                    "Add non-destructive Live Outer Glow",
+                ),
+                (
+                    "inner_glow",
+                    "Inner Glow",
+                    "Add non-destructive Live Inner Glow",
+                ),
+                (
+                    "inner_bevel",
+                    "Inner Bevel",
+                    "Add non-destructive Live Inner Bevel",
+                ),
+                (
+                    "gaussian_blur",
+                    "Gaussian Blur",
+                    "Add non-destructive Gaussian Blur",
+                ),
+                (
+                    "brightness",
+                    "Brightness / Contrast",
+                    "Add Live Brightness/Contrast filter",
+                ),
+                ("sharpen", "Sharpen", "Apply Sharpen bitmap filter"),
+                ("dodge", "Dodge (Brighten)", "Apply Dodge filter"),
+                ("burn", "Burn (Darken)", "Apply Burn filter"),
+                (
+                    "clear",
+                    "Clear All Live Filters",
+                    "Remove all live effects from selection",
+                ),
+            ] {
+                entries.push(PaletteEntry {
+                    badge: "[Filter]",
+                    title: format!("Filter: {fname}"),
+                    desc: fdesc.to_string(),
+                    action: PaletteAction::AddFilter(fkey),
+                });
+            }
+
+            // 5. Common Library Widgets
+            for widget in [
+                "Primary Button",
+                "Checkbox (Checked)",
+                "Radio Button",
+                "Text Input Field",
+                "Dropdown ComboBox",
+                "Toggle Switch",
+                "Modal Card",
+                "Progress Bar",
+                "Navigation Bar",
+                "Badge Pill",
+            ] {
+                entries.push(PaletteEntry {
+                    badge: "[Widget]",
+                    title: format!("Insert {widget}"),
+                    desc: "Insert Common Library UI component onto canvas".to_string(),
+                    action: PaletteAction::InsertWidget(widget),
+                });
+            }
+
+            // 6. Live Canvas Objects (when searching)
+            if !q.is_empty() {
+                let search_term = q.strip_prefix("find:").map(str::trim).unwrap_or(&q);
+                if !search_term.is_empty() {
+                    for (li, layer) in app.doc.page().layers.iter().enumerate() {
+                        for (oi, obj) in layer.objects.iter().enumerate() {
+                            let text_match = match &obj.kind {
+                                crate::doc::Shape::Text { text, .. } => {
+                                    text.to_lowercase().contains(search_term)
+                                }
+                                _ => false,
+                            };
+                            if obj.name.to_lowercase().contains(search_term) || text_match {
+                                entries.push(PaletteEntry {
+                                    badge: "[Object]",
+                                    title: format!("Select \"{}\"", obj.name),
+                                    desc: format!(
+                                        "Layer: {} · Jump & select on canvas",
+                                        layer.name
+                                    ),
+                                    action: PaletteAction::SelectObject(li, oi),
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 7. Registered MCP / Editor Commands
+            for (id, desc) in mcp::COMMAND_CATALOG {
+                entries.push(PaletteEntry {
+                    badge: "[Cmd]",
+                    title: (*id).to_string(),
+                    desc: (*desc).to_string(),
+                    action: PaletteAction::Catalog(id),
+                });
+            }
+
+            let hits: Vec<PaletteEntry> = entries
+                .into_iter()
+                .filter(|e| {
                     q.is_empty()
-                        || id.to_lowercase().contains(&q)
-                        || desc.to_lowercase().contains(&q)
+                        || e.title.to_lowercase().contains(&q)
+                        || e.desc.to_lowercase().contains(&q)
+                        || e.badge.to_lowercase().contains(&q)
                 })
                 .collect();
 
-            let enter_pressed = ui.input(|i| i.key_pressed(egui::Key::Enter));
-            if enter_pressed && let Some((first_id, _)) = hits.first() {
-                if let Ok(msg) = mcp::execute_catalog_command(app, first_id) {
-                    app.status = msg;
+            let sel_id = ui.make_persistent_id("palette_sel_idx");
+            let mut sel_idx: usize = ui.ctx().data(|d| d.get_temp(sel_id).unwrap_or(0));
+            if ui.input(|i| i.key_pressed(egui::Key::ArrowDown)) && !hits.is_empty() {
+                sel_idx = (sel_idx + 1).min(hits.len() - 1);
+            }
+            if ui.input(|i| i.key_pressed(egui::Key::ArrowUp)) {
+                sel_idx = sel_idx.saturating_sub(1);
+            }
+            sel_idx = sel_idx.min(hits.len().saturating_sub(1));
+            ui.ctx().data_mut(|d| d.insert_temp(sel_id, sel_idx));
+
+            let mut run_idx: Option<usize> =
+                if ui.input(|i| i.key_pressed(egui::Key::Enter)) && !hits.is_empty() {
+                    Some(sel_idx)
+                } else {
+                    None
+                };
+
+            egui::ScrollArea::vertical()
+                .max_height(280.0)
+                .show(ui, |ui| {
+                    for (idx, entry) in hits.iter().enumerate() {
+                        let is_sel = idx == sel_idx;
+                        ui.horizontal(|ui| {
+                            ui.label(
+                                RichText::new(entry.badge)
+                                    .monospace()
+                                    .small()
+                                    .color(p.accent),
+                            );
+                            if ui
+                                .selectable_label(is_sel, RichText::new(&entry.title).strong())
+                                .clicked()
+                            {
+                                run_idx = Some(idx);
+                            }
+                            ui.label(RichText::new(&entry.desc).small().color(p.text_dim));
+                        });
+                    }
+                });
+
+            if let Some(idx) = run_idx
+                && let Some(entry) = hits.into_iter().nth(idx)
+            {
+                match entry.action {
+                    PaletteAction::Catalog(id) => {
+                        if let Ok(msg) = mcp::execute_catalog_command(app, id) {
+                            app.status = msg;
+                        }
+                    }
+                    PaletteAction::OpenPanel(pid) => {
+                        app.full_screen_canvas = false;
+                        app.show_right_dock = true;
+                        app.focus_or_open_panel(pid);
+                    }
+                    PaletteAction::Workspace(preset) => {
+                        app.apply_workspace_preset(preset);
+                    }
+                    PaletteAction::FullScreen => app.toggle_full_screen_canvas(),
+                    PaletteAction::ResetWorkspace => {
+                        app.full_screen_canvas = false;
+                        app.show_main_toolbar = true;
+                        app.show_tools_dock = true;
+                        app.show_right_dock = true;
+                        app.show_bottom_inspector = true;
+                        app.apply_workspace_preset("Expanded Mode");
+                    }
+                    PaletteAction::FindDialog => app.show_find_replace = true,
+                    PaletteAction::SelectObject(li, oi) => {
+                        app.selected_layer = li;
+                        app.select_single(Some(oi));
+                        app.status = "Selected object from search".to_string();
+                    }
+                    PaletteAction::ReplaceText(from_t, to_t) => {
+                        app.find_query = from_t;
+                        app.replace_query = to_t;
+                        app.run_find_and_replace();
+                    }
+                    PaletteAction::AddFilter(fkey) => match fkey {
+                        "drop_shadow" => app.add_live_effect(crate::doc::LiveEffect::DropShadow {
+                            distance: 6.0,
+                            angle_deg: 45.0,
+                            blur: 8.0,
+                            color: Color32::from_black_alpha(128),
+                            enabled: true,
+                        }),
+                        "inner_shadow" => {
+                            app.add_live_effect(crate::doc::LiveEffect::InnerShadow {
+                                distance: 4.0,
+                                blur: 6.0,
+                                color: Color32::from_black_alpha(110),
+                                enabled: true,
+                            })
+                        }
+                        "outer_glow" => app.add_live_effect(crate::doc::LiveEffect::Glow {
+                            radius: 8.0,
+                            color: Color32::from_rgb(244, 185, 66),
+                            inner: false,
+                            enabled: true,
+                        }),
+                        "inner_glow" => app.add_live_effect(crate::doc::LiveEffect::Glow {
+                            radius: 6.0,
+                            color: Color32::from_rgb(255, 224, 140),
+                            inner: true,
+                            enabled: true,
+                        }),
+                        "inner_bevel" => app.add_live_effect(crate::doc::LiveEffect::Bevel {
+                            width: 4.0,
+                            highlight: Color32::from_white_alpha(180),
+                            shadow: Color32::from_black_alpha(140),
+                            enabled: true,
+                        }),
+                        "gaussian_blur" => {
+                            app.add_live_effect(crate::doc::LiveEffect::GaussianBlur {
+                                radius: 4.0,
+                                enabled: true,
+                            })
+                        }
+                        "brightness" => app.add_live_effect(crate::doc::LiveEffect::ColorAdjust {
+                            brightness: 0.12,
+                            contrast: 0.10,
+                            saturation: 1.0,
+                            enabled: true,
+                        }),
+                        "sharpen" => app.run_bitmap_filter(crate::app::Tool::Sharpen),
+                        "dodge" => app.run_bitmap_filter(crate::app::Tool::Dodge),
+                        "burn" => app.run_bitmap_filter(crate::app::Tool::Burn),
+                        _ => app.clear_live_effects(),
+                    },
+                    PaletteAction::InsertWidget(w) => app.insert_common_library_item(w),
                 }
                 close_now = true;
             }
 
-            egui::ScrollArea::vertical()
-                .max_height(225.0)
-                .show(ui, |ui| {
-                    for (id, desc) in hits {
-                        ui.horizontal(|ui| {
-                            if ui
-                                .button(RichText::new(id).monospace().color(app.palette.selection))
-                                .clicked()
-                            {
-                                if let Ok(msg) = mcp::execute_catalog_command(app, id) {
-                                    app.status = msg;
-                                }
-                                close_now = true;
-                            }
-                            ui.label(RichText::new(desc).small().color(app.palette.text_dim));
-                        });
-                    }
-                });
             ui.separator();
             ui.horizontal(|ui| {
                 ui.label(
-                    RichText::new(format!(
-                        "{} registered commands · Press Enter to run top match",
-                        mcp::COMMAND_CATALOG.len()
-                    ))
-                    .small()
-                    .color(app.palette.text_dim),
+                    RichText::new("↑/↓ Navigate · Enter Run · find:<text> · replace:old->new")
+                        .small()
+                        .color(p.text_dim),
                 );
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if ui.small_button("Close (Esc)").clicked() {
