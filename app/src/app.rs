@@ -357,29 +357,16 @@ impl FireCraft {
     }
 
     pub fn load_logo(ctx: &Context) -> Option<egui::TextureHandle> {
-        let paths = [
-            "logo.png",
-            "src/logo.png",
-            "../logo.png",
-            "../screenshots/logo.png",
-        ];
-        for p in &paths {
-            if let Ok(bytes) = std::fs::read(p)
-                && let Ok(img) = image::load_from_memory(&bytes)
-            {
-                let w = img.width() as usize;
-                let h = img.height() as usize;
-                let mut pixels = Vec::with_capacity(w * h);
-                for (_x, _y, c) in img.pixels() {
-                    pixels.push(Color32::from_rgba_unmultiplied(c[0], c[1], c[2], c[3]));
-                }
-                let image = egui::ColorImage::new([w, h], pixels);
-                return Some(ctx.load_texture(
-                    "firecraft-logo",
-                    image,
-                    egui::TextureOptions::default(),
-                ));
+        let bytes = include_bytes!("logo.png");
+        if let Ok(img) = image::load_from_memory(bytes) {
+            let w = img.width() as usize;
+            let h = img.height() as usize;
+            let mut pixels = Vec::with_capacity(w * h);
+            for (_x, _y, c) in img.pixels() {
+                pixels.push(Color32::from_rgba_unmultiplied(c[0], c[1], c[2], c[3]));
             }
+            let image = egui::ColorImage::new([w, h], pixels);
+            return Some(ctx.load_texture("firecraft-logo", image, egui::TextureOptions::LINEAR));
         }
         None
     }

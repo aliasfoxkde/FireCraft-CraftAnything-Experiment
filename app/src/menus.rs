@@ -12,10 +12,13 @@ use eframe::egui::{self, Color32, RichText};
 /// Draw the full 10-menu Fireworks CS6 application menu bar plus header controls.
 pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
     ui.horizontal(|ui| {
+        if let Some(ref tex) = app.logo_tex {
+            ui.add(egui::Image::new(tex).fit_to_exact_size(egui::vec2(18.0, 18.0)));
+        }
         ui.label(
-            RichText::new("Fw")
+            RichText::new("Fc")
                 .strong()
-                .color(app.palette.accent)
+                .color(app.palette.banner_text)
                 .size(14.0),
         );
         ui.separator();

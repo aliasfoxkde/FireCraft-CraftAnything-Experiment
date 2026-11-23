@@ -18,6 +18,17 @@ mod page;
 mod panels;
 mod theme;
 
+fn load_window_icon() -> Option<eframe::egui::IconData> {
+    let bytes = include_bytes!("logo.png");
+    let img = image::load_from_memory(bytes).ok()?.into_rgba8();
+    let (width, height) = img.dimensions();
+    Some(eframe::egui::IconData {
+        rgba: img.into_raw(),
+        width,
+        height,
+    })
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
 
@@ -55,6 +66,10 @@ fn main() {
         .with_app_id("firecraft.editor")
         .with_visible(true)
         .with_active(screenshot_path.is_none());
+
+    if let Some(icon) = load_window_icon() {
+        viewport = viewport.with_icon(std::sync::Arc::new(icon));
+    }
 
     if screenshot_path.is_some() {
         viewport = viewport.with_window_level(eframe::egui::WindowLevel::AlwaysOnBottom);

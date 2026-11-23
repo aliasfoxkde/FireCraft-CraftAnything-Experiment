@@ -1771,7 +1771,7 @@ pub fn start_panel(ui: &mut Ui, app: &mut FireCraft) {
     painter.text(
         pos2(title_bar.left() + 18.0, title_bar.top() + 22.0),
         Align2::LEFT_CENTER,
-        "Fw",
+        "Fc",
         FontId::proportional(28.0),
         p.banner_text,
     );
@@ -1861,9 +1861,9 @@ pub fn start_panel(ui: &mut Ui, app: &mut FireCraft) {
         p.text,
     );
     for (idx, label) in [
-        "[Fw] Fireworks Document (PNG)",
-        "[Fw] From Template (Web UI)",
-        "[Fw] Animated Banner (3 States)",
+        "[Fc] FireCraft Document (PNG)",
+        "[Fc] From Template (Web UI)",
+        "[Fc] Animated Banner (3 States)",
     ]
     .iter()
     .enumerate()
