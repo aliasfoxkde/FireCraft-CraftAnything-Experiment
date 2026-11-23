@@ -4061,52 +4061,147 @@ impl FireCraft {
     pub fn load_demo_showcase(&mut self) {
         self.push_undo("Load Demo Showcase");
         let (w, h) = (self.doc.page().width, self.doc.page().height);
-
-        // 1. Header hero gradient banner
-        let hero_h = (h * 0.22).clamp(120.0, 210.0);
         let pad = (w * 0.035).clamp(24.0, 64.0);
-        let mut hero = Obj::new(
+
+        // 1. Deep Studio Gradient Backdrop
+        let mut backdrop = Obj::new(
             Shape::Gradient {
-                min: Vec2::new(pad, pad),
-                max: Vec2::new(w - pad, pad + hero_h),
-                from: Color32::from_rgb(38, 52, 88),
-                to: Color32::from_rgb(20, 26, 44),
-                radial: false,
+                min: Vec2::ZERO,
+                max: Vec2::new(w, h),
+                from: Color32::from_rgb(22, 24, 34),
+                to: Color32::from_rgb(14, 15, 22),
+                radial: true,
             },
             None,
+            None,
+        );
+        backdrop.name = "Studio Backdrop".to_string();
+        self.push_object(backdrop);
+
+        // 2. Hero Brand Card
+        let hero_h = (h * 0.40).clamp(200.0, 420.0);
+        let mut hero = Obj::new(
+            Shape::Rect {
+                min: Vec2::new(pad, pad),
+                max: Vec2::new(w - pad, pad + hero_h),
+                corner_radius: 16.0,
+                filled: true,
+            },
+            Some(Color32::from_rgb(30, 34, 48)),
             Some(Color32::from_rgb(232, 163, 61)),
         );
-        hero.name = "Hero Banner Gradient".to_string();
+        hero.name = "Hero Brand Card".to_string();
         hero.width = 2.0;
         hero.effects.push(LiveEffect::DropShadow {
-            distance: 6.0,
+            distance: 8.0,
             angle_deg: 90.0,
-            blur: 10.0,
-            color: Color32::from_black_alpha(130),
+            blur: 14.0,
+            color: Color32::from_black_alpha(150),
             enabled: true,
         });
         self.push_object(hero);
 
-        // 2. Title text inside hero
+        // 3. Stylized Multi-Layer Vector FireCraft Flame Emblem (left of hero)
+        let fcx = pad + (w * 0.12).clamp(90.0, 210.0);
+        let fcy = pad + hero_h * 0.52;
+        let fs = (hero_h * 0.36).clamp(54.0, 140.0);
+        let mut flame_outer = Obj::new(
+            Shape::Path {
+                points: vec![
+                    Vec2::new(fcx, fcy - fs),
+                    Vec2::new(fcx + fs * 0.42, fcy - fs * 0.35),
+                    Vec2::new(fcx + fs * 0.68, fcy + fs * 0.22),
+                    Vec2::new(fcx + fs * 0.46, fcy + fs * 0.78),
+                    Vec2::new(fcx, fcy + fs * 0.92),
+                    Vec2::new(fcx - fs * 0.48, fcy + fs * 0.78),
+                    Vec2::new(fcx - fs * 0.66, fcy + fs * 0.18),
+                    Vec2::new(fcx - fs * 0.32, fcy - fs * 0.42),
+                ],
+                closed: true,
+            },
+            Some(Color32::from_rgb(230, 74, 38)),
+            Some(Color32::from_rgb(255, 190, 90)),
+        );
+        flame_outer.name = "FireCraft Flame Outer".to_string();
+        flame_outer.width = 2.0;
+        flame_outer.effects.push(LiveEffect::Glow {
+            radius: 14.0,
+            color: Color32::from_rgb(255, 130, 40),
+            inner: false,
+            enabled: true,
+        });
+        self.push_object(flame_outer);
+
+        let mut flame_mid = Obj::new(
+            Shape::Path {
+                points: vec![
+                    Vec2::new(fcx + fs * 0.04, fcy - fs * 0.56),
+                    Vec2::new(fcx + fs * 0.36, fcy + fs * 0.10),
+                    Vec2::new(fcx + fs * 0.28, fcy + fs * 0.64),
+                    Vec2::new(fcx, fcy + fs * 0.76),
+                    Vec2::new(fcx - fs * 0.32, fcy + fs * 0.58),
+                    Vec2::new(fcx - fs * 0.24, fcy + fs * 0.02),
+                ],
+                closed: true,
+            },
+            Some(Color32::from_rgb(245, 158, 42)),
+            None,
+        );
+        flame_mid.name = "FireCraft Flame Mid".to_string();
+        self.push_object(flame_mid);
+
+        let mut flame_core = Obj::new(
+            Shape::Path {
+                points: vec![
+                    Vec2::new(fcx, fcy - fs * 0.12),
+                    Vec2::new(fcx + fs * 0.18, fcy + fs * 0.34),
+                    Vec2::new(fcx, fcy + fs * 0.62),
+                    Vec2::new(fcx - fs * 0.18, fcy + fs * 0.34),
+                ],
+                closed: true,
+            },
+            Some(Color32::from_rgb(255, 232, 110)),
+            None,
+        );
+        flame_core.name = "FireCraft Flame Core".to_string();
+        let last_idx = self.push_object(flame_core);
+
+        // 4. Hero Branding Typography & Tagline
+        let text_x = fcx + fs * 1.05;
         let mut title = Obj::new(
             Shape::Text {
-                at: Vec2::new(pad + 36.0, pad + hero_h * 0.58),
-                text: "FireCraft CS6 Studio".to_string(),
-                size: (hero_h * 0.26).clamp(28.0, 48.0),
+                at: Vec2::new(text_x, pad + hero_h * 0.26),
+                text: "FireCraft Studio".to_string(),
+                size: (hero_h * 0.18).clamp(32.0, 64.0),
                 bold: true,
                 italic: false,
                 font_family: "Sans-Serif".to_string(),
             },
-            Some(Color32::from_rgb(248, 202, 42)),
+            Some(Color32::from_rgb(250, 208, 68)),
             None,
         );
-        title.name = "Hero Title".to_string();
+        title.name = "Hero Brand Title".to_string();
         self.push_object(title);
 
-        // 3. Rounded CTA Button with Inner Bevel & Drop Shadow
-        let cta_w = (w * 0.16).clamp(160.0, 280.0);
-        let cta_h = (hero_h * 0.38).clamp(44.0, 68.0);
-        let cta_min = Vec2::new(w - pad - cta_w - 32.0, pad + (hero_h - cta_h) * 0.5);
+        let mut subtitle = Obj::new(
+            Shape::Text {
+                at: Vec2::new(text_x, pad + hero_h * 0.50),
+                text: "Open Source Bitmap & Vector Graphics Editor · CS6 Parity + MCP".to_string(),
+                size: (hero_h * 0.068).clamp(16.0, 26.0),
+                bold: false,
+                italic: false,
+                font_family: "Sans-Serif".to_string(),
+            },
+            Some(Color32::from_rgb(198, 206, 224)),
+            None,
+        );
+        subtitle.name = "Hero Subtitle".to_string();
+        self.push_object(subtitle);
+
+        // 5. Rounded CTA Button with Bevel & Web Slice
+        let cta_w = (w * 0.16).clamp(180.0, 300.0);
+        let cta_h = (hero_h * 0.16).clamp(44.0, 64.0);
+        let cta_min = Vec2::new(text_x, pad + hero_h * 0.68);
         let cta_max = cta_min + Vec2::new(cta_w, cta_h);
         let mut cta = Obj::new(
             Shape::Rect {
@@ -4116,9 +4211,9 @@ impl FireCraft {
                 filled: true,
             },
             Some(Color32::from_rgb(232, 163, 61)),
-            Some(Color32::from_rgb(120, 72, 12)),
+            Some(Color32::from_rgb(255, 224, 150)),
         );
-        cta.name = "CTA Button".to_string();
+        cta.name = "Primary CTA Button".to_string();
         cta.effects.push(LiveEffect::Bevel {
             width: 2.0,
             highlight: Color32::from_white_alpha(180),
@@ -4127,19 +4222,49 @@ impl FireCraft {
         });
         self.push_object(cta);
 
-        // 4. Three responsive Feature Cards + Star badge across the 1920x1080 canvas
-        let cards_top = pad + hero_h + (h * 0.05).clamp(28.0, 56.0);
-        let cards_bottom = (h - pad).max(cards_top + 200.0);
-        let gap = (w * 0.025).clamp(20.0, 48.0);
-        let card_w = ((w - pad * 2.0 - gap * 2.0) / 3.0).max(180.0);
-        for (i, col) in [
-            Color32::from_rgb(46, 134, 193),
-            Color32::from_rgb(39, 174, 96),
-            Color32::from_rgb(142, 68, 173),
-        ]
-        .iter()
-        .enumerate()
-        {
+        let mut cta_lbl = Obj::new(
+            Shape::Text {
+                at: Vec2::new(cta_min.x + 28.0, cta_min.y + cta_h * 0.30),
+                text: "Explore Showcase →".to_string(),
+                size: (cta_h * 0.38).clamp(15.0, 22.0),
+                bold: true,
+                italic: false,
+                font_family: "Sans-Serif".to_string(),
+            },
+            Some(Color32::from_rgb(24, 20, 14)),
+            None,
+        );
+        cta_lbl.name = "CTA Button Label".to_string();
+        self.push_object(cta_lbl);
+
+        // 6. Four Modern Feature Cards across bottom half
+        let cards_top = pad + hero_h + (h * 0.04).clamp(24.0, 48.0);
+        let cards_bottom = (h - pad).max(cards_top + 220.0);
+        let gap = (w * 0.02).clamp(16.0, 36.0);
+        let card_w = ((w - pad * 2.0 - gap * 3.0) / 4.0).max(140.0);
+        let features = [
+            (
+                "Vector + Bitmap",
+                "Boolean paths, dynamic\nAuto Shapes & raster tools",
+                Color32::from_rgb(66, 153, 225),
+            ),
+            (
+                "Live CS6 Filters",
+                "Drop Shadow, Glow, Bevel\n& 21 dockable panels",
+                Color32::from_rgb(237, 137, 54),
+            ),
+            (
+                "Web & Slices",
+                "PNG, WebP, SVG, HTML5\n2-Up & 4-Up optimization",
+                Color32::from_rgb(72, 187, 120),
+            ),
+            (
+                "MCP & Headless CLI",
+                "JSON-RPC 2.0 server,\n60+ commands & scripts",
+                Color32::from_rgb(159, 122, 234),
+            ),
+        ];
+        for (i, (heading, body, accent_col)) in features.iter().enumerate() {
             let x0 = pad + i as f32 * (card_w + gap);
             let mut card = Obj::new(
                 Shape::Rect {
@@ -4148,45 +4273,59 @@ impl FireCraft {
                     corner_radius: 12.0,
                     filled: true,
                 },
-                Some(*col),
-                Some(Color32::WHITE),
+                Some(Color32::from_rgb(28, 32, 44)),
+                Some(*accent_col),
             );
-            card.name = format!("Feature Card {}", i + 1);
+            card.name = format!("Feature Card: {heading}");
             card.width = 1.5;
             card.effects.push(LiveEffect::DropShadow {
                 distance: 6.0,
                 angle_deg: 45.0,
-                blur: 8.0,
-                color: Color32::from_black_alpha(120),
+                blur: 10.0,
+                color: Color32::from_black_alpha(140),
                 enabled: true,
             });
             self.push_object(card);
+
+            let mut h_txt = Obj::new(
+                Shape::Text {
+                    at: Vec2::new(x0 + 24.0, cards_top + 36.0),
+                    text: (*heading).to_string(),
+                    size: (card_w * 0.068).clamp(18.0, 28.0),
+                    bold: true,
+                    italic: false,
+                    font_family: "Sans-Serif".to_string(),
+                },
+                Some(*accent_col),
+                None,
+            );
+            h_txt.name = format!("{heading} Title");
+            self.push_object(h_txt);
+
+            let mut b_txt = Obj::new(
+                Shape::Text {
+                    at: Vec2::new(x0 + 24.0, cards_top + 96.0),
+                    text: (*body).to_string(),
+                    size: (card_w * 0.048).clamp(14.0, 20.0),
+                    bold: false,
+                    italic: false,
+                    font_family: "Sans-Serif".to_string(),
+                },
+                Some(Color32::from_rgb(190, 198, 214)),
+                None,
+            );
+            b_txt.name = format!("{heading} Body");
+            self.push_object(b_txt);
         }
 
-        let mut star = Obj::new(
-            Shape::Polygon {
-                center: Vec2::new(
-                    pad + card_w * 0.5,
-                    cards_top + (cards_bottom - cards_top) * 0.35,
-                ),
-                radius: (card_w * 0.18).clamp(42.0, 84.0),
-                sides: 5,
-                star_inner: 0.45,
-                angle_rad: 0.0,
-            },
-            Some(Color32::from_rgb(255, 215, 0)),
-            Some(Color32::WHITE),
-        );
-        star.name = "Featured Star Badge".to_string();
-        let last_idx = self.push_object(star);
-
-        // 5. Web Slice overlay on the CTA button
+        // 7. Interactive Web Slice on CTA
         let slice = Obj::new(
             Shape::Slice {
                 min: cta_min,
                 max: cta_max,
-                url: "https://github.com/aliasfoxkde/FireCraft".to_string(),
-                alt: "Launch FireCraft".to_string(),
+                url: "https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment"
+                    .to_string(),
+                alt: "Launch FireCraft Studio".to_string(),
                 target: "_blank".to_string(),
                 format: "PNG32".to_string(),
                 is_hotspot: false,
@@ -4198,9 +4337,7 @@ impl FireCraft {
         self.selected_layer = 0;
         self.select_single(Some(last_idx));
         self.fit_in_window();
-        self.status =
-            "Loaded Fireworks CS6 1920×1080 @ 144ppi Vector + Live Filters + Web Slice Showcase"
-                .to_string();
+        self.status = "Loaded FireCraft Studio 1920×1080 Brand & Feature Showcase".to_string();
     }
 
     // ---- File Browser & I/O ------------------------------------------------
