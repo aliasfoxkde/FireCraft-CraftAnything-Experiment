@@ -141,7 +141,14 @@ pub struct FireCraft {
     pub stroke: Color32,
     pub swatches: Vec<Color32>,
     pub selected: Option<usize>,
+    pub selected_set: Vec<usize>,
     pub selected_layer: usize,
+    pub context_menu_pos: Option<egui::Pos2>,
+    pub show_command_palette: bool,
+    pub palette_filter: String,
+    pub show_mcp_dialog: bool,
+    pub mcp_input: String,
+    pub mcp_output: String,
     pub drag: Option<Drag>,
     pub undo: Vec<Snapshot>,
     pub redo: Vec<Snapshot>,
@@ -203,7 +210,8 @@ impl FireCraft {
     pub fn new(screenshot_path: Option<String>) -> Self {
         let theme_mode = ThemeMode::Dark;
         let palette = theme::resolve(theme_mode);
-        let initial_doc = Document::new(constants::DEFAULT_WIDTH, constants::DEFAULT_HEIGHT);
+        let mut initial_doc = Document::new(constants::DEFAULT_WIDTH, constants::DEFAULT_HEIGHT);
+        initial_doc.zoom = 0.50; // Fit 1920x1080 comfortably in the initial viewport
         let mut app = Self {
             ctx: Context::default(),
             doc: initial_doc.clone(),
@@ -217,7 +225,14 @@ impl FireCraft {
             stroke: Color32::from_rgb(24, 24, 28),
             swatches: colors::swatch_grid(),
             selected: None,
+            selected_set: Vec::new(),
             selected_layer: 0,
+            context_menu_pos: None,
+            show_command_palette: false,
+            palette_filter: String::new(),
+            show_mcp_dialog: false,
+            mcp_input: r#"{"jsonrpc":"2.0","id":1,"method":"tools/list"}"#.to_string(),
+            mcp_output: String::new(),
             drag: None,
             undo: Vec::new(),
             redo: Vec::new(),
@@ -243,7 +258,7 @@ impl FireCraft {
             show_slices: true,
             onion_skin: false,
             align_to_canvas: true,
-            canvas_size: Vec2::new(800.0, 600.0),
+            canvas_size: Vec2::new(980.0, 660.0),
             cursor_doc_pos: None,
             brush_size: constants::BRUSH_SIZE_DEFAULT,
             grid_size: 20.0,
@@ -292,6 +307,29 @@ impl FireCraft {
             .get(self.selected_layer)
             .and_then(|l| l.objects.get(idx))
             .cloned()
+    }
+
+    pub fn is_selected(&self, idx: usize) -> bool {
+        self.selected == Some(idx) || self.selected_set.contains(&idx)
+    }
+
+    pub fn select_single(&mut self, idx: Option<usize>) {
+        self.selected = idx;
+        self.selected_set = idx.into_iter().collect();
+    }
+
+    pub fn toggle_select(&mut self, idx: usize) {
+        if let Some(pos) = self.selected_set.iter().position(|&i| i == idx) {
+            self.selected_set.remove(pos);
+        } else {
+            self.selected_set.push(idx);
+        }
+        self.selected = self.selected_set.last().copied();
+    }
+
+    pub fn clear_selection(&mut self) {
+        self.selected = None;
+        self.selected_set.clear();
     }
 
     pub fn push_object(&mut self, obj: Obj) -> usize {
@@ -374,6 +412,12 @@ impl FireCraft {
                     Some(idx.min(count - 1))
                 }
             });
+            self.selected_set.retain(|&i| i < count);
+            if self.selected_set.is_empty()
+                && let Some(s) = self.selected
+            {
+                self.selected_set.push(s);
+            }
             self.status = format!("Undo: {}", snap.label);
         }
     }
@@ -397,6 +441,12 @@ impl FireCraft {
                     Some(idx.min(count - 1))
                 }
             });
+            self.selected_set.retain(|&i| i < count);
+            if self.selected_set.is_empty()
+                && let Some(s) = self.selected
+            {
+                self.selected_set.push(s);
+            }
             self.status = format!("Redo: {}", snap.label);
         }
     }
@@ -414,35 +464,136 @@ impl FireCraft {
     }
 
     pub fn delete_selected(&mut self) {
-        if let Some(index) = self.selected {
-            self.push_undo("Delete");
-            let layer = self.selected_layer;
-            let page = self.doc.page_mut();
-            if layer < page.layers.len() && index < page.layers[layer].objects.len() {
-                page.layers[layer].objects.remove(index);
-                page.sync_state();
-            }
-            self.selected = None;
-            self.textures.clear();
-            self.status = "Deleted object".to_string();
+        let mut indices = self.selected_set.clone();
+        if let Some(s) = self.selected
+            && !indices.contains(&s)
+        {
+            indices.push(s);
         }
+        if indices.is_empty() {
+            return;
+        }
+        self.push_undo("Delete");
+        indices.sort_unstable();
+        indices.dedup();
+        let layer = self.selected_layer;
+        let page = self.doc.page_mut();
+        if layer < page.layers.len() {
+            for &idx in indices.iter().rev() {
+                if idx < page.layers[layer].objects.len() {
+                    page.layers[layer].objects.remove(idx);
+                }
+            }
+            page.sync_state();
+        }
+        self.clear_selection();
+        self.textures.clear();
+        self.status = format!("Deleted {} object(s)", indices.len());
     }
 
     pub fn duplicate_selected(&mut self) {
-        if let Some(index) = self.selected {
-            self.push_undo("Duplicate");
-            let layer = self.selected_layer;
-            let page = self.doc.page_mut();
-            if layer < page.layers.len() && index < page.layers[layer].objects.len() {
-                let mut copy = page.layers[layer].objects[index].clone();
-                copy.translate(Vec2::new(14.0, 14.0));
-                page.layers[layer].objects.push(copy);
-                let new_idx = page.layers[layer].objects.len() - 1;
-                page.sync_state();
-                self.selected = Some(new_idx);
-                self.status = "Duplicated object".to_string();
+        let mut indices = self.selected_set.clone();
+        if let Some(s) = self.selected
+            && !indices.contains(&s)
+        {
+            indices.push(s);
+        }
+        if indices.is_empty() {
+            return;
+        }
+        self.push_undo("Duplicate");
+        indices.sort_unstable();
+        indices.dedup();
+        let layer = self.selected_layer;
+        let page = self.doc.page_mut();
+        let mut new_set = Vec::new();
+        if layer < page.layers.len() {
+            for &idx in &indices {
+                if idx < page.layers[layer].objects.len() {
+                    let mut copy = page.layers[layer].objects[idx].clone();
+                    copy.translate(Vec2::new(14.0, 14.0));
+                    page.layers[layer].objects.push(copy);
+                    new_set.push(page.layers[layer].objects.len() - 1);
+                }
+            }
+            page.sync_state();
+        }
+        self.selected = new_set.last().copied();
+        self.selected_set = new_set;
+        self.status = format!("Duplicated {} object(s)", indices.len());
+    }
+
+    pub fn group_selected(&mut self) {
+        let mut indices = self.selected_set.clone();
+        if let Some(s) = self.selected
+            && !indices.contains(&s)
+        {
+            indices.push(s);
+        }
+        indices.sort_unstable();
+        indices.dedup();
+        if indices.len() < 2 {
+            self.status = "Select 2 or more objects (Shift-click or Marquee) to Group".to_string();
+            return;
+        }
+        self.push_undo("Group");
+        let layer = self.selected_layer;
+        let page = self.doc.page_mut();
+        let Some(objs) = page.layers.get_mut(layer).map(|l| &mut l.objects) else {
+            return;
+        };
+        let mut children = Vec::new();
+        for &idx in &indices {
+            if let Some(o) = objs.get(idx) {
+                children.push(o.clone());
             }
         }
+        for &idx in indices.iter().rev() {
+            if idx < objs.len() {
+                objs.remove(idx);
+            }
+        }
+        let grp = Obj::new(Shape::Group { children }, None, None);
+        objs.push(grp);
+        let new_idx = objs.len() - 1;
+        page.sync_state();
+        self.select_single(Some(new_idx));
+        self.status = format!("Grouped {} objects", indices.len());
+    }
+
+    pub fn ungroup_selected(&mut self) {
+        let Some(index) = self.selected else {
+            return;
+        };
+        let layer = self.selected_layer;
+        let Some(children) = self
+            .doc
+            .page()
+            .layers
+            .get(layer)
+            .and_then(|l| l.objects.get(index))
+            .and_then(|o| match &o.kind {
+                Shape::Group { children } => Some(children.clone()),
+                _ => None,
+            })
+        else {
+            self.status = "Selected object is not a Group".to_string();
+            return;
+        };
+        self.push_undo("Ungroup");
+        let page = self.doc.page_mut();
+        let objs = &mut page.layers[layer].objects;
+        objs.remove(index);
+        let mut new_set = Vec::new();
+        let count = children.len();
+        for ch in children {
+            objs.push(ch);
+            new_set.push(objs.len() - 1);
+        }
+        page.sync_state();
+        self.selected = new_set.last().copied();
+        self.selected_set = new_set;
+        self.status = format!("Ungrouped into {count} objects");
     }
 
     pub fn clone_selected(&mut self) {
@@ -462,19 +613,28 @@ impl FireCraft {
     }
 
     pub fn nudge_selected(&mut self, delta: Vec2) {
-        if let Some(index) = self.selected {
-            self.push_undo("Nudge");
-            let layer = self.selected_layer;
-            let page = self.doc.page_mut();
+        if self.selected.is_none() && self.selected_set.is_empty() {
+            return;
+        }
+        self.push_undo("Nudge");
+        let mut indices = self.selected_set.clone();
+        if let Some(s) = self.selected
+            && !indices.contains(&s)
+        {
+            indices.push(s);
+        }
+        let layer = self.selected_layer;
+        let page = self.doc.page_mut();
+        for idx in indices {
             if let Some(obj) = page
                 .layers
                 .get_mut(layer)
-                .and_then(|l| l.objects.get_mut(index))
+                .and_then(|l| l.objects.get_mut(idx))
             {
                 obj.translate(delta);
-                page.sync_state();
             }
         }
+        page.sync_state();
     }
 
     pub fn bitmap_texture(
@@ -686,8 +846,8 @@ impl FireCraft {
         raw_doc_pos: Vec2,
         _screen: Vec2,
         alt: bool,
-        _ctrl: bool,
-        _shift: bool,
+        ctrl: bool,
+        shift: bool,
     ) {
         let doc_pos = self.snap_pos(raw_doc_pos);
         match self.tool {
@@ -727,8 +887,18 @@ impl FireCraft {
                 let hit = canvas::hit_test(self, raw_doc_pos);
                 match hit {
                     Some((layer, index)) => {
-                        self.selected_layer = layer;
-                        self.selected = Some(index);
+                        if shift || ctrl {
+                            if self.selected_layer != layer {
+                                self.selected_layer = layer;
+                                self.select_single(Some(index));
+                            } else {
+                                self.toggle_select(index);
+                            }
+                            self.status = format!("{} object(s) selected", self.selected_set.len());
+                        } else if !self.is_selected(index) || self.selected_layer != layer {
+                            self.selected_layer = layer;
+                            self.select_single(Some(index));
+                        }
                         if alt {
                             self.duplicate_selected();
                         } else {
@@ -743,7 +913,9 @@ impl FireCraft {
                         });
                     }
                     None => {
-                        self.selected = None;
+                        if !shift && !ctrl {
+                            self.clear_selection();
+                        }
                         self.drag = Some(Drag {
                             kind: DragKind::Marquee,
                             start: doc_pos,
@@ -1040,18 +1212,24 @@ impl FireCraft {
             DragKind::Move => {
                 let delta = doc_pos - drag.current;
                 drag.current = doc_pos;
-                if let Some(index) = self.selected {
-                    let layer = self.selected_layer;
-                    let page = self.doc.page_mut();
+                let mut indices = self.selected_set.clone();
+                if let Some(s) = self.selected
+                    && !indices.contains(&s)
+                {
+                    indices.push(s);
+                }
+                let layer = self.selected_layer;
+                let page = self.doc.page_mut();
+                for idx in indices {
                     if let Some(obj) = page
                         .layers
                         .get_mut(layer)
-                        .and_then(|l| l.objects.get_mut(index))
+                        .and_then(|l| l.objects.get_mut(idx))
                     {
                         obj.translate(delta);
-                        page.sync_state();
                     }
                 }
+                page.sync_state();
             }
             DragKind::Resize(handle_idx) => {
                 drag.current = doc_pos;
@@ -1119,24 +1297,37 @@ impl FireCraft {
                     self.crop_canvas_to_rect(lo, hi);
                     return;
                 }
-                let mut picked = None;
+                let mut picked_set = if shift {
+                    self.selected_set.clone()
+                } else {
+                    Vec::new()
+                };
+                let is_box = (hi.x - lo.x) > 4.0 || (hi.y - lo.y) > 4.0;
                 let page = self.doc.page();
                 if let Some(layer) = page.layers.get(self.selected_layer) {
-                    for (index, obj) in layer.objects.iter().enumerate().rev() {
+                    for (index, obj) in layer.objects.iter().enumerate() {
+                        if !obj.visible || obj.locked {
+                            continue;
+                        }
                         if let Some((a, b)) = obj.bounds()
                             && b.x >= lo.x
                             && a.x <= hi.x
                             && b.y >= lo.y
                             && a.y <= hi.y
                         {
-                            picked = Some(index);
-                            break;
+                            if !picked_set.contains(&index) {
+                                picked_set.push(index);
+                            }
+                            if !is_box {
+                                break;
+                            }
                         }
                     }
                 }
-                self.selected = picked;
-                self.status = if picked.is_some() {
-                    "Object selected".to_string()
+                self.selected = picked_set.last().copied();
+                self.selected_set = picked_set;
+                self.status = if !self.selected_set.is_empty() {
+                    format!("Selected {} object(s)", self.selected_set.len())
                 } else {
                     "Nothing selected".to_string()
                 };
@@ -1540,7 +1731,7 @@ impl FireCraft {
             Some(self.stroke),
         );
         let idx = self.push_object(inst);
-        self.selected = Some(idx);
+        self.select_single(Some(idx));
         self.status = format!("Converted to symbol: {name}");
     }
 
@@ -1582,7 +1773,7 @@ impl FireCraft {
             Some(self.stroke),
         );
         let idx = self.push_object(inst);
-        self.selected = Some(idx);
+        self.select_single(Some(idx));
         self.status = format!("Placed Symbol #{} instance", symbol_id + 1);
     }
 
@@ -1733,7 +1924,7 @@ impl FireCraft {
         obj.name = kind.label().to_string();
         obj.width = 2.0;
         let idx = self.push_object(obj);
-        self.selected = Some(idx);
+        self.select_single(Some(idx));
         self.status = format!("Inserted Auto Shape: {}", kind.label());
     }
 
@@ -1761,7 +1952,7 @@ impl FireCraft {
             None,
         );
         let idx = self.push_object(obj);
-        self.selected = Some(idx);
+        self.select_single(Some(idx));
         self.status = format!("Inserted special character '{glyph}'");
     }
 
@@ -1792,7 +1983,7 @@ impl FireCraft {
             None,
         );
         let idx = self.push_object(obj);
-        self.selected = Some(idx);
+        self.select_single(Some(idx));
         self.show_slices = true;
         self.status = if is_hotspot {
             "Web Hotspot created on Web Layer".to_string()
@@ -2154,7 +2345,7 @@ impl FireCraft {
         frame.name = "Picture Frame".to_string();
         frame.width = 8.0;
         let idx = self.push_object(frame);
-        self.selected = Some(idx);
+        self.select_single(Some(idx));
         self.status = "Added Picture Frame".to_string();
     }
 
@@ -2180,7 +2371,7 @@ impl FireCraft {
             enabled: true,
         });
         let idx = self.push_object(card);
-        self.selected = Some(idx);
+        self.select_single(Some(idx));
         self.status = "Added UI Card with Drop Shadow".to_string();
     }
 
@@ -2206,10 +2397,12 @@ impl FireCraft {
         let (w, h) = (self.doc.page().width, self.doc.page().height);
 
         // 1. Header hero gradient banner
+        let hero_h = (h * 0.22).clamp(120.0, 210.0);
+        let pad = (w * 0.035).clamp(24.0, 64.0);
         let mut hero = Obj::new(
             Shape::Gradient {
-                min: Vec2::new(30.0, 28.0),
-                max: Vec2::new(w - 30.0, 150.0),
+                min: Vec2::new(pad, pad),
+                max: Vec2::new(w - pad, pad + hero_h),
                 from: Color32::from_rgb(38, 52, 88),
                 to: Color32::from_rgb(20, 26, 44),
                 radial: false,
@@ -2220,9 +2413,9 @@ impl FireCraft {
         hero.name = "Hero Banner Gradient".to_string();
         hero.width = 2.0;
         hero.effects.push(LiveEffect::DropShadow {
-            distance: 5.0,
+            distance: 6.0,
             angle_deg: 90.0,
-            blur: 8.0,
+            blur: 10.0,
             color: Color32::from_black_alpha(130),
             enabled: true,
         });
@@ -2231,9 +2424,9 @@ impl FireCraft {
         // 2. Title text inside hero
         let mut title = Obj::new(
             Shape::Text {
-                at: Vec2::new(56.0, 96.0),
+                at: Vec2::new(pad + 36.0, pad + hero_h * 0.58),
                 text: "FireCraft CS6 Studio".to_string(),
-                size: 32.0,
+                size: (hero_h * 0.26).clamp(28.0, 48.0),
                 bold: true,
                 italic: false,
                 font_family: "Sans-Serif".to_string(),
@@ -2245,10 +2438,14 @@ impl FireCraft {
         self.push_object(title);
 
         // 3. Rounded CTA Button with Inner Bevel & Drop Shadow
+        let cta_w = (w * 0.16).clamp(160.0, 280.0);
+        let cta_h = (hero_h * 0.38).clamp(44.0, 68.0);
+        let cta_min = Vec2::new(w - pad - cta_w - 32.0, pad + (hero_h - cta_h) * 0.5);
+        let cta_max = cta_min + Vec2::new(cta_w, cta_h);
         let mut cta = Obj::new(
             Shape::Rect {
-                min: Vec2::new(w - 220.0, 66.0),
-                max: Vec2::new(w - 56.0, 114.0),
+                min: cta_min,
+                max: cta_max,
                 corner_radius: 10.0,
                 filled: true,
             },
@@ -2264,7 +2461,11 @@ impl FireCraft {
         });
         self.push_object(cta);
 
-        // 4. Feature cards + Star badge
+        // 4. Three responsive Feature Cards + Star badge across the 1920x1080 canvas
+        let cards_top = pad + hero_h + (h * 0.05).clamp(28.0, 56.0);
+        let cards_bottom = (h - pad).max(cards_top + 200.0);
+        let gap = (w * 0.025).clamp(20.0, 48.0);
+        let card_w = ((w - pad * 2.0 - gap * 2.0) / 3.0).max(180.0);
         for (i, col) in [
             Color32::from_rgb(46, 134, 193),
             Color32::from_rgb(39, 174, 96),
@@ -2273,11 +2474,11 @@ impl FireCraft {
         .iter()
         .enumerate()
         {
-            let x0 = 36.0 + i as f32 * 248.0;
+            let x0 = pad + i as f32 * (card_w + gap);
             let mut card = Obj::new(
                 Shape::Rect {
-                    min: Vec2::new(x0, 185.0),
-                    max: Vec2::new((x0 + 225.0).min(w - 30.0), (h - 70.0).max(340.0)),
+                    min: Vec2::new(x0, cards_top),
+                    max: Vec2::new(x0 + card_w, cards_bottom),
                     corner_radius: 12.0,
                     filled: true,
                 },
@@ -2287,9 +2488,9 @@ impl FireCraft {
             card.name = format!("Feature Card {}", i + 1);
             card.width = 1.5;
             card.effects.push(LiveEffect::DropShadow {
-                distance: 5.0,
+                distance: 6.0,
                 angle_deg: 45.0,
-                blur: 6.0,
+                blur: 8.0,
                 color: Color32::from_black_alpha(120),
                 enabled: true,
             });
@@ -2298,8 +2499,11 @@ impl FireCraft {
 
         let mut star = Obj::new(
             Shape::Polygon {
-                center: Vec2::new(148.0, 290.0),
-                radius: 46.0,
+                center: Vec2::new(
+                    pad + card_w * 0.5,
+                    cards_top + (cards_bottom - cards_top) * 0.35,
+                ),
+                radius: (card_w * 0.18).clamp(42.0, 84.0),
                 sides: 5,
                 star_inner: 0.45,
                 angle_rad: 0.0,
@@ -2313,8 +2517,8 @@ impl FireCraft {
         // 5. Web Slice overlay on the CTA button
         let slice = Obj::new(
             Shape::Slice {
-                min: Vec2::new(w - 220.0, 66.0),
-                max: Vec2::new(w - 56.0, 114.0),
+                min: cta_min,
+                max: cta_max,
                 url: "https://github.com/aliasfoxkde/FireCraft".to_string(),
                 alt: "Launch FireCraft".to_string(),
                 target: "_blank".to_string(),
@@ -2326,8 +2530,11 @@ impl FireCraft {
         );
         self.push_object(slice);
         self.selected_layer = 0;
-        self.selected = Some(last_idx);
-        self.status = "Loaded Fireworks CS6 Vector + Live Filters + Web Slice Showcase".to_string();
+        self.select_single(Some(last_idx));
+        self.fit_in_window();
+        self.status =
+            "Loaded Fireworks CS6 1920×1080 @ 144ppi Vector + Live Filters + Web Slice Showcase"
+                .to_string();
     }
 
     // ---- File Browser & I/O ------------------------------------------------
@@ -2494,7 +2701,7 @@ impl FireCraft {
         obj.translate(Vec2::new(12.0, 12.0));
         self.push_undo("Paste");
         let idx = self.push_object(obj);
-        self.selected = Some(idx);
+        self.select_single(Some(idx));
         self.status = "Pasted".to_string();
     }
 
@@ -2507,6 +2714,7 @@ impl FireCraft {
             .get(layer)
             .map(|l| l.objects.len())
             .unwrap_or(0);
+        self.selected_set = (0..count).collect();
         self.selected = if count > 0 { Some(count - 1) } else { None };
         self.status = format!("Selected {count} object(s)");
     }
@@ -2537,6 +2745,7 @@ impl FireCraft {
             None => 0,
         };
         self.selected = Some(next);
+        self.selected_set = vec![next];
     }
 
     pub fn select_similar(&mut self) {
@@ -2598,6 +2807,18 @@ impl FireCraft {
             Shape::Text { at, .. }
             | Shape::Bitmap { at, .. }
             | Shape::SymbolInstance { at, .. } => apply(at),
+            Shape::Group { children } => {
+                for ch in children.iter_mut() {
+                    if let Some((clo, chi)) = ch.bounds() {
+                        let new_lo = Vec2::new(
+                            if horizontal { axis - chi.x } else { clo.x },
+                            if horizontal { clo.y } else { axis - chi.y },
+                        );
+                        let new_hi = new_lo + (chi - clo);
+                        ch.set_bounds(new_lo, new_hi);
+                    }
+                }
+            }
         });
         self.textures.clear();
         self.status = "Flipped".to_string();
@@ -2639,6 +2860,17 @@ impl FireCraft {
             Shape::Text { at, .. }
             | Shape::Bitmap { at, .. }
             | Shape::SymbolInstance { at, .. } => rotate(at),
+            Shape::Group { children } => {
+                for ch in children.iter_mut() {
+                    if let Some((clo, chi)) = ch.bounds() {
+                        let mut a = clo;
+                        let mut b = chi;
+                        rotate(&mut a);
+                        rotate(&mut b);
+                        ch.set_bounds(a.min(b), a.max(b));
+                    }
+                }
+            }
         });
         self.textures.clear();
         self.status = "Rotated 90°".to_string();
@@ -2777,5 +3009,27 @@ mod tests {
         app.switch_document_tab(0);
         assert_eq!(app.active_doc, 0);
         assert!(app.doc.total_objects_on_page() >= 6);
+    }
+
+    #[test]
+    fn multi_selection_and_group_ungroup() {
+        let mut app = FireCraft::new(None);
+        app.insert_auto_shape(AutoShapeKind::RoundedRect);
+        app.insert_auto_shape(AutoShapeKind::Star);
+        assert_eq!(app.doc.total_objects_on_page(), 2);
+
+        app.select_all();
+        assert_eq!(app.selected_set.len(), 2);
+
+        app.group_selected();
+        assert_eq!(app.doc.total_objects_on_page(), 1);
+        assert!(matches!(
+            app.selected_object().unwrap().kind,
+            Shape::Group { .. }
+        ));
+
+        app.ungroup_selected();
+        assert_eq!(app.doc.total_objects_on_page(), 2);
+        assert_eq!(app.selected_set.len(), 2);
     }
 }

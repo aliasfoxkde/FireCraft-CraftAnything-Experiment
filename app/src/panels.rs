@@ -25,12 +25,13 @@ pub fn panel(
     tabs: &[&str],
     tab_index: &mut usize,
     palette: crate::theme::Palette,
+    body_height: Option<f32>,
     body: impl FnOnce(&mut Ui),
 ) {
     Frame::new()
         .fill(palette.panel)
         .stroke(Stroke::new(1.0, palette.stroke))
-        .inner_margin(egui::Margin::same(4))
+        .inner_margin(egui::Margin::same(3))
         .show(ui, |ui| {
             let (bar, _) =
                 ui.allocate_exact_size(Vec2::new(ui.available_width(), 20.0), Sense::hover());
@@ -45,16 +46,16 @@ pub fn panel(
                     palette.text,
                 );
             } else {
-                let mut x = bar.left() + 3.0;
+                let mut x = bar.left() + 2.0;
                 for (i, t) in tabs.iter().enumerate() {
                     let w = (10.0 + t.len() as f32 * 5.8).min(98.0);
-                    let r = Rect::from_min_size(pos2(x, bar.top() + 2.0), Vec2::new(w, 16.0));
+                    let r = Rect::from_min_size(pos2(x, bar.top() + 1.0), Vec2::new(w, 18.0));
                     if i == *tab_index {
-                        painter.rect_filled(r, 2.0, palette.panel);
+                        painter.rect_filled(r, 0.0, palette.panel);
                         painter.rect_stroke(
                             r,
-                            2.0,
-                            Stroke::new(1.0, palette.accent),
+                            0.0,
+                            Stroke::new(1.0, palette.selection),
                             egui::StrokeKind::Middle,
                         );
                     }
@@ -77,11 +78,28 @@ pub fn panel(
                     if response.clicked() {
                         *tab_index = i;
                     }
-                    x += w + 2.0;
+                    x += w + 1.0;
                 }
             }
             ui.add_space(3.0);
-            body(ui);
+            if let Some(h) = body_height {
+                ui.allocate_ui_with_layout(
+                    Vec2::new(ui.available_width(), h),
+                    egui::Layout::top_down(egui::Align::Min),
+                    |ui| {
+                        ui.set_min_height(h);
+                        ui.set_max_height(h);
+                        egui::ScrollArea::vertical()
+                            .id_salt(("panel_scroll", title, *tab_index))
+                            .auto_shrink([false, false])
+                            .show(ui, |ui| {
+                                body(ui);
+                            });
+                    },
+                );
+            } else {
+                body(ui);
+            }
         });
 }
 
@@ -1048,14 +1066,19 @@ pub fn pages_panel(ui: &mut Ui, app: &mut FireCraft) {
                                 {
                                     o.visible = o_vis;
                                 }
-                                let is_sel = app.selected_layer == li && app.selected == Some(oi);
+                                let is_sel = app.selected_layer == li && app.is_selected(oi);
                                 let obj_label = format!("  • {} [{}]", obj.name, obj.type_label());
-                                if ui
-                                    .selectable_label(is_sel, RichText::new(obj_label).small())
-                                    .clicked()
-                                {
+                                let resp =
+                                    ui.selectable_label(is_sel, RichText::new(obj_label).small());
+                                if resp.clicked() {
+                                    let shift_held =
+                                        ui.input(|i| i.modifiers.shift || i.modifiers.ctrl);
                                     app.selected_layer = li;
-                                    app.selected = Some(oi);
+                                    if shift_held {
+                                        app.toggle_select(oi);
+                                    } else {
+                                        app.select_single(Some(oi));
+                                    }
                                 }
                             });
                         }
@@ -1288,6 +1311,47 @@ pub fn library_panel(ui: &mut Ui, app: &mut FireCraft) {
 /// When nothing is selected: Document Canvas Size, Background Color, Resolution, Fit Canvas.
 pub fn properties_panel(ui: &mut Ui, app: &mut FireCraft) {
     let p = app.palette;
+    if app.selected_set.len() >= 2 {
+        ui.horizontal(|ui| {
+            ui.vertical(|ui| {
+                ui.label(
+                    RichText::new(format!("{} Objects Selected", app.selected_set.len()))
+                        .strong()
+                        .color(p.selection),
+                );
+                ui.horizontal(|ui| {
+                    if ui.small_button("Group (Ctrl+G)").clicked() {
+                        app.group_selected();
+                    }
+                    if ui.small_button("Duplicate").clicked() {
+                        app.duplicate_selected();
+                    }
+                    if ui.small_button("Delete").clicked() {
+                        app.delete_selected();
+                    }
+                });
+            });
+            ui.separator();
+            ui.vertical(|ui| {
+                ui.label(RichText::new("Align Selection:").small().color(p.text_dim));
+                ui.horizontal(|ui| {
+                    for (mode, lbl) in [
+                        ("left", "Left"),
+                        ("center_x", "Center H"),
+                        ("right", "Right"),
+                        ("top", "Top"),
+                        ("center_y", "Center V"),
+                        ("bottom", "Bottom"),
+                    ] {
+                        if ui.small_button(lbl).clicked() {
+                            app.align_selected_to_canvas(mode);
+                        }
+                    }
+                });
+            });
+        });
+        return;
+    }
     let obj: Option<Obj> = app.selected_object();
     match obj {
         Some(obj) => {
@@ -1504,6 +1568,16 @@ pub fn properties_panel(ui: &mut Ui, app: &mut FireCraft) {
                                 app.set_selected_gradient_radial(r);
                             }
                         }
+                        Shape::Group { children } => {
+                            ui.label(
+                                RichText::new(format!("Group ({} members)", children.len()))
+                                    .small()
+                                    .color(p.text_dim),
+                            );
+                            if ui.small_button("Ungroup (Ctrl+Shift+G)").clicked() {
+                                app.ungroup_selected();
+                            }
+                        }
                         _ => {
                             ui.label(
                                 RichText::new(format!(
@@ -1616,6 +1690,37 @@ pub fn properties_panel(ui: &mut Ui, app: &mut FireCraft) {
                         if ui.button("Fit Canvas").clicked() {
                             app.fit_canvas_to_contents();
                         }
+                        ui.label(RichText::new("Size:").small().color(p.text_dim));
+                        egui::ComboBox::from_id_salt("inspector_res_preset_combo")
+                            .width(150.0)
+                            .selected_text(format!(
+                                "{:.0}×{:.0} px",
+                                app.doc.page().width,
+                                app.doc.page().height
+                            ))
+                            .show_ui(ui, |ui| {
+                                for &(label, w, h) in constants::RESOLUTION_PRESETS {
+                                    let active = (app.doc.page().width - w).abs() < 0.5
+                                        && (app.doc.page().height - h).abs() < 0.5;
+                                    if ui.selectable_label(active, label).clicked() {
+                                        app.resize_canvas(w, h);
+                                    }
+                                }
+                            });
+                        ui.label(RichText::new("DPI:").small().color(p.text_dim));
+                        egui::ComboBox::from_id_salt("inspector_dpi_preset_combo")
+                            .width(78.0)
+                            .selected_text(format!("{} ppi", app.doc.dpi))
+                            .show_ui(ui, |ui| {
+                                for &dpi in constants::DPI_PRESETS {
+                                    if ui
+                                        .selectable_label(app.doc.dpi == dpi, format!("{dpi} ppi"))
+                                        .clicked()
+                                    {
+                                        app.doc.dpi = dpi;
+                                    }
+                                }
+                            });
                     });
                     ui.horizontal(|ui| {
                         ui.label(

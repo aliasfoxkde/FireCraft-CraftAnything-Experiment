@@ -21,21 +21,23 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     if app.logo_tex.is_none() {
         app.logo_tex = FireCraft::load_logo(&ctx);
     }
-    ctx.set_visuals(theme::visuals(&app.palette, app.palette.is_dark()));
+    theme::apply_cs6_style(&ctx, &app.palette, app.palette.is_dark());
 
     shortcuts(ui, app);
 
-    // 1. Top Menu Bar (10 CS6 menus + Bridge/Hand/Zoom/Workspace mode selector)
+    // 1. Top Menu Bar (10 CS6 menus + Bridge/Hand/Zoom/Resolution/Theme/Workspace mode selector)
     egui::Panel::top("menu")
+        .exact_size(26.0)
         .frame(
             egui::Frame::new()
                 .fill(app.palette.panel)
-                .inner_margin(egui::Margin::symmetric(6, 3)),
+                .inner_margin(egui::Margin::symmetric(6, 2)),
         )
         .show(ui, |ui| menus::menu_bar(ui, app));
 
-    // 2. CS6 Main Toolbar (New, Open, Save, Import, Export, Cut, Copy, Paste, Undo, Redo, Align, Arrange)
+    // 2. CS6 Main Toolbar (New, Open, Save, Import, Export, Cut, Copy, Paste, Undo, Redo, Align, Arrange, Resolution)
     egui::Panel::top("main_toolbar")
+        .exact_size(28.0)
         .frame(
             egui::Frame::new()
                 .fill(app.palette.panel_alt)
@@ -45,6 +47,7 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
 
     // 3. Bottom Status Bar
     egui::Panel::bottom("status")
+        .exact_size(22.0)
         .frame(
             egui::Frame::new()
                 .fill(app.palette.panel_alt)
@@ -52,15 +55,15 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
         )
         .show(ui, |ui| status_bar(ui, app));
 
-    // 4. Bottom Dock: Properties & Symbol Properties Inspector (exact CS6 position)
+    // 4. Bottom Dock: Properties & Symbol Properties Inspector (fixed default height so switching selection never jumps)
     if app.show_bottom_inspector {
         egui::Panel::bottom("properties_dock")
-            .default_size(94.0)
-            .resizable(true)
+            .exact_size(98.0)
+            .resizable(false)
             .frame(
                 egui::Frame::new()
                     .fill(app.palette.panel)
-                    .inner_margin(egui::Margin::symmetric(6, 4)),
+                    .inner_margin(egui::Margin::symmetric(4, 3)),
             )
             .show(ui, |ui| bottom_properties_dock(ui, app));
     }
@@ -68,22 +71,24 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     // 5. Left Dock: 2-Column CS6 Tool Strip
     if app.show_tools_dock {
         egui::Panel::left("tools")
-            .exact_size(64.0)
+            .exact_size(60.0)
             .resizable(false)
             .frame(
                 egui::Frame::new()
                     .fill(app.palette.panel)
-                    .inner_margin(egui::Margin::symmetric(4, 3)),
+                    .inner_margin(egui::Margin::symmetric(3, 2)),
             )
             .show(ui, |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| panels::tools_panel(ui, app));
             });
     }
 
-    // 6. Right Dock: CS6 Stacked Tab-Groups
+    // 6. Right Dock: CS6 Stacked Tab-Groups with pinned section heights
     if app.show_right_dock {
         egui::Panel::right("dock")
-            .default_size(295.0)
+            .default_size(300.0)
+            .min_size(285.0)
+            .max_size(360.0)
             .resizable(true)
             .frame(
                 egui::Frame::new()
@@ -105,6 +110,8 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     dialogs::canvas_size_dialog(app);
     dialogs::find_replace_dialog(app);
     dialogs::saved_commands_dialog(app);
+    dialogs::command_palette_dialog(app);
+    dialogs::mcp_cli_dialog(app);
     dialogs::about_dialog(app);
     dialogs::file_dialog(app);
     dialogs::welcome_overlay(app);
@@ -114,7 +121,7 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
 
 fn main_toolbar(ui: &mut Ui, app: &mut FireCraft) {
     ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing = Vec2::new(4.0, 2.0);
+        ui.spacing_mut().item_spacing = Vec2::new(3.0, 2.0);
         if canvas::tool_button(ui, icons::Icon::New, false, "New Document (Ctrl+N)").clicked() {
             app.show_new_dialog = true;
         }
@@ -166,18 +173,25 @@ fn main_toolbar(ui: &mut Ui, app: &mut FireCraft) {
             app.reorder_selected(false);
         }
         if ui
+            .small_button("Group")
+            .on_hover_text("Group Selected Objects (Ctrl+G)")
+            .clicked()
+        {
+            app.group_selected();
+        }
+        if ui
+            .small_button("Ungroup")
+            .on_hover_text("Ungroup Selected Group (Ctrl+Shift+G)")
+            .clicked()
+        {
+            app.ungroup_selected();
+        }
+        if ui
             .small_button("Flip H")
             .on_hover_text("Flip Horizontal")
             .clicked()
         {
             app.flip_horizontal();
-        }
-        if ui
-            .small_button("Flip V")
-            .on_hover_text("Flip Vertical")
-            .clicked()
-        {
-            app.flip_vertical();
         }
         if ui
             .small_button("Rot 90°")
@@ -186,6 +200,35 @@ fn main_toolbar(ui: &mut Ui, app: &mut FireCraft) {
         {
             app.rotate_90();
         }
+        ui.separator();
+        // Canvas Resolution & DPI Dropdown right on the Main Toolbar
+        let cur_res = format!("{:.0}×{:.0}", app.doc.page().width, app.doc.page().height);
+        egui::ComboBox::from_id_salt("toolbar_resolution_combo")
+            .width(105.0)
+            .selected_text(cur_res)
+            .show_ui(ui, |ui| {
+                for &(label, w, h) in constants::RESOLUTION_PRESETS {
+                    let active = (app.doc.page().width - w).abs() < 0.5
+                        && (app.doc.page().height - h).abs() < 0.5;
+                    if ui.selectable_label(active, label).clicked() {
+                        app.resize_canvas(w, h);
+                    }
+                }
+            });
+        egui::ComboBox::from_id_salt("toolbar_dpi_combo")
+            .width(68.0)
+            .selected_text(format!("{} ppi", app.doc.dpi))
+            .show_ui(ui, |ui| {
+                for &dpi in constants::DPI_PRESETS {
+                    if ui
+                        .selectable_label(app.doc.dpi == dpi, format!("{dpi} ppi"))
+                        .clicked()
+                    {
+                        app.doc.dpi = dpi;
+                        app.status = format!("Document resolution set to {dpi} ppi");
+                    }
+                }
+            });
         ui.separator();
         if ui
             .small_button("Demo Showcase")
@@ -203,7 +246,7 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
         .fill(p.panel)
         .inner_margin(egui::Margin::symmetric(6, 2))
         .show(ui, |ui| {
-            // Row 1: Open Document Tabs
+            // Row 1: Open Document Tabs (middle-click or '×' closes the tab)
             ui.horizontal(|ui| {
                 let doc_count = app.open_docs.len();
                 let mut switch_to = None;
@@ -221,17 +264,27 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                     } else {
                         app.open_docs[i].name.clone()
                     };
-                    if ui.selectable_label(is_active, &name).clicked() && !is_active {
+                    let tab_resp = ui
+                        .selectable_label(is_active, &name)
+                        .on_hover_text("Left-click to switch tab · Middle-click to close tab");
+                    if tab_resp.clicked() && !is_active {
                         switch_to = Some(i);
                     }
-                    if doc_count > 1 && ui.small_button("×").clicked() {
+                    if tab_resp.middle_clicked() {
+                        close_idx = Some(i);
+                    }
+                    if ui
+                        .small_button("×")
+                        .on_hover_text("Close Document Tab (Middle-Click or Ctrl+W)")
+                        .clicked()
+                    {
                         close_idx = Some(i);
                     }
                     ui.separator();
                 }
                 if ui
                     .small_button("+")
-                    .on_hover_text("New Document Tab")
+                    .on_hover_text("New Document Tab (1920×1080 @ 144 ppi)")
                     .clicked()
                 {
                     app.new_document_tab(constants::DEFAULT_WIDTH, constants::DEFAULT_HEIGHT);
@@ -270,7 +323,7 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                                     .clicked()
                                 {
                                     app.doc.current_page = pi;
-                                    app.selected = None;
+                                    app.clear_selection();
                                 }
                             }
                         });
@@ -284,40 +337,49 @@ fn bottom_properties_dock(ui: &mut Ui, app: &mut FireCraft) {
     let current = app.bottom_tab.min(1);
     let mut tab = current;
     let palette = app.palette;
-    panels::panel(ui, TABS[current], TABS, &mut tab, palette, |ui| {
-        if current == 0 {
-            panels::properties_panel(ui, app);
-        } else {
-            ui.horizontal(|ui| {
-                ui.label(
-                    RichText::new("Symbol Library Instances:")
-                        .small()
-                        .color(palette.text_dim),
-                );
-                if ui
-                    .small_button("Convert Selection to Symbol (F8)")
-                    .clicked()
-                {
-                    app.convert_selection_to_symbol();
-                }
-                ui.label(
-                    RichText::new(format!(
-                        "{} symbol definition(s) in current document",
-                        app.doc.symbols.len()
-                    ))
-                    .small(),
-                );
-            });
-        }
-    });
+    panels::panel(
+        ui,
+        TABS[current],
+        TABS,
+        &mut tab,
+        palette,
+        Some(58.0),
+        |ui| {
+            if current == 0 {
+                panels::properties_panel(ui, app);
+            } else {
+                ui.horizontal(|ui| {
+                    ui.label(
+                        RichText::new("Symbol Library Instances:")
+                            .small()
+                            .color(palette.text_dim),
+                    );
+                    if ui
+                        .small_button("Convert Selection to Symbol (F8)")
+                        .clicked()
+                    {
+                        app.convert_selection_to_symbol();
+                    }
+                    ui.label(
+                        RichText::new(format!(
+                            "{} symbol definition(s) in current document",
+                            app.doc.symbols.len()
+                        ))
+                        .small(),
+                    );
+                });
+            }
+        },
+    );
     app.bottom_tab = tab;
 }
 
-/// The stacked right-hand dock matching Fireworks CS6's Expanded Mode:
-/// 1. Optimize | History | Align | Path
-/// 2. Pages | States | Layers
-/// 3. Styles | Color Palette | Swatches | Info
-/// 4. Chars | Image Edit | Auto Shapes | Library | CSS
+/// The stacked right-hand dock matching Fireworks CS6's Expanded Mode, with fixed body heights
+/// so switching tabs never causes adjacent dock groups to jump around:
+/// 1. Optimize | History | Align | Path (122 px)
+/// 2. Pages | States | Layers (160 px)
+/// 3. Styles | Color Palette | Swatches | Info (145 px)
+/// 4. Chars | Image Edit | Auto Shapes | Library | CSS (115 px)
 fn right_dock(ui: &mut Ui, app: &mut FireCraft) {
     let palette = app.palette;
     egui::ScrollArea::vertical().show(ui, |ui| {
@@ -325,48 +387,80 @@ fn right_dock(ui: &mut Ui, app: &mut FireCraft) {
         const G1_TABS: &[&str] = &["Optimize", "History", "Align", "Path"];
         let c1 = app.top_right_tab.min(G1_TABS.len() - 1);
         let mut g1 = c1;
-        panels::panel(ui, G1_TABS[c1], G1_TABS, &mut g1, palette, |ui| match c1 {
-            0 => panels::optimize_panel(ui, app),
-            1 => panels::history_panel(ui, app),
-            2 => panels::align_panel(ui, app),
-            _ => panels::paths_panel(ui, app),
-        });
+        panels::panel(
+            ui,
+            G1_TABS[c1],
+            G1_TABS,
+            &mut g1,
+            palette,
+            Some(142.0),
+            |ui| match c1 {
+                0 => panels::optimize_panel(ui, app),
+                1 => panels::history_panel(ui, app),
+                2 => panels::align_panel(ui, app),
+                _ => panels::paths_panel(ui, app),
+            },
+        );
         app.top_right_tab = g1;
 
-        ui.add_space(3.0);
+        ui.add_space(2.0);
 
         // Group 2: Pages | States | Layers
         const G2_TABS: &[&str] = &["Pages", "States", "Layers"];
         let c2 = app.layers_tab.min(G2_TABS.len() - 1);
         let mut g2 = c2;
-        panels::panel(ui, G2_TABS[c2], G2_TABS, &mut g2, palette, |ui| {
-            panels::pages_panel(ui, app);
-        });
+        panels::panel(
+            ui,
+            G2_TABS[c2],
+            G2_TABS,
+            &mut g2,
+            palette,
+            Some(158.0),
+            |ui| {
+                panels::pages_panel(ui, app);
+            },
+        );
         app.layers_tab = g2;
 
-        ui.add_space(3.0);
+        ui.add_space(2.0);
 
         // Group 3: Styles | Color Palette | Swatches | Info
         const G3_TABS: &[&str] = &["Styles", "Color Palette", "Swatches", "Info"];
         let c3 = app.middle_right_tab.min(G3_TABS.len() - 1);
         let mut g3 = c3;
-        panels::panel(ui, G3_TABS[c3], G3_TABS, &mut g3, palette, |ui| match c3 {
-            0 => panels::styles_panel(ui, app),
-            1 => panels::color_panel(ui, app),
-            2 => panels::swatches_panel(ui, app),
-            _ => panels::info_panel(ui, app),
-        });
+        panels::panel(
+            ui,
+            G3_TABS[c3],
+            G3_TABS,
+            &mut g3,
+            palette,
+            Some(146.0),
+            |ui| match c3 {
+                0 => panels::styles_panel(ui, app),
+                1 => panels::color_panel(ui, app),
+                2 => panels::swatches_panel(ui, app),
+                _ => panels::info_panel(ui, app),
+            },
+        );
         app.middle_right_tab = g3;
 
-        ui.add_space(3.0);
+        ui.add_space(2.0);
 
         // Group 4: Chars | Image Edit | Auto Shapes | Library | CSS
         const G4_TABS: &[&str] = &["Chars", "Image Edit", "Auto Shapes", "Library", "CSS"];
         let c4 = app.library_tab.min(G4_TABS.len() - 1);
         let mut g4 = c4;
-        panels::panel(ui, G4_TABS[c4], G4_TABS, &mut g4, palette, |ui| {
-            panels::library_panel(ui, app);
-        });
+        panels::panel(
+            ui,
+            G4_TABS[c4],
+            G4_TABS,
+            &mut g4,
+            palette,
+            Some(115.0),
+            |ui| {
+                panels::library_panel(ui, app);
+            },
+        );
         app.library_tab = g4;
     });
 }
@@ -381,6 +475,14 @@ fn status_bar(ui: &mut Ui, app: &mut FireCraft) {
                 .small()
                 .color(app.palette.text_dim),
         );
+        if !app.selected_set.is_empty() {
+            ui.separator();
+            ui.label(
+                RichText::new(format!("Selected: {}", app.selected_set.len()))
+                    .small()
+                    .color(app.palette.selection),
+            );
+        }
         if let Some(pos) = app.cursor_doc_pos {
             ui.separator();
             ui.label(
@@ -397,16 +499,17 @@ fn status_bar(ui: &mut Ui, app: &mut FireCraft) {
                     .strong(),
             );
             ui.separator();
-            let (w, h, cur_st, total_st) = {
+            let (w, h, dpi, cur_st, total_st) = {
                 let page = app.doc.page();
                 (
                     page.width as u32,
                     page.height as u32,
+                    app.doc.dpi,
                     page.current_state + 1,
                     page.states.len(),
                 )
             };
-            ui.label(RichText::new(format!("{w} × {h}")).small());
+            ui.label(RichText::new(format!("{w} × {h} @ {dpi}ppi")).small());
             ui.separator();
             if ui
                 .small_button(">|")
@@ -439,10 +542,14 @@ enum Shortcut {
     Save,
     New,
     Open,
+    CloseTab,
     Import,
     Export,
     SelectAll,
     Deselect,
+    Group,
+    Ungroup,
+    CommandPalette,
     Copy,
     Cut,
     Paste,
@@ -479,10 +586,14 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
                 (Key::S, true, _) => Some(Shortcut::Save),
                 (Key::N, true, _) => Some(Shortcut::New),
                 (Key::O, true, _) => Some(Shortcut::Open),
+                (Key::W, true, _) => Some(Shortcut::CloseTab),
                 (Key::R, true, false) => Some(Shortcut::Import),
                 (Key::R, true, true) => Some(Shortcut::Export),
                 (Key::A, true, _) => Some(Shortcut::SelectAll),
                 (Key::D, true, true) => Some(Shortcut::Deselect),
+                (Key::G, true, false) => Some(Shortcut::Group),
+                (Key::G, true, true) => Some(Shortcut::Ungroup),
+                (Key::K | Key::P, true, _) => Some(Shortcut::CommandPalette),
                 (Key::C, true, _) => Some(Shortcut::Copy),
                 (Key::X, true, _) => Some(Shortcut::Cut),
                 (Key::V, true, _) => Some(Shortcut::Paste),
@@ -530,10 +641,14 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
         Some(Shortcut::Save) => app.save_current(),
         Some(Shortcut::New) => app.show_new_dialog = true,
         Some(Shortcut::Open) => app.begin_file_dialog(FileMode::Open),
+        Some(Shortcut::CloseTab) => app.close_active_tab(),
         Some(Shortcut::Import) => app.begin_file_dialog(FileMode::Import),
         Some(Shortcut::Export) => app.begin_file_dialog(FileMode::Export),
         Some(Shortcut::SelectAll) => app.select_all(),
-        Some(Shortcut::Deselect) => app.selected = None,
+        Some(Shortcut::Deselect) => app.clear_selection(),
+        Some(Shortcut::Group) => app.group_selected(),
+        Some(Shortcut::Ungroup) => app.ungroup_selected(),
+        Some(Shortcut::CommandPalette) => app.show_command_palette = !app.show_command_palette,
         Some(Shortcut::Copy) => app.copy_selected(),
         Some(Shortcut::Cut) => app.cut_selected(),
         Some(Shortcut::Paste) => app.paste(),

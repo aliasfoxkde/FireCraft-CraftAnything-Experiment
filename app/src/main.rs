@@ -1,7 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 //! FireCraft — a modern, dark-first raster and vector editor in the shape of
-//! Adobe Fireworks CS6.
+//! Adobe Fireworks CS6, with an embedded MCP JSON-RPC 2.0 server and headless CLI.
 
 mod app;
 mod canvas;
@@ -12,6 +12,7 @@ mod doc;
 mod formats;
 mod icons;
 mod layout;
+mod mcp;
 mod menus;
 mod page;
 mod panels;
@@ -19,6 +20,17 @@ mod theme;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+
+    // If a headless CLI verb or `mcp` server mode was invoked, attach to parent console
+    // (on Windows release builds) and execute immediately without opening a GUI window.
+    if args.len() > 1
+        && !args[1].starts_with("--screenshot")
+        && args[1] != "--demo"
+        && let Some(code) = mcp::try_run_cli(&args)
+    {
+        std::process::exit(code);
+    }
+
     let mut screenshot_path: Option<String> = None;
     let mut load_demo = false;
     let mut i = 1;
@@ -37,8 +49,8 @@ fn main() {
     }
 
     let mut viewport = eframe::egui::ViewportBuilder::default()
-        .with_inner_size([1280.0, 820.0])
-        .with_min_inner_size([800.0, 600.0])
+        .with_inner_size([1360.0, 860.0])
+        .with_min_inner_size([960.0, 640.0])
         .with_title("FireCraft Studio — Adobe Fireworks CS6 Edition")
         .with_app_id("firecraft.editor")
         .with_visible(true)

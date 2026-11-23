@@ -70,7 +70,7 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
 
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             egui::ComboBox::from_id_salt("workspace_mode_combo")
-                .width(125.0)
+                .width(115.0)
                 .selected_text(if app.show_right_dock {
                     "Expanded Mode"
                 } else {
@@ -91,6 +91,35 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
                         app.show_right_dock = false;
                     }
                 });
+
+            egui::ComboBox::from_id_salt("header_theme_combo")
+                .width(105.0)
+                .selected_text(app.theme_mode.short_label())
+                .show_ui(ui, |ui| {
+                    for mode in [ThemeMode::Dark, ThemeMode::Light, ThemeMode::System] {
+                        if ui
+                            .selectable_label(app.theme_mode == mode, mode.label())
+                            .clicked()
+                        {
+                            app.set_theme(mode);
+                        }
+                    }
+                });
+
+            if ui
+                .small_button("MCP / CLI")
+                .on_hover_text("Open Model Context Protocol (MCP) JSON-RPC 2.0 & CLI Console")
+                .clicked()
+            {
+                app.show_mcp_dialog = true;
+            }
+            if ui
+                .small_button("Cmd (Ctrl+K)")
+                .on_hover_text("Open Searchable Command Palette (Ctrl+K / Ctrl+P)")
+                .clicked()
+            {
+                app.show_command_palette = !app.show_command_palette;
+            }
         });
     });
 }
@@ -544,6 +573,30 @@ fn modify_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
         }
     });
     ui.separator();
+    let multi_sel = app.selected_set.len() >= 2;
+    let is_group = app
+        .selected_object()
+        .is_some_and(|o| matches!(o.kind, crate::doc::Shape::Group { .. }));
+    if ui
+        .add_enabled(
+            multi_sel,
+            egui::Button::new("Group                    Ctrl+G"),
+        )
+        .clicked()
+    {
+        app.group_selected();
+        ui.close();
+    }
+    if ui
+        .add_enabled(
+            is_group,
+            egui::Button::new("Ungroup            Ctrl+Shift+G"),
+        )
+        .clicked()
+    {
+        app.ungroup_selected();
+        ui.close();
+    }
     if ui
         .add_enabled(
             has_selection,
@@ -595,6 +648,14 @@ fn text_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
 }
 
 fn commands_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
+    if ui.button("Command Palette…         Ctrl+K").clicked() {
+        app.show_command_palette = true;
+        ui.close();
+    }
+    if ui.button("MCP & Headless CLI Console…").clicked() {
+        app.show_mcp_dialog = true;
+        ui.close();
+    }
     if ui.button("Manage Saved Commands…").clicked() {
         app.show_commands_dialog = true;
         ui.close();

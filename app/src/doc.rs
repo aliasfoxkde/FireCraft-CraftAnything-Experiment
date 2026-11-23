@@ -194,6 +194,9 @@ pub enum Shape {
         at: Vec2,
         scale: Vec2,
     },
+    Group {
+        children: Vec<Obj>,
+    },
 }
 
 /// Blend modes supported by Fireworks CS6 layers and objects.
@@ -283,6 +286,7 @@ impl Obj {
                 }
             }
             Shape::SymbolInstance { symbol_id, .. } => format!("Symbol {}", symbol_id + 1),
+            Shape::Group { children } => format!("Group ({} objects)", children.len()),
         };
         Self {
             kind,
@@ -327,6 +331,7 @@ impl Obj {
                 is_hotspot: false, ..
             } => "Web Slice",
             Shape::SymbolInstance { .. } => "Symbol Instance",
+            Shape::Group { .. } => "Group",
         }
     }
 
@@ -403,6 +408,19 @@ impl Obj {
                 let s = Vec2::new(64.0 * scale.x.abs(), 64.0 * scale.y.abs());
                 Some((*at, *at + s))
             }
+            Shape::Group { children } => {
+                let mut lo = Vec2::splat(f32::MAX);
+                let mut hi = Vec2::splat(f32::MIN);
+                let mut any = false;
+                for ch in children {
+                    if let Some((clo, chi)) = ch.bounds() {
+                        lo = lo.min(clo);
+                        hi = hi.max(chi);
+                        any = true;
+                    }
+                }
+                any.then_some((lo, hi))
+            }
         }
     }
 
@@ -427,6 +445,11 @@ impl Obj {
             Shape::Text { at, .. }
             | Shape::Bitmap { at, .. }
             | Shape::SymbolInstance { at, .. } => *at += delta,
+            Shape::Group { children } => {
+                for ch in children.iter_mut() {
+                    ch.translate(delta);
+                }
+            }
         }
     }
 
@@ -474,6 +497,18 @@ impl Obj {
             Shape::SymbolInstance { at, scale, .. } => {
                 *at = lo;
                 *scale = new_size / 64.0;
+            }
+            Shape::Group { children } => {
+                if let Some((old_lo, old_hi)) = prev_bounds {
+                    let old_size = (old_hi - old_lo).max(Vec2::splat(1.0));
+                    for ch in children.iter_mut() {
+                        if let Some((clo, chi)) = ch.bounds() {
+                            let n_lo = lo + ((clo - old_lo) / old_size) * new_size;
+                            let n_hi = lo + ((chi - old_lo) / old_size) * new_size;
+                            ch.set_bounds(n_lo, n_hi);
+                        }
+                    }
+                }
             }
         }
     }
@@ -788,9 +823,10 @@ mod tests {
 
     #[test]
     fn document_creation_and_bounds() {
-        let mut doc = Document::new(800.0, 600.0);
-        assert_eq!(doc.page().width, 800.0);
-        assert_eq!(doc.page().height, 600.0);
+        let mut doc = Document::new(1920.0, 1080.0);
+        assert_eq!(doc.page().width, 1920.0);
+        assert_eq!(doc.page().height, 1080.0);
+        assert_eq!(doc.dpi, 144);
         assert_eq!(doc.page().layers.len(), 2); // Layer 1 + Web Layer
 
         let mut obj = Obj::new(

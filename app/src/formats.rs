@@ -564,6 +564,14 @@ fn obj_to_svg(obj: &Obj, idx: usize) -> String {
             at.x, at.y, size.x, size.y
         ),
         Shape::Slice { .. } | Shape::SymbolInstance { .. } => String::new(),
+        Shape::Group { children } => {
+            let mut g = String::from("<g>");
+            for (ci, ch) in children.iter().enumerate() {
+                g.push_str(&obj_to_svg(ch, idx * 100 + ci));
+            }
+            g.push_str("</g>");
+            g
+        }
     }
 }
 
@@ -889,6 +897,11 @@ fn draw_obj(img: &mut image::RgbaImage, obj: &Obj, alpha: u8) {
             }
         }
         Shape::Slice { .. } | Shape::SymbolInstance { .. } => {}
+        Shape::Group { children } => {
+            for ch in children {
+                draw_obj(img, ch, alpha);
+            }
+        }
     }
 }
 

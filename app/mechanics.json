@@ -4,14 +4,14 @@
     {
       "name": "default canvas width",
       "group": "canvas",
-      "value": 800,
+      "value": 1920,
       "unit": "px",
       "source": "function 0x402050"
     },
     {
       "name": "default canvas height",
       "group": "canvas",
-      "value": 600,
+      "value": 1080,
       "unit": "px",
       "source": "function 0x402050"
     },
@@ -86,7 +86,7 @@
     {
       "name": "default export resolution",
       "group": "export",
-      "value": 72,
+      "value": 144,
       "unit": "dpi",
       "source": "function 0x402060"
     },

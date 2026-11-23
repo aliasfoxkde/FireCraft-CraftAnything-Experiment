@@ -135,6 +135,7 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
             i.pointer.primary_down(),
             i.pointer.is_decidedly_dragging(),
             i.pointer.primary_released(),
+            i.pointer.secondary_clicked(),
             i.pointer
                 .interact_pos()
                 .or_else(|| i.pointer.latest_pos())
@@ -144,13 +145,25 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
             i.modifiers.shift,
         )
     });
-    let (pressed, down, dragged, released, pointer_pos, alt, ctrl, shift) = pointer;
+    let (pressed, down, dragged, released, secondary_clicked, pointer_pos, alt, ctrl, shift) =
+        pointer;
     let over_canvas = rect.contains(pointer_pos);
     if over_canvas {
         let doc_pos: Vec2 = (pointer_pos - origin.to_pos2()) / zoom;
         app.cursor_doc_pos = Some(doc_pos);
         if pressed {
+            app.context_menu_pos = None;
             app.on_pointer_down(doc_pos, pointer_pos.to_vec2(), alt, ctrl, shift);
+        }
+        if secondary_clicked {
+            // CS6 context-menu pick: if right-click hits an unselected object, select it first
+            if let Some((li, oi)) = hit_test(app, doc_pos)
+                && (app.selected_layer != li || !app.is_selected(oi))
+            {
+                app.selected_layer = li;
+                app.select_single(Some(oi));
+            }
+            app.context_menu_pos = Some(pointer_pos);
         }
         if down && dragged {
             app.on_pointer_drag(doc_pos, shift);
@@ -264,6 +277,176 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
             }
             _ => {}
         }
+    }
+
+    canvas_context_menu(ui, app);
+}
+
+fn canvas_context_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
+    let Some(menu_pos) = app.context_menu_pos else {
+        return;
+    };
+    if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+        app.context_menu_pos = None;
+        return;
+    }
+    let has_sel = app.selected.is_some();
+    let multi_sel = app.selected_set.len() >= 2;
+    let is_group = app
+        .selected_object()
+        .is_some_and(|o| matches!(o.kind, Shape::Group { .. }));
+    let area_resp = egui::Area::new(ui.make_persistent_id("cs6_canvas_context_menu"))
+        .fixed_pos(menu_pos)
+        .order(egui::Order::Foreground)
+        .show(ui.ctx(), |ui| {
+            egui::Frame::menu(ui.style())
+                .fill(app.palette.panel)
+                .stroke(Stroke::new(1.0, app.palette.stroke))
+                .inner_margin(egui::Margin::same(4))
+                .show(ui, |ui| {
+                    ui.set_min_width(185.0);
+                    if ui
+                        .add_enabled(
+                            has_sel,
+                            egui::Button::new("Cut                      Ctrl+X"),
+                        )
+                        .clicked()
+                    {
+                        app.cut_selected();
+                        app.context_menu_pos = None;
+                    }
+                    if ui
+                        .add_enabled(
+                            has_sel,
+                            egui::Button::new("Copy                     Ctrl+C"),
+                        )
+                        .clicked()
+                    {
+                        app.copy_selected();
+                        app.context_menu_pos = None;
+                    }
+                    if ui
+                        .add_enabled(
+                            app.clipboard.is_some(),
+                            egui::Button::new("Paste                    Ctrl+V"),
+                        )
+                        .clicked()
+                    {
+                        app.paste();
+                        app.context_menu_pos = None;
+                    }
+                    if has_sel {
+                        if ui.button("Duplicate                Ctrl+D").clicked() {
+                            app.duplicate_selected();
+                            app.context_menu_pos = None;
+                        }
+                        if ui.button("Delete                   Del").clicked() {
+                            app.delete_selected();
+                            app.context_menu_pos = None;
+                        }
+                        ui.separator();
+                        if multi_sel && ui.button("Group Objects            Ctrl+G").clicked() {
+                            app.group_selected();
+                            app.context_menu_pos = None;
+                        }
+                        if is_group && ui.button("Ungroup            Ctrl+Shift+G").clicked() {
+                            app.ungroup_selected();
+                            app.context_menu_pos = None;
+                        }
+                        if ui.button("Bring to Front").clicked() {
+                            app.reorder_selected(true);
+                            app.context_menu_pos = None;
+                        }
+                        if ui.button("Send to Back").clicked() {
+                            app.reorder_selected(false);
+                            app.context_menu_pos = None;
+                        }
+                        ui.separator();
+                        if ui.button("Flip Horizontal").clicked() {
+                            app.flip_horizontal();
+                            app.context_menu_pos = None;
+                        }
+                        if ui.button("Flip Vertical").clicked() {
+                            app.flip_vertical();
+                            app.context_menu_pos = None;
+                        }
+                        if ui.button("Rotate 90° CW").clicked() {
+                            app.rotate_90();
+                            app.context_menu_pos = None;
+                        }
+                        ui.separator();
+                        if ui.button("Convert to Path").clicked() {
+                            app.convert_selected_to_path();
+                            app.context_menu_pos = None;
+                        }
+                        if ui.button("Convert to Symbol        F8").clicked() {
+                            app.convert_selection_to_symbol();
+                            app.context_menu_pos = None;
+                        }
+                        if ui.button("Add Drop Shadow").clicked() {
+                            app.add_live_effect(LiveEffect::DropShadow {
+                                distance: 5.0,
+                                angle_deg: 45.0,
+                                blur: 5.0,
+                                color: Color32::from_black_alpha(150),
+                                enabled: true,
+                            });
+                            app.context_menu_pos = None;
+                        }
+                        if ui.button("Insert Web Slice").clicked() {
+                            app.insert_slice(false);
+                            app.context_menu_pos = None;
+                        }
+                        if ui.button("Copy CSS Properties").clicked() {
+                            app.copy_selected_css();
+                            app.context_menu_pos = None;
+                        }
+                    } else {
+                        ui.separator();
+                        if ui.button("Select All               Ctrl+A").clicked() {
+                            app.select_all();
+                            app.context_menu_pos = None;
+                        }
+                        if ui.button("New Layer").clicked() {
+                            app.add_layer();
+                            app.context_menu_pos = None;
+                        }
+                        if ui.button("Import Image / SVG…      Ctrl+R").clicked() {
+                            app.begin_file_dialog(crate::app::FileMode::Import);
+                            app.context_menu_pos = None;
+                        }
+                        if ui.button("Export Document…   Ctrl+Shift+R").clicked() {
+                            app.begin_file_dialog(crate::app::FileMode::Export);
+                            app.context_menu_pos = None;
+                        }
+                        if ui.button("Canvas Size…").clicked() {
+                            app.open_canvas_size_dialog();
+                            app.context_menu_pos = None;
+                        }
+                        if ui.button("Fit Canvas to Objects").clicked() {
+                            app.fit_canvas_to_contents();
+                            app.context_menu_pos = None;
+                        }
+                        if ui.button("Fit in Window            Ctrl+0").clicked() {
+                            app.fit_in_window();
+                            app.context_menu_pos = None;
+                        }
+                        if ui.button("Load CS6 Demo Showcase").clicked() {
+                            app.load_demo_showcase();
+                            app.context_menu_pos = None;
+                        }
+                    }
+                });
+        });
+
+    let clicked_outside = ui.input(|i| {
+        i.pointer.any_pressed()
+            && i.pointer
+                .interact_pos()
+                .is_some_and(|p| !area_resp.response.rect.contains(p))
+    });
+    if clicked_outside && !ui.input(|i| i.pointer.secondary_pressed()) {
+        app.context_menu_pos = None;
     }
 }
 
@@ -754,10 +937,10 @@ fn draw_obj(
             let a = to_screen(origin, zoom, *at);
             let s = Vec2::new(64.0 * scale.x * zoom, 64.0 * scale.y * zoom);
             let r = Rect::from_min_size(a, s);
-            painter.rect_filled(r, 4.0, fill.unwrap_or(Color32::from_rgb(70, 130, 210)));
+            painter.rect_filled(r, 2.0, fill.unwrap_or(Color32::from_rgb(70, 130, 210)));
             painter.rect_stroke(
                 r,
-                4.0,
+                2.0,
                 Stroke::new(1.5, app.palette.accent),
                 egui::StrokeKind::Middle,
             );
@@ -768,6 +951,20 @@ fn draw_obj(
                 FontId::proportional(10.0),
                 Color32::WHITE,
             );
+        }
+        Shape::Group { children } => {
+            for (ci, ch) in children.iter().enumerate() {
+                draw_obj(
+                    painter,
+                    app,
+                    ch,
+                    origin,
+                    zoom,
+                    alpha,
+                    (layer_index, obj_index * 1000 + ci + 1),
+                    preview_mode,
+                );
+            }
         }
     }
 
@@ -808,8 +1005,8 @@ fn draw_obj(
         }
     }
 
-    // Selection handles (8-point resize box or Subselection vector vertices)
-    if !preview_mode && app.selected_layer == layer_index && app.selected == Some(obj_index) {
+    // Selection handles (8-point resize box for every selected object in `selected_set`)
+    if !preview_mode && app.selected_layer == layer_index && app.is_selected(obj_index) {
         if let Some((lo, hi)) = obj.bounds() {
             let a = to_screen(origin, zoom, lo);
             let b = to_screen(origin, zoom, hi);
@@ -967,6 +1164,7 @@ fn hit_obj(obj: &Obj, p: Vec2) -> bool {
             let s = Vec2::new(64.0 * scale.x.abs(), 64.0 * scale.y.abs());
             p.x >= at.x && p.x <= at.x + s.x && p.y >= at.y && p.y <= at.y + s.y
         }
+        Shape::Group { children } => children.iter().any(|ch| hit_obj(ch, p)),
     }
 }
 
@@ -981,12 +1179,24 @@ pub fn tool_button(
     if ui.is_rect_visible(rect) {
         let painter = ui.painter();
         if active {
-            painter.rect_filled(rect, 3.0, ui.visuals().widgets.active.bg_fill);
+            painter.rect_filled(rect, 0.0, ui.visuals().widgets.active.bg_fill);
+            painter.rect_stroke(
+                rect,
+                0.0,
+                Stroke::new(1.0, ui.visuals().selection.stroke.color),
+                egui::StrokeKind::Middle,
+            );
         } else if response.hovered() {
-            painter.rect_filled(rect, 3.0, ui.visuals().widgets.hovered.bg_fill);
+            painter.rect_filled(rect, 0.0, ui.visuals().widgets.hovered.bg_fill);
+            painter.rect_stroke(
+                rect,
+                0.0,
+                Stroke::new(1.0, ui.visuals().widgets.hovered.bg_stroke.color),
+                egui::StrokeKind::Middle,
+            );
         }
         let color = if active {
-            Color32::from_rgb(20, 18, 12)
+            Color32::WHITE
         } else {
             ui.visuals().text_color()
         };
