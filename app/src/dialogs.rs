@@ -250,6 +250,175 @@ pub fn canvas_size_dialog(app: &mut FireCraft) {
     app.show_canvas_size_dialog = open && !close_now;
 }
 
+/// HTML Setup dialog (File > HTML Setup…).
+pub fn html_setup_dialog(app: &mut FireCraft) {
+    if !app.show_html_setup_dialog {
+        return;
+    }
+    let mut open = app.show_html_setup_dialog;
+    let mut close_now = app.ctx.input(|i| i.key_pressed(egui::Key::Escape));
+    egui::Window::new("HTML Setup")
+        .open(&mut open)
+        .collapsible(false)
+        .resizable(false)
+        .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
+        .show(&app.ctx.clone(), |ui| {
+            ui.set_min_width(320.0);
+            ui.horizontal(|ui| {
+                ui.label("HTML Style:");
+                let style_label = match app.html_setup.style {
+                    crate::formats::HtmlStyle::Html5 => "HTML5 Semantic",
+                    crate::formats::HtmlStyle::Xhtml1 => "XHTML 1.0 Transitional",
+                    crate::formats::HtmlStyle::CssGrid => "HTML5 + CSS Grid",
+                };
+                egui::ComboBox::from_id_salt("html_setup_style_combo")
+                    .width(190.0)
+                    .selected_text(style_label)
+                    .show_ui(ui, |ui| {
+                        for (st, lbl) in [
+                            (crate::formats::HtmlStyle::Html5, "HTML5 Semantic"),
+                            (crate::formats::HtmlStyle::Xhtml1, "XHTML 1.0 Transitional"),
+                            (crate::formats::HtmlStyle::CssGrid, "HTML5 + CSS Grid"),
+                        ] {
+                            if ui
+                                .selectable_label(app.html_setup.style == st, lbl)
+                                .clicked()
+                            {
+                                app.html_setup.style = st;
+                            }
+                        }
+                    });
+            });
+            ui.horizontal(|ui| {
+                ui.label("Extension:");
+                egui::ComboBox::from_id_salt("html_setup_ext_combo")
+                    .width(90.0)
+                    .selected_text(app.html_setup.extension)
+                    .show_ui(ui, |ui| {
+                        for ext in [".html", ".htm"] {
+                            if ui
+                                .selectable_label(app.html_setup.extension == ext, ext)
+                                .clicked()
+                            {
+                                app.html_setup.extension = ext;
+                            }
+                        }
+                    });
+            });
+            ui.checkbox(
+                &mut app.html_setup.include_slices,
+                "Include Slices & Hotspots",
+            );
+            ui.checkbox(
+                &mut app.html_setup.center_in_browser,
+                "Center Stage in Browser",
+            );
+            ui.checkbox(
+                &mut app.html_setup.include_viewport_meta,
+                "Include Responsive Viewport Meta",
+            );
+            ui.checkbox(
+                &mut app.html_setup.export_doc_bg,
+                "Export Document Background Color",
+            );
+            ui.separator();
+            ui.horizontal(|ui| {
+                if ui.button("Preview in Browser (F12)").clicked() {
+                    app.preview_in_browser();
+                    close_now = true;
+                }
+                if ui.button("OK").clicked() {
+                    app.status = "Updated HTML Setup options".to_string();
+                    close_now = true;
+                }
+            });
+        });
+    app.show_html_setup_dialog = open && !close_now;
+}
+
+/// Page Setup dialog (File > Page Setup…).
+pub fn page_setup_dialog(app: &mut FireCraft) {
+    if !app.show_page_setup_dialog {
+        return;
+    }
+    let mut open = app.show_page_setup_dialog;
+    let mut close_now = app.ctx.input(|i| i.key_pressed(egui::Key::Escape));
+    egui::Window::new("Page Setup")
+        .open(&mut open)
+        .collapsible(false)
+        .resizable(false)
+        .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
+        .show(&app.ctx.clone(), |ui| {
+            ui.set_min_width(320.0);
+            ui.horizontal(|ui| {
+                ui.label("Paper Size:");
+                egui::ComboBox::from_id_salt("page_setup_paper_combo")
+                    .width(195.0)
+                    .selected_text(app.page_setup.paper.label())
+                    .show_ui(ui, |ui| {
+                        for paper in [
+                            crate::app::PaperSize::Letter,
+                            crate::app::PaperSize::A4,
+                            crate::app::PaperSize::Legal,
+                            crate::app::PaperSize::Tabloid,
+                        ] {
+                            if ui
+                                .selectable_label(app.page_setup.paper == paper, paper.label())
+                                .clicked()
+                            {
+                                app.page_setup.paper = paper;
+                            }
+                        }
+                    });
+            });
+            ui.horizontal(|ui| {
+                ui.label("Orientation:");
+                ui.radio_value(&mut app.page_setup.landscape, false, "Portrait");
+                ui.radio_value(&mut app.page_setup.landscape, true, "Landscape");
+            });
+            ui.horizontal(|ui| {
+                ui.label("Margins:");
+                ui.add(
+                    egui::DragValue::new(&mut app.page_setup.margin_in)
+                        .speed(0.05)
+                        .range(0.0..=3.0)
+                        .suffix(" in"),
+                );
+            });
+            ui.checkbox(&mut app.page_setup.fit_to_page, "Fit Artwork to Page");
+            if !app.page_setup.fit_to_page {
+                ui.horizontal(|ui| {
+                    ui.label("Scale:");
+                    ui.add(
+                        egui::DragValue::new(&mut app.page_setup.scale_pct)
+                            .speed(1.0)
+                            .range(10.0..=400.0)
+                            .suffix("%"),
+                    );
+                });
+            }
+            ui.checkbox(
+                &mut app.page_setup.print_guides_slices,
+                "Print Guides & Slice Overlays",
+            );
+            ui.separator();
+            ui.horizontal(|ui| {
+                if ui.button("Print…").clicked() {
+                    app.print_document();
+                    close_now = true;
+                }
+                if ui.button("Cancel").clicked() {
+                    close_now = true;
+                }
+                if ui.button("OK").clicked() {
+                    app.status = format!("Page Setup updated ({})", app.page_setup.paper.label());
+                    close_now = true;
+                }
+            });
+        });
+    app.show_page_setup_dialog = open && !close_now;
+}
+
 /// Find and Replace dialog (Edit > Find and Replace).
 pub fn find_replace_dialog(app: &mut FireCraft) {
     if !app.show_find_replace {

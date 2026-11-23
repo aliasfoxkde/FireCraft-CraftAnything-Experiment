@@ -335,6 +335,58 @@ pub struct Drag {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum PaperSize {
+    #[default]
+    Letter,
+    A4,
+    Legal,
+    Tabloid,
+}
+
+impl PaperSize {
+    pub fn label(self) -> &'static str {
+        match self {
+            PaperSize::Letter => "Letter (8.5 × 11 in)",
+            PaperSize::A4 => "A4 (210 × 297 mm)",
+            PaperSize::Legal => "Legal (8.5 × 14 in)",
+            PaperSize::Tabloid => "Tabloid (11 × 17 in)",
+        }
+    }
+
+    pub fn css_name(self) -> &'static str {
+        match self {
+            PaperSize::Letter => "letter",
+            PaperSize::A4 => "A4",
+            PaperSize::Legal => "legal",
+            PaperSize::Tabloid => "tabloid",
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct PageSetupConfig {
+    pub paper: PaperSize,
+    pub landscape: bool,
+    pub margin_in: f32,
+    pub fit_to_page: bool,
+    pub scale_pct: f32,
+    pub print_guides_slices: bool,
+}
+
+impl Default for PageSetupConfig {
+    fn default() -> Self {
+        Self {
+            paper: PaperSize::Letter,
+            landscape: false,
+            margin_in: 0.5,
+            fit_to_page: true,
+            scale_pct: 100.0,
+            print_guides_slices: false,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub enum ToolsDockMode {
     #[default]
     Left,
@@ -434,6 +486,10 @@ pub struct FireCraft {
     pub recent_files: Vec<PathBuf>,
     pub show_new_dialog: bool,
     pub show_canvas_size_dialog: bool,
+    pub show_html_setup_dialog: bool,
+    pub show_page_setup_dialog: bool,
+    pub html_setup: crate::formats::HtmlExportOptions,
+    pub page_setup: PageSetupConfig,
     pub show_find_replace: bool,
     pub show_commands_dialog: bool,
     pub show_about_dialog: bool,
@@ -570,6 +626,10 @@ impl FireCraft {
             recent_files: Vec::new(),
             show_new_dialog: false,
             show_canvas_size_dialog: false,
+            show_html_setup_dialog: false,
+            show_page_setup_dialog: false,
+            html_setup: crate::formats::HtmlExportOptions::default(),
+            page_setup: PageSetupConfig::default(),
             show_find_replace: false,
             show_commands_dialog: false,
             show_about_dialog: false,
@@ -2596,6 +2656,74 @@ impl FireCraft {
         page.width = width;
         page.height = height;
         self.status = format!("Canvas resized to {width:.0} × {height:.0} px");
+    }
+
+    pub fn preview_in_browser(&mut self) {
+        let html = crate::formats::export_html_with_options(&self.doc, &self.html_setup);
+        let path =
+            std::env::temp_dir().join(format!("firecraft_preview{}", self.html_setup.extension));
+        match std::fs::write(&path, html) {
+            Ok(()) => {
+                open_in_default_app(&path);
+                self.status = format!("Opened browser preview: {}", path.display());
+            }
+            Err(e) => {
+                self.status = format!("Preview failed: {e}");
+            }
+        }
+    }
+
+    pub fn build_print_html(&self) -> String {
+        let svg = crate::formats::export_svg(&self.doc);
+        let orient = if self.page_setup.landscape {
+            "landscape"
+        } else {
+            "portrait"
+        };
+        let paper = self.page_setup.paper.css_name();
+        let margin = self.page_setup.margin_in.clamp(0.0, 3.0);
+        let scale_css = if self.page_setup.fit_to_page {
+            "max-width: 100%; max-height: 92vh; width: auto; height: auto;".to_string()
+        } else {
+            let s = (self.page_setup.scale_pct / 100.0).clamp(0.1, 4.0);
+            format!("transform: scale({s:.3}); transform-origin: top left;")
+        };
+        format!(
+            "<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"utf-8\">\n  <title>Print — {}</title>\n  <style>\n    @page {{ size: {paper} {orient}; margin: {margin:.2}in; }}\n    body {{ margin: 0; background: #fff; display: flex; justify-content: center; align-items: flex-start; }}\n    .fc-print-sheet svg {{ {scale_css} display: block; }}\n  </style>\n</head>\n<body onload=\"window.print()\">\n  <div class=\"fc-print-sheet\">{svg}</div>\n</body>\n</html>\n",
+            self.doc.name
+        )
+    }
+
+    pub fn print_document(&mut self) {
+        let html = self.build_print_html();
+        let path = std::env::temp_dir().join("firecraft_print.html");
+        match std::fs::write(&path, html) {
+            Ok(()) => {
+                open_in_default_app(&path);
+                self.status = format!(
+                    "Sent {} to print preview ({})",
+                    self.doc.name,
+                    self.page_setup.paper.label()
+                );
+            }
+            Err(e) => {
+                self.status = format!("Print setup failed: {e}");
+            }
+        }
+    }
+
+    pub fn save_all_documents(&mut self) {
+        self.sync_active_doc_slot();
+        if self.current_path.is_some() {
+            self.save_current();
+        } else {
+            self.begin_file_dialog(FileMode::Save);
+        }
+        let clean_count = self.open_docs.iter().filter(|d| !d.dirty).count();
+        self.status = format!(
+            "Saved active document ({clean_count}/{} open tabs clean)",
+            self.open_docs.len()
+        );
     }
 
     pub fn fit_canvas_to_contents(&mut self) {
@@ -5558,6 +5686,25 @@ impl eframe::App for FireCraft {
     }
 }
 
+fn open_in_default_app(path: &std::path::Path) {
+    #[cfg(target_os = "windows")]
+    {
+        let _ = std::process::Command::new("cmd")
+            .args(["/C", "start", "", &path.to_string_lossy()])
+            .spawn();
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("open").arg(path).spawn();
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        let _ = std::process::Command::new("xdg-open").arg(path).spawn();
+    }
+    #[cfg(target_arch = "wasm32")]
+    let _ = path;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -5740,5 +5887,24 @@ mod tests {
         } else {
             panic!("Expected Polygon");
         }
+    }
+
+    #[test]
+    fn file_menu_html_and_print_setup_generation() {
+        let mut app = FireCraft::new(None);
+        app.html_setup.style = crate::formats::HtmlStyle::CssGrid;
+        app.html_setup.include_viewport_meta = true;
+        app.html_setup.center_in_browser = true;
+        let html = crate::formats::export_html_with_options(&app.doc, &app.html_setup);
+        assert!(html.contains("<!DOCTYPE html>"));
+        assert!(html.contains("display: grid"));
+        assert!(html.contains("viewport"));
+
+        app.page_setup.paper = PaperSize::A4;
+        app.page_setup.landscape = true;
+        app.page_setup.margin_in = 0.25;
+        let print_html = app.build_print_html();
+        assert!(print_html.contains("@page { size: A4 landscape; margin: 0.25in; }"));
+        assert!(print_html.contains("window.print()"));
     }
 }

@@ -550,6 +550,27 @@ fn file_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
     if nav.row(ui, p, true, "Open…", "Ctrl+O") {
         app.begin_file_dialog(FileMode::Open);
     }
+    ui.menu_button("Open Recent", |ui| {
+        if app.recent_files.is_empty() {
+            ui.label(
+                egui::RichText::new("(No recent files)")
+                    .small()
+                    .color(p.text_dim),
+            );
+        } else {
+            let recents = app.recent_files.clone();
+            for path in recents.into_iter().take(8) {
+                let label = path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().into_owned())
+                    .unwrap_or_else(|| path.display().to_string());
+                if ui.button(label).clicked() {
+                    let _ = app.open_path(&path);
+                    ui.close();
+                }
+            }
+        }
+    });
     if nav.row(ui, p, true, "Browse in Bridge…", "Ctrl+Alt+O") {
         app.begin_file_dialog(FileMode::Open);
     }
@@ -567,8 +588,11 @@ fn file_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
     if nav.row(ui, p, true, "Save As…", "Ctrl+Shift+S") {
         app.begin_file_dialog(FileMode::Save);
     }
+    if nav.row(ui, p, true, "Save a Copy…", "") {
+        app.begin_file_dialog(FileMode::Save);
+    }
     if nav.row(ui, p, true, "Save All", "") {
-        app.save_current();
+        app.save_all_documents();
     }
     if nav.row(ui, p, app.current_path.is_some(), "Revert", "")
         && let Some(path) = app.current_path.clone()
@@ -587,15 +611,27 @@ fn file_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
         app.status = "2-Up Image Preview enabled".to_string();
     }
     if nav.row(ui, p, true, "Export HTML5 + CSS…", "") {
-        app.file_dialog_name = "index.html".to_string();
+        app.file_dialog_name = format!("index{}", app.html_setup.extension);
         app.begin_file_dialog(FileMode::Export);
-        app.file_dialog_name = "index.html".to_string();
+    }
+    if nav.row(ui, p, true, "HTML Setup…", "") {
+        app.show_html_setup_dialog = true;
+    }
+    if nav.row(ui, p, true, "Preview in Browser", "F12") {
+        app.preview_in_browser();
+    }
+    ui.separator();
+    if nav.row(ui, p, true, "Page Setup…", "") {
+        app.show_page_setup_dialog = true;
+    }
+    if nav.row(ui, p, true, "Print…", "") {
+        app.print_document();
     }
     ui.separator();
     if nav.row(ui, p, true, "Batch Process / MCP Console…", "") {
         app.show_mcp_dialog = true;
     }
-    if nav.row(ui, p, true, "Canvas Size / Page Setup…", "") {
+    if nav.row(ui, p, true, "Canvas Size…", "") {
         app.open_canvas_size_dialog();
     }
     if nav.row(ui, p, true, "Welcome Screen…", "") {

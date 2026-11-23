@@ -576,44 +576,110 @@ fn obj_to_svg(obj: &Obj, idx: usize) -> String {
 }
 
 /// Export the document as an HTML5 + CSS + inline SVG + Slice/Hotspot interactive web page.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum HtmlStyle {
+    Html5,
+    Xhtml1,
+    CssGrid,
+}
+
+#[derive(Clone, Debug)]
+pub struct HtmlExportOptions {
+    pub style: HtmlStyle,
+    pub extension: &'static str,
+    pub include_slices: bool,
+    pub center_in_browser: bool,
+    pub include_viewport_meta: bool,
+    pub export_doc_bg: bool,
+}
+
+impl Default for HtmlExportOptions {
+    fn default() -> Self {
+        Self {
+            style: HtmlStyle::Html5,
+            extension: ".html",
+            include_slices: true,
+            center_in_browser: true,
+            include_viewport_meta: true,
+            export_doc_bg: true,
+        }
+    }
+}
+
 pub fn export_html(doc: &Document) -> String {
+    export_html_with_options(doc, &HtmlExportOptions::default())
+}
+
+pub fn export_html_with_options(doc: &Document, opts: &HtmlExportOptions) -> String {
     let page = doc.page();
     let svg = export_svg(doc);
     let mut hotspots = String::new();
-    for layer in &page.layers {
-        for obj in &layer.objects {
-            if let Shape::Slice {
-                min,
-                max,
-                url,
-                alt,
-                target,
-                ..
-            } = &obj.kind
-            {
-                let lo = min.min(*max);
-                let hi = min.max(*max);
-                let href = if url.is_empty() { "#" } else { url.as_str() };
-                let tgt = if target.is_empty() {
-                    "_self"
-                } else {
-                    target.as_str()
-                };
-                hotspots.push_str(&format!(
-                    "    <a class=\"fw-slice\" href=\"{}\" target=\"{}\" title=\"{}\" style=\"left:{:.0}px;top:{:.0}px;width:{:.0}px;height:{:.0}px;\"></a>\n",
-                    href,
-                    tgt,
-                    alt.replace('"', "&quot;"),
-                    lo.x,
-                    lo.y,
-                    (hi.x - lo.x).max(1.0),
-                    (hi.y - lo.y).max(1.0)
-                ));
+    if opts.include_slices {
+        for layer in &page.layers {
+            for obj in &layer.objects {
+                if let Shape::Slice {
+                    min,
+                    max,
+                    url,
+                    alt,
+                    target,
+                    ..
+                } = &obj.kind
+                {
+                    let lo = min.min(*max);
+                    let hi = min.max(*max);
+                    let href = if url.is_empty() { "#" } else { url.as_str() };
+                    let tgt = if target.is_empty() {
+                        "_self"
+                    } else {
+                        target.as_str()
+                    };
+                    hotspots.push_str(&format!(
+                        "    <a class=\"fw-slice\" href=\"{}\" target=\"{}\" title=\"{}\" style=\"left:{:.0}px;top:{:.0}px;width:{:.0}px;height:{:.0}px;\"></a>\n",
+                        href,
+                        tgt,
+                        alt.replace('"', "&quot;"),
+                        lo.x,
+                        lo.y,
+                        (hi.x - lo.x).max(1.0),
+                        (hi.y - lo.y).max(1.0)
+                    ));
+                }
             }
         }
     }
+    let doctype = match opts.style {
+        HtmlStyle::Xhtml1 => {
+            "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">"
+        }
+        HtmlStyle::Html5 | HtmlStyle::CssGrid => "<!DOCTYPE html>",
+    };
+    let viewport = if opts.include_viewport_meta {
+        "\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+    } else {
+        ""
+    };
+    let body_bg = if opts.export_doc_bg && !page.transparent_bg {
+        format!(
+            "rgb({},{},{})",
+            page.bg_color.r(),
+            page.bg_color.g(),
+            page.bg_color.b()
+        )
+    } else {
+        "#222".to_string()
+    };
+    let body_layout = if opts.center_in_browser {
+        "display: flex; justify-content: center; padding: 24px;"
+    } else {
+        "padding: 12px;"
+    };
+    let stage_display = match opts.style {
+        HtmlStyle::CssGrid => "display: grid; place-items: center;",
+        HtmlStyle::Html5 | HtmlStyle::Xhtml1 => "",
+    };
     format!(
-        "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\">\n  <title>{}</title>\n  <style>\n    body {{ margin: 0; background: #222; display: flex; justify-content: center; padding: 24px; font-family: sans-serif; }}\n    .fw-stage {{ position: relative; width: {:.0}px; height: {:.0}px; box-shadow: 0 8px 24px rgba(0,0,0,0.45); }}\n    .fw-slice {{ position: absolute; display: block; text-decoration: none; }}\n  </style>\n</head>\n<body>\n  <div class=\"fw-stage\">\n{}\n{}  </div>\n</body>\n</html>\n",
+        "{doctype}\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\">{viewport}\n  <title>{}</title>\n  <style>\n    body {{ margin: 0; background: {body_bg}; {body_layout} font-family: sans-serif; }}\n    .fw-stage {{ position: relative; {stage_display} width: {:.0}px; height: {:.0}px; box-shadow: 0 8px 24px rgba(0,0,0,0.45); }}\n    .fw-slice {{ position: absolute; display: block; text-decoration: none; }}\n  </style>\n</head>\n<body>\n  <div class=\"fw-stage\">\n{}\n{}  </div>\n</body>\n</html>\n",
         doc.name, page.width, page.height, svg, hotspots
     )
 }

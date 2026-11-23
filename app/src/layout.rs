@@ -492,6 +492,8 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
 
     dialogs::new_document_dialog(app);
     dialogs::canvas_size_dialog(app);
+    dialogs::html_setup_dialog(app);
+    dialogs::page_setup_dialog(app);
     dialogs::find_replace_dialog(app);
     dialogs::saved_commands_dialog(app);
     // 10. Detached Floating Canvas Windows (Multi-Monitor Native OS Viewports)
