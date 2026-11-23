@@ -886,12 +886,15 @@ pub fn file_dialog(app: &mut FireCraft) {
         FileMode::Save => "Save Document As",
         FileMode::Export => "Export Document",
     };
+    let center = app.ctx.content_rect().center();
     egui::Window::new(title)
         .open(&mut open)
         .collapsible(false)
+        .movable(true)
         .resizable(true)
+        .min_size([520.0, 360.0])
         .default_size([680.0, 460.0])
-        .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
+        .default_pos(center - Vec2::new(340.0, 230.0))
         .show(&app.ctx.clone(), |ui| {
             let filter_id = ui.make_persistent_id("file_dialog_filter_str");
             let mut filter_str: String =
@@ -1003,8 +1006,9 @@ pub fn file_dialog(app: &mut FireCraft) {
 
                 ui.vertical(|ui| {
                     let q = filter_str.trim().to_lowercase();
+                    let list_h = (ui.available_height() - 115.0).max(160.0);
                     egui::ScrollArea::vertical()
-                        .max_height(255.0)
+                        .max_height(list_h)
                         .show(ui, |ui| {
                             for entry in app.file_dialog_entries.clone() {
                                 let name = entry
@@ -1151,10 +1155,7 @@ pub fn file_dialog(app: &mut FireCraft) {
                 app.commit_file_dialog();
                 close_now = true;
             }
-            ui.horizontal(|ui| {
-                if ui.button("Cancel").clicked() {
-                    close_now = true;
-                }
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let label = match app.file_mode {
                     FileMode::Open => "Open",
                     FileMode::Import => "Import",
@@ -1166,6 +1167,9 @@ pub fn file_dialog(app: &mut FireCraft) {
                     if !app.show_file_dialog {
                         close_now = true;
                     }
+                }
+                if ui.button("Cancel").clicked() {
+                    close_now = true;
                 }
             });
         });
