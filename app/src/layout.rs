@@ -909,6 +909,23 @@ enum Shortcut {
 }
 
 fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
+    if !ui.ctx().egui_wants_keyboard_input() {
+        let tab_toggled = ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, Key::Tab));
+        if tab_toggled {
+            if let Some(fid) = ui.ctx().memory(|m| m.focused()) {
+                ui.ctx().memory_mut(|m| m.surrender_focus(fid));
+            }
+            app.toggle_full_screen_canvas();
+            ui.ctx().request_repaint();
+            return;
+        }
+        let shift_tab = ui.input_mut(|i| i.consume_key(egui::Modifiers::SHIFT, Key::Tab));
+        if shift_tab {
+            app.show_right_dock = !app.show_right_dock;
+            ui.ctx().request_repaint();
+            return;
+        }
+    }
     if ui.ctx().egui_wants_keyboard_input() {
         return;
     }
