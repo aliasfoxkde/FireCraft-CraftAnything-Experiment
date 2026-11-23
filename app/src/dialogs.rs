@@ -816,6 +816,55 @@ pub fn mcp_cli_dialog(app: &mut FireCraft) {
 }
 
 /// About & Keyboard Shortcuts dialog (Help > About FireCraft).
+pub fn update_dialog(app: &mut FireCraft) {
+    if !app.show_update_dialog {
+        return;
+    }
+    let mut open = app.show_update_dialog;
+    let mut close_now = false;
+    let p = app.palette;
+    egui::Window::new("Check for Updates")
+        .open(&mut open)
+        .collapsible(false)
+        .resizable(false)
+        .fixed_size([430.0, 210.0])
+        .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
+        .show(&app.ctx.clone(), |ui| {
+            ui.label(
+                RichText::new(format!("FireCraft Studio v{}", env!("CARGO_PKG_VERSION")))
+                    .heading()
+                    .strong()
+                    .color(p.accent),
+            );
+            ui.add_space(6.0);
+            ui.label(&app.update_status);
+            if let Some(tag) = &app.update_latest_version {
+                ui.label(
+                    RichText::new(format!("Latest GitHub Release: {tag}"))
+                        .small()
+                        .color(p.text_dim),
+                );
+            }
+            ui.add_space(10.0);
+            ui.horizontal(|ui| {
+                if ui.button("Check Now").clicked() {
+                    app.check_for_updates();
+                }
+                if ui.button("Open Releases Page (Download)").clicked() {
+                    app.open_update_release_page();
+                }
+            });
+            ui.add_space(12.0);
+            ui.separator();
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui.button("Close").clicked() {
+                    close_now = true;
+                }
+            });
+        });
+    app.show_update_dialog = open && !close_now;
+}
+
 pub fn about_dialog(app: &mut FireCraft) {
     if !app.show_about_dialog {
         return;

@@ -334,6 +334,7 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     dialogs::command_palette_dialog(app);
     dialogs::mcp_cli_dialog(app);
     dialogs::about_dialog(app);
+    dialogs::update_dialog(app);
     dialogs::file_dialog(app);
     dialogs::welcome_overlay(app);
 
@@ -1019,6 +1020,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
             || app.show_commands_dialog
             || app.show_mcp_dialog
             || app.show_about_dialog
+            || app.show_update_dialog
             || app.show_file_dialog
             || app.show_welcome;
         app.active_menu = None;
@@ -1030,6 +1032,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
         app.show_commands_dialog = false;
         app.show_mcp_dialog = false;
         app.show_about_dialog = false;
+        app.show_update_dialog = false;
         app.show_file_dialog = false;
         app.show_welcome = false;
         if !closed_popup {

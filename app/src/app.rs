@@ -422,6 +422,10 @@ pub struct FireCraft {
     pub show_find_replace: bool,
     pub show_commands_dialog: bool,
     pub show_about_dialog: bool,
+    pub show_update_dialog: bool,
+    pub update_status: String,
+    pub update_latest_version: Option<String>,
+    pub update_release_url: Option<String>,
     pub find_query: String,
     pub replace_query: String,
     pub saved_commands: Vec<String>,
@@ -546,6 +550,13 @@ impl FireCraft {
             show_find_replace: false,
             show_commands_dialog: false,
             show_about_dialog: false,
+            show_update_dialog: false,
+            update_status: format!("Current version: v{}", env!("CARGO_PKG_VERSION")),
+            update_latest_version: None,
+            update_release_url: Some(
+                "https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/latest"
+                    .to_string(),
+            ),
             find_query: String::new(),
             replace_query: String::new(),
             saved_commands: vec![
@@ -5406,6 +5417,78 @@ impl FireCraft {
         } else {
             "Window Fullscreen OFF".to_string()
         };
+    }
+
+    pub fn check_for_updates(&mut self) {
+        let cur = env!("CARGO_PKG_VERSION");
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let mut cmd = std::process::Command::new("curl");
+            cmd.args([
+                "-sL",
+                "--max-time",
+                "6",
+                "-H",
+                "User-Agent: FireCraft-Updater",
+                "https://api.github.com/repos/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/latest",
+            ]);
+            #[cfg(target_os = "windows")]
+            {
+                use std::os::windows::process::CommandExt;
+                cmd.creation_flags(0x0800_0000);
+            }
+            match cmd.output() {
+                Ok(out) if out.status.success() => {
+                    let body = String::from_utf8_lossy(&out.stdout);
+                    if let Some(tag) = crate::mcp::extract_json_str(&body, "tag_name") {
+                        let url = crate::mcp::extract_json_str(&body, "html_url").unwrap_or_else(|| {
+                            "https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/latest".to_string()
+                        });
+                        let clean_tag = tag.trim_start_matches('v');
+                        self.update_latest_version = Some(tag.clone());
+                        self.update_release_url = Some(url);
+                        if clean_tag == cur {
+                            self.update_status = format!("You are up to date (v{cur}).");
+                        } else {
+                            self.update_status =
+                                format!("Update available: {tag} (installed: v{cur})");
+                        }
+                    } else {
+                        self.update_status =
+                            format!("Current: v{cur} — check GitHub Releases for latest builds.");
+                    }
+                }
+                _ => {
+                    self.update_status =
+                        format!("Offline or API rate-limited (installed: v{cur}).");
+                }
+            }
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            self.update_status = format!("Web build v{cur} — reload page for latest release.");
+        }
+        self.status = self.update_status.clone();
+    }
+
+    pub fn open_update_release_page(&self) {
+        let url = self.update_release_url.as_deref().unwrap_or(
+            "https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/latest",
+        );
+        #[cfg(target_os = "windows")]
+        {
+            let _ = std::process::Command::new("explorer.exe").arg(url).spawn();
+        }
+        #[cfg(all(not(target_os = "windows"), not(target_arch = "wasm32")))]
+        {
+            let _ = std::process::Command::new("xdg-open").arg(url).spawn();
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            if let Some(w) = web_sys::window() {
+                let _ = w.open_with_url_and_target(url, "_blank");
+            }
+        }
     }
 
     pub fn set_theme(&mut self, mode: ThemeMode) {

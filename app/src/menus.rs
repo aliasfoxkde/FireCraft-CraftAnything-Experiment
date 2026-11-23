@@ -1092,6 +1092,10 @@ fn help_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
         app.load_demo_showcase();
     }
     ui.separator();
+    if nav.row(ui, p, true, "Check for Updates…", "") {
+        app.show_update_dialog = true;
+        app.check_for_updates();
+    }
     if nav.row(ui, p, true, "About FireCraft CS6…", "") {
         app.show_about_dialog = true;
     }

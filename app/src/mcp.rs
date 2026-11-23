@@ -643,7 +643,7 @@ fn extract_json_id(json: &str) -> String {
     "null".to_string()
 }
 
-fn extract_json_str(json: &str, key: &str) -> Option<String> {
+pub fn extract_json_str(json: &str, key: &str) -> Option<String> {
     let pattern = format!("\"{key}\"");
     let mut search_from = 0;
     while let Some(pos) = json[search_from..].find(&pattern) {
