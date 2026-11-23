@@ -176,6 +176,7 @@ pub struct FireCraft {
     pub onion_skin: bool,
     pub align_to_canvas: bool,
     pub space_mode: String,
+    pub alt_hand_pan: bool,
     pub canvas_size: Vec2,
     pub cursor_doc_pos: Option<Vec2>,
     pub brush_size: f32,
@@ -204,12 +205,15 @@ pub struct FireCraft {
     pub file_dialog_entries: Vec<PathBuf>,
     pub file_dialog_name: String,
     pub clipboard: Option<Obj>,
+    pub clipboard_set: Vec<Obj>,
     pub last_effect: Option<LiveEffect>,
     pub show_welcome: bool,
+    pub dont_show_welcome_again: bool,
 }
 
 impl FireCraft {
     pub fn new(screenshot_path: Option<String>) -> Self {
+        let show_welcome_default = screenshot_path.is_none();
         let theme_mode = ThemeMode::Dark;
         let palette = theme::resolve(theme_mode);
         let mut initial_doc = Document::new(constants::DEFAULT_WIDTH, constants::DEFAULT_HEIGHT);
@@ -262,6 +266,7 @@ impl FireCraft {
             onion_skin: false,
             align_to_canvas: false,
             space_mode: "Evenly".to_string(),
+            alt_hand_pan: false,
             canvas_size: Vec2::new(980.0, 660.0),
             cursor_doc_pos: None,
             brush_size: constants::BRUSH_SIZE_DEFAULT,
@@ -296,8 +301,10 @@ impl FireCraft {
             file_dialog_entries: Vec::new(),
             file_dialog_name: String::new(),
             clipboard: None,
+            clipboard_set: Vec::new(),
             last_effect: None,
-            show_welcome: false,
+            show_welcome: show_welcome_default,
+            dont_show_welcome_again: false,
         };
         app.create_default_button_symbol();
         app
@@ -1196,9 +1203,7 @@ impl FireCraft {
         };
         match drag.kind {
             DragKind::Pan => {
-                let delta = raw_doc_pos - drag.current;
-                drag.current = raw_doc_pos;
-                self.doc.pan += delta * self.doc.zoom;
+                // Screen-space panning is applied directly in canvas::show via pointer_delta.
             }
             DragKind::Move => {
                 let delta = doc_pos - drag.current;
@@ -3162,26 +3167,188 @@ impl FireCraft {
     // ---- Clipboard & Selection ---------------------------------------------
 
     pub fn copy_selected(&mut self) {
-        if let Some(obj) = self.selected_object() {
-            self.clipboard = Some(obj);
-            self.status = "Copied".to_string();
+        let mut indices = self.selected_set.clone();
+        if let Some(s) = self.selected
+            && !indices.contains(&s)
+        {
+            indices.push(s);
         }
+        indices.sort_unstable();
+        indices.dedup();
+        let layer = self.selected_layer;
+        let mut copied = Vec::new();
+        if let Some(l) = self.doc.page().layers.get(layer) {
+            for &idx in &indices {
+                if let Some(obj) = l.objects.get(idx) {
+                    copied.push(obj.clone());
+                }
+            }
+        }
+        if copied.is_empty() {
+            self.status = "Select one or more objects first to Copy (Ctrl+C)".to_string();
+            return;
+        }
+        self.clipboard = copied.last().cloned();
+        self.clipboard_set = copied;
+        let marker = format!("FIRECRAFT_CLIPBOARD:{}", self.clipboard_set.len());
+        self.ctx.copy_text(marker.clone());
+        if let Ok(mut cb) = arboard::Clipboard::new() {
+            let _ = cb.set_text(marker);
+        }
+        self.status = format!("Copied {} object(s) to clipboard", self.clipboard_set.len());
     }
 
     pub fn cut_selected(&mut self) {
         self.copy_selected();
-        self.delete_selected();
+        if !self.clipboard_set.is_empty() {
+            self.delete_selected();
+            self.status = format!("Cut {} object(s) to clipboard", self.clipboard_set.len());
+        }
     }
 
     pub fn paste(&mut self) {
-        let Some(mut obj) = self.clipboard.clone() else {
+        self.paste_with_text(None);
+    }
+
+    pub fn paste_with_text(&mut self, event_text: Option<&str>) {
+        // 1. Check if the OS clipboard holds a bitmap image (e.g. Win+Shift+S screenshot, browser Copy Image)
+        if event_text.is_none()
+            && let Ok(mut cb) = arboard::Clipboard::new()
+            && let Ok(img) = cb.get_image()
+            && img.width > 0
+            && img.height > 0
+        {
+            let w = img.width as f32;
+            let h = img.height as f32;
+            let center = Vec2::new(self.doc.page().width * 0.5, self.doc.page().height * 0.5);
+            let at = (center - Vec2::new(w * 0.5, h * 0.5)).max(Vec2::ZERO);
+            let mut obj = Obj::new(
+                Shape::Bitmap {
+                    at,
+                    pixels: img.bytes.into_owned(),
+                    size: Vec2::new(w, h),
+                },
+                None,
+                None,
+            );
+            obj.name = format!("Pasted Bitmap ({:.0}×{:.0})", w, h);
+            self.push_undo("Paste Image");
+            let idx = self.push_object(obj);
+            self.select_single(Some(idx));
+            self.textures.clear();
+            self.status = format!(
+                "Pasted bitmap image ({:.0}×{:.0} px) from system clipboard",
+                w, h
+            );
             return;
-        };
-        obj.translate(Vec2::new(12.0, 12.0));
-        self.push_undo("Paste");
-        let idx = self.push_object(obj);
-        self.select_single(Some(idx));
-        self.status = "Pasted".to_string();
+        }
+
+        // 2. Determine clipboard text (from egui Paste event or OS clipboard)
+        let os_text = event_text.map(|s| s.to_string()).or_else(|| {
+            arboard::Clipboard::new()
+                .ok()
+                .and_then(|mut cb| cb.get_text().ok())
+        });
+        let is_internal_marker = os_text
+            .as_deref()
+            .map(|s| s.starts_with("FIRECRAFT_CLIPBOARD"))
+            .unwrap_or(false);
+
+        // 3. If we have internal FireCraft objects in `clipboard_set` (or `clipboard`) and either
+        // the marker matches or no external text override was passed, paste the internal objects.
+        if (is_internal_marker || event_text.is_none())
+            && (!self.clipboard_set.is_empty() || self.clipboard.is_some())
+        {
+            if self.clipboard_set.is_empty()
+                && let Some(single) = self.clipboard.clone()
+            {
+                self.clipboard_set.push(single);
+            }
+            self.push_undo("Paste");
+            let mut new_indices = Vec::new();
+            let mut updated_clip = Vec::with_capacity(self.clipboard_set.len());
+            for mut obj in self.clipboard_set.clone() {
+                obj.translate(Vec2::new(16.0, 16.0));
+                updated_clip.push(obj.clone());
+                let idx = self.push_object(obj);
+                new_indices.push(idx);
+            }
+            self.clipboard_set = updated_clip;
+            self.clipboard = self.clipboard_set.last().cloned();
+            self.selected = new_indices.last().copied();
+            self.selected_set = new_indices;
+            self.textures.clear();
+            self.status = format!(
+                "Pasted {} object(s) from clipboard",
+                self.selected_set.len()
+            );
+            return;
+        }
+
+        // 4. If external text was pasted (SVG snippet, image file path, or plain text), materialize it on canvas!
+        if let Some(raw_text) = os_text {
+            let trimmed = raw_text.trim();
+            if !trimmed.is_empty() && !trimmed.starts_with("FIRECRAFT_CLIPBOARD") {
+                // Check if it's a file path on disk
+                let unquoted = trimmed.trim_matches('"').trim_matches('\'');
+                let candidate_path = std::path::Path::new(unquoted);
+                if candidate_path.is_file() && self.import_path(candidate_path).is_ok() {
+                    return;
+                }
+                // Otherwise create a Text object at cursor or canvas center
+                let at = self.cursor_doc_pos.unwrap_or_else(|| {
+                    Vec2::new(
+                        self.doc.page().width * 0.5 - 80.0,
+                        self.doc.page().height * 0.5,
+                    )
+                });
+                self.push_undo("Paste Text");
+                let mut obj = Obj::new(
+                    Shape::Text {
+                        at,
+                        text: trimmed.chars().take(240).collect(),
+                        size: 28.0,
+                        bold: false,
+                        italic: false,
+                        font_family: "Sans-Serif".to_string(),
+                    },
+                    Some(self.fill),
+                    None,
+                );
+                obj.name = "Pasted Text".to_string();
+                let idx = self.push_object(obj);
+                self.select_single(Some(idx));
+                self.status = "Pasted text from system clipboard as Text object".to_string();
+                return;
+            }
+        }
+
+        // 5. Fallback: if internal clipboard has objects even when external text was present, paste them
+        if !self.clipboard_set.is_empty() || self.clipboard.is_some() {
+            if self.clipboard_set.is_empty()
+                && let Some(single) = self.clipboard.clone()
+            {
+                self.clipboard_set.push(single);
+            }
+            self.push_undo("Paste");
+            let mut new_indices = Vec::new();
+            for mut obj in self.clipboard_set.clone() {
+                obj.translate(Vec2::new(16.0, 16.0));
+                let idx = self.push_object(obj);
+                new_indices.push(idx);
+            }
+            self.selected = new_indices.last().copied();
+            self.selected_set = new_indices;
+            self.status = format!(
+                "Pasted {} object(s) from clipboard",
+                self.selected_set.len()
+            );
+            return;
+        }
+
+        self.status =
+            "Clipboard is empty — select an object and press Ctrl+C (or copy an image/text) first"
+                .to_string();
     }
 
     pub fn select_all(&mut self) {
@@ -3510,5 +3677,22 @@ mod tests {
         app.ungroup_selected();
         assert_eq!(app.doc.total_objects_on_page(), 2);
         assert_eq!(app.selected_set.len(), 2);
+    }
+
+    #[test]
+    fn clipboard_copy_cut_paste_and_welcome_default() {
+        let mut app = FireCraft::new(None);
+        assert!(app.show_welcome);
+        app.insert_auto_shape(AutoShapeKind::RoundedRect);
+        app.insert_auto_shape(AutoShapeKind::Star);
+        app.select_all();
+        app.copy_selected();
+        assert_eq!(app.clipboard_set.len(), 2);
+        app.paste_with_text(Some("FIRECRAFT_CLIPBOARD:2"));
+        assert_eq!(app.doc.total_objects_on_page(), 4);
+        assert_eq!(app.selected_set.len(), 2);
+
+        app.paste_with_text(Some("External Pasted Headline"));
+        assert_eq!(app.doc.total_objects_on_page(), 5);
     }
 }

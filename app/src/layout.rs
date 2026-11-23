@@ -683,7 +683,7 @@ enum Shortcut {
     CommandPalette,
     Copy,
     Cut,
-    Paste,
+    Paste(Option<String>),
     Duplicate,
     Delete,
     Find,
@@ -697,7 +697,7 @@ enum Shortcut {
 }
 
 fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
-    if ui.memory(|m| m.focused()).is_some() {
+    if ui.ctx().egui_wants_keyboard_input() {
         return;
     }
     let (ctrl, shift) = ui.input(|i| (i.modifiers.ctrl, i.modifiers.shift));
@@ -705,64 +705,77 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
     let mut action = None;
     ui.input(|i| {
         for event in &i.events {
-            let egui::Event::Key {
-                key, pressed: true, ..
-            } = event
-            else {
-                continue;
-            };
-            action = match (key, ctrl, shift) {
-                (Key::Z, true, false) => Some(Shortcut::Undo),
-                (Key::Y, true, _) | (Key::Z, true, true) => Some(Shortcut::Redo),
-                (Key::S, true, _) => Some(Shortcut::Save),
-                (Key::N, true, _) => Some(Shortcut::New),
-                (Key::O, true, _) => Some(Shortcut::Open),
-                (Key::W, true, _) => Some(Shortcut::CloseTab),
-                (Key::R, true, false) => Some(Shortcut::Import),
-                (Key::R, true, true) => Some(Shortcut::Export),
-                (Key::A, true, _) => Some(Shortcut::SelectAll),
-                (Key::D, true, true) => Some(Shortcut::Deselect),
-                (Key::G, true, false) => Some(Shortcut::Group),
-                (Key::G, true, true) => Some(Shortcut::Ungroup),
-                (Key::K | Key::P, true, _) => Some(Shortcut::CommandPalette),
-                (Key::C, true, _) => Some(Shortcut::Copy),
-                (Key::X, true, _) => Some(Shortcut::Cut),
-                (Key::V, true, _) => Some(Shortcut::Paste),
-                (Key::D, true, false) => Some(Shortcut::Duplicate),
-                (Key::F, true, _) => Some(Shortcut::Find),
-                (Key::Num0, true, _) => Some(Shortcut::FitWindow),
-                (Key::Plus | Key::Equals, true, _) => Some(Shortcut::ZoomIn),
-                (Key::Minus, true, _) => Some(Shortcut::ZoomOut),
-                (Key::Delete | Key::Backspace, false, _) => Some(Shortcut::Delete),
-                (Key::F8, false, _) => Some(Shortcut::ConvertSymbol),
-                (Key::ArrowLeft, false, _) => Some(Shortcut::Nudge(Vec2::new(-step, 0.0))),
-                (Key::ArrowRight, false, _) => Some(Shortcut::Nudge(Vec2::new(step, 0.0))),
-                (Key::ArrowUp, false, _) => Some(Shortcut::Nudge(Vec2::new(0.0, -step))),
-                (Key::ArrowDown, false, _) => Some(Shortcut::Nudge(Vec2::new(0.0, step))),
-                (Key::V, false, _) => Some(Shortcut::Tool(Tool::Select)),
-                (Key::A, false, _) => Some(Shortcut::Tool(Tool::Subselect)),
-                (Key::Q, false, _) => Some(Shortcut::Tool(Tool::Scale)),
-                (Key::M, false, _) => Some(Shortcut::Tool(Tool::Marquee)),
-                (Key::L, false, _) => Some(Shortcut::Tool(Tool::Lasso)),
-                (Key::W, false, _) => Some(Shortcut::Tool(Tool::Wand)),
-                (Key::C, false, _) => Some(Shortcut::Tool(Tool::Crop)),
-                (Key::B, false, _) => Some(Shortcut::Tool(Tool::Brush)),
-                (Key::E, false, _) => Some(Shortcut::Tool(Tool::Eraser)),
-                (Key::N, false, _) => Some(Shortcut::Tool(Tool::Line)),
-                (Key::P, false, _) => Some(Shortcut::Tool(Tool::Path)),
-                (Key::U, false, _) => Some(Shortcut::Tool(Tool::Rectangle)),
-                (Key::T, false, _) => Some(Shortcut::Tool(Tool::Text)),
-                (Key::K, false, _) => Some(Shortcut::Tool(Tool::Slice)),
-                (Key::J, false, _) => Some(Shortcut::Tool(Tool::Hotspot)),
-                (Key::I, false, _) => Some(Shortcut::Tool(Tool::Picker)),
-                (Key::G, false, _) => Some(Shortcut::Tool(Tool::Gradient)),
-                (Key::H, false, _) => Some(Shortcut::Tool(Tool::Hand)),
-                (Key::Z, false, _) => Some(Shortcut::Tool(Tool::Zoom)),
-                (Key::X, false, _) => Some(Shortcut::SwapColors),
-                _ => None,
-            };
-            if action.is_some() {
-                break;
+            match event {
+                egui::Event::Copy => {
+                    action = Some(Shortcut::Copy);
+                    break;
+                }
+                egui::Event::Cut => {
+                    action = Some(Shortcut::Cut);
+                    break;
+                }
+                egui::Event::Paste(text) => {
+                    action = Some(Shortcut::Paste(Some(text.clone())));
+                    break;
+                }
+                egui::Event::Key {
+                    key, pressed: true, ..
+                } => {
+                    action = match (key, ctrl, shift) {
+                        (Key::Z, true, false) => Some(Shortcut::Undo),
+                        (Key::Y, true, _) | (Key::Z, true, true) => Some(Shortcut::Redo),
+                        (Key::S, true, _) => Some(Shortcut::Save),
+                        (Key::N, true, _) => Some(Shortcut::New),
+                        (Key::O, true, _) => Some(Shortcut::Open),
+                        (Key::W, true, _) => Some(Shortcut::CloseTab),
+                        (Key::R, true, false) => Some(Shortcut::Import),
+                        (Key::R, true, true) => Some(Shortcut::Export),
+                        (Key::A, true, _) => Some(Shortcut::SelectAll),
+                        (Key::D, true, true) => Some(Shortcut::Deselect),
+                        (Key::G, true, false) => Some(Shortcut::Group),
+                        (Key::G, true, true) => Some(Shortcut::Ungroup),
+                        (Key::K | Key::P, true, _) => Some(Shortcut::CommandPalette),
+                        (Key::C, true, _) => Some(Shortcut::Copy),
+                        (Key::X, true, _) => Some(Shortcut::Cut),
+                        (Key::V, true, _) => Some(Shortcut::Paste(None)),
+                        (Key::D, true, false) => Some(Shortcut::Duplicate),
+                        (Key::F, true, _) => Some(Shortcut::Find),
+                        (Key::Num0, true, _) => Some(Shortcut::FitWindow),
+                        (Key::Plus | Key::Equals, true, _) => Some(Shortcut::ZoomIn),
+                        (Key::Minus, true, _) => Some(Shortcut::ZoomOut),
+                        (Key::Delete | Key::Backspace, false, _) => Some(Shortcut::Delete),
+                        (Key::F8, false, _) => Some(Shortcut::ConvertSymbol),
+                        (Key::ArrowLeft, false, _) => Some(Shortcut::Nudge(Vec2::new(-step, 0.0))),
+                        (Key::ArrowRight, false, _) => Some(Shortcut::Nudge(Vec2::new(step, 0.0))),
+                        (Key::ArrowUp, false, _) => Some(Shortcut::Nudge(Vec2::new(0.0, -step))),
+                        (Key::ArrowDown, false, _) => Some(Shortcut::Nudge(Vec2::new(0.0, step))),
+                        (Key::V, false, _) => Some(Shortcut::Tool(Tool::Select)),
+                        (Key::A, false, _) => Some(Shortcut::Tool(Tool::Subselect)),
+                        (Key::Q, false, _) => Some(Shortcut::Tool(Tool::Scale)),
+                        (Key::M, false, _) => Some(Shortcut::Tool(Tool::Marquee)),
+                        (Key::L, false, _) => Some(Shortcut::Tool(Tool::Lasso)),
+                        (Key::W, false, _) => Some(Shortcut::Tool(Tool::Wand)),
+                        (Key::C, false, _) => Some(Shortcut::Tool(Tool::Crop)),
+                        (Key::B, false, _) => Some(Shortcut::Tool(Tool::Brush)),
+                        (Key::E, false, _) => Some(Shortcut::Tool(Tool::Eraser)),
+                        (Key::N, false, _) => Some(Shortcut::Tool(Tool::Line)),
+                        (Key::P, false, _) => Some(Shortcut::Tool(Tool::Path)),
+                        (Key::U, false, _) => Some(Shortcut::Tool(Tool::Rectangle)),
+                        (Key::T, false, _) => Some(Shortcut::Tool(Tool::Text)),
+                        (Key::K, false, _) => Some(Shortcut::Tool(Tool::Slice)),
+                        (Key::J, false, _) => Some(Shortcut::Tool(Tool::Hotspot)),
+                        (Key::I, false, _) => Some(Shortcut::Tool(Tool::Picker)),
+                        (Key::G, false, _) => Some(Shortcut::Tool(Tool::Gradient)),
+                        (Key::H, false, _) => Some(Shortcut::Tool(Tool::Hand)),
+                        (Key::Z, false, _) => Some(Shortcut::Tool(Tool::Zoom)),
+                        (Key::X, false, _) => Some(Shortcut::SwapColors),
+                        _ => None,
+                    };
+                    if action.is_some() {
+                        break;
+                    }
+                }
+                _ => {}
             }
         }
     });
@@ -782,7 +795,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
         Some(Shortcut::CommandPalette) => app.show_command_palette = !app.show_command_palette,
         Some(Shortcut::Copy) => app.copy_selected(),
         Some(Shortcut::Cut) => app.cut_selected(),
-        Some(Shortcut::Paste) => app.paste(),
+        Some(Shortcut::Paste(txt)) => app.paste_with_text(txt.as_deref()),
         Some(Shortcut::Duplicate) => app.duplicate_selected(),
         Some(Shortcut::Delete) => app.delete_selected(),
         Some(Shortcut::Find) => app.show_find_replace = true,

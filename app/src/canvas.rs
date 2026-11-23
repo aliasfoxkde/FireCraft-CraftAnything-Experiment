@@ -136,6 +136,8 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
             i.pointer.is_decidedly_dragging(),
             i.pointer.primary_released(),
             i.pointer.secondary_clicked(),
+            i.pointer.button_down(egui::PointerButton::Middle),
+            i.pointer.delta(),
             i.pointer
                 .interact_pos()
                 .or_else(|| i.pointer.latest_pos())
@@ -143,45 +145,174 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
             i.modifiers.alt,
             i.modifiers.ctrl,
             i.modifiers.shift,
+            i.key_down(egui::Key::Space),
+            i.smooth_scroll_delta(),
         )
     });
-    let (pressed, down, dragged, released, secondary_clicked, pointer_pos, alt, ctrl, shift) =
-        pointer;
-    let over_canvas = rect.contains(pointer_pos);
+    let (
+        pressed,
+        down,
+        dragged,
+        released,
+        secondary_clicked,
+        middle_down,
+        pointer_delta,
+        pointer_pos,
+        alt,
+        ctrl,
+        shift,
+        space_down,
+        scroll_vec,
+    ) = pointer;
+
+    if !alt {
+        app.alt_hand_pan = false;
+    }
+
+    let over_canvas = rect.contains(pointer_pos) && !app.show_welcome;
     if over_canvas {
         let doc_pos: Vec2 = (pointer_pos - origin.to_pos2()) / zoom;
         app.cursor_doc_pos = Some(doc_pos);
-        if pressed {
-            app.context_menu_pos = None;
-            app.on_pointer_down(doc_pos, pointer_pos.to_vec2(), alt, ctrl, shift);
-        }
-        if secondary_clicked {
-            // CS6 context-menu pick: if right-click hits an unselected object, select it first
-            if let Some((li, oi)) = hit_test(app, doc_pos)
-                && (app.selected_layer != li || !app.is_selected(oi))
-            {
-                app.selected_layer = li;
-                app.select_single(Some(oi));
-            }
-            app.context_menu_pos = Some(pointer_pos);
-        }
-        if down && dragged {
-            app.on_pointer_drag(doc_pos, shift);
-        }
-        if released {
-            app.on_pointer_up(doc_pos, shift);
-        }
-        let scroll = ui.input(|i| i.smooth_scroll_delta().y);
-        if scroll.abs() > 0.01 {
-            let before = doc_pos;
-            let factor = if scroll > 0.0 { 1.1 } else { 1.0 / 1.1 };
-            app.doc.zoom = (app.doc.zoom * factor).clamp(constants::ZOOM_MIN, constants::ZOOM_MAX);
-            let new_origin = pointer_pos - before * app.doc.zoom;
-            let page_size = Vec2::new(
-                app.doc.page().width * app.doc.zoom,
-                app.doc.page().height * app.doc.zoom,
+
+        let hand_mode_active =
+            app.tool == Tool::Hand || middle_down || space_down || app.alt_hand_pan;
+        if hand_mode_active {
+            ui.ctx().set_cursor_icon(
+                if down || middle_down || (app.alt_hand_pan && pointer_delta.length_sq() > 0.1) {
+                    egui::CursorIcon::Grabbing
+                } else {
+                    egui::CursorIcon::Grab
+                },
             );
-            app.doc.pan = new_origin.to_vec2() - (rect.center() - page_size / 2.0).to_vec2();
+        }
+
+        // Direct 2D Hand panning via Middle-Mouse drag, Space+drag, Hand Tool drag, or Alt+Scroll Hand mode
+        if (middle_down
+            || (space_down && down)
+            || (app.tool == Tool::Hand && down)
+            || app.alt_hand_pan)
+            && pointer_delta.length_sq() > 0.01
+        {
+            app.doc.pan += pointer_delta;
+            ui.ctx().request_repaint();
+        } else {
+            if pressed {
+                app.context_menu_pos = None;
+                app.on_pointer_down(doc_pos, pointer_pos.to_vec2(), alt, ctrl, shift);
+            }
+            if secondary_clicked {
+                // CS6 context-menu pick: if right-click hits an unselected object, select it first
+                if let Some((li, oi)) = hit_test(app, doc_pos)
+                    && (app.selected_layer != li || !app.is_selected(oi))
+                {
+                    app.selected_layer = li;
+                    app.select_single(Some(oi));
+                }
+                app.context_menu_pos = Some(pointer_pos);
+            }
+            if down && dragged {
+                app.on_pointer_drag(doc_pos, shift);
+            }
+            if released {
+                app.on_pointer_up(doc_pos, shift);
+            }
+        }
+
+        // Mouse wheel handling:
+        // - Ctrl + Scroll: Zoom in and out anchored at mouse cursor
+        // - Alt + Scroll: Activate Hand pan mode (move around freely while Alt is held)
+        // - Shift + Scroll: Scroll horizontally (left/right) when zoomed in enough to work
+        // - Normal Scroll: Scroll vertically (up/down) when zoomed in enough to move around
+        let wheel_delta = if scroll_vec.y.abs() >= scroll_vec.x.abs() {
+            scroll_vec.y
+        } else {
+            scroll_vec.x
+        };
+        if scroll_vec.length_sq() > 0.05 {
+            if ctrl {
+                let before = doc_pos;
+                let factor = if wheel_delta > 0.0 { 1.12 } else { 1.0 / 1.12 };
+                app.doc.zoom =
+                    (app.doc.zoom * factor).clamp(constants::ZOOM_MIN, constants::ZOOM_MAX);
+                let new_page_size = Vec2::new(
+                    app.doc.page().width * app.doc.zoom,
+                    app.doc.page().height * app.doc.zoom,
+                );
+                if new_page_size.x <= rect.width() - 48.0 && new_page_size.y <= rect.height() - 48.0
+                {
+                    // Gently ease pan toward center when zoomed out smaller than viewport
+                    app.doc.pan *= 0.45;
+                    if app.doc.pan.length() < 2.0 {
+                        app.doc.pan = Vec2::ZERO;
+                    }
+                } else {
+                    let new_origin = pointer_pos - before * app.doc.zoom;
+                    app.doc.pan =
+                        new_origin.to_vec2() - (rect.center() - new_page_size / 2.0).to_vec2();
+                }
+                app.status = format!("Zoom: {:.0}% (Ctrl+Scroll)", app.doc.zoom * 100.0);
+            } else if alt {
+                app.alt_hand_pan = true;
+                ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+                app.doc.pan += Vec2::new(scroll_vec.x, scroll_vec.y) * 1.25;
+                app.status =
+                    "Hand Pan active (move mouse while holding Alt, or middle-drag to pan)"
+                        .to_string();
+            } else if shift {
+                let cur_page_w = app.doc.page().width * app.doc.zoom;
+                let can_scroll_h = cur_page_w > rect.width() - 64.0 || app.doc.pan.x.abs() > 1.0;
+                if can_scroll_h {
+                    let max_pan_x = ((cur_page_w - rect.width() * 0.55) * 0.5 + 140.0).max(60.0);
+                    app.doc.pan.x =
+                        (app.doc.pan.x + wheel_delta * 1.4).clamp(-max_pan_x, max_pan_x);
+                    app.status = format!(
+                        "Horizontal scroll: X {:+.0} px (Shift+Scroll)",
+                        -app.doc.pan.x
+                    );
+                } else {
+                    app.doc.pan.x = 0.0;
+                    app.status =
+                        "Canvas fits horizontally — Ctrl+Scroll to zoom in before horizontal scrolling"
+                            .to_string();
+                }
+            } else {
+                let cur_page_w = app.doc.page().width * app.doc.zoom;
+                let cur_page_h = app.doc.page().height * app.doc.zoom;
+                let can_scroll_v = cur_page_h > rect.height() - 64.0 || app.doc.pan.y.abs() > 1.0;
+                let can_scroll_h = cur_page_w > rect.width() - 64.0 || app.doc.pan.x.abs() > 1.0;
+                if can_scroll_v {
+                    let max_pan_y = ((cur_page_h - rect.height() * 0.55) * 0.5 + 140.0).max(60.0);
+                    app.doc.pan.y =
+                        (app.doc.pan.y + scroll_vec.y * 1.4).clamp(-max_pan_y, max_pan_y);
+                } else {
+                    app.doc.pan.y = 0.0;
+                }
+                if can_scroll_h && scroll_vec.x.abs() > 0.1 {
+                    let max_pan_x = ((cur_page_w - rect.width() * 0.55) * 0.5 + 140.0).max(60.0);
+                    app.doc.pan.x =
+                        (app.doc.pan.x + scroll_vec.x * 1.4).clamp(-max_pan_x, max_pan_x);
+                }
+                if !can_scroll_v && !can_scroll_h {
+                    app.status =
+                        "Canvas fits in window — use Ctrl+Scroll to zoom in/out, or Alt+Scroll for Hand pan"
+                            .to_string();
+                }
+            }
+            ui.ctx().request_repaint();
+        }
+
+        // Draw floating Hand tool badge at cursor when Alt+Scroll Hand Pan or Middle-Drag is active
+        if app.alt_hand_pan || middle_down || space_down {
+            let badge =
+                Rect::from_center_size(pointer_pos + Vec2::new(16.0, 16.0), Vec2::splat(22.0));
+            painter.rect_filled(badge, 0.0, app.palette.panel);
+            painter.rect_stroke(
+                badge,
+                0.0,
+                Stroke::new(1.0, app.palette.accent),
+                egui::StrokeKind::Middle,
+            );
+            icons::draw(&painter, badge, icons::Icon::Hand, app.palette.accent, 1.2);
         }
     } else {
         app.cursor_doc_pos = None;

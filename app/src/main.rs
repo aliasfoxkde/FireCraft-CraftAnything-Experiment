@@ -38,6 +38,7 @@ fn main() {
         && !args[1].starts_with("--screenshot")
         && args[1] != "--demo"
         && args[1] != "--tab"
+        && args[1] != "--splash"
         && let Some(code) = mcp::try_run_cli(&args)
     {
         std::process::exit(code);
@@ -45,6 +46,7 @@ fn main() {
 
     let mut screenshot_path: Option<String> = None;
     let mut load_demo = false;
+    let mut show_splash = false;
     let mut initial_top_tab: Option<usize> = None;
     let mut i = 1;
     while i < args.len() {
@@ -59,6 +61,10 @@ fn main() {
             }
             "--demo" => {
                 load_demo = true;
+                i += 1;
+            }
+            "--splash" => {
+                show_splash = true;
                 i += 1;
             }
             _ => i += 1,
@@ -94,6 +100,9 @@ fn main() {
             let mut fc = app::FireCraft::new(path_for_closure.clone());
             if load_demo {
                 fc.load_demo_showcase();
+            }
+            if show_splash {
+                fc.show_welcome = true;
             }
             if let Some(t) = initial_top_tab {
                 fc.top_right_tab = t.min(3);

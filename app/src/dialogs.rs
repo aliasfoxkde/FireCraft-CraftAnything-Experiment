@@ -677,7 +677,7 @@ pub fn file_dialog(app: &mut FireCraft) {
     app.show_file_dialog = open && !close_now;
 }
 
-/// The Fireworks CS6 Welcome Splash screen overlay (`reference/picture-1.jpg`).
+/// The Fireworks CS6 Welcome Splash screen overlay (`screenshots/Fireworks-Tab_View.jpg`).
 pub fn welcome_overlay(app: &mut FireCraft) {
     if !app.show_welcome {
         return;
@@ -687,34 +687,34 @@ pub fn welcome_overlay(app: &mut FireCraft) {
         .title_bar(false)
         .collapsible(false)
         .resizable(false)
-        .fixed_size([620.0, 390.0])
+        .fixed_size([624.0, 412.0])
         .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
         .frame(
             egui::Frame::new()
                 .fill(app.palette.welcome)
-                .stroke(egui::Stroke::new(1.5, app.palette.accent)),
+                .stroke(egui::Stroke::new(1.0, app.palette.stroke))
+                .inner_margin(egui::Margin::same(4)),
         )
         .show(&ctx, |ui| {
             crate::panels::start_panel(ui, app);
             ui.separator();
             ui.horizontal(|ui| {
-                if ui.button("Start Editing").clicked() {
+                if ui
+                    .checkbox(&mut app.dont_show_welcome_again, "Don't show again")
+                    .changed()
+                    && app.dont_show_welcome_again
+                {
                     app.show_welcome = false;
                 }
-                if ui.button("Load Showcase Demo").clicked() {
-                    app.load_demo_showcase();
-                    app.show_welcome = false;
-                }
-                ui.label(
-                    RichText::new(format!(
-                        "Default canvas: {:.0}×{:.0} px @ {} ppi",
-                        constants::DEFAULT_WIDTH,
-                        constants::DEFAULT_HEIGHT,
-                        constants::EXPORT_DEFAULT_DPI
-                    ))
-                    .small()
-                    .color(app.palette.text_dim),
-                );
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui.button("Start Blank 1080p Canvas").clicked() {
+                        app.show_welcome = false;
+                    }
+                    if ui.button("Load 1080p Showcase Demo").clicked() {
+                        app.load_demo_showcase();
+                        app.show_welcome = false;
+                    }
+                });
             });
         });
 }

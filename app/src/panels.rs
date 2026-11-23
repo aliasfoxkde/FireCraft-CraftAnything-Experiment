@@ -2775,49 +2775,87 @@ pub fn properties_panel(ui: &mut Ui, app: &mut FireCraft) {
     }
 }
 
-/// The Fireworks CS6 Welcome Center card (`reference/picture-1.jpg`).
+/// The Fireworks CS6 Welcome Splash Screen card (`screenshots/Fireworks-Tab_View.jpg`).
 pub fn start_panel(ui: &mut Ui, app: &mut FireCraft) {
     let p = app.palette;
-    let width = 590.0;
-    let height = 315.0;
+    let width = 610.0;
+    let height = 365.0;
     let (panel_rect, _) = ui.allocate_exact_size(Vec2::new(width, height), Sense::hover());
 
     let painter = ui.painter();
-    painter.rect_filled(panel_rect, 4.0, p.welcome);
+    painter.rect_filled(panel_rect, 0.0, p.welcome);
     painter.rect_stroke(
         panel_rect,
-        4.0,
+        0.0,
         Stroke::new(1.0, p.stroke),
         egui::StrokeKind::Middle,
     );
 
-    let title_bar = Rect::from_min_size(panel_rect.left_top(), Vec2::new(width, 62.0));
-    painter.rect_filled(title_bar, 4.0, p.banner);
+    // 1. Top CS6 Welcome Banner (76px tall, textured diagonal stripes + Fc logo)
+    let title_bar = Rect::from_min_size(panel_rect.left_top(), Vec2::new(width, 76.0));
+    painter.rect_filled(title_bar, 0.0, p.banner);
+    // Subtle diagonal CS6 banner texture lines
+    for i in 0..24 {
+        let x0 = title_bar.left() + 180.0 + i as f32 * 18.0;
+        painter.line_segment(
+            [
+                pos2(x0.min(title_bar.right()), title_bar.top()),
+                pos2(
+                    (x0 - 38.0).clamp(title_bar.left(), title_bar.right()),
+                    title_bar.bottom(),
+                ),
+            ],
+            Stroke::new(1.0, Color32::from_white_alpha(10)),
+        );
+    }
+
+    let mut text_left = title_bar.left() + 20.0;
+    if let Some(tex) = &app.logo_tex {
+        let logo_r = Rect::from_min_size(
+            pos2(title_bar.left() + 18.0, title_bar.top() + 12.0),
+            Vec2::splat(44.0),
+        );
+        painter.image(
+            tex.id(),
+            logo_r,
+            Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
+            Color32::WHITE,
+        );
+        text_left = logo_r.right() + 10.0;
+    }
     painter.text(
-        pos2(title_bar.left() + 18.0, title_bar.top() + 22.0),
+        pos2(text_left, title_bar.top() + 26.0),
         Align2::LEFT_CENTER,
         "Fc",
-        FontId::proportional(28.0),
+        FontId::proportional(32.0),
         p.banner_text,
     );
     painter.text(
-        pos2(title_bar.left() + 18.0, title_bar.top() + 47.0),
+        pos2(title_bar.left() + 20.0, title_bar.top() + 58.0),
         Align2::LEFT_CENTER,
-        "FireCraft Studio · Adobe Fireworks CS6 Feature Parity",
+        "Adobe® Fireworks® CS6 Parity · FireCraft Studio",
         FontId::proportional(12.5),
-        Color32::WHITE,
+        p.banner_text,
     );
 
     let close_btn = Rect::from_min_size(
-        pos2(panel_rect.right() - 34.0, title_bar.top() + 10.0),
-        Vec2::new(24.0, 20.0),
+        pos2(panel_rect.right() - 30.0, title_bar.top() + 8.0),
+        Vec2::new(22.0, 20.0),
     );
     let close_resp = ui.interact(
         close_btn,
         ui.make_persistent_id("welcome-close"),
         Sense::click(),
     );
-    painter.rect_filled(close_btn, 3.0, Color32::from_black_alpha(90));
+    painter.rect_filled(
+        close_btn,
+        0.0,
+        if close_resp.hovered() {
+            p.accent.gamma_multiply(0.45)
+        } else {
+            Color32::from_black_alpha(90)
+        },
+    );
     painter.text(
         close_btn.center(),
         Align2::CENTER_CENTER,
@@ -2825,13 +2863,40 @@ pub fn start_panel(ui: &mut Ui, app: &mut FireCraft) {
         FontId::proportional(11.0),
         Color32::WHITE,
     );
-    if close_resp.clicked() {
+    if close_resp.on_hover_text("Close Welcome Screen").clicked() {
         app.show_welcome = false;
     }
 
+    let draw_fc_mini_badge = |pt: egui::Pos2| {
+        let b = Rect::from_min_size(pt, Vec2::splat(14.0));
+        painter.rect_filled(b, 0.0, Color32::from_rgb(36, 34, 20));
+        painter.rect_stroke(
+            b,
+            0.0,
+            Stroke::new(1.0, p.banner_text),
+            egui::StrokeKind::Middle,
+        );
+        painter.text(
+            b.center(),
+            Align2::CENTER_CENTER,
+            "Fc",
+            FontId::proportional(8.5),
+            p.banner_text,
+        );
+    };
+
+    // 2. Main 2-Column Body: "Open a Recent Item" | "Create New" + "Extend"
     let body_top = title_bar.bottom() + 14.0;
-    let col1_x = panel_rect.left() + 22.0;
-    let col2_x = panel_rect.center().x + 12.0;
+    let body_bottom = panel_rect.bottom() - 88.0;
+    let mid_x = panel_rect.center().x;
+    let col1_x = panel_rect.left() + 24.0;
+    let col2_x = mid_x + 18.0;
+
+    // Vertical divider line between columns
+    painter.line_segment(
+        [pos2(mid_x, body_top - 4.0), pos2(mid_x, body_bottom - 6.0)],
+        Stroke::new(1.0, p.stroke),
+    );
 
     painter.text(
         pos2(col1_x, body_top),
@@ -2840,17 +2905,18 @@ pub fn start_panel(ui: &mut Ui, app: &mut FireCraft) {
         FontId::proportional(13.0),
         p.text,
     );
-    for (idx, label) in [
-        "Showcase_UI_Kit.fw.png",
-        "Web_Hero_Banner.fw.png",
-        "Open File…",
+    for (idx, (label, is_folder)) in [
+        ("Showcase_1080p_UI_Kit.fw.png", false),
+        ("Web_Hero_Banner.fw.png", false),
+        ("Amortyx_Logo.fw.png", false),
+        ("Open…", true),
     ]
     .iter()
     .enumerate()
     {
         let r = Rect::from_min_size(
             pos2(col1_x, body_top + 24.0 + idx as f32 * 24.0),
-            Vec2::new(230.0, 20.0),
+            Vec2::new(250.0, 20.0),
         );
         let resp = ui.interact(
             r,
@@ -2858,22 +2924,27 @@ pub fn start_panel(ui: &mut Ui, app: &mut FireCraft) {
             Sense::click(),
         );
         if resp.hovered() {
-            painter.rect_filled(r, 2.0, p.accent.gamma_multiply(0.2));
+            painter.rect_filled(r, 0.0, p.accent.gamma_multiply(0.22));
+        }
+        let ic_r = Rect::from_min_size(pos2(r.left() + 2.0, r.top() + 3.0), Vec2::splat(14.0));
+        if *is_folder {
+            icons::draw(painter, ic_r, icons::Icon::Folder, p.banner_text, 1.1);
+        } else {
+            icons::draw(painter, ic_r, icons::Icon::New, p.text_dim, 1.0);
         }
         painter.text(
-            pos2(r.left() + 4.0, r.center().y),
+            pos2(ic_r.right() + 6.0, r.center().y),
             Align2::LEFT_CENTER,
             *label,
             FontId::proportional(11.5),
             p.text,
         );
         if resp.clicked() {
-            if idx == 2 {
-                app.show_welcome = false;
+            app.show_welcome = false;
+            if *is_folder {
                 app.begin_file_dialog(FileMode::Open);
             } else {
                 app.load_demo_showcase();
-                app.show_welcome = false;
             }
         }
     }
@@ -2885,17 +2956,13 @@ pub fn start_panel(ui: &mut Ui, app: &mut FireCraft) {
         FontId::proportional(13.0),
         p.text,
     );
-    for (idx, label) in [
-        "[Fc] FireCraft Document (PNG)",
-        "[Fc] From Template (Web UI)",
-        "[Fc] Animated Banner (3 States)",
-    ]
-    .iter()
-    .enumerate()
+    for (idx, label) in ["FireCraft Document (PNG)", "From Template (1080p Showcase)"]
+        .iter()
+        .enumerate()
     {
         let r = Rect::from_min_size(
             pos2(col2_x, body_top + 24.0 + idx as f32 * 24.0),
-            Vec2::new(230.0, 20.0),
+            Vec2::new(255.0, 20.0),
         );
         let resp = ui.interact(
             r,
@@ -2903,10 +2970,11 @@ pub fn start_panel(ui: &mut Ui, app: &mut FireCraft) {
             Sense::click(),
         );
         if resp.hovered() {
-            painter.rect_filled(r, 2.0, p.accent.gamma_multiply(0.2));
+            painter.rect_filled(r, 0.0, p.accent.gamma_multiply(0.22));
         }
+        draw_fc_mini_badge(pos2(r.left() + 2.0, r.top() + 3.0));
         painter.text(
-            pos2(r.left() + 4.0, r.center().y),
+            pos2(r.left() + 22.0, r.center().y),
             Align2::LEFT_CENTER,
             *label,
             FontId::proportional(11.5),
@@ -2914,15 +2982,138 @@ pub fn start_panel(ui: &mut Ui, app: &mut FireCraft) {
         );
         if resp.clicked() {
             app.show_welcome = false;
-            match idx {
-                0 => app.show_new_dialog = true,
-                1 => app.create_template_document("Web UI Template", 1200.0, 720.0),
-                _ => {
-                    app.load_demo_showcase();
-                    app.tween_selected_across_states();
-                }
+            if idx == 0 {
+                app.show_new_dialog = true;
+            } else {
+                app.load_demo_showcase();
             }
         }
     }
+
+    let extend_top = body_top + 82.0;
+    painter.text(
+        pos2(col2_x, extend_top),
+        Align2::LEFT_TOP,
+        "Extend",
+        FontId::proportional(13.0),
+        p.text,
+    );
+    for (idx, label) in [
+        "FireCraft Exchange (MCP / CLI) »",
+        "Command Palette (Ctrl+K) »",
+    ]
+    .iter()
+    .enumerate()
+    {
+        let r = Rect::from_min_size(
+            pos2(col2_x, extend_top + 22.0 + idx as f32 * 22.0),
+            Vec2::new(255.0, 19.0),
+        );
+        let resp = ui.interact(
+            r,
+            ui.make_persistent_id(("welcome-extend", idx)),
+            Sense::click(),
+        );
+        if resp.hovered() {
+            painter.rect_filled(r, 0.0, p.accent.gamma_multiply(0.22));
+        }
+        let ic_r = Rect::from_min_size(pos2(r.left() + 2.0, r.top() + 2.5), Vec2::splat(14.0));
+        icons::draw(painter, ic_r, icons::Icon::Group, p.accent, 1.0);
+        painter.text(
+            pos2(r.left() + 22.0, r.center().y),
+            Align2::LEFT_CENTER,
+            *label,
+            FontId::proportional(11.0),
+            p.text,
+        );
+        if resp.clicked() {
+            app.show_welcome = false;
+            if idx == 0 {
+                app.show_mcp_dialog = true;
+            } else {
+                app.show_command_palette = true;
+            }
+        }
+    }
+
+    // 3. Lower CS6 Resources & Brand Badge Section (`screenshots/Fireworks-Tab_View.jpg`)
+    painter.line_segment(
+        [
+            pos2(panel_rect.left() + 8.0, body_bottom),
+            pos2(panel_rect.right() - 8.0, body_bottom),
+        ],
+        Stroke::new(1.0, p.stroke),
+    );
+    painter.line_segment(
+        [
+            pos2(mid_x, body_bottom + 6.0),
+            pos2(mid_x, panel_rect.bottom() - 6.0),
+        ],
+        Stroke::new(1.0, p.stroke),
+    );
+
+    for (idx, label) in ["Getting Started »", "New Features »", "Resources »"]
+        .iter()
+        .enumerate()
+    {
+        let r = Rect::from_min_size(
+            pos2(col1_x, body_bottom + 8.0 + idx as f32 * 23.0),
+            Vec2::new(220.0, 19.0),
+        );
+        let resp = ui.interact(
+            r,
+            ui.make_persistent_id(("welcome-links", idx)),
+            Sense::click(),
+        );
+        if resp.hovered() {
+            painter.rect_filled(r, 0.0, p.accent.gamma_multiply(0.22));
+        }
+        draw_fc_mini_badge(pos2(r.left() + 2.0, r.top() + 2.5));
+        painter.text(
+            pos2(r.left() + 22.0, r.center().y),
+            Align2::LEFT_CENTER,
+            *label,
+            FontId::proportional(11.0),
+            p.text,
+        );
+        if resp.clicked() {
+            app.show_welcome = false;
+            match idx {
+                0 => app.load_demo_showcase(),
+                1 => app.show_command_palette = true,
+                _ => app.show_about_dialog = true,
+            }
+        }
+    }
+
+    // Bottom-right CS6 square Fc Emblem Badge (`screenshots/Fireworks-Tab_View.jpg`)
+    let badge_r = Rect::from_min_size(pos2(col2_x + 4.0, body_bottom + 18.0), Vec2::splat(42.0));
+    painter.rect_filled(badge_r, 0.0, Color32::from_rgb(36, 34, 20));
+    painter.rect_stroke(
+        badge_r,
+        0.0,
+        Stroke::new(2.0, p.banner_text),
+        egui::StrokeKind::Middle,
+    );
+    painter.text(
+        badge_r.center(),
+        Align2::CENTER_CENTER,
+        "Fc",
+        FontId::proportional(20.0),
+        p.banner_text,
+    );
+    if let Some(tex) = &app.logo_tex {
+        let flame_r = Rect::from_min_size(
+            pos2(badge_r.right() + 12.0, body_bottom + 15.0),
+            Vec2::splat(48.0),
+        );
+        painter.image(
+            tex.id(),
+            flame_r,
+            Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
+            Color32::WHITE,
+        );
+    }
+
     let _ = Label::new(RichText::new("").small());
 }
