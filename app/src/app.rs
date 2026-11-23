@@ -4780,8 +4780,92 @@ impl FireCraft {
             }
         }
         self.textures.clear();
+        self.show_welcome = false;
         self.status = format!("Imported {}", path.display());
         Ok(())
+    }
+
+    pub fn handle_dropped_files(&mut self, ctx: &egui::Context) {
+        let (hovered, dropped, shift) = ctx.input(|i| {
+            (
+                i.raw.hovered_files.clone(),
+                i.raw.dropped_files.clone(),
+                i.modifiers.shift,
+            )
+        });
+        if !hovered.is_empty() {
+            let screen = ctx.content_rect();
+            let p = ctx.layer_painter(egui::LayerId::new(
+                egui::Order::Foreground,
+                egui::Id::from(egui::ViewportId::from_hash_of("firecraft_drop_overlay")),
+            ));
+            p.rect_filled(screen, 0.0, self.palette.selection.gamma_multiply(0.10));
+            p.rect_stroke(
+                screen.shrink(4.0),
+                4.0,
+                egui::Stroke::new(2.0, self.palette.accent),
+                egui::StrokeKind::Inside,
+            );
+            let hint_r = egui::Rect::from_center_size(screen.center(), Vec2::new(340.0, 44.0));
+            p.rect_filled(hint_r, 4.0, self.palette.panel.gamma_multiply(0.95));
+            p.rect_stroke(
+                hint_r,
+                4.0,
+                egui::Stroke::new(1.0, self.palette.accent),
+                egui::StrokeKind::Middle,
+            );
+            p.text(
+                hint_r.center(),
+                egui::Align2::CENTER_CENTER,
+                "Drop Image / SVG to Import onto Canvas (Shift: Open Tab)",
+                egui::FontId::proportional(12.5),
+                self.palette.text,
+            );
+        }
+        if dropped.is_empty() {
+            return;
+        }
+        for file in dropped {
+            let path = file.path();
+            if !path.as_os_str().is_empty() {
+                let is_fw = path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .is_some_and(|n| n.to_ascii_lowercase().ends_with(".fw.png"));
+                let res = if shift || is_fw {
+                    self.open_path(path)
+                } else {
+                    self.import_path(path)
+                };
+                if res.is_ok() {
+                    self.show_welcome = false;
+                }
+            } else {
+                #[cfg(not(target_arch = "wasm32"))]
+                if let Ok(bytes) = file.bytes()
+                    && let Ok(img) = image::load_from_memory(&bytes)
+                {
+                    let rgba = img.to_rgba8();
+                    let (w, h) = (rgba.width().max(1), rgba.height().max(1));
+                    self.push_undo("Drop Image");
+                    let mut obj = Obj::new(
+                        Shape::Bitmap {
+                            at: Vec2::new(40.0, 40.0),
+                            size: Vec2::new(w as f32, h as f32),
+                            pixels: rgba.into_raw(),
+                        },
+                        None,
+                        None,
+                    );
+                    obj.name = "Bitmap".to_string();
+                    let idx = self.push_object(obj);
+                    self.select_single(Some(idx));
+                    self.textures.clear();
+                    self.show_welcome = false;
+                    self.status = format!("Imported dropped image ({w}×{h})");
+                }
+            }
+        }
     }
 
     pub fn save_current(&mut self) {

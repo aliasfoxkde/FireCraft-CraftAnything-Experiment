@@ -615,6 +615,7 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     dialogs::unsaved_changes_dialog(app);
     dialogs::file_dialog(app);
     dialogs::welcome_overlay(app);
+    app.handle_dropped_files(ui.ctx());
 
     screenshot(ui, app);
 }
