@@ -386,7 +386,7 @@ pub struct FireCraft {
 impl FireCraft {
     pub fn new(screenshot_path: Option<String>) -> Self {
         let show_welcome_default = screenshot_path.is_none();
-        let theme_mode = ThemeMode::Dark;
+        let theme_mode = ThemeMode::System;
         let palette = theme::resolve(theme_mode);
         let mut initial_doc = Document::new(constants::DEFAULT_WIDTH, constants::DEFAULT_HEIGHT);
         initial_doc.zoom = 0.50; // Fit 1920x1080 comfortably in the initial viewport
@@ -431,11 +431,11 @@ impl FireCraft {
             show_bottom_inspector: true,
             bottom_collapsed: false,
             full_screen_canvas: false,
-            panel_groups: Self::default_panel_groups(),
+            panel_groups: Self::cs6_dual_column_groups(),
             next_panel_group_id: 100,
             dragging_panel: None,
             panel_title_rects: Vec::new(),
-            workspace_preset: "Expanded Mode",
+            workspace_preset: "CS6 Dual-Column",
             anim_playing: false,
             anim_last_tick: 0.0,
             behaviors: vec![
