@@ -881,7 +881,9 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
 
                     action = match (key, ctrl, shift, alt) {
                         // Workspace & Panel toggles (Tab, Shift+Tab, F1..F12)
-                        (Key::Tab, false, false, false) | (Key::F4, false, false, false) => {
+                        (Key::Tab, false, false, false)
+                        | (Key::F4, false, false, false)
+                        | (Key::F11, false, false, false) => {
                             Some(Shortcut::ToggleFullScreenCanvas)
                         }
                         (Key::Tab, false, true, false) => Some(Shortcut::ToggleRightDock),
