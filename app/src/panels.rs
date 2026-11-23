@@ -2797,46 +2797,38 @@ pub fn properties_panel(ui: &mut Ui, app: &mut FireCraft) {
                                 app.set_selected_fill(None);
                             }
                         }
-                        if let Some(fc) = obj.fill {
-                            let mut rgb = [
-                                fc.r() as f32 / 255.0,
-                                fc.g() as f32 / 255.0,
-                                fc.b() as f32 / 255.0,
-                            ];
-                            if ui.color_edit_button_rgb(&mut rgb).changed() {
-                                let c = Color32::from_rgb(
-                                    (rgb[0] * 255.0) as u8,
-                                    (rgb[1] * 255.0) as u8,
-                                    (rgb[2] * 255.0) as u8,
-                                );
-                                app.fill = c;
-                                app.set_selected_fill(Some(c));
+                        let mut fc = obj.fill.unwrap_or(app.fill);
+                        let mut has_fill = obj.fill.is_some();
+                        if cs6_color_button(
+                            ui,
+                            "prop_obj_fill_swatch",
+                            p,
+                            &mut fc,
+                            Some(&mut has_fill),
+                        ) {
+                            if has_fill {
+                                app.fill = fc;
+                                app.set_selected_fill(Some(fc));
+                            } else {
+                                app.set_selected_fill(None);
                             }
                         }
 
                         ui.label(RichText::new("Stroke:").small().color(p.text_dim));
+                        let mut sc = obj.stroke.unwrap_or(app.stroke);
                         let mut has_stroke = obj.stroke.is_some();
-                        if ui.checkbox(&mut has_stroke, "").changed() {
+                        if cs6_color_button(
+                            ui,
+                            "prop_obj_stroke_swatch",
+                            p,
+                            &mut sc,
+                            Some(&mut has_stroke),
+                        ) {
                             if has_stroke {
-                                app.set_selected_stroke(Some(app.stroke));
+                                app.stroke = sc;
+                                app.set_selected_stroke(Some(sc));
                             } else {
                                 app.set_selected_stroke(None);
-                            }
-                        }
-                        if let Some(sc) = obj.stroke {
-                            let mut rgb = [
-                                sc.r() as f32 / 255.0,
-                                sc.g() as f32 / 255.0,
-                                sc.b() as f32 / 255.0,
-                            ];
-                            if ui.color_edit_button_rgb(&mut rgb).changed() {
-                                let c = Color32::from_rgb(
-                                    (rgb[0] * 255.0) as u8,
-                                    (rgb[1] * 255.0) as u8,
-                                    (rgb[2] * 255.0) as u8,
-                                );
-                                app.stroke = c;
-                                app.set_selected_stroke(Some(c));
                             }
                         }
                         let mut width = obj.width;
@@ -3065,21 +3057,19 @@ pub fn properties_panel(ui: &mut Ui, app: &mut FireCraft) {
                 ui.vertical(|ui| {
                     ui.horizontal(|ui| {
                         ui.label(RichText::new("Canvas:").small().color(p.text_dim));
-                        let mut bg = [
-                            app.doc.page().bg_color.r() as f32 / 255.0,
-                            app.doc.page().bg_color.g() as f32 / 255.0,
-                            app.doc.page().bg_color.b() as f32 / 255.0,
-                        ];
-                        if ui.color_edit_button_rgb(&mut bg).changed() {
+                        let mut bg_c = app.doc.page().bg_color;
+                        let mut opaque_bg = !app.doc.page().transparent_bg;
+                        if cs6_color_button(
+                            ui,
+                            "prop_canvas_bg_swatch",
+                            p,
+                            &mut bg_c,
+                            Some(&mut opaque_bg),
+                        ) {
                             let page = app.doc.page_mut();
-                            page.bg_color = Color32::from_rgb(
-                                (bg[0] * 255.0) as u8,
-                                (bg[1] * 255.0) as u8,
-                                (bg[2] * 255.0) as u8,
-                            );
-                            page.transparent_bg = false;
+                            page.bg_color = bg_c;
+                            page.transparent_bg = !opaque_bg;
                         }
-                        ui.checkbox(&mut app.doc.page_mut().transparent_bg, "Transparent");
                         if ui.button("Canvas Size…").clicked() {
                             app.open_canvas_size_dialog();
                         }
@@ -3546,19 +3536,321 @@ pub fn render_panel_by_id(ui: &mut Ui, app: &mut FireCraft, id: PanelId) {
     }
 }
 
+fn cs6_color_button(
+    ui: &mut Ui,
+    id_salt: &str,
+    p: crate::theme::Palette,
+    color: &mut Color32,
+    has_color: Option<&mut bool>,
+) -> bool {
+    let is_none = has_color.as_ref().is_some_and(|h| !**h);
+    let (well_r, well_resp) = ui.allocate_exact_size(Vec2::new(26.0, 18.0), Sense::click());
+    let painter = ui.painter();
+    if is_none || color.a() < 255 {
+        // Checkerboard background
+        for cy in 0..3 {
+            for cx in 0..4 {
+                let c = if (cx + cy) % 2 == 0 {
+                    Color32::from_gray(230)
+                } else {
+                    Color32::from_gray(180)
+                };
+                painter.rect_filled(
+                    Rect::from_min_size(
+                        pos2(
+                            well_r.left() + cx as f32 * 6.5,
+                            well_r.top() + cy as f32 * 6.0,
+                        ),
+                        Vec2::new(6.5, 6.0),
+                    ),
+                    0.0,
+                    c,
+                );
+            }
+        }
+    }
+    if is_none {
+        painter.rect_filled(well_r.shrink(1.0), 0.0, Color32::from_white_alpha(200));
+        painter.line_segment(
+            [
+                pos2(well_r.left() + 2.0, well_r.bottom() - 2.0),
+                pos2(well_r.right() - 2.0, well_r.top() + 2.0),
+            ],
+            Stroke::new(1.5, Color32::from_rgb(200, 36, 36)),
+        );
+    } else {
+        painter.rect_filled(well_r.shrink(1.0), 0.0, *color);
+    }
+    painter.rect_stroke(
+        well_r,
+        0.0,
+        Stroke::new(
+            1.0,
+            if well_resp.hovered() {
+                p.accent
+            } else {
+                p.stroke
+            },
+        ),
+        egui::StrokeKind::Middle,
+    );
+    // CS6 bottom-right dropdown triangle
+    let br = well_r.right_bottom();
+    painter.add(egui::Shape::convex_polygon(
+        vec![
+            pos2(br.x - 1.5, br.y - 1.5),
+            pos2(br.x - 6.0, br.y - 1.5),
+            pos2(br.x - 1.5, br.y - 6.0),
+        ],
+        p.text,
+        Stroke::NONE,
+    ));
+
+    let open_id = ui.make_persistent_id((id_salt, "open"));
+    let wheel_id = ui.make_persistent_id((id_salt, "wheel"));
+    let hex_id = ui.make_persistent_id((id_salt, "hex"));
+    let mut is_open: bool = ui.ctx().data(|d| d.get_temp(open_id).unwrap_or(false));
+    let mut just_opened = false;
+    if well_resp
+        .on_hover_text("Click to open CS6 Color Swatch & Transparency Picker")
+        .clicked()
+    {
+        is_open = !is_open;
+        just_opened = is_open;
+        if is_open {
+            ui.ctx()
+                .data_mut(|d| d.insert_temp(hex_id, colors::hex_of(*color)));
+        }
+    }
+
+    let mut changed = false;
+    if is_open {
+        let mut show_wheel: bool = ui.ctx().data(|d| d.get_temp(wheel_id).unwrap_or(false));
+        let screen = ui.ctx().content_rect();
+        let pop_w = 224.0;
+        let pop_h = if show_wheel { 390.0 } else { 254.0 };
+        let pop_pos = pos2(
+            well_r
+                .left()
+                .clamp(screen.left() + 4.0, (screen.right() - pop_w - 8.0).max(4.0)),
+            if well_r.bottom() + pop_h + 6.0 <= screen.bottom() {
+                well_r.bottom() + 3.0
+            } else {
+                (well_r.top() - pop_h - 4.0).max(screen.top() + 4.0)
+            },
+        );
+        let mut close_pop = ui.input(|i| i.key_pressed(egui::Key::Escape));
+        let mut set_none = false;
+        let area_resp = egui::Area::new(ui.make_persistent_id((id_salt, "cs6_swatch_popover")))
+            .fixed_pos(pop_pos)
+            .order(egui::Order::Foreground)
+            .show(ui.ctx(), |ui| {
+                egui::Frame::menu(ui.style())
+                    .fill(p.panel)
+                    .stroke(Stroke::new(1.0, p.stroke))
+                    .inner_margin(egui::Margin::same(6))
+                    .show(ui, |ui| {
+                        ui.set_width(pop_w);
+                        // 1. CS6 18-column Swatch Cube Matrix
+                        let swatches = colors::swatch_grid();
+                        let cols = 18usize;
+                        let cell = 11.0;
+                        let rows = swatches.len().div_ceil(cols);
+                        let (grid_r, grid_resp) = ui.allocate_exact_size(
+                            Vec2::new(cols as f32 * cell, rows as f32 * cell),
+                            Sense::click(),
+                        );
+                        let gp = ui.painter();
+                        gp.rect_filled(grid_r, 0.0, Color32::BLACK);
+                        for (idx, &sc) in swatches.iter().enumerate() {
+                            let gx = idx % cols;
+                            let gy = idx / cols;
+                            let cr = Rect::from_min_size(
+                                pos2(
+                                    grid_r.left() + gx as f32 * cell + 0.5,
+                                    grid_r.top() + gy as f32 * cell + 0.5,
+                                ),
+                                Vec2::splat(cell - 1.0),
+                            );
+                            gp.rect_filled(cr, 0.0, sc);
+                        }
+                        if grid_resp.clicked()
+                            && let Some(pos) = grid_resp.interact_pointer_pos()
+                        {
+                            let gx = ((pos.x - grid_r.left()) / cell).floor() as usize;
+                            let gy = ((pos.y - grid_r.top()) / cell).floor() as usize;
+                            let idx = gy * cols + gx;
+                            if let Some(&picked) = swatches.get(idx) {
+                                *color = Color32::from_rgba_unmultiplied(
+                                    picked.r(),
+                                    picked.g(),
+                                    picked.b(),
+                                    color.a().max(if is_none { 255 } else { color.a() }),
+                                );
+                                changed = true;
+                                close_pop = true;
+                            }
+                        }
+
+                        ui.add_space(5.0);
+                        // 2. Preview + HEX + RGB + Opacity %
+                        ui.horizontal(|ui| {
+                            let (prev_r, _) =
+                                ui.allocate_exact_size(Vec2::new(28.0, 22.0), Sense::hover());
+                            ui.painter().rect_filled(prev_r, 0.0, *color);
+                            ui.painter().rect_stroke(
+                                prev_r,
+                                0.0,
+                                Stroke::new(1.0, p.stroke),
+                                egui::StrokeKind::Middle,
+                            );
+                            ui.vertical(|ui| {
+                                ui.spacing_mut().item_spacing = Vec2::new(3.0, 2.0);
+                                ui.horizontal(|ui| {
+                                    ui.label(RichText::new("HEX:").small().color(p.text_dim));
+                                    let mut hex_str: String = ui.ctx().data(|d| {
+                                        d.get_temp(hex_id).unwrap_or_else(|| colors::hex_of(*color))
+                                    });
+                                    let te = ui.add(
+                                        egui::TextEdit::singleline(&mut hex_str)
+                                            .desired_width(68.0)
+                                            .font(FontId::monospace(10.5)),
+                                    );
+                                    if te.changed()
+                                        && let Some(parsed) = colors::from_hex(&hex_str)
+                                    {
+                                        *color = Color32::from_rgba_unmultiplied(
+                                            parsed.r(),
+                                            parsed.g(),
+                                            parsed.b(),
+                                            color.a(),
+                                        );
+                                        changed = true;
+                                    }
+                                    ui.ctx().data_mut(|d| d.insert_temp(hex_id, hex_str));
+                                    if ui.small_button("📋").on_hover_text("Copy HEX").clicked() {
+                                        ui.ctx().copy_text(colors::hex_of(*color));
+                                    }
+                                });
+                                ui.horizontal(|ui| {
+                                    let (mut r, mut g, mut b) =
+                                        (color.r() as i32, color.g() as i32, color.b() as i32);
+                                    ui.label(RichText::new("RGB:").small().color(p.text_dim));
+                                    let rc = ui
+                                        .add(egui::DragValue::new(&mut r).range(0..=255).speed(1.0))
+                                        .changed();
+                                    let gc = ui
+                                        .add(egui::DragValue::new(&mut g).range(0..=255).speed(1.0))
+                                        .changed();
+                                    let bc = ui
+                                        .add(egui::DragValue::new(&mut b).range(0..=255).speed(1.0))
+                                        .changed();
+                                    if rc || gc || bc {
+                                        *color = Color32::from_rgba_unmultiplied(
+                                            r as u8,
+                                            g as u8,
+                                            b as u8,
+                                            color.a(),
+                                        );
+                                        ui.ctx().data_mut(|d| {
+                                            d.insert_temp(hex_id, colors::hex_of(*color))
+                                        });
+                                        changed = true;
+                                    }
+                                });
+                            });
+                        });
+
+                        ui.horizontal(|ui| {
+                            ui.label(RichText::new("Opacity:").small().color(p.text_dim));
+                            let mut pct = (color.a() as f32 / 255.0 * 100.0).round();
+                            if ui
+                                .add(egui::Slider::new(&mut pct, 0.0..=100.0).suffix("%"))
+                                .changed()
+                            {
+                                let a = (pct / 100.0 * 255.0).round().clamp(0.0, 255.0) as u8;
+                                *color = Color32::from_rgba_unmultiplied(
+                                    color.r(),
+                                    color.g(),
+                                    color.b(),
+                                    a,
+                                );
+                                changed = true;
+                            }
+                        });
+
+                        ui.separator();
+                        ui.horizontal(|ui| {
+                            if has_color.is_some()
+                                && ui
+                                    .small_button("╱ Transparent")
+                                    .on_hover_text("Set to Transparent / No Fill")
+                                    .clicked()
+                            {
+                                set_none = true;
+                                close_pop = true;
+                            }
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if ui
+                                        .selectable_label(show_wheel, "🌈 Wheel")
+                                        .on_hover_text("Toggle full HSV/RGBA Color Wheel")
+                                        .clicked()
+                                    {
+                                        show_wheel = !show_wheel;
+                                    }
+                                },
+                            );
+                        });
+                        if show_wheel {
+                            ui.add_space(4.0);
+                            if ui.color_edit_button_srgba(color).changed() {
+                                ui.ctx()
+                                    .data_mut(|d| d.insert_temp(hex_id, colors::hex_of(*color)));
+                                changed = true;
+                            }
+                        }
+                    });
+            });
+        ui.ctx().data_mut(|d| d.insert_temp(wheel_id, show_wheel));
+        if set_none && let Some(h) = has_color {
+            *h = false;
+            changed = true;
+        } else if changed && let Some(h) = has_color {
+            *h = true;
+        }
+        if !just_opened
+            && ui.input(|i| {
+                i.pointer.any_pressed()
+                    && i.pointer.interact_pos().is_some_and(|pp| {
+                        !area_resp.response.rect.contains(pp) && !well_r.contains(pp)
+                    })
+            })
+        {
+            close_pop = true;
+        }
+        if close_pop {
+            is_open = false;
+        }
+    }
+    ui.ctx().data_mut(|d| d.insert_temp(open_id, is_open));
+    changed
+}
+
 pub fn color_mixer_panel(ui: &mut Ui, app: &mut FireCraft) {
     let p = app.palette;
     ui.horizontal(|ui| {
         ui.label(RichText::new("Fill:").small().color(p.text_dim));
         let mut fill_c = app.fill;
-        if ui.color_edit_button_srgba(&mut fill_c).changed() {
+        if cs6_color_button(ui, "mixer_fill_swatch", p, &mut fill_c, None) {
             app.fill = fill_c;
             app.set_selected_fill(Some(fill_c));
         }
         ui.add_space(6.0);
         ui.label(RichText::new("Stroke:").small().color(p.text_dim));
         let mut stroke_c = app.stroke;
-        if ui.color_edit_button_srgba(&mut stroke_c).changed() {
+        if cs6_color_button(ui, "mixer_stroke_swatch", p, &mut stroke_c, None) {
             app.stroke = stroke_c;
             app.set_selected_stroke(Some(stroke_c));
         }
