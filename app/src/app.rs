@@ -2551,6 +2551,26 @@ impl FireCraft {
         }
     }
 
+    pub fn swap_document_tabs(&mut self, a: usize, b: usize) {
+        if a == b || a >= self.open_docs.len() || b >= self.open_docs.len() {
+            return;
+        }
+        self.sync_active_doc_slot();
+        self.open_docs.swap(a, b);
+        if self.active_doc == a {
+            self.active_doc = b;
+        } else if self.active_doc == b {
+            self.active_doc = a;
+        }
+        for fi in &mut self.floating_doc_tabs {
+            if *fi == a {
+                *fi = b;
+            } else if *fi == b {
+                *fi = a;
+            }
+        }
+    }
+
     pub fn new_document_tab(&mut self, width: f32, height: f32) {
         self.sync_active_doc_slot();
         let mut d = Document::new(width, height);
@@ -5975,5 +5995,19 @@ mod tests {
         let obj = app.selected_object().unwrap();
         assert_eq!(obj.fill, dark_chrome[0].fill);
         assert_eq!(obj.stroke, dark_chrome[0].stroke);
+    }
+
+    #[test]
+    fn document_tabs_swap_keeps_active_doc() {
+        let mut app = FireCraft::new(None);
+        app.doc.name = "First".to_string();
+        app.new_document_tab(800.0, 600.0);
+        app.doc.name = "Second".to_string();
+        app.sync_active_doc_slot();
+        assert_eq!(app.active_doc, 1);
+        app.swap_document_tabs(0, 1);
+        assert_eq!(app.active_doc, 0);
+        assert_eq!(app.open_docs[0].name, "Second");
+        assert_eq!(app.open_docs[1].name, "First");
     }
 }

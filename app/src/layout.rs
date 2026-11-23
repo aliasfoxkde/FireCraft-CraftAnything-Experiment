@@ -805,6 +805,9 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                 let mut switch_to = None;
                 let mut close_idx = None;
                 let mut float_idx = None;
+                let mut swap_pair: Option<(usize, usize)> = None;
+                let mut dragging_tab: Option<(usize, egui::Rect, egui::Pos2)> = None;
+                let mut tab_rects: Vec<(usize, egui::Rect, String)> = Vec::new();
                 for i in 0..doc_count {
                     if app.floating_doc_tabs.contains(&i) {
                         continue;
@@ -824,6 +827,7 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                     let tab_w = (28.0 + name.len() as f32 * 6.2).clamp(112.0, 210.0);
                     let (tab_r, tab_resp) =
                         ui.allocate_exact_size(Vec2::new(tab_w, 21.0), egui::Sense::click_and_drag());
+                    tab_rects.push((i, tab_r, name.clone()));
                     let close_r = egui::Rect::from_center_size(
                         egui::pos2(tab_r.right() - 11.0, tab_r.center().y),
                         Vec2::splat(14.0),
@@ -888,7 +892,7 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                         },
                     );
                     let tab_resp = tab_resp.on_hover_text(
-                        "Left-click to switch · Drag down/out to float in new window · Middle-click to close",
+                        "Click to switch · Drag left/right to reorder · Drag out to float · Middle-click to close",
                     );
                     if close_resp
                         .on_hover_text("Close Document Tab (Middle-Click or Ctrl+W)")
@@ -901,11 +905,55 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                     }
                     if tab_resp.dragged()
                         && let Some(ptr) = ui.ctx().pointer_interact_pos()
-                        && (ptr.y > tab_r.bottom() + 18.0 || ptr.y < tab_r.top() - 18.0)
                     {
-                        float_idx = Some(i);
+                        ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+                        let pulling_out = ptr.y > tab_r.bottom() + 20.0 || ptr.y < tab_r.top() - 20.0;
+                        // Floating ghost tab preview at pointer
+                        let ghost_p = ui.ctx().layer_painter(egui::LayerId::new(
+                            egui::Order::Tooltip,
+                            ui.make_persistent_id("tab_drag_ghost"),
+                        ));
+                        let ghost_r = egui::Rect::from_center_size(ptr + Vec2::new(0.0, 14.0), Vec2::new(tab_w, 20.0));
+                        ghost_p.rect_filled(ghost_r, 2.0, p.panel.gamma_multiply(0.94));
+                        ghost_p.rect_stroke(
+                            ghost_r,
+                            2.0,
+                            egui::Stroke::new(1.5, p.accent),
+                            egui::StrokeKind::Middle,
+                        );
+                        ghost_p.text(
+                            ghost_r.center(),
+                            egui::Align2::CENTER_CENTER,
+                            if pulling_out {
+                                format!("⧉ Float: {name}")
+                            } else {
+                                name.clone()
+                            },
+                            egui::FontId::proportional(10.5),
+                            p.text,
+                        );
+                        if pulling_out {
+                            float_idx = Some(i);
+                        } else {
+                            dragging_tab = Some((i, tab_r, ptr));
+                        }
                     }
                     tab_resp.context_menu(|ui| {
+                        if ui
+                            .add_enabled(i > 0, egui::Button::new("Move Tab Left"))
+                            .clicked()
+                        {
+                            swap_pair = Some((i, i - 1));
+                            ui.close();
+                        }
+                        if ui
+                            .add_enabled(i + 1 < doc_count, egui::Button::new("Move Tab Right"))
+                            .clicked()
+                        {
+                            swap_pair = Some((i, i + 1));
+                            ui.close();
+                        }
+                        ui.separator();
                         if ui.button("Float in New Window (Multi-Monitor)").clicked() {
                             float_idx = Some(i);
                             ui.close();
@@ -939,6 +987,20 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                         .clicked()
                 {
                     app.floating_doc_tabs.clear();
+                }
+                if let Some((drag_i, _drag_r, ptr)) = dragging_tab {
+                    for &(other_i, other_r, _) in &tab_rects {
+                        if other_i != drag_i
+                            && ((other_i < drag_i && ptr.x < other_r.center().x)
+                                || (other_i > drag_i && ptr.x > other_r.center().x))
+                        {
+                            swap_pair = Some((drag_i, other_i));
+                            break;
+                        }
+                    }
+                }
+                if let Some((a, b)) = swap_pair {
+                    app.swap_document_tabs(a, b);
                 }
                 if let Some(fi) = float_idx {
                     app.sync_active_doc_slot();
