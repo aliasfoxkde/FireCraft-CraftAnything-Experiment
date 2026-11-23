@@ -894,7 +894,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
                         (Key::F2, false, true, false) => Some(Shortcut::FocusRightPanel(1, 1)), // States
                         (Key::F5, false, false, false) => Some(Shortcut::FocusRightPanel(1, 0)), // Pages
                         (Key::F6, false, false, false) => Some(Shortcut::FocusRightPanel(0, 0)), // Optimize
-                        (Key::F7 | Key::F11, false, false, false) => {
+                        (Key::F7, false, false, false) => {
                             Some(Shortcut::FocusRightPanel(3, 3))
                         } // Library
                         (Key::F7, true, false, false) => Some(Shortcut::FocusRightPanel(3, 4)), // CSS
