@@ -872,13 +872,14 @@ pub fn about_dialog(app: &mut FireCraft) {
     app.show_about_dialog = open && !close_now;
 }
 
-/// The file browser used for Open, Save, Import and Export.
+/// The refactored file browser used for Open, Save, Import and Export.
 pub fn file_dialog(app: &mut FireCraft) {
     if !app.show_file_dialog {
         return;
     }
     let mut open = app.show_file_dialog;
     let mut close_now = false;
+    let p = app.palette;
     let title = match app.file_mode {
         FileMode::Open => "Open Document",
         FileMode::Import => "Import Image / Vector into Layer",
@@ -889,59 +890,185 @@ pub fn file_dialog(app: &mut FireCraft) {
         .open(&mut open)
         .collapsible(false)
         .resizable(true)
-        .default_size([540.0, 410.0])
+        .default_size([680.0, 460.0])
         .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
         .show(&app.ctx.clone(), |ui| {
+            let filter_id = ui.make_persistent_id("file_dialog_filter_str");
+            let mut filter_str: String =
+                ui.ctx().data(|d| d.get_temp(filter_id).unwrap_or_default());
+
+            // Top Navigation Bar: Up + Clickable Breadcrumbs + Filter
             ui.horizontal(|ui| {
-                if ui.button("<- Up").clicked()
+                if ui.button("⬆ Up").clicked()
                     && let Some(parent) = app.file_dialog_dir.parent()
                 {
                     let parent = parent.to_path_buf();
                     app.set_file_dialog_dir(parent);
                 }
-                ui.label(
-                    RichText::new(app.file_dialog_dir.to_string_lossy().to_string())
-                        .small()
-                        .color(app.palette.text_dim),
-                );
+                if ui.button("↻").on_hover_text("Refresh folder").clicked() {
+                    let cur = app.file_dialog_dir.clone();
+                    app.set_file_dialog_dir(cur);
+                }
+                ui.separator();
+                let mut nav_target: Option<std::path::PathBuf> = None;
+                let mut accum = std::path::PathBuf::new();
+                for comp in app.file_dialog_dir.components() {
+                    accum.push(comp);
+                    let lbl = comp.as_os_str().to_string_lossy();
+                    if ui.small_button(lbl.as_ref()).clicked() {
+                        nav_target = Some(accum.clone());
+                    }
+                    ui.label(RichText::new("›").small().color(p.text_dim));
+                }
+                if let Some(t) = nav_target {
+                    app.set_file_dialog_dir(t);
+                }
             });
+
+            ui.add_space(4.0);
+            ui.horizontal(|ui| {
+                ui.label(RichText::new("Filter:").small().color(p.text_dim));
+                ui.add(
+                    egui::TextEdit::singleline(&mut filter_str)
+                        .desired_width(240.0)
+                        .hint_text("Filter files by name or extension…"),
+                );
+                if !filter_str.is_empty() && ui.small_button("×").clicked() {
+                    filter_str.clear();
+                }
+            });
+            ui.ctx()
+                .data_mut(|d| d.insert_temp(filter_id, filter_str.clone()));
             ui.separator();
 
-            egui::ScrollArea::vertical()
-                .max_height(230.0)
-                .show(ui, |ui| {
-                    for entry in app.file_dialog_entries.clone() {
-                        let name = entry
-                            .file_name()
-                            .map(|n| n.to_string_lossy().to_string())
-                            .unwrap_or_default();
-                        let is_dir = entry.is_dir();
-                        let label = if is_dir {
-                            format!("[DIR] {name}")
-                        } else {
-                            name.clone()
-                        };
-                        if ui
-                            .selectable_label(app.file_dialog_name == name, label)
-                            .clicked()
-                        {
-                            if is_dir {
-                                app.set_file_dialog_dir(entry);
+            // Two-Column Body: Quick Places Sidebar | File List
+            let mut confirm_now = false;
+            ui.horizontal(|ui| {
+                ui.vertical(|ui| {
+                    ui.set_width(132.0);
+                    ui.label(
+                        RichText::new("Quick Places")
+                            .strong()
+                            .small()
+                            .color(p.text_dim),
+                    );
+                    ui.add_space(4.0);
+                    if let Ok(home) =
+                        std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME"))
+                    {
+                        let hp = std::path::PathBuf::from(home);
+                        for (lbl, sub) in [
+                            ("🏠 Home", ""),
+                            ("🖥 Desktop", "Desktop"),
+                            ("📄 Documents", "Documents"),
+                            ("🖼 Pictures", "Pictures"),
+                            ("⬇ Downloads", "Downloads"),
+                        ] {
+                            let target = if sub.is_empty() {
+                                hp.clone()
                             } else {
-                                app.file_dialog_name = name;
+                                hp.join(sub)
+                            };
+                            if target.exists()
+                                && ui
+                                    .selectable_label(app.file_dialog_dir == target, lbl)
+                                    .clicked()
+                            {
+                                app.set_file_dialog_dir(target);
                             }
                         }
                     }
+                    if let Ok(cwd) = std::env::current_dir()
+                        && ui
+                            .selectable_label(app.file_dialog_dir == cwd, "📁 Workspace")
+                            .clicked()
+                    {
+                        app.set_file_dialog_dir(cwd);
+                    }
                 });
+
+                ui.separator();
+
+                ui.vertical(|ui| {
+                    let q = filter_str.trim().to_lowercase();
+                    egui::ScrollArea::vertical()
+                        .max_height(255.0)
+                        .show(ui, |ui| {
+                            for entry in app.file_dialog_entries.clone() {
+                                let name = entry
+                                    .file_name()
+                                    .map(|n| n.to_string_lossy().to_string())
+                                    .unwrap_or_default();
+                                if !q.is_empty() && !name.to_lowercase().contains(&q) {
+                                    continue;
+                                }
+                                let is_dir = entry.is_dir();
+                                let ext = entry
+                                    .extension()
+                                    .and_then(|e| e.to_str())
+                                    .unwrap_or("")
+                                    .to_uppercase();
+                                let badge = if is_dir {
+                                    "📁".to_string()
+                                } else if ext.is_empty() {
+                                    "📄".to_string()
+                                } else {
+                                    format!("[{ext}]")
+                                };
+                                let size_str = if is_dir {
+                                    "Folder".to_string()
+                                } else if let Ok(meta) = std::fs::metadata(&entry) {
+                                    let kb = meta.len() / 1024;
+                                    if kb >= 1024 {
+                                        format!("{:.1} MB", kb as f32 / 1024.0)
+                                    } else {
+                                        format!("{} KB", kb.max(1))
+                                    }
+                                } else {
+                                    String::new()
+                                };
+                                ui.horizontal(|ui| {
+                                    ui.label(
+                                        RichText::new(badge).monospace().small().color(if is_dir {
+                                            p.accent
+                                        } else {
+                                            p.text_dim
+                                        }),
+                                    );
+                                    let row_resp =
+                                        ui.selectable_label(app.file_dialog_name == name, &name);
+                                    if row_resp.clicked() {
+                                        if is_dir {
+                                            app.set_file_dialog_dir(entry);
+                                        } else {
+                                            app.file_dialog_name = name;
+                                        }
+                                    }
+                                    if !is_dir && row_resp.double_clicked() {
+                                        confirm_now = true;
+                                    }
+                                    ui.with_layout(
+                                        egui::Layout::right_to_left(egui::Align::Center),
+                                        |ui| {
+                                            ui.label(
+                                                RichText::new(size_str).small().color(p.text_dim),
+                                            );
+                                        },
+                                    );
+                                });
+                            }
+                        });
+                });
+            });
 
             ui.separator();
             ui.horizontal(|ui| {
-                ui.label("File name:");
-                ui.text_edit_singleline(&mut app.file_dialog_name);
+                ui.label(RichText::new("File name:").strong());
+                ui.add(egui::TextEdit::singleline(&mut app.file_dialog_name).desired_width(380.0));
             });
             if matches!(app.file_mode, FileMode::Save | FileMode::Export) {
                 ui.horizontal_wrapped(|ui| {
-                    ui.label(RichText::new("Format:").small().color(app.palette.text_dim));
+                    ui.label(RichText::new("Format:").small().color(p.text_dim));
                     for fmt in [
                         crate::formats::Format::Png,
                         crate::formats::Format::Jpeg,
@@ -963,6 +1090,10 @@ pub fn file_dialog(app: &mut FireCraft) {
                         }
                     }
                 });
+            }
+            if confirm_now {
+                app.commit_file_dialog();
+                close_now = true;
             }
             ui.horizontal(|ui| {
                 if ui.button("Cancel").clicked() {

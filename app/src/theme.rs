@@ -212,10 +212,10 @@ pub fn apply_cs6_style(ctx: &egui::Context, p: &Palette, dark: bool) {
 
     ctx.all_styles_mut(|style| {
         style.visuals = v.clone();
-        style.spacing.menu_margin = egui::Margin::same(2);
-        style.spacing.button_padding = egui::Vec2::new(5.0, 2.0);
-        style.spacing.item_spacing = egui::Vec2::new(4.0, 2.0);
-        style.spacing.window_margin = egui::Margin::same(6);
+        style.spacing.menu_margin = egui::Margin::same(4);
+        style.spacing.button_padding = egui::Vec2::new(7.0, 3.0);
+        style.spacing.item_spacing = egui::Vec2::new(5.0, 3.0);
+        style.spacing.window_margin = egui::Margin::same(8);
     });
 }
 
