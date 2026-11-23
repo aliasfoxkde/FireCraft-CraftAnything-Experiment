@@ -1065,7 +1065,7 @@ pub fn draw(painter: &Painter, rect: Rect, icon: Icon, color: Color32, width: f3
                 Vec2::new(u * 0.9, u * 0.9),
             );
             painter.rect_stroke(back, 0.0, st, egui::StrokeKind::Middle);
-            painter.rect_filled(front, 0.0, color);
+            painter.rect_filled(front, 0.0, accent_blue);
         }
         Icon::BringForward => {
             let back = Rect::from_min_size(
@@ -1077,7 +1077,7 @@ pub fn draw(painter: &Painter, rect: Rect, icon: Icon, color: Color32, width: f3
                 Vec2::new(u * 0.85, u * 0.85),
             );
             painter.rect_stroke(back, 0.0, st, egui::StrokeKind::Middle);
-            painter.rect_filled(front, 0.0, color.gamma_multiply(0.55));
+            painter.rect_filled(front, 0.0, accent_blue.gamma_multiply(0.45));
             painter.rect_stroke(front, 0.0, st, egui::StrokeKind::Middle);
         }
         Icon::SendBackward => {
@@ -1089,7 +1089,7 @@ pub fn draw(painter: &Painter, rect: Rect, icon: Icon, color: Color32, width: f3
                 pos2(cx - u * 0.1, cy - u * 0.1),
                 Vec2::new(u * 0.85, u * 0.85),
             );
-            painter.rect_filled(back, 0.0, color.gamma_multiply(0.55));
+            painter.rect_filled(back, 0.0, accent.gamma_multiply(0.45));
             painter.rect_stroke(back, 0.0, st, egui::StrokeKind::Middle);
             painter.rect_stroke(front, 0.0, st, egui::StrokeKind::Middle);
         }
@@ -1102,7 +1102,7 @@ pub fn draw(painter: &Painter, rect: Rect, icon: Icon, color: Color32, width: f3
                 pos2(cx - u * 0.1, cy - u * 0.1),
                 Vec2::new(u * 0.9, u * 0.9),
             );
-            painter.rect_filled(back, 0.0, color);
+            painter.rect_filled(back, 0.0, accent);
             painter.rect_stroke(front, 0.0, st, egui::StrokeKind::Middle);
         }
         Icon::RotateCCW => {

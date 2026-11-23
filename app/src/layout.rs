@@ -2279,8 +2279,21 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
         Some(Shortcut::ZoomOut) => app.zoom_by(1.0 / constants::ZOOM_STEP),
         Some(Shortcut::ZoomTo(z)) => app.set_zoom(z),
         Some(Shortcut::Tool(t)) => {
-            app.tool = t;
-            app.status = format!("{} selected", t.name());
+            app.tool = match (t, app.tool) {
+                (Tool::Rectangle, Tool::Rectangle) => Tool::RoundedRect,
+                (Tool::Rectangle, Tool::RoundedRect) => Tool::Ellipse,
+                (Tool::Rectangle, Tool::Ellipse) => Tool::Polygon,
+                (Tool::Rectangle, Tool::Polygon) => Tool::Star,
+                (Tool::Rectangle, Tool::Star) => Tool::Rectangle,
+                (Tool::Brush, Tool::Brush) => Tool::Pencil,
+                (Tool::Brush, Tool::Pencil) => Tool::Brush,
+                (Tool::Marquee, Tool::Marquee) => Tool::Lasso,
+                (Tool::Marquee, Tool::Lasso) => Tool::Marquee,
+                (Tool::Gradient, Tool::Gradient) => Tool::Fill,
+                (Tool::Gradient, Tool::Fill) => Tool::Gradient,
+                _ => t,
+            };
+            app.status = format!("{} selected", app.tool.name());
         }
         Some(Shortcut::SwapColors) => std::mem::swap(&mut app.fill, &mut app.stroke),
         Some(Shortcut::DefaultColors) => {
