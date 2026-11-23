@@ -146,11 +146,16 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     let mut right_outer_rect = None;
     let mut right_inner_rect = None;
     if app.show_right_dock {
+        let collapsed_w = if app.workspace_preset == "Iconic Mode" {
+            36.0
+        } else {
+            94.0
+        };
         match app.right_dock_zone {
             crate::app::ToolsDockMode::Right => {
                 let resp = if app.right_dock_collapsed {
                     egui::Panel::right("dock")
-                        .exact_size(94.0)
+                        .exact_size(collapsed_w)
                         .resizable(false)
                         .frame(
                             egui::Frame::new()
@@ -176,7 +181,7 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
             crate::app::ToolsDockMode::Left => {
                 let resp = if app.right_dock_collapsed {
                     egui::Panel::left("dock_on_left")
-                        .exact_size(94.0)
+                        .exact_size(collapsed_w)
                         .resizable(false)
                         .frame(
                             egui::Frame::new()
@@ -1491,20 +1496,40 @@ fn dock_column(ui: &mut Ui, app: &mut FireCraft, zone: crate::app::DockZone) {
         .map(|(i, _)| i)
         .collect();
     if collapsed_iconic {
+        let icon_only = app.workspace_preset == "Iconic Mode";
+        let mut flyout_anchor_y: Option<f32> = None;
         egui::ScrollArea::vertical()
             .id_salt(("dock_iconic_scroll", zone as u8))
             .show(ui, |ui| {
                 let mut expand_to: Option<(usize, usize)> = None;
-                for idx in indices {
+                for (gi, idx) in indices.iter().copied().enumerate() {
+                    if gi > 0 {
+                        let (div_r, _) = ui.allocate_exact_size(
+                            Vec2::new(ui.available_width(), 3.0),
+                            egui::Sense::hover(),
+                        );
+                        ui.painter().line_segment(
+                            [
+                                egui::pos2(div_r.left() + 2.0, div_r.center().y),
+                                egui::pos2(div_r.right() - 2.0, div_r.center().y),
+                            ],
+                            egui::Stroke::new(1.0, p.stroke),
+                        );
+                    }
                     // Dotted group separator matching CS6 Iconic Strip
                     let (sep_r, _) = ui.allocate_exact_size(
                         Vec2::new(ui.available_width(), 7.0),
                         egui::Sense::hover(),
                     );
+                    let dot_start_x = if icon_only {
+                        sep_r.center().x - 6.0
+                    } else {
+                        sep_r.left() + 6.0
+                    };
                     for d in 0..4 {
                         ui.painter().rect_filled(
                             egui::Rect::from_center_size(
-                                egui::pos2(sep_r.left() + 6.0 + d as f32 * 4.0, sep_r.center().y),
+                                egui::pos2(dot_start_x + d as f32 * 4.0, sep_r.center().y),
                                 Vec2::splat(1.5),
                             ),
                             0.0,
@@ -1514,47 +1539,91 @@ fn dock_column(ui: &mut Ui, app: &mut FireCraft, zone: crate::app::DockZone) {
                     let tabs = app.panel_groups[idx].tabs.clone();
                     let active_tab = app.panel_groups[idx].active_tab;
                     for (ti, pid) in tabs.into_iter().enumerate() {
-                        let (row_r, row_resp) = ui.allocate_exact_size(
-                            Vec2::new(ui.available_width(), 20.0),
-                            egui::Sense::click(),
-                        );
-                        if row_resp.hovered() {
-                            ui.painter().rect_filled(row_r, 0.0, p.well);
-                        } else if ti == active_tab {
-                            ui.painter()
-                                .rect_filled(row_r, 0.0, p.panel_alt.gamma_multiply(0.7));
-                        }
-                        let icon_r = egui::Rect::from_center_size(
-                            egui::pos2(row_r.left() + 10.0, row_r.center().y),
-                            Vec2::splat(13.0),
-                        );
-                        icons::draw(
-                            ui.painter(),
-                            icon_r,
-                            panel_mini_icon(pid),
-                            if row_resp.hovered() { p.accent } else { p.text },
-                            1.1,
-                        );
-                        let mut title = pid.title().to_string();
-                        if title.len() > 10 {
-                            title.truncate(9);
-                            title.push('…');
-                        }
-                        ui.painter().text(
-                            egui::pos2(row_r.left() + 20.0, row_r.center().y),
-                            egui::Align2::LEFT_CENTER,
-                            title,
-                            egui::FontId::proportional(10.0),
+                        if icon_only {
+                            let (btn_r, btn_resp) = ui.allocate_exact_size(
+                                Vec2::new(ui.available_width(), 24.0),
+                                egui::Sense::click(),
+                            );
+                            let is_open = app.iconic_flyout_panel == Some(pid);
+                            if is_open {
+                                flyout_anchor_y = Some(btn_r.top());
+                                ui.painter().rect_filled(
+                                    btn_r,
+                                    0.0,
+                                    p.selection.gamma_multiply(0.32),
+                                );
+                                ui.painter().rect_stroke(
+                                    btn_r,
+                                    0.0,
+                                    egui::Stroke::new(1.0, p.selection),
+                                    egui::StrokeKind::Middle,
+                                );
+                            } else if btn_resp.hovered() {
+                                ui.painter().rect_filled(btn_r, 0.0, p.well);
+                            }
+                            let icon_r =
+                                egui::Rect::from_center_size(btn_r.center(), Vec2::splat(15.0));
+                            icons::draw(
+                                ui.painter(),
+                                icon_r,
+                                panel_mini_icon(pid),
+                                if is_open || btn_resp.hovered() {
+                                    p.accent
+                                } else {
+                                    p.text
+                                },
+                                1.25,
+                            );
+                            if btn_resp.clicked() {
+                                app.iconic_flyout_panel = if is_open { None } else { Some(pid) };
+                            }
+                            btn_resp.on_hover_text(pid.title());
+                        } else {
+                            let (row_r, row_resp) = ui.allocate_exact_size(
+                                Vec2::new(ui.available_width(), 20.0),
+                                egui::Sense::click(),
+                            );
                             if row_resp.hovered() {
-                                p.text
-                            } else {
-                                p.text_dim
-                            },
-                        );
-                        if row_resp.clicked() {
-                            expand_to = Some((idx, ti));
+                                ui.painter().rect_filled(row_r, 0.0, p.well);
+                            } else if ti == active_tab {
+                                ui.painter().rect_filled(
+                                    row_r,
+                                    0.0,
+                                    p.panel_alt.gamma_multiply(0.7),
+                                );
+                            }
+                            let icon_r = egui::Rect::from_center_size(
+                                egui::pos2(row_r.left() + 10.0, row_r.center().y),
+                                Vec2::splat(13.0),
+                            );
+                            icons::draw(
+                                ui.painter(),
+                                icon_r,
+                                panel_mini_icon(pid),
+                                if row_resp.hovered() { p.accent } else { p.text },
+                                1.1,
+                            );
+                            let mut title = pid.title().to_string();
+                            if title.len() > 10 {
+                                title.truncate(9);
+                                title.push('…');
+                            }
+                            ui.painter().text(
+                                egui::pos2(row_r.left() + 20.0, row_r.center().y),
+                                egui::Align2::LEFT_CENTER,
+                                title,
+                                egui::FontId::proportional(10.0),
+                                if row_resp.hovered() {
+                                    p.text
+                                } else {
+                                    p.text_dim
+                                },
+                            );
+                            if row_resp.clicked() {
+                                expand_to = Some((idx, ti));
+                            }
+                            row_resp.on_hover_text(format!("Expand {}", pid.title()));
                         }
-                        row_resp.on_hover_text(format!("Expand {}", pid.title()));
                     }
                 }
                 if let Some((gidx, tidx)) = expand_to {
@@ -1563,6 +1632,60 @@ fn dock_column(ui: &mut Ui, app: &mut FireCraft, zone: crate::app::DockZone) {
                     app.right_dock_collapsed = false;
                 }
             });
+        if icon_only && let Some(pid) = app.iconic_flyout_panel {
+            let dock_r = ui.min_rect();
+            let screen = ui.ctx().content_rect();
+            let fly_w = 268.0;
+            let fly_x = if app.right_dock_zone == crate::app::ToolsDockMode::Left {
+                (dock_r.right() + 4.0).min(screen.right() - fly_w - 8.0)
+            } else {
+                (dock_r.left() - fly_w - 4.0).max(screen.left() + 8.0)
+            };
+            let fly_y = flyout_anchor_y.unwrap_or(dock_r.top() + 20.0).clamp(
+                screen.top() + 56.0,
+                (screen.bottom() - 280.0).max(screen.top() + 56.0),
+            );
+            egui::Area::new(ui.make_persistent_id(("iconic_flyout", pid as u8)))
+                .order(egui::Order::Foreground)
+                .fixed_pos(egui::pos2(fly_x, fly_y))
+                .constrain(true)
+                .show(ui.ctx(), |ui| {
+                    egui::Frame::new()
+                        .fill(p.panel)
+                        .stroke(egui::Stroke::new(1.0, p.stroke))
+                        .shadow(egui::Shadow {
+                            offset: [2, 3],
+                            blur: 8,
+                            spread: 0,
+                            color: egui::Color32::from_black_alpha(110),
+                        })
+                        .inner_margin(egui::Margin::same(6))
+                        .show(ui, |ui| {
+                            ui.set_width(fly_w);
+                            ui.horizontal(|ui| {
+                                ui.label(RichText::new(pid.title()).small().strong().color(p.text));
+                                ui.with_layout(
+                                    egui::Layout::right_to_left(egui::Align::Center),
+                                    |ui| {
+                                        if ui.small_button("×").clicked() {
+                                            app.iconic_flyout_panel = None;
+                                        }
+                                    },
+                                );
+                            });
+                            ui.separator();
+                            egui::ScrollArea::vertical()
+                                .id_salt(("iconic_flyout_scroll", pid as u8))
+                                .max_height(280.0)
+                                .show(ui, |ui| {
+                                    panels::render_panel_by_id(ui, app, pid);
+                                });
+                        });
+                });
+            if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                app.iconic_flyout_panel = None;
+            }
+        }
         return;
     }
     egui::ScrollArea::vertical()

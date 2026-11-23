@@ -386,6 +386,7 @@ pub struct FireCraft {
     pub right_dock_collapsed: bool,
     pub right_dock_zone: ToolsDockMode,
     pub right_dock_floating_pos: egui::Pos2,
+    pub iconic_flyout_panel: Option<PanelId>,
     pub floating_doc_tabs: Vec<usize>,
     pub show_bottom_inspector: bool,
     pub bottom_collapsed: bool,
@@ -513,6 +514,7 @@ impl FireCraft {
             right_dock_collapsed: false,
             right_dock_zone: ToolsDockMode::Right,
             right_dock_floating_pos: egui::pos2(860.0, 96.0),
+            iconic_flyout_panel: None,
             floating_doc_tabs: Vec::new(),
             show_bottom_inspector: true,
             bottom_collapsed: false,
@@ -811,6 +813,9 @@ impl FireCraft {
                 self.show_tools_dock = true;
                 self.tools_collapsed = false;
                 self.show_right_dock = true;
+                self.right_dock_collapsed = false;
+                self.right_dock_zone = ToolsDockMode::Right;
+                self.iconic_flyout_panel = None;
                 self.show_bottom_inspector = true;
                 self.bottom_collapsed = false;
                 self.panel_groups = Self::default_panel_groups();
@@ -822,6 +827,9 @@ impl FireCraft {
                 self.show_tools_dock = true;
                 self.tools_collapsed = false;
                 self.show_right_dock = true;
+                self.right_dock_collapsed = false;
+                self.right_dock_zone = ToolsDockMode::Right;
+                self.iconic_flyout_panel = None;
                 self.show_bottom_inspector = true;
                 self.bottom_collapsed = false;
                 self.panel_groups = Self::cs6_dual_column_groups();
@@ -834,6 +842,8 @@ impl FireCraft {
                 self.show_main_toolbar = true;
                 self.show_tools_dock = true;
                 self.show_right_dock = true;
+                self.right_dock_collapsed = false;
+                self.iconic_flyout_panel = None;
                 self.show_bottom_inspector = true;
                 self.show_welcome = false;
                 self.panel_groups = Self::cs6_all_panels_floating_groups();
@@ -845,14 +855,17 @@ impl FireCraft {
                 self.full_screen_canvas = false;
                 self.show_main_toolbar = true;
                 self.show_tools_dock = true;
+                self.tools_collapsed = false;
+                self.tools_zone = ToolsDockMode::Left;
                 self.show_right_dock = true;
+                self.right_dock_collapsed = true;
+                self.right_dock_zone = ToolsDockMode::Right;
+                self.iconic_flyout_panel = None;
                 self.show_bottom_inspector = true;
-                self.collapse_all_panels(true);
-                if let Some(first) = self.panel_groups.first_mut() {
-                    first.collapsed = false;
-                }
+                self.bottom_collapsed = false;
+                self.panel_groups = Self::default_panel_groups();
                 self.status =
-                    "Workspace set to Iconic Mode (collapsed panel headers; click any header to expand)"
+                    "Workspace set to Iconic Mode (click any dock icon to open flyout, or << to expand)"
                         .to_string();
             }
             "Netbook Mode" => {
