@@ -361,12 +361,30 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
                     egui::StrokeKind::Middle,
                 );
             }
+            DragKind::Lasso if drag.path.len() > 1 => {
+                let pts: Vec<Pos2> = drag
+                    .path
+                    .iter()
+                    .map(|p| to_screen(origin, zoom, *p))
+                    .collect();
+                if pts.len() >= 3 {
+                    painter.add(egui::Shape::convex_polygon(
+                        pts.clone(),
+                        app.palette.selection.gamma_multiply(0.14),
+                        Stroke::NONE,
+                    ));
+                }
+                painter.add(egui::Shape::closed_line(
+                    pts,
+                    Stroke::new(1.2, app.palette.selection),
+                ));
+            }
             DragKind::Create => {
                 let a = (origin + drag.start * zoom).to_pos2();
                 let b = (origin + drag.current * zoom).to_pos2();
                 let sel = Rect::from_min_max(a.min(b), a.max(b));
                 match app.tool {
-                    Tool::Rectangle | Tool::RoundedRect => {
+                    Tool::Rectangle | Tool::RoundedRect | Tool::Gradient => {
                         let cr = if app.tool == Tool::RoundedRect {
                             12.0 * zoom
                         } else {

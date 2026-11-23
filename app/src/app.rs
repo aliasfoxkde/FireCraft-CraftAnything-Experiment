@@ -324,6 +324,7 @@ pub enum DragKind {
     Pan,
     Paint,
     Path,
+    Lasso,
 }
 
 pub struct Drag {
@@ -1965,7 +1966,7 @@ impl FireCraft {
                     }
                 }
             }
-            Tool::Marquee | Tool::Lasso | Tool::Wand | Tool::Crop => {
+            Tool::Marquee | Tool::Crop => {
                 self.drag = Some(Drag {
                     kind: DragKind::Marquee,
                     start: doc_pos,
@@ -1973,6 +1974,54 @@ impl FireCraft {
                     orig_bounds: None,
                     path: vec![],
                 });
+            }
+            Tool::Lasso => {
+                self.drag = Some(Drag {
+                    kind: DragKind::Lasso,
+                    start: doc_pos,
+                    current: doc_pos,
+                    orig_bounds: None,
+                    path: vec![doc_pos],
+                });
+            }
+            Tool::Wand => {
+                if let Some((layer, index)) = canvas::hit_test(self, raw_doc_pos) {
+                    let target_fill = self.doc.page().layers[layer].objects[index].fill;
+                    let mut picked = if shift {
+                        self.selected_set.clone()
+                    } else {
+                        Vec::new()
+                    };
+                    self.selected_layer = layer;
+                    for (idx, obj) in self.doc.page().layers[layer].objects.iter().enumerate() {
+                        if !obj.visible || obj.locked {
+                            continue;
+                        }
+                        let matches_color = match (target_fill, obj.fill) {
+                            (Some(a), Some(b)) => {
+                                (a.r() as i32 - b.r() as i32).abs()
+                                    + (a.g() as i32 - b.g() as i32).abs()
+                                    + (a.b() as i32 - b.b() as i32).abs()
+                                    <= 48
+                            }
+                            (None, None) => true,
+                            _ => false,
+                        };
+                        if matches_color && !picked.contains(&idx) {
+                            picked.push(idx);
+                        }
+                    }
+                    self.selected = Some(index);
+                    self.selected_set = picked;
+                    self.status = format!(
+                        "Magic Wand selected {} color-matched object(s)",
+                        self.selected_set.len()
+                    );
+                } else {
+                    self.clear_selection();
+                    self.status =
+                        "Magic Wand: click an object to select matching colors".to_string();
+                }
             }
             Tool::Rectangle
             | Tool::RoundedRect
@@ -2000,6 +2049,12 @@ impl FireCraft {
                 });
             }
             Tool::Knife => {
+                if self.selected.is_none()
+                    && let Some((layer, index)) = canvas::hit_test(self, raw_doc_pos)
+                {
+                    self.selected_layer = layer;
+                    self.select_single(Some(index));
+                }
                 self.split_selected_path();
             }
             Tool::Text => {
@@ -2061,22 +2116,13 @@ impl FireCraft {
                 }
             }
             Tool::Gradient => {
-                self.push_undo("Gradient");
-                let (pw, ph) = (self.doc.page().width, self.doc.page().height);
-                let obj = Obj::new(
-                    Shape::Gradient {
-                        min: Vec2::ZERO,
-                        max: Vec2::new(pw, ph),
-                        from: self.fill,
-                        to: self.stroke,
-                        radial: false,
-                    },
-                    None,
-                    None,
-                );
-                let index = self.push_object(obj);
-                self.selected = Some(index);
-                self.status = "Gradient shape added".to_string();
+                self.drag = Some(Drag {
+                    kind: DragKind::Create,
+                    start: doc_pos,
+                    current: doc_pos,
+                    orig_bounds: None,
+                    path: vec![],
+                });
             }
             Tool::Brush | Tool::Pencil | Tool::Eraser => {
                 self.push_undo("Paint");
@@ -2370,7 +2416,7 @@ impl FireCraft {
                     self.set_selected_bounds(lo, hi);
                 }
             }
-            DragKind::Paint | DragKind::Path => {
+            DragKind::Paint | DragKind::Path | DragKind::Lasso => {
                 drag.current = doc_pos;
                 if (doc_pos - drag.path.last().copied().unwrap_or(doc_pos)).length() > 2.0 {
                     drag.path.push(doc_pos);
@@ -2403,6 +2449,45 @@ impl FireCraft {
             doc_pos = drag.start + Vec2::new(side * d.x.signum(), side * d.y.signum());
         }
         match drag.kind {
+            DragKind::Lasso => {
+                let mut picked_set = if shift {
+                    self.selected_set.clone()
+                } else {
+                    Vec::new()
+                };
+                if drag.path.len() >= 3 {
+                    let page = self.doc.page();
+                    if let Some(layer) = page.layers.get(self.selected_layer) {
+                        for (index, obj) in layer.objects.iter().enumerate() {
+                            if !obj.visible || obj.locked {
+                                continue;
+                            }
+                            if let Some((a, b)) = obj.bounds() {
+                                let center = (a + b) * 0.5;
+                                let corners =
+                                    [center, a, Vec2::new(b.x, a.y), b, Vec2::new(a.x, b.y)];
+                                if corners.iter().any(|&pt| point_in_polygon(pt, &drag.path))
+                                    && !picked_set.contains(&index)
+                                {
+                                    picked_set.push(index);
+                                }
+                            }
+                        }
+                    }
+                } else if let Some((layer, index)) = canvas::hit_test(self, raw_doc_pos) {
+                    self.selected_layer = layer;
+                    if !picked_set.contains(&index) {
+                        picked_set.push(index);
+                    }
+                }
+                self.selected = picked_set.last().copied();
+                self.selected_set = picked_set;
+                self.status = if !self.selected_set.is_empty() {
+                    format!("Lasso selected {} object(s)", self.selected_set.len())
+                } else {
+                    "Lasso: no objects inside loop".to_string()
+                };
+            }
             DragKind::Marquee => {
                 let lo = drag.start.min(doc_pos);
                 let hi = drag.start.max(doc_pos);
@@ -2497,11 +2582,18 @@ impl FireCraft {
                         format: "PNG32".to_string(),
                         is_hotspot: self.tool == Tool::Hotspot,
                     },
+                    Tool::Gradient => Shape::Gradient {
+                        min: lo,
+                        max: hi,
+                        from: self.fill,
+                        to: self.stroke,
+                        radial: false,
+                    },
                     _ => return,
                 };
                 let (fill, stroke) = match self.tool {
                     Tool::Line => (None, Some(self.stroke)),
-                    Tool::Slice | Tool::Hotspot => (None, None),
+                    Tool::Slice | Tool::Hotspot | Tool::Gradient => (None, None),
                     _ => (Some(self.fill), Some(self.stroke)),
                 };
                 let obj = Obj::new(kind, fill, stroke);
@@ -5763,6 +5855,25 @@ fn open_in_default_app(path: &std::path::Path) {
     let _ = path;
 }
 
+fn point_in_polygon(pt: Vec2, poly: &[Vec2]) -> bool {
+    if poly.len() < 3 {
+        return false;
+    }
+    let mut inside = false;
+    let mut j = poly.len() - 1;
+    for i in 0..poly.len() {
+        let pi = poly[i];
+        let pj = poly[j];
+        let intersects = ((pi.y > pt.y) != (pj.y > pt.y))
+            && (pt.x < (pj.x - pi.x) * (pt.y - pi.y) / (pj.y - pi.y + 1e-6) + pi.x);
+        if intersects {
+            inside = !inside;
+        }
+        j = i;
+    }
+    inside
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -6009,5 +6120,45 @@ mod tests {
         assert_eq!(app.active_doc, 0);
         assert_eq!(app.open_docs[0].name, "Second");
         assert_eq!(app.open_docs[1].name, "First");
+    }
+
+    #[test]
+    fn lasso_and_wand_selection_tools() {
+        let mut app = FireCraft::new(None);
+        let layer_idx = app.selected_layer;
+        app.doc.page_mut().layers[layer_idx].objects.push(Obj::new(
+            Shape::Rect {
+                min: Vec2::new(100.0, 100.0),
+                max: Vec2::new(160.0, 160.0),
+                corner_radius: 0.0,
+                filled: true,
+            },
+            Some(Color32::from_rgb(200, 60, 40)),
+            None,
+        ));
+        app.doc.page_mut().layers[layer_idx].objects.push(Obj::new(
+            Shape::Rect {
+                min: Vec2::new(400.0, 400.0),
+                max: Vec2::new(460.0, 460.0),
+                corner_radius: 0.0,
+                filled: true,
+            },
+            Some(Color32::from_rgb(200, 60, 40)),
+            None,
+        ));
+
+        // Lasso around first rectangle only
+        app.tool = Tool::Lasso;
+        app.on_pointer_down(Vec2::new(80.0, 80.0), Vec2::ZERO, false, false, false);
+        app.on_pointer_drag(Vec2::new(180.0, 80.0), false);
+        app.on_pointer_drag(Vec2::new(180.0, 180.0), false);
+        app.on_pointer_drag(Vec2::new(80.0, 180.0), false);
+        app.on_pointer_up(Vec2::new(80.0, 80.0), false);
+        assert_eq!(app.selected_set, vec![0]);
+
+        // Magic Wand clicks first rectangle and selects both color-matched rectangles
+        app.tool = Tool::Wand;
+        app.on_pointer_down(Vec2::new(120.0, 120.0), Vec2::ZERO, false, false, false);
+        assert_eq!(app.selected_set, vec![0, 1]);
     }
 }
