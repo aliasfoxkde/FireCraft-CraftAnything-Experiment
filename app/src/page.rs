@@ -1,29 +1,22 @@
-use eframe::egui;
-use crate::doc::Layer;
+//! Page and CSS slug helpers shared across document export and panels.
 
-#[derive(Debug, Clone)]
-pub struct Page {
-    pub id: usize,
-    pub name: String,
-    pub layers: Vec<Layer>,
-    pub canvas_width: f32,
-    pub canvas_height: f32,
-    pub bg_color: egui::Color32,
-    pub slices: Vec<SliceInfo>,
+/// Convert an object or slice name into a clean CSS class identifier.
+pub fn slugify(name: &str) -> String {
+    let s: String = name
+        .to_lowercase()
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
+        .collect();
+    if s.is_empty() { "slice".to_string() } else { s }
 }
 
-#[derive(Debug, Clone)]
-pub struct SliceInfo {
-    pub x: f32, pub y: f32, pub width: f32, pub height: f32,
-    pub name: String, pub format: ExportFormat,
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum ExportFormat { Png, Jpg, Svg, Html, Gif, Webp }
-
-impl Page {
-    pub fn new(name: &str, w: f32, h: f32, bg: egui::Color32) -> Self {
-        Page { id: 0, name: name.to_string(), layers: vec![Layer::new("Layer 1")],
-            canvas_width: w, canvas_height: h, bg_color: bg, slices: Vec::new() }
+    #[test]
+    fn slugify_formats_names() {
+        assert_eq!(slugify("Hero CTA 1"), "hero-cta-1");
+        assert_eq!(slugify(""), "slice");
     }
 }

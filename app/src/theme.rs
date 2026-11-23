@@ -1,8 +1,6 @@
-﻿#![allow(dead_code, unused_imports, unused_variables, unused_must_use)]
-//! Theme: FireCraft ships in a dark theme, can follow the operating system,
-//! and can be switched to light from the FireCraft menu.
+﻿//! Theme: FireCraft ships in a dark theme, can follow the operating system,
+//! and can be switched to the classic Fireworks CS6 light theme from the Window menu.
 
-#![allow(dead_code, unused_imports, unused_variables, unused_must_use, unused_parens, unused_assignments)]
 use eframe::egui::{Color32, Visuals};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -15,9 +13,9 @@ pub enum ThemeMode {
 impl ThemeMode {
     pub fn label(self) -> &'static str {
         match self {
-            ThemeMode::Dark => "Dark",
-            ThemeMode::Light => "Light",
-            ThemeMode::System => "System",
+            ThemeMode::Dark => "Dark (Modern)",
+            ThemeMode::Light => "Light (CS6 Classic)",
+            ThemeMode::System => "Follow System",
         }
     }
 }
@@ -36,16 +34,17 @@ pub struct Palette {
     pub canvas_pad: Color32,
     pub paper: Color32,
     pub selection: Color32,
-    /// The welcome screen's banner and its body.
+    pub slice_overlay: Color32,
+    pub hotspot_overlay: Color32,
+    pub guide: Color32,
     pub banner: Color32,
     pub banner_text: Color32,
     pub welcome: Color32,
 }
 
 impl Palette {
-    /// Whether this palette is a dark one, decided from the background's
-    /// luminance so a new palette only has to supply colours.
     pub fn is_dark(&self) -> bool {
+        let _ = (self.accent_text, self.paper);
         let c = self.bg;
         let luma = 0.2126 * c.r() as f32 + 0.7152 * c.g() as f32 + 0.0722 * c.b() as f32;
         luma < 128.0
@@ -53,46 +52,48 @@ impl Palette {
 }
 
 pub const DARK: Palette = Palette {
-    bg: Color32::from_rgb(26, 26, 30),
-    panel: Color32::from_rgb(40, 40, 46),
-    panel_alt: Color32::from_rgb(48, 48, 55),
-    well: Color32::from_rgb(30, 30, 35),
-    stroke: Color32::from_rgb(66, 66, 76),
-    text: Color32::from_rgb(226, 226, 232),
-    text_dim: Color32::from_rgb(150, 150, 162),
+    bg: Color32::from_rgb(30, 31, 35),
+    panel: Color32::from_rgb(43, 45, 50),
+    panel_alt: Color32::from_rgb(54, 57, 63),
+    well: Color32::from_rgb(24, 25, 28),
+    stroke: Color32::from_rgb(72, 75, 84),
+    text: Color32::from_rgb(235, 236, 240),
+    text_dim: Color32::from_rgb(160, 164, 174),
     accent: Color32::from_rgb(232, 163, 61),
-    accent_text: Color32::from_rgb(24, 20, 12),
-    canvas_pad: Color32::from_rgb(58, 58, 64),
+    accent_text: Color32::from_rgb(20, 16, 10),
+    canvas_pad: Color32::from_rgb(56, 58, 64),
     paper: Color32::WHITE,
-    selection: Color32::from_rgb(232, 163, 61),
-    banner: Color32::from_rgb(69, 65, 30),
-    banner_text: Color32::from_rgb(245, 196, 0),
-    welcome: Color32::from_rgb(249, 249, 249),
+    selection: Color32::from_rgb(56, 152, 255),
+    slice_overlay: Color32::from_rgba_premultiplied(0, 70, 36, 85),
+    hotspot_overlay: Color32::from_rgba_premultiplied(0, 60, 85, 85),
+    guide: Color32::from_rgb(0, 235, 255),
+    banner: Color32::from_rgb(62, 54, 24),
+    banner_text: Color32::from_rgb(248, 202, 24),
+    welcome: Color32::from_rgb(38, 40, 45),
 };
 
 pub const LIGHT: Palette = Palette {
-    bg: Color32::from_rgb(245, 245, 250),
-    panel: Color32::from_rgb(255, 255, 255),
-    panel_alt: Color32::from_rgb(235, 235, 245),
-    well: Color32::from_rgb(230, 230, 240),
-    stroke: Color32::from_rgb(200, 200, 215),
-    text: Color32::from_rgb(25, 25, 30),
-    text_dim: Color32::from_rgb(100, 100, 115),
-    accent: Color32::from_rgb(232, 163, 61),
-    accent_text: Color32::from_rgb(255, 255, 255),
-    canvas_pad: Color32::from_rgb(210, 210, 225),
+    bg: Color32::from_rgb(166, 166, 166),
+    panel: Color32::from_rgb(214, 214, 214),
+    panel_alt: Color32::from_rgb(194, 194, 194),
+    well: Color32::from_rgb(246, 246, 246),
+    stroke: Color32::from_rgb(148, 148, 148),
+    text: Color32::from_rgb(24, 24, 26),
+    text_dim: Color32::from_rgb(84, 84, 92),
+    accent: Color32::from_rgb(51, 136, 218),
+    accent_text: Color32::WHITE,
+    canvas_pad: Color32::from_rgb(166, 166, 166),
     paper: Color32::WHITE,
-    selection: Color32::from_rgb(232, 163, 61),
-    banner: Color32::from_rgb(35, 35, 45),
-    banner_text: Color32::from_rgb(255, 255, 255),
-    welcome: Color32::from_rgb(255, 255, 255),
+    selection: Color32::from_rgb(24, 120, 230),
+    slice_overlay: Color32::from_rgba_premultiplied(0, 65, 32, 85),
+    hotspot_overlay: Color32::from_rgba_premultiplied(0, 55, 78, 85),
+    guide: Color32::from_rgb(0, 210, 230),
+    banner: Color32::from_rgb(58, 52, 22),
+    banner_text: Color32::from_rgb(245, 196, 0),
+    welcome: Color32::from_rgb(244, 244, 244),
 };
 
-/// Reads the operating system's light/dark preference.
-///
-/// Windows stores it in `HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize`
-/// as `AppsUseLightTheme` (0 = dark, 1 = light). Other platforms fall back to dark,
-/// which is FireCraft's own default.
+/// Reads the operating system's light/dark preference on Windows.
 pub fn system_is_light() -> bool {
     #[cfg(target_os = "windows")]
     {
@@ -173,5 +174,3 @@ pub fn visuals(p: &Palette, dark: bool) -> Visuals {
 fn egui_stroke(c: Color32) -> eframe::egui::Stroke {
     eframe::egui::Stroke::new(1.0, c)
 }
-
-

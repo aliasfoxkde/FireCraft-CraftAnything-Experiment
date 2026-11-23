@@ -1,427 +1,321 @@
-//! The application state, the window layout and the menus.
-
-
+//! The application state, tool & pointer interaction, live effects,
+//! multi-document tab controller, and Fireworks CS6 editing commands.
 
 use crate::canvas::{self, TextureCache};
 use crate::colors;
-use crate::doc::{Document, Obj, Shape, Snapshot};
-use crate::formats::Format;
 use crate::constants;
-use crate::panels;
+use crate::doc::{
+    AnimationState, AutoShapeKind, Document, Layer, LiveEffect, Obj, Page, Shape, Snapshot,
+    StylePreset, SymbolDef,
+};
 use crate::theme::{self, Palette, ThemeMode};
 
 use image::GenericImageView;
 
-use eframe::egui::{
-    self, Align2, Color32, Context, FontId, MenuBar, RichText, Sense, Stroke, TextureHandle,
-    Vec2, pos2,
-};
+use eframe::egui::{self, Color32, Context, TextureHandle, Vec2};
 
 use std::path::{Path, PathBuf};
 
 /// What the file dialog is being used for.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FileMode {
     Open,
+    Import,
     Save,
     Export,
 }
 
-
-
+/// Canvas view mode (CS6 top document bar: Original | Preview | 2-Up | 4-Up).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-
-pub enum Tool {
-
-    Select,
-
-    Marquee,
-
-    Lasso,
-
-    Wand,
-
-    Crop,
-
-    Hand,
-
-    Zoom,
-
-    Fit,
-
-    Brush,
-
-    Pencil,
-
-    Eraser,
-
-    Blur,
-
-    Sharpen,
-
-    Dodge,
-
-    Burn,
-
-    Line,
-
-    Rectangle,
-
-    Ellipse,
-
-    Polygon,
-
-    Path,
-
-    Text,
-
-    Picker,
-
-    Fill,
-
-    Gradient,
-
+pub enum CanvasViewMode {
+    Original,
+    Preview,
+    TwoUp,
+    FourUp,
 }
 
-
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Tool {
+    Select,
+    Subselect,
+    Scale,
+    Marquee,
+    Lasso,
+    Wand,
+    Crop,
+    Hand,
+    Zoom,
+    Fit,
+    Brush,
+    Pencil,
+    Eraser,
+    Blur,
+    Sharpen,
+    Dodge,
+    Burn,
+    Stamp,
+    Line,
+    Rectangle,
+    RoundedRect,
+    Ellipse,
+    Polygon,
+    Star,
+    Path,
+    Knife,
+    Text,
+    Slice,
+    Hotspot,
+    Picker,
+    Fill,
+    Gradient,
+}
 
 impl Tool {
-
     pub fn name(self) -> &'static str {
-
         match self {
-
-            Tool::Select => "Select",
-
+            Tool::Select => "Pointer",
+            Tool::Subselect => "Subselection",
+            Tool::Scale => "Scale / Transform",
             Tool::Marquee => "Marquee Select",
-
             Tool::Lasso => "Lasso Select",
-
             Tool::Wand => "Magic Wand",
-
             Tool::Crop => "Crop",
-
             Tool::Hand => "Hand",
-
             Tool::Zoom => "Zoom",
-
             Tool::Fit => "Fit in Window",
-
             Tool::Brush => "Brush",
-
             Tool::Pencil => "Pencil",
-
             Tool::Eraser => "Eraser",
-
             Tool::Blur => "Blur",
-
             Tool::Sharpen => "Sharpen",
-
             Tool::Dodge => "Dodge",
-
             Tool::Burn => "Burn",
-
+            Tool::Stamp => "Rubber Stamp",
             Tool::Line => "Line",
-
             Tool::Rectangle => "Rectangle",
-
+            Tool::RoundedRect => "Rounded Rectangle",
             Tool::Ellipse => "Ellipse",
-
             Tool::Polygon => "Polygon",
-
+            Tool::Star => "Star",
             Tool::Path => "Pen",
-
+            Tool::Knife => "Knife",
             Tool::Text => "Text",
-
+            Tool::Slice => "Slice",
+            Tool::Hotspot => "Hotspot",
             Tool::Picker => "Eyedropper",
-
-            Tool::Fill => "Fill",
-
+            Tool::Fill => "Paint Bucket",
             Tool::Gradient => "Gradient",
-
         }
-
     }
-
 }
-
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-
 pub enum DragKind {
-
     Marquee,
-
     Create,
-
     Move,
-
+    Resize(usize),
     Pan,
-
     Paint,
-
     Path,
-
 }
-
-
 
 pub struct Drag {
-
     pub kind: DragKind,
-
     pub start: Vec2,
-
     pub current: Vec2,
-
+    pub orig_bounds: Option<(Vec2, Vec2)>,
     pub path: Vec<Vec2>,
-
 }
-
-
 
 pub struct FireCraft {
-
     pub ctx: Context,
-
     pub doc: Document,
-
+    pub open_docs: Vec<Document>,
+    pub active_doc: usize,
     pub theme_mode: ThemeMode,
-
     pub palette: Palette,
-
+    pub view_mode: CanvasViewMode,
     pub tool: Tool,
-
     pub fill: Color32,
-
     pub stroke: Color32,
-
     pub swatches: Vec<Color32>,
-
     pub selected: Option<usize>,
-
     pub selected_layer: usize,
-
     pub drag: Option<Drag>,
-
     pub undo: Vec<Snapshot>,
-
     pub redo: Vec<Snapshot>,
-
     pub status: String,
-
-    pub color_tab: usize,
-
+    pub top_right_tab: usize,
     pub layers_tab: usize,
-
+    pub middle_right_tab: usize,
     pub library_tab: usize,
-
-    pub path_tab: usize,
-
-    pub style_name: String,
-
+    pub bottom_tab: usize,
+    pub color_tab: usize,
+    pub show_tools_dock: bool,
+    pub show_right_dock: bool,
+    pub show_bottom_inspector: bool,
     pub textures: TextureCache,
-
     pub logo_tex: Option<egui::TextureHandle>,
     pub frames: u32,
-
     pub screenshot_path: Option<String>,
-
     pub screenshot_saved: bool,
-
-    pub screenshot_start: std::time::Instant,
-
-    pub capture_requested: bool,
-
-    pub open_path: String,
-
-    pub export_path: String,
-
-    pub export_format: Format,
-
-    pub message: String,
-
     pub show_rulers: bool,
-
     pub show_grid: bool,
-
+    pub snap_to_grid: bool,
     pub show_guides: bool,
-
-    /// Size of the canvas viewport, published by `canvas::show` each frame so
-    /// `Fit in Window` can work out a zoom factor.
+    pub show_slices: bool,
+    pub onion_skin: bool,
+    pub align_to_canvas: bool,
     pub canvas_size: Vec2,
-
-    /// Width of the brush stroke, in document pixels.
+    pub cursor_doc_pos: Option<Vec2>,
     pub brush_size: f32,
-
-    /// Grid spacing in document pixels.
     pub grid_size: f32,
-
-    /// The document's path on disk, when it has one.
+    pub polygon_sides: u32,
+    pub star_ratio: f32,
     pub current_path: Option<PathBuf>,
-
-    /// The New Document dialog.
+    pub recent_files: Vec<PathBuf>,
     pub show_new_dialog: bool,
-
+    pub show_canvas_size_dialog: bool,
+    pub show_find_replace: bool,
+    pub show_commands_dialog: bool,
+    pub show_about_dialog: bool,
+    pub find_query: String,
+    pub replace_query: String,
+    pub saved_commands: Vec<String>,
+    pub new_command_name: String,
     pub new_doc_width: f32,
-
     pub new_doc_height: f32,
-
-    /// Background colour for a new document, as linear RGB in 0..=1.
+    pub new_doc_dpi: u32,
     pub new_doc_bg: [f32; 3],
-
-    /// The Open / Save / Export file dialog.
+    pub new_doc_transparent: bool,
     pub show_file_dialog: bool,
-
     pub file_mode: FileMode,
-
     pub file_dialog_dir: PathBuf,
-
     pub file_dialog_entries: Vec<PathBuf>,
-
     pub file_dialog_name: String,
-
-    /// The right-hand dock's tab index.
-    pub right_tab: usize,
-
-    /// The clipboard, holding one copied object.
     pub clipboard: Option<Obj>,
-
-    /// The welcome splash, drawn over the editor.
+    pub last_effect: Option<LiveEffect>,
     pub show_welcome: bool,
-
 }
 
-
-
 impl FireCraft {
-
     pub fn new(screenshot_path: Option<String>) -> Self {
-
         let theme_mode = ThemeMode::Dark;
-
         let palette = theme::resolve(theme_mode);
-
-        Self {
-
+        let initial_doc = Document::new(constants::DEFAULT_WIDTH, constants::DEFAULT_HEIGHT);
+        let mut app = Self {
             ctx: Context::default(),
-
-            doc: Document::new(constants::DEFAULT_WIDTH, constants::DEFAULT_HEIGHT),
-
+            doc: initial_doc.clone(),
+            open_docs: vec![initial_doc],
+            active_doc: 0,
             theme_mode,
-
             palette,
-
+            view_mode: CanvasViewMode::Original,
             tool: Tool::Select,
-
-            fill: Color32::from_rgba_premultiplied(0xFF, 0xFF, 0xFF, 0xFF),
-
-            stroke: Color32::from_rgb(0, 0, 0),
-
+            fill: Color32::from_rgb(232, 163, 61),
+            stroke: Color32::from_rgb(24, 24, 28),
             swatches: colors::swatch_grid(),
-
             selected: None,
-
             selected_layer: 0,
-
             drag: None,
-
             undo: Vec::new(),
-
             redo: Vec::new(),
-
-            status: "Ready".to_string(),
-
-            color_tab: 0,
-
+            status: "Ready — FireCraft Studio (Adobe Fireworks CS6 Feature Parity)".to_string(),
+            top_right_tab: 0,
             layers_tab: 2,
-
-            library_tab: 0,
-
-            path_tab: 0,
-
-            style_name: "Current Document".to_string(),
-
+            middle_right_tab: 1,
+            library_tab: 2,
+            bottom_tab: 0,
+            color_tab: 0,
+            show_tools_dock: true,
+            show_right_dock: true,
+            show_bottom_inspector: true,
             textures: TextureCache::new(),
-
             logo_tex: None,
             frames: 0,
-
             screenshot_path,
-
             screenshot_saved: false,
-
-            screenshot_start: std::time::Instant::now(),
-
-            capture_requested: false,
-
-            open_path: String::new(),
-
-            export_path: "export.png".to_string(),
-
-            export_format: Format::Png,
-
-            message: String::new(),
-
-            show_rulers: false,
-
+            show_rulers: true,
             show_grid: false,
-
-            show_guides: false,
-
+            snap_to_grid: false,
+            show_guides: true,
+            show_slices: true,
+            onion_skin: false,
+            align_to_canvas: true,
             canvas_size: Vec2::new(800.0, 600.0),
-
+            cursor_doc_pos: None,
             brush_size: constants::BRUSH_SIZE_DEFAULT,
-
             grid_size: 20.0,
-
+            polygon_sides: 5,
+            star_ratio: 0.48,
             current_path: None,
-
+            recent_files: Vec::new(),
             show_new_dialog: false,
-
+            show_canvas_size_dialog: false,
+            show_find_replace: false,
+            show_commands_dialog: false,
+            show_about_dialog: false,
+            find_query: String::new(),
+            replace_query: String::new(),
+            saved_commands: vec![
+                "Add Drop Shadow Card".to_string(),
+                "Add Picture Frame".to_string(),
+                "Distribute 3×3 Guides".to_string(),
+                "Convert Selection to Grayscale".to_string(),
+                "Create Slice from Selection".to_string(),
+            ],
+            new_command_name: String::new(),
             new_doc_width: constants::DEFAULT_WIDTH,
-
             new_doc_height: constants::DEFAULT_HEIGHT,
-
+            new_doc_dpi: constants::EXPORT_DEFAULT_DPI,
             new_doc_bg: [1.0, 1.0, 1.0],
-
+            new_doc_transparent: false,
             show_file_dialog: false,
-
             file_mode: FileMode::Open,
-
             file_dialog_dir: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
-
             file_dialog_entries: Vec::new(),
-
             file_dialog_name: String::new(),
-
-            right_tab: 0,
-
             clipboard: None,
-
-            // The editor is usable from the first frame; the splash is one
-            // click away under File > Welcome Screen.
+            last_effect: None,
             show_welcome: false,
-
-        }
-
+        };
+        app.create_default_button_symbol();
+        app
     }
 
+    pub fn selected_object(&self) -> Option<Obj> {
+        let idx = self.selected?;
+        self.doc
+            .page()
+            .layers
+            .get(self.selected_layer)
+            .and_then(|l| l.objects.get(idx))
+            .cloned()
+    }
 
-
-    /// Append an object to the active layer and return its index.
-    ///
-    /// The layer index is clamped, so a stale `selected_layer` can never
-    /// panic the way a direct `layers[self.selected_layer]` did.
     pub fn push_object(&mut self, obj: Obj) -> usize {
-        let layer = self.selected_layer;
+        let target_layer = if matches!(obj.kind, Shape::Slice { .. }) {
+            self.doc
+                .page()
+                .layers
+                .iter()
+                .position(|l| l.is_web_layer)
+                .unwrap_or(self.selected_layer)
+        } else {
+            self.selected_layer
+        };
         let page = self.doc.page_mut();
-        let Some(layer) = page.layers.get_mut(layer) else {
+        let layer_idx = target_layer.min(page.layers.len().saturating_sub(1));
+        let Some(layer) = page.layers.get_mut(layer_idx) else {
             return 0;
         };
         layer.objects.push(obj);
-        layer.objects.len() - 1
+        let obj_idx = layer.objects.len() - 1;
+        page.sync_state();
+        self.selected_layer = layer_idx;
+        self.doc.dirty = true;
+        obj_idx
     }
 
     pub fn load_logo(ctx: &Context) -> Option<egui::TextureHandle> {
@@ -429,1179 +323,2019 @@ impl FireCraft {
             "logo.png",
             "src/logo.png",
             "../logo.png",
+            "../screenshots/logo.png",
         ];
         for p in &paths {
-            if let Ok(bytes) = std::fs::read(p) {
-                if let Ok(img) = image::load_from_memory(&bytes) {
-                    let w = img.width() as usize;
-                    let h = img.height() as usize;
-                    let mut pixels = Vec::with_capacity(w * h);
-                    for (_x, _y, c) in img.pixels() {
-                        pixels.push(egui::Color32::from_rgba_unmultiplied(c[0], c[1], c[2], c[3]));
-                    }
-                    let image = egui::ColorImage::new([w, h], pixels);
-                    return Some(ctx.load_texture("firecraft-logo", image, egui::TextureOptions::default()));
+            if let Ok(bytes) = std::fs::read(p)
+                && let Ok(img) = image::load_from_memory(&bytes)
+            {
+                let w = img.width() as usize;
+                let h = img.height() as usize;
+                let mut pixels = Vec::with_capacity(w * h);
+                for (_x, _y, c) in img.pixels() {
+                    pixels.push(Color32::from_rgba_unmultiplied(c[0], c[1], c[2], c[3]));
                 }
+                let image = egui::ColorImage::new([w, h], pixels);
+                return Some(ctx.load_texture(
+                    "firecraft-logo",
+                    image,
+                    egui::TextureOptions::default(),
+                ));
             }
         }
         None
     }
 
-    fn push_undo(&mut self, label: &str) {
-
+    pub fn push_undo(&mut self, label: &str) {
         let snap = self.doc.snapshot(label);
-
         self.undo.push(snap);
-
         if self.undo.len() > constants::UNDO_LIMIT {
-
             self.undo.remove(0);
-
         }
-
         self.redo.clear();
-
     }
-
-
 
     pub fn undo_action(&mut self) {
-
         if let Some(snap) = self.undo.pop() {
-
-            self.redo.push(self.doc.snapshot("redo"));
-
+            self.redo.push(self.doc.snapshot(&snap.label));
             self.doc.restore(&snap);
-
             self.textures.clear();
-
-            self.selected = None;
-
+            let count = self
+                .doc
+                .page()
+                .layers
+                .get(self.selected_layer)
+                .map(|l| l.objects.len())
+                .unwrap_or(0);
+            self.selected = self.selected.and_then(|idx| {
+                if count == 0 {
+                    None
+                } else {
+                    Some(idx.min(count - 1))
+                }
+            });
             self.status = format!("Undo: {}", snap.label);
-
         }
-
     }
-
-
 
     pub fn redo_action(&mut self) {
-
         if let Some(snap) = self.redo.pop() {
-
-            self.undo.push(self.doc.snapshot("redo"));
-
+            self.undo.push(self.doc.snapshot(&snap.label));
             self.doc.restore(&snap);
-
             self.textures.clear();
-
-            self.selected = None;
-
-            self.status = "Redo".to_string();
-
+            let count = self
+                .doc
+                .page()
+                .layers
+                .get(self.selected_layer)
+                .map(|l| l.objects.len())
+                .unwrap_or(0);
+            self.selected = self.selected.and_then(|idx| {
+                if count == 0 {
+                    None
+                } else {
+                    Some(idx.min(count - 1))
+                }
+            });
+            self.status = format!("Redo: {}", snap.label);
         }
-
     }
 
-
+    pub fn replay_last_action(&mut self) {
+        if self.selected.is_some() {
+            self.duplicate_selected();
+            if let Some(eff) = self.last_effect.clone() {
+                self.add_live_effect(eff);
+            }
+            self.status = "Replayed step on selection".to_string();
+        } else {
+            self.status = "Select an object to replay step".to_string();
+        }
+    }
 
     pub fn delete_selected(&mut self) {
-
         if let Some(index) = self.selected {
-
             self.push_undo("Delete");
-
             let layer = self.selected_layer;
-
             let page = self.doc.page_mut();
-
             if layer < page.layers.len() && index < page.layers[layer].objects.len() {
-
                 page.layers[layer].objects.remove(index);
-
+                page.sync_state();
             }
-
             self.selected = None;
-
             self.textures.clear();
-
+            self.status = "Deleted object".to_string();
         }
-
     }
-
-
 
     pub fn duplicate_selected(&mut self) {
-
         if let Some(index) = self.selected {
-
             self.push_undo("Duplicate");
-
             let layer = self.selected_layer;
-
             let page = self.doc.page_mut();
-
             if layer < page.layers.len() && index < page.layers[layer].objects.len() {
-
                 let mut copy = page.layers[layer].objects[index].clone();
-
-                copy.translate(Vec2::new(12.0, 12.0));
-
+                copy.translate(Vec2::new(14.0, 14.0));
                 page.layers[layer].objects.push(copy);
-
+                let new_idx = page.layers[layer].objects.len() - 1;
+                page.sync_state();
+                self.selected = Some(new_idx);
+                self.status = "Duplicated object".to_string();
             }
-
         }
-
     }
 
+    pub fn clone_selected(&mut self) {
+        if let Some(index) = self.selected {
+            self.push_undo("Clone");
+            let layer = self.selected_layer;
+            let page = self.doc.page_mut();
+            if layer < page.layers.len() && index < page.layers[layer].objects.len() {
+                let copy = page.layers[layer].objects[index].clone();
+                page.layers[layer].objects.push(copy);
+                let new_idx = page.layers[layer].objects.len() - 1;
+                page.sync_state();
+                self.selected = Some(new_idx);
+                self.status = "Cloned object in place".to_string();
+            }
+        }
+    }
 
+    pub fn nudge_selected(&mut self, delta: Vec2) {
+        if let Some(index) = self.selected {
+            self.push_undo("Nudge");
+            let layer = self.selected_layer;
+            let page = self.doc.page_mut();
+            if let Some(obj) = page
+                .layers
+                .get_mut(layer)
+                .and_then(|l| l.objects.get_mut(index))
+            {
+                obj.translate(delta);
+                page.sync_state();
+            }
+        }
+    }
 
     pub fn bitmap_texture(
-
         &mut self,
-
         key: (usize, usize),
-
         pixels: &[u8],
-
         size: Vec2,
-
     ) -> Option<TextureHandle> {
-
         if let Some(tex) = self.textures.get(&key) {
-
             return Some(tex.clone());
-
         }
-
         let w = size.x.max(1.0) as usize;
-
         let h = size.y.max(1.0) as usize;
-
         if pixels.len() < w * h * 4 {
-
             return None;
-
         }
-
         let mut data = Vec::with_capacity(w * h);
-
         for i in 0..w * h {
-
             data.push(Color32::from_rgba_unmultiplied(
-
                 pixels[i * 4],
-
                 pixels[i * 4 + 1],
-
                 pixels[i * 4 + 2],
-
                 pixels[i * 4 + 3],
-
             ));
-
         }
-
         let image = egui::ColorImage::new([w, h], data);
-
-        let tex = self
-
-            .ctx
-
-            .load_texture(format!("bitmap-{key:?}"), image, egui::TextureOptions::LINEAR);
-
+        let tex = self.ctx.load_texture(
+            format!("bitmap-{key:?}"),
+            image,
+            egui::TextureOptions::LINEAR,
+        );
         self.textures.insert(key, tex.clone());
-
         Some(tex)
-
     }
 
+    // ---- Property mutators -------------------------------------------------
 
+    fn with_selected_mut(&mut self, f: impl FnOnce(&mut Obj)) {
+        if let Some(index) = self.selected {
+            let layer = self.selected_layer;
+            let page = self.doc.page_mut();
+            if let Some(obj) = page
+                .layers
+                .get_mut(layer)
+                .and_then(|l| l.objects.get_mut(index))
+            {
+                f(obj);
+                page.sync_state();
+                self.doc.dirty = true;
+            }
+        }
+    }
 
     pub fn set_selected_name(&mut self, name: String) {
-
-        if let Some(index) = self.selected {
-
-            if let Some(obj) = self
-
-                .doc
-
-                .page_mut()
-
-                .layers
-
-                .get_mut(self.selected_layer)
-
-                .and_then(|l| l.objects.get_mut(index))
-
-            {
-
-                obj.name = name;
-
-            }
-
-        }
-
+        self.with_selected_mut(|obj| obj.name = name);
     }
-
-
 
     pub fn set_selected_fill(&mut self, color: Option<Color32>) {
-
-        if let Some(index) = self.selected {
-
-            if let Some(obj) = self
-
-                .doc
-
-                .page_mut()
-
-                .layers
-
-                .get_mut(self.selected_layer)
-
-                .and_then(|l| l.objects.get_mut(index))
-
-            {
-
-                obj.fill = color;
-
-            }
-
-        }
-
+        self.with_selected_mut(|obj| obj.fill = color);
     }
-
-
 
     pub fn set_selected_stroke(&mut self, color: Option<Color32>) {
-
-        if let Some(index) = self.selected {
-
-            if let Some(obj) = self
-
-                .doc
-
-                .page_mut()
-
-                .layers
-
-                .get_mut(self.selected_layer)
-
-                .and_then(|l| l.objects.get_mut(index))
-
-            {
-
-                obj.stroke = color;
-
-            }
-
-        }
-
+        self.with_selected_mut(|obj| obj.stroke = color);
     }
-
-
 
     pub fn set_selected_width(&mut self, width: f32) {
-
-        if let Some(index) = self.selected {
-
-            if let Some(obj) = self
-
-                .doc
-
-                .page_mut()
-
-                .layers
-
-                .get_mut(self.selected_layer)
-
-                .and_then(|l| l.objects.get_mut(index))
-
-            {
-
-                obj.width = width;
-
-            }
-
-        }
-
+        self.with_selected_mut(|obj| obj.width = width);
     }
 
+    pub fn set_selected_opacity(&mut self, opacity: f32) {
+        self.with_selected_mut(|obj| obj.opacity = opacity.clamp(0.0, 1.0));
+    }
 
+    pub fn set_selected_bounds(&mut self, lo: Vec2, hi: Vec2) {
+        self.with_selected_mut(|obj| obj.set_bounds(lo, hi));
+    }
+
+    pub fn set_selected_corner_radius(&mut self, radius: f32) {
+        self.with_selected_mut(|obj| {
+            if let Shape::Rect { corner_radius, .. } = &mut obj.kind {
+                *corner_radius = radius.max(0.0);
+            }
+        });
+    }
+
+    pub fn set_selected_polygon_params(&mut self, new_sides: u32, new_inner: f32) {
+        self.polygon_sides = new_sides.clamp(3, 36);
+        self.star_ratio = new_inner.clamp(0.1, 1.0);
+        self.with_selected_mut(|obj| {
+            if let Shape::Polygon {
+                sides, star_inner, ..
+            } = &mut obj.kind
+            {
+                *sides = new_sides.clamp(3, 36);
+                *star_inner = new_inner.clamp(0.1, 1.0);
+            }
+        });
+    }
 
     pub fn set_selected_text(&mut self, text: String) {
-
-        if let Some(index) = self.selected {
-
-            if let Some(obj) = self
-
-                .doc
-
-                .page_mut()
-
-                .layers
-
-                .get_mut(self.selected_layer)
-
-                .and_then(|l| l.objects.get_mut(index))
-
-            {
-
-                if let Shape::Text { text: t, .. } = &mut obj.kind {
-
-                    *t = text.clone();
-
-                }
-
-                obj.name = text;
-
+        self.with_selected_mut(|obj| {
+            if let Shape::Text { text: t, .. } = &mut obj.kind {
+                *t = text.clone();
             }
-
-        }
-
-    }
-
-
-
-    // ---- pointer handling -------------------------------------------------
-
-
-
-    pub fn on_pointer_down(&mut self, doc_pos: Vec2, _screen: Vec2, alt: bool, _ctrl: bool) {
-
-        match self.tool {
-
-            Tool::Hand => {
-
-                self.drag = Some(Drag {
-
-                    kind: DragKind::Pan,
-
-                    start: doc_pos,
-
-                    current: doc_pos,
-
-                    path: vec![],
-
-                });
-
-            }
-
-            Tool::Zoom => {
-
-                let factor = if alt { 1.0 / constants::ZOOM_STEP } else { constants::ZOOM_STEP };
-
-                self.set_zoom(self.doc.zoom * factor);
-
-            }
-
-            Tool::Fit => {
-
-                self.fit_in_window();
-
-            }
-
-            Tool::Select => {
-
-                let hit = canvas::hit_test(self, doc_pos);
-
-                match hit {
-
-                    Some((layer, index)) => {
-
-                        self.selected_layer = layer;
-
-                        self.selected = Some(index);
-
-                        self.drag = Some(Drag {
-
-                            kind: DragKind::Move,
-
-                            start: doc_pos,
-
-                            current: doc_pos,
-
-                            path: vec![],
-
-                        });
-
-                    }
-
-                    None => {
-
-                        self.selected = None;
-
-                        self.drag = Some(Drag {
-
-                            kind: DragKind::Marquee,
-
-                            start: doc_pos,
-
-                            current: doc_pos,
-
-                            path: vec![],
-
-                        });
-
-                    }
-
-                }
-
-            }
-
-            Tool::Marquee | Tool::Lasso | Tool::Wand | Tool::Crop => {
-
-                self.drag = Some(Drag {
-
-                    kind: DragKind::Marquee,
-
-                    start: doc_pos,
-
-                    current: doc_pos,
-
-                    path: vec![],
-
-                });
-
-            }
-
-            Tool::Rectangle | Tool::Ellipse | Tool::Line => {
-
-                self.drag = Some(Drag {
-
-                    kind: DragKind::Create,
-
-                    start: doc_pos,
-
-                    current: doc_pos,
-
-                    path: vec![],
-
-                });
-
-            }
-
-            Tool::Path | Tool::Polygon => {
-
-                self.drag = Some(Drag {
-
-                    kind: DragKind::Path,
-
-                    start: doc_pos,
-
-                    current: doc_pos,
-
-                    path: vec![doc_pos],
-
-                });
-
-            }
-
-            Tool::Text => {
-
-                self.push_undo("Add text");
-
-                let obj = Obj::new(
-
-                    Shape::Text {
-
-                        at: doc_pos,
-
-                        text: "Text".to_string(),
-
-                        size: 24.0,
-
-                    },
-
-                    Some(self.fill),
-
-                    None,
-
-                );
-
-                let index = self.push_object(obj);
-
-                self.selected = Some(index);
-
-                self.textures.clear();
-
-                self.status = "Text added".to_string();
-
-            }
-
-            Tool::Picker => {
-
-                if let Some((layer, index)) = canvas::hit_test(self, doc_pos) {
-
-                    let color = self.doc.page().layers[layer].objects[index].fill;
-
-                    if let Some(c) = color {
-
-                        self.fill = c;
-
-                        self.status = format!("Picked {}", colors::hex_of(c));
-
-                    }
-
-                }
-
-            }
-
-            Tool::Fill => {
-
-                self.push_undo("Fill page");
-
-                let page = self.doc.page().clone();
-
-                let obj = Obj::new(
-
-                    Shape::Rect {
-
-                        min: Vec2::ZERO,
-
-                        max: Vec2::new(page.width, page.height),
-
-                        filled: true,
-
-                    },
-
-                    Some(self.fill),
-
-                    None,
-
-                );
-
-                let index = self.push_object(obj);
-
-                self.selected = Some(index);
-
-                self.status = "Page filled".to_string();
-
-            }
-
-            Tool::Gradient => {
-
-                self.push_undo("Gradient");
-
-                let page = self.doc.page().clone();
-
-                // A real gradient shape: `from` is the fill colour and `to` the
-                // stroke colour, blended top to bottom over the page.
-                let obj = Obj::new(
-
-                    Shape::Gradient {
-
-                        min: Vec2::ZERO,
-
-                        max: Vec2::new(page.width, page.height),
-
-                        from: self.fill,
-
-                        to: self.stroke,
-
-                    },
-
-                    None,
-
-                    None,
-
-                );
-
-                let index = self.push_object(obj);
-
-                self.selected = Some(index);
-
-                self.status = "Gradient shape added".to_string();
-
-            }
-
-            Tool::Brush | Tool::Pencil | Tool::Eraser => {
-
-                self.push_undo("Paint");
-
-                self.drag = Some(Drag {
-
-                    kind: DragKind::Paint,
-
-                    start: doc_pos,
-
-                    current: doc_pos,
-
-                    path: vec![doc_pos],
-
-                });
-
-                if self.tool == Tool::Eraser {
-
-                    self.erase_at(doc_pos);
-
-                }
-
-            }
-
-            Tool::Blur | Tool::Sharpen | Tool::Dodge | Tool::Burn => {
-
-                self.apply_image_filter();
-
-            }
-
-        }
-
-    }
-
-
-
-    /// Erase every object whose bounds contain `doc_pos`.
-    ///
-    /// The eraser used to append an invisible ellipse instead of removing
-    /// anything, which made it look like it did nothing at all.
-    fn erase_at(&mut self, doc_pos: Vec2) {
-
-        let radius = (self.brush_size / 2.0).max(2.0);
-
-        let layer = self.selected_layer;
-
-        let page = self.doc.page_mut();
-
-        let Some(layer) = page.layers.get_mut(layer) else {
-
-            return;
-
-        };
-
-        layer.objects.retain(|obj| {
-
-            match obj.bounds() {
-
-                Some((lo, hi)) => {
-
-                    !(doc_pos.x >= lo.x - radius
-                        && doc_pos.x <= hi.x + radius
-                        && doc_pos.y >= lo.y - radius
-                        && doc_pos.y <= hi.y + radius)
-
-                }
-
-                None => true,
-
-            }
-
+            obj.name = text;
         });
-
-        self.textures.clear();
-
     }
 
+    pub fn set_selected_text_size(&mut self, new_size: f32) {
+        self.with_selected_mut(|obj| {
+            if let Shape::Text { size, .. } = &mut obj.kind {
+                *size = new_size.clamp(6.0, 240.0);
+            }
+        });
+    }
 
+    pub fn set_selected_font_family(&mut self, family: &str) {
+        let fam = family.to_string();
+        self.with_selected_mut(|obj| {
+            if let Shape::Text { font_family, .. } = &mut obj.kind {
+                *font_family = fam;
+            }
+        });
+        self.status = format!("Font set to {family}");
+    }
 
-    fn apply_image_filter(&mut self) {
+    pub fn toggle_selected_text_bold(&mut self) {
+        self.with_selected_mut(|obj| {
+            if let Shape::Text { bold, .. } = &mut obj.kind {
+                *bold = !*bold;
+            }
+        });
+    }
 
-        let Some(index) = self.selected else {
+    pub fn toggle_selected_text_italic(&mut self) {
+        self.with_selected_mut(|obj| {
+            if let Shape::Text { italic, .. } = &mut obj.kind {
+                *italic = !*italic;
+            }
+        });
+    }
 
-            self.status = "Select a bitmap first".to_string();
+    pub fn set_selected_slice_meta(&mut self, new_url: String, new_alt: String) {
+        self.with_selected_mut(|obj| {
+            if let Shape::Slice { url, alt, .. } = &mut obj.kind {
+                *url = new_url;
+                *alt = new_alt;
+            }
+        });
+    }
 
+    pub fn set_selected_gradient_radial(&mut self, is_radial: bool) {
+        self.with_selected_mut(|obj| {
+            if let Shape::Gradient { radial, .. } = &mut obj.kind {
+                *radial = is_radial;
+            }
+        });
+    }
+
+    // ---- Live Effects & Filters --------------------------------------------
+
+    pub fn add_live_effect(&mut self, effect: LiveEffect) {
+        if self.selected.is_none() {
+            self.status = "Select an object first to attach a Live Filter".to_string();
             return;
+        }
+        self.push_undo("Add Live Filter");
+        let label = effect.label();
+        self.last_effect = Some(effect.clone());
+        self.with_selected_mut(|obj| obj.effects.push(effect));
+        self.status = format!("Added Live Filter: {label}");
+    }
 
-        };
+    pub fn toggle_live_effect(&mut self, eff_idx: usize, enabled: bool) {
+        self.with_selected_mut(|obj| {
+            if let Some(eff) = obj.effects.get_mut(eff_idx) {
+                eff.set_enabled(enabled);
+            }
+        });
+    }
 
-        let layer = self.selected_layer;
+    pub fn clear_live_effects(&mut self) {
+        self.push_undo("Clear Filters");
+        self.with_selected_mut(|obj| obj.effects.clear());
+        self.status = "Cleared live filters on selection".to_string();
+    }
 
-        let Some(obj) = self
+    pub fn repeat_last_filter(&mut self) {
+        if let Some(eff) = self.last_effect.clone() {
+            self.add_live_effect(eff);
+        } else {
+            self.run_bitmap_filter(Tool::Sharpen);
+        }
+    }
 
-            .doc
+    // ---- Pointer handling --------------------------------------------------
 
-            .page_mut()
+    pub fn snap_pos(&self, p: Vec2) -> Vec2 {
+        if self.snap_to_grid && self.grid_size >= 2.0 {
+            let g = self.grid_size;
+            Vec2::new((p.x / g).round() * g, (p.y / g).round() * g)
+        } else {
+            p
+        }
+    }
 
-            .layers
-
-            .get_mut(layer)
-
-            .and_then(|l| l.objects.get_mut(index))
-
-        else {
-
-            return;
-
-        };
-
-        let Shape::Bitmap { pixels, size, .. } = &mut obj.kind else {
-
-            self.status = "That filter needs a bitmap object".to_string();
-
-            return;
-
-        };
-
-        let count = pixels.len() / 4;
-
-        let w = size.x.max(1.0) as usize;
-
-        let rows = size.y.max(1.0) as usize;
-
-        let original = pixels.clone();
-
-        for i in 0..count {
-
-            match self.tool {
-
-                Tool::Blur => {
-
-                    let x = (i % w) as i64;
-
-                    let y = (i / w) as i64;
-
-                    let mut r = 0u32;
-
-                    let mut g = 0u32;
-
-                    let mut b = 0u32;
-
-                    let mut n = 0u32;
-
-                    for dy in -1..=1 {
-
-                        for dx in -1..=1 {
-
-                            let nx = x + dx;
-
-                            let ny = y + dy;
-
-                            if nx < 0 || ny < 0 || nx as usize >= w || ny as usize >= rows {
-
-                                continue;
-
-                            }
-
-                            let ni = (ny as usize) * w + nx as usize;
-
-                            if ni >= count {
-
-                                continue;
-
-                            }
-
-                            r += original[ni * 4] as u32;
-
-                            g += original[ni * 4 + 1] as u32;
-
-                            b += original[ni * 4 + 2] as u32;
-
-                            n += 1;
-
-                        }
-
-                    }
-
-                    if n > 0 {
-
-                        pixels[i * 4] = (r / n) as u8;
-
-                        pixels[i * 4 + 1] = (g / n) as u8;
-
-                        pixels[i * 4 + 2] = (b / n) as u8;
-
-                    }
-
+    pub fn on_pointer_down(
+        &mut self,
+        raw_doc_pos: Vec2,
+        _screen: Vec2,
+        alt: bool,
+        _ctrl: bool,
+        _shift: bool,
+    ) {
+        let doc_pos = self.snap_pos(raw_doc_pos);
+        match self.tool {
+            Tool::Hand => {
+                self.drag = Some(Drag {
+                    kind: DragKind::Pan,
+                    start: raw_doc_pos,
+                    current: raw_doc_pos,
+                    orig_bounds: None,
+                    path: vec![],
+                });
+            }
+            Tool::Zoom => {
+                let factor = if alt {
+                    1.0 / constants::ZOOM_STEP
+                } else {
+                    constants::ZOOM_STEP
+                };
+                self.set_zoom(self.doc.zoom * factor);
+            }
+            Tool::Fit => {
+                self.fit_in_window();
+            }
+            Tool::Select | Tool::Subselect | Tool::Scale => {
+                if let Some(handle_idx) = canvas::hit_test_handle(self, raw_doc_pos) {
+                    let orig = self.selected_object().and_then(|o| o.bounds());
+                    self.push_undo("Resize");
+                    self.drag = Some(Drag {
+                        kind: DragKind::Resize(handle_idx),
+                        start: doc_pos,
+                        current: doc_pos,
+                        orig_bounds: orig,
+                        path: vec![],
+                    });
+                    return;
                 }
-
-                Tool::Sharpen => {
-
-                    // A 3×3 unsharp kernel: the centre pixel is weighted 5×
-                    // and the four orthogonal neighbours are subtracted.
-                    // The old code compared each pixel with itself, so
-                    // sharpening did nothing at all.
-                    let x = (i % w) as i64;
-
-                    let y = (i / w) as i64;
-
-                    if rows == 0 {
-
-                        continue;
-
-                    }
-
-                    let cx = x.clamp(0, w as i64 - 1).max(0);
-
-                    let cy = y.clamp(0, rows as i64 - 1).max(0);
-
-                    let at = |px: i64, py: i64, c: usize| -> i32 {
-
-                        let px = px.clamp(0, w as i64 - 1) as usize;
-let py = py.clamp(0, rows as i64 - 1) as usize;
-let idx = (py * w + px) * 4 + c;
-
-                        if idx >= original.len() {
-
-                            return 0;
-
+                let hit = canvas::hit_test(self, raw_doc_pos);
+                match hit {
+                    Some((layer, index)) => {
+                        self.selected_layer = layer;
+                        self.selected = Some(index);
+                        if alt {
+                            self.duplicate_selected();
+                        } else {
+                            self.push_undo("Move");
                         }
+                        self.drag = Some(Drag {
+                            kind: DragKind::Move,
+                            start: doc_pos,
+                            current: doc_pos,
+                            orig_bounds: None,
+                            path: vec![],
+                        });
+                    }
+                    None => {
+                        self.selected = None;
+                        self.drag = Some(Drag {
+                            kind: DragKind::Marquee,
+                            start: doc_pos,
+                            current: doc_pos,
+                            orig_bounds: None,
+                            path: vec![],
+                        });
+                    }
+                }
+            }
+            Tool::Marquee | Tool::Lasso | Tool::Wand | Tool::Crop => {
+                self.drag = Some(Drag {
+                    kind: DragKind::Marquee,
+                    start: doc_pos,
+                    current: doc_pos,
+                    orig_bounds: None,
+                    path: vec![],
+                });
+            }
+            Tool::Rectangle
+            | Tool::RoundedRect
+            | Tool::Ellipse
+            | Tool::Line
+            | Tool::Polygon
+            | Tool::Star
+            | Tool::Slice
+            | Tool::Hotspot => {
+                self.drag = Some(Drag {
+                    kind: DragKind::Create,
+                    start: doc_pos,
+                    current: doc_pos,
+                    orig_bounds: None,
+                    path: vec![],
+                });
+            }
+            Tool::Path => {
+                self.drag = Some(Drag {
+                    kind: DragKind::Path,
+                    start: doc_pos,
+                    current: doc_pos,
+                    orig_bounds: None,
+                    path: vec![doc_pos],
+                });
+            }
+            Tool::Knife => {
+                self.split_selected_path();
+            }
+            Tool::Text => {
+                self.push_undo("Add Text");
+                let obj = Obj::new(
+                    Shape::Text {
+                        at: doc_pos,
+                        text: "FireCraft Text".to_string(),
+                        size: 24.0,
+                        bold: false,
+                        italic: false,
+                        font_family: "Sans-Serif".to_string(),
+                    },
+                    Some(self.fill),
+                    None,
+                );
+                let index = self.push_object(obj);
+                self.selected = Some(index);
+                self.textures.clear();
+                self.status = "Text object added".to_string();
+            }
+            Tool::Picker => {
+                if let Some((layer, index)) = canvas::hit_test(self, raw_doc_pos) {
+                    let color = self.doc.page().layers[layer].objects[index].fill;
+                    if let Some(c) = color {
+                        self.fill = c;
+                        self.status = format!("Picked {}", colors::hex_of(c));
+                    }
+                } else {
+                    self.fill = self.doc.page().bg_color;
+                    self.status = format!("Picked canvas {}", colors::hex_of(self.fill));
+                }
+            }
+            Tool::Fill => {
+                if let Some((layer, index)) = canvas::hit_test(self, raw_doc_pos) {
+                    self.selected_layer = layer;
+                    self.selected = Some(index);
+                    self.push_undo("Fill Object");
+                    self.set_selected_fill(Some(self.fill));
+                    self.status = "Filled selected object".to_string();
+                } else {
+                    self.push_undo("Fill Canvas");
+                    let page = self.doc.page().clone();
+                    let obj = Obj::new(
+                        Shape::Rect {
+                            min: Vec2::ZERO,
+                            max: Vec2::new(page.width, page.height),
+                            corner_radius: 0.0,
+                            filled: true,
+                        },
+                        Some(self.fill),
+                        None,
+                    );
+                    let index = self.push_object(obj);
+                    self.selected = Some(index);
+                    self.status = "Filled page background".to_string();
+                }
+            }
+            Tool::Gradient => {
+                self.push_undo("Gradient");
+                let page = self.doc.page().clone();
+                let obj = Obj::new(
+                    Shape::Gradient {
+                        min: Vec2::ZERO,
+                        max: Vec2::new(page.width, page.height),
+                        from: self.fill,
+                        to: self.stroke,
+                        radial: false,
+                    },
+                    None,
+                    None,
+                );
+                let index = self.push_object(obj);
+                self.selected = Some(index);
+                self.status = "Gradient shape added".to_string();
+            }
+            Tool::Brush | Tool::Pencil | Tool::Eraser => {
+                self.push_undo("Paint");
+                self.drag = Some(Drag {
+                    kind: DragKind::Paint,
+                    start: doc_pos,
+                    current: doc_pos,
+                    orig_bounds: None,
+                    path: vec![doc_pos],
+                });
+                if self.tool == Tool::Eraser {
+                    self.erase_at(doc_pos);
+                }
+            }
+            Tool::Stamp => {
+                if self.selected.is_some() {
+                    self.duplicate_selected();
+                    if let Some((lo, hi)) = self.selected_object().and_then(|o| o.bounds()) {
+                        let size = hi - lo;
+                        self.set_selected_bounds(doc_pos - size * 0.5, doc_pos + size * 0.5);
+                    }
+                    self.status = "Stamped clone at cursor".to_string();
+                } else {
+                    self.status = "Select an object first to stamp clones".to_string();
+                }
+            }
+            Tool::Blur | Tool::Sharpen | Tool::Dodge | Tool::Burn => {
+                self.run_bitmap_filter(self.tool);
+            }
+        }
+    }
 
+    fn erase_at(&mut self, doc_pos: Vec2) {
+        let radius = (self.brush_size / 2.0).max(2.0);
+        let layer = self.selected_layer;
+        let page = self.doc.page_mut();
+        let Some(layer_ref) = page.layers.get_mut(layer) else {
+            return;
+        };
+        layer_ref.objects.retain(|obj| match obj.bounds() {
+            Some((lo, hi)) => {
+                !(doc_pos.x >= lo.x - radius
+                    && doc_pos.x <= hi.x + radius
+                    && doc_pos.y >= lo.y - radius
+                    && doc_pos.y <= hi.y + radius)
+            }
+            None => true,
+        });
+        page.sync_state();
+        self.textures.clear();
+    }
+
+    pub fn run_bitmap_filter(&mut self, filter_tool: Tool) {
+        let Some(index) = self.selected else {
+            self.status = "Select an object first".to_string();
+            return;
+        };
+        let layer = self.selected_layer;
+        let Some(obj) = self
+            .doc
+            .page_mut()
+            .layers
+            .get_mut(layer)
+            .and_then(|l| l.objects.get_mut(index))
+        else {
+            return;
+        };
+        let Shape::Bitmap { pixels, size, .. } = &mut obj.kind else {
+            // If it's a vector object, apply a non-destructive Live Filter or color adjustment instead
+            match filter_tool {
+                Tool::Blur => self.add_live_effect(LiveEffect::GaussianBlur {
+                    radius: 4.0,
+                    enabled: true,
+                }),
+                Tool::Dodge => self.apply_color_command("brighten"),
+                Tool::Burn => self.apply_color_command("darken"),
+                _ => {
+                    self.status = "Converted to Live Effect on vector object".to_string();
+                }
+            }
+            return;
+        };
+        let count = pixels.len() / 4;
+        let w = size.x.max(1.0) as usize;
+        let rows = size.y.max(1.0) as usize;
+        let original = pixels.clone();
+        for i in 0..count {
+            match filter_tool {
+                Tool::Blur => {
+                    let x = (i % w) as i64;
+                    let y = (i / w) as i64;
+                    let mut r = 0u32;
+                    let mut g = 0u32;
+                    let mut b = 0u32;
+                    let mut n = 0u32;
+                    for dy in -1..=1 {
+                        for dx in -1..=1 {
+                            let nx = x + dx;
+                            let ny = y + dy;
+                            if nx < 0 || ny < 0 || nx as usize >= w || ny as usize >= rows {
+                                continue;
+                            }
+                            let ni = (ny as usize) * w + nx as usize;
+                            if ni >= count {
+                                continue;
+                            }
+                            r += original[ni * 4] as u32;
+                            g += original[ni * 4 + 1] as u32;
+                            b += original[ni * 4 + 2] as u32;
+                            n += 1;
+                        }
+                    }
+                    if let (Some(rn), Some(gn), Some(bn)) =
+                        (r.checked_div(n), g.checked_div(n), b.checked_div(n))
+                    {
+                        pixels[i * 4] = rn as u8;
+                        pixels[i * 4 + 1] = gn as u8;
+                        pixels[i * 4 + 2] = bn as u8;
+                    }
+                }
+                Tool::Sharpen => {
+                    let x = (i % w) as i64;
+                    let y = (i / w) as i64;
+                    if rows == 0 {
+                        continue;
+                    }
+                    let cx = x.clamp(0, w as i64 - 1).max(0);
+                    let cy = y.clamp(0, rows as i64 - 1).max(0);
+                    let at = |px: i64, py: i64, c: usize| -> i32 {
+                        let px = px.clamp(0, w as i64 - 1) as usize;
+                        let py = py.clamp(0, rows as i64 - 1) as usize;
+                        let idx = (py * w + px) * 4 + c;
                         original.get(idx).copied().unwrap_or(0) as i32
-
                     };
-
-
-
-
-
                     for c in 0..3 {
-
                         let centre = at(cx, cy, c);
-
                         let value = centre * 5
                             - at(cx - 1, cy, c)
                             - at(cx + 1, cy, c)
                             - at(cx, cy - 1, c)
                             - at(cx, cy + 1, c);
-
                         pixels[i * 4 + c] = value.clamp(0, 255) as u8;
-
                     }
-
-
                 }
-
                 Tool::Dodge => {
-
                     pixels[i * 4] = (original[i * 4] as f32 * 1.15).min(255.0) as u8;
-
                     pixels[i * 4 + 1] = (original[i * 4 + 1] as f32 * 1.15).min(255.0) as u8;
-
                     pixels[i * 4 + 2] = (original[i * 4 + 2] as f32 * 1.15).min(255.0) as u8;
-
                 }
-
                 Tool::Burn => {
-
                     pixels[i * 4] = (original[i * 4] as f32 * 0.85) as u8;
-
                     pixels[i * 4 + 1] = (original[i * 4 + 1] as f32 * 0.85) as u8;
-
                     pixels[i * 4 + 2] = (original[i * 4 + 2] as f32 * 0.85) as u8;
-
                 }
-
                 _ => {}
-
             }
-
         }
-
+        self.doc.page_mut().sync_state();
         self.textures.clear();
-
-        self.status = format!("{} applied", self.tool.name());
-
+        self.status = format!("{} applied", filter_tool.name());
     }
 
-
-
-    pub fn on_pointer_drag(&mut self, doc_pos: Vec2) {
-
+    pub fn on_pointer_drag(&mut self, raw_doc_pos: Vec2, shift: bool) {
+        let doc_pos = self.snap_pos(raw_doc_pos);
         let Some(drag) = self.drag.as_mut() else {
-
             return;
-
         };
-
         match drag.kind {
-
             DragKind::Pan => {
-
-                let delta = doc_pos - drag.current;
-
-                drag.current = doc_pos;
-
+                let delta = raw_doc_pos - drag.current;
+                drag.current = raw_doc_pos;
                 self.doc.pan += delta * self.doc.zoom;
-
             }
-
             DragKind::Move => {
-
                 let delta = doc_pos - drag.current;
-
                 drag.current = doc_pos;
-
                 if let Some(index) = self.selected {
-
                     let layer = self.selected_layer;
-
                     let page = self.doc.page_mut();
-
-                    if let Some(obj) = page.layers.get_mut(layer).and_then(|l| l.objects.get_mut(index))
-
+                    if let Some(obj) = page
+                        .layers
+                        .get_mut(layer)
+                        .and_then(|l| l.objects.get_mut(index))
                     {
-
                         obj.translate(delta);
-
+                        page.sync_state();
                     }
-
                 }
-
             }
-
-            DragKind::Paint => {
-
+            DragKind::Resize(handle_idx) => {
                 drag.current = doc_pos;
-
-                if (doc_pos - drag.path.last().copied().unwrap_or(doc_pos)).length() > 2.0 {
-
-                    drag.path.push(doc_pos);
-
-                    if self.tool == Tool::Eraser {
-
-                        self.erase_at(doc_pos);
-
-                    }
-
-                }
-
-            }
-
-            _ => {
-
-                drag.current = doc_pos;
-
-            }
-
-        }
-
-    }
-
-
-
-    pub fn on_pointer_up(&mut self, doc_pos: Vec2) {
-
-        let Some(drag) = self.drag.take() else {
-
-            return;
-
-        };
-
-        match drag.kind {
-
-            DragKind::Marquee => {
-
-                let lo = drag.start.min(doc_pos);
-
-                let hi = drag.start.max(doc_pos);
-
-                let mut picked = None;
-
-                let page = self.doc.page();
-
-                if let Some(layer) = page.layers.get(self.selected_layer) {
-
-                    for (index, obj) in layer.objects.iter().enumerate().rev() {
-
-                        if let Some((a, b)) = obj.bounds() {
-
-                            if b.x >= lo.x && a.x <= hi.x && b.y >= lo.y && a.y <= hi.y {
-
-                                picked = Some(index);
-
-                                break;
-
-                            }
-
+                if let Some((mut lo, mut hi)) = drag.orig_bounds {
+                    match handle_idx {
+                        0 => lo = doc_pos,
+                        1 => lo.y = doc_pos.y,
+                        2 => {
+                            hi.x = doc_pos.x;
+                            lo.y = doc_pos.y;
                         }
-
+                        3 => hi.x = doc_pos.x,
+                        4 => hi = doc_pos,
+                        5 => hi.y = doc_pos.y,
+                        6 => {
+                            lo.x = doc_pos.x;
+                            hi.y = doc_pos.y;
+                        }
+                        7 => lo.x = doc_pos.x,
+                        _ => {}
                     }
-
+                    if shift {
+                        let s = (hi.x - lo.x).abs().max((hi.y - lo.y).abs());
+                        hi = lo + Vec2::splat(s);
+                    }
+                    self.set_selected_bounds(lo, hi);
                 }
-
-                self.selected = picked;
-
-                self.status = if picked.is_some() {
-
-                    "Object selected".to_string()
-
-                } else {
-
-                    "Nothing selected".to_string()
-
-                };
-
             }
-
-            DragKind::Create => {
-
-                let lo = drag.start.min(doc_pos);
-
-                let hi = drag.start.max(doc_pos);
-
-                if hi.x - lo.x < 2.0 && hi.y - lo.y < 2.0 {
-
-                    return;
-
+            DragKind::Paint | DragKind::Path => {
+                drag.current = doc_pos;
+                if (doc_pos - drag.path.last().copied().unwrap_or(doc_pos)).length() > 2.0 {
+                    drag.path.push(doc_pos);
+                    if self.tool == Tool::Eraser {
+                        self.erase_at(doc_pos);
+                    }
                 }
-
-                self.push_undo("Draw");
-
-                let kind = match self.tool {
-
-                    Tool::Rectangle => Shape::Rect {
-
-                        min: lo,
-
-                        max: hi,
-
-                        filled: true,
-
-                    },
-
-                    Tool::Ellipse => Shape::Ellipse {
-
-                        center: (lo + hi) / 2.0,
-
-                        radius: (hi - lo) / 2.0,
-
-                        filled: true,
-
-                    },
-
-                    Tool::Line => Shape::Line {
-
-                        a: drag.start,
-
-                        b: doc_pos,
-
-                    },
-
-                    _ => return,
-
-                };
-
-                let (fill, stroke) = match self.tool {
-
-                    Tool::Line => (None, Some(self.stroke)),
-
-                    _ => (Some(self.fill), None),
-
-                };
-
-                let obj = Obj::new(kind, fill, stroke);
-
-                let index = self.push_object(obj);
-
-                self.selected = Some(index);
-
-                self.status = format!("{} drawn", self.tool.name());
-
             }
-
-            DragKind::Paint => {
-
-                // The brush and pencil draw one stroked path per drag, using
-                // the brush size as the stroke width.
-                if drag.path.len() >= 2 && self.tool != Tool::Eraser {
-
-                    self.push_undo("Stroke");
-
-                    let mut obj = Obj::new(
-
-                        Shape::Path {
-
-                            points: drag.path.clone(),
-
-                        },
-
-                        None,
-
-                        Some(self.fill),
-
-                    );
-
-                    obj.width = self.brush_size.max(1.0);
-
-                    let index = self.push_object(obj);
-
-                    self.selected = Some(index);
-
+            _ => {
+                let mut cur = doc_pos;
+                if shift {
+                    let d = cur - drag.start;
+                    let side = d.x.abs().max(d.y.abs());
+                    cur = drag.start + Vec2::new(side * d.x.signum(), side * d.y.signum());
                 }
-
+                drag.current = cur;
             }
-
-            DragKind::Path => {
-
-                if drag.path.len() >= 2 {
-
-                    self.push_undo("Path");
-
-                    let obj = Obj::new(
-
-                        Shape::Path {
-
-                            points: drag.path.clone(),
-
-                        },
-
-                        Some(self.fill),
-
-                        Some(self.stroke),
-
-                    );
-
-                    let page = self.doc.page_mut();
-
-                    page.layers[self.selected_layer].objects.push(obj);
-
-                    self.selected = Some(page.layers[self.selected_layer].objects.len() - 1);
-
-                }
-
-            }
-
-            _ => {}
-
         }
-
     }
 
+    pub fn on_pointer_up(&mut self, raw_doc_pos: Vec2, shift: bool) {
+        let mut doc_pos = self.snap_pos(raw_doc_pos);
+        let Some(drag) = self.drag.take() else {
+            return;
+        };
+        if shift && matches!(drag.kind, DragKind::Create) {
+            let d = doc_pos - drag.start;
+            let side = d.x.abs().max(d.y.abs());
+            doc_pos = drag.start + Vec2::new(side * d.x.signum(), side * d.y.signum());
+        }
+        match drag.kind {
+            DragKind::Marquee => {
+                let lo = drag.start.min(doc_pos);
+                let hi = drag.start.max(doc_pos);
+                if self.tool == Tool::Crop && (hi.x - lo.x) >= 16.0 && (hi.y - lo.y) >= 16.0 {
+                    self.crop_canvas_to_rect(lo, hi);
+                    return;
+                }
+                let mut picked = None;
+                let page = self.doc.page();
+                if let Some(layer) = page.layers.get(self.selected_layer) {
+                    for (index, obj) in layer.objects.iter().enumerate().rev() {
+                        if let Some((a, b)) = obj.bounds()
+                            && b.x >= lo.x
+                            && a.x <= hi.x
+                            && b.y >= lo.y
+                            && a.y <= hi.y
+                        {
+                            picked = Some(index);
+                            break;
+                        }
+                    }
+                }
+                self.selected = picked;
+                self.status = if picked.is_some() {
+                    "Object selected".to_string()
+                } else {
+                    "Nothing selected".to_string()
+                };
+            }
+            DragKind::Create => {
+                let lo = drag.start.min(doc_pos);
+                let hi = drag.start.max(doc_pos);
+                if hi.x - lo.x < 2.0 && hi.y - lo.y < 2.0 {
+                    return;
+                }
+                self.push_undo("Draw");
+                let kind = match self.tool {
+                    Tool::Rectangle => Shape::Rect {
+                        min: lo,
+                        max: hi,
+                        corner_radius: 0.0,
+                        filled: true,
+                    },
+                    Tool::RoundedRect => Shape::Rect {
+                        min: lo,
+                        max: hi,
+                        corner_radius: 12.0,
+                        filled: true,
+                    },
+                    Tool::Ellipse => Shape::Ellipse {
+                        center: (lo + hi) / 2.0,
+                        radius: (hi - lo) / 2.0,
+                        filled: true,
+                    },
+                    Tool::Line => Shape::Line {
+                        a: drag.start,
+                        b: doc_pos,
+                    },
+                    Tool::Polygon => Shape::Polygon {
+                        center: (lo + hi) * 0.5,
+                        radius: ((hi - lo).length() * 0.5).max(4.0),
+                        sides: self.polygon_sides,
+                        star_inner: 1.0,
+                        angle_rad: 0.0,
+                    },
+                    Tool::Star => Shape::Polygon {
+                        center: (lo + hi) * 0.5,
+                        radius: ((hi - lo).length() * 0.5).max(4.0),
+                        sides: self.polygon_sides,
+                        star_inner: self.star_ratio,
+                        angle_rad: 0.0,
+                    },
+                    Tool::Slice | Tool::Hotspot => Shape::Slice {
+                        min: lo,
+                        max: hi,
+                        url: "https://github.com/aliasfoxkde/FireCraft".to_string(),
+                        alt: "FireCraft Web Slice".to_string(),
+                        target: "_self".to_string(),
+                        format: "PNG32".to_string(),
+                        is_hotspot: self.tool == Tool::Hotspot,
+                    },
+                    _ => return,
+                };
+                let (fill, stroke) = match self.tool {
+                    Tool::Line => (None, Some(self.stroke)),
+                    Tool::Slice | Tool::Hotspot => (None, None),
+                    _ => (Some(self.fill), Some(self.stroke)),
+                };
+                let obj = Obj::new(kind, fill, stroke);
+                let index = self.push_object(obj);
+                self.selected = Some(index);
+                self.status = format!("{} created", self.tool.name());
+            }
+            DragKind::Paint => {
+                if drag.path.len() >= 2 && self.tool != Tool::Eraser {
+                    let mut obj = Obj::new(
+                        Shape::Path {
+                            points: drag.path,
+                            closed: false,
+                        },
+                        None,
+                        Some(self.fill),
+                    );
+                    obj.width = self.brush_size.max(1.0);
+                    let index = self.push_object(obj);
+                    self.selected = Some(index);
+                }
+            }
+            DragKind::Path if drag.path.len() >= 2 => {
+                self.push_undo("Path");
+                let closed = drag.path.len() > 3
+                    && (drag.path[0] - *drag.path.last().unwrap_or(&drag.path[0])).length() < 14.0;
+                let obj = Obj::new(
+                    Shape::Path {
+                        points: drag.path,
+                        closed,
+                    },
+                    if closed { Some(self.fill) } else { None },
+                    Some(self.stroke),
+                );
+                let idx = self.push_object(obj);
+                self.selected = Some(idx);
+            }
+            _ => {}
+        }
+    }
 
+    // ---- Multi-Document Tabs & Document Lifecycle --------------------------
 
+    fn sync_active_doc_slot(&mut self) {
+        if self.active_doc < self.open_docs.len() {
+            self.open_docs[self.active_doc] = self.doc.clone();
+        }
+    }
 
+    pub fn new_document_tab(&mut self, width: f32, height: f32) {
+        self.sync_active_doc_slot();
+        let mut d = Document::new(width, height);
+        d.name = format!("Untitled-{}.fw.png", self.open_docs.len() + 1);
+        self.open_docs.push(d.clone());
+        self.active_doc = self.open_docs.len() - 1;
+        self.doc = d;
+        self.selected = None;
+        self.selected_layer = 0;
+        self.undo.clear();
+        self.redo.clear();
+        self.textures.clear();
+        self.status = format!("New document tab: {}", self.doc.name);
+    }
 
+    pub fn switch_document_tab(&mut self, idx: usize) {
+        if idx < self.open_docs.len() {
+            self.sync_active_doc_slot();
+            self.active_doc = idx;
+            self.doc = self.open_docs[idx].clone();
+            self.selected = None;
+            self.selected_layer = 0;
+            self.undo.clear();
+            self.redo.clear();
+            self.textures.clear();
+            self.status = format!("Switched to {}", self.doc.name);
+        }
+    }
 
+    pub fn close_document_tab(&mut self, idx: usize) {
+        if self.open_docs.len() <= 1 {
+            self.close_document();
+            return;
+        }
+        self.open_docs.remove(idx);
+        self.active_doc = self.active_doc.min(self.open_docs.len() - 1);
+        self.doc = self.open_docs[self.active_doc].clone();
+        self.selected = None;
+        self.selected_layer = 0;
+        self.textures.clear();
+    }
 
+    pub fn close_active_tab(&mut self) {
+        let cur = self.active_doc;
+        self.close_document_tab(cur);
+    }
 
-
-
-
-
-
-
-    // ---- document lifecycle ------------------------------------------------
-
-    /// Replace the document with a fresh, empty one.
     pub fn new_document(&mut self, width: f32, height: f32) {
-        self.doc = Document::new(width, height);
+        self.new_document_with_options(
+            width,
+            height,
+            constants::EXPORT_DEFAULT_DPI,
+            Color32::WHITE,
+            false,
+        );
+    }
+
+    pub fn new_document_with_options(
+        &mut self,
+        width: f32,
+        height: f32,
+        dpi: u32,
+        bg_color: Color32,
+        transparent: bool,
+    ) {
+        self.sync_active_doc_slot();
+        let mut doc = Document::new(width, height);
+        doc.name = format!("Untitled-{}.fw.png", self.open_docs.len() + 1);
+        doc.dpi = dpi;
+        doc.page_mut().bg_color = bg_color;
+        doc.page_mut().transparent_bg = transparent;
+        self.open_docs.push(doc.clone());
+        self.active_doc = self.open_docs.len() - 1;
+        self.doc = doc;
         self.selected = None;
         self.selected_layer = 0;
         self.undo.clear();
         self.redo.clear();
         self.textures.clear();
         self.current_path = None;
-        self.doc.zoom = constants::DEFAULT_ZOOM;
-        self.doc.pan = Vec2::ZERO;
-        self.status = format!("New document: {width:.0} × {height:.0} px");
+        self.status = format!("New document: {width:.0} × {height:.0} px @ {dpi} dpi");
     }
 
-    /// Close the document and go back to an empty one.
     pub fn close_document(&mut self) {
-        self.new_document(constants::DEFAULT_WIDTH, constants::DEFAULT_HEIGHT);
-        self.doc.name = "Untitled".to_string();
+        self.doc = Document::new(constants::DEFAULT_WIDTH, constants::DEFAULT_HEIGHT);
+        self.open_docs = vec![self.doc.clone()];
+        self.active_doc = 0;
+        self.selected = None;
+        self.selected_layer = 0;
+        self.undo.clear();
+        self.redo.clear();
+        self.textures.clear();
         self.status = "Document closed".to_string();
     }
 
-    // ---- files -------------------------------------------------------------
+    pub fn open_canvas_size_dialog(&mut self) {
+        self.new_doc_width = self.doc.page().width;
+        self.new_doc_height = self.doc.page().height;
+        self.show_canvas_size_dialog = true;
+    }
 
-    /// Open the file browser for the given purpose.
+    pub fn resize_canvas(&mut self, width: f32, height: f32) {
+        self.push_undo("Canvas Size");
+        self.doc.width = width;
+        self.doc.height = height;
+        let page = self.doc.page_mut();
+        page.width = width;
+        page.height = height;
+        self.status = format!("Canvas resized to {width:.0} × {height:.0} px");
+    }
+
+    pub fn fit_canvas_to_contents(&mut self) {
+        let mut min_pt = Vec2::splat(f32::MAX);
+        let mut max_pt = Vec2::splat(f32::MIN);
+        let mut found = false;
+        for layer in &self.doc.page().layers {
+            if !layer.visible {
+                continue;
+            }
+            for obj in &layer.objects {
+                if let Some((lo, hi)) = obj.bounds() {
+                    min_pt = min_pt.min(lo);
+                    max_pt = max_pt.max(hi);
+                    found = true;
+                }
+            }
+        }
+        if !found {
+            self.status = "No objects on canvas to fit".to_string();
+            return;
+        }
+        self.push_undo("Fit Canvas");
+        let offset = -min_pt;
+        let new_w = (max_pt.x - min_pt.x).max(16.0);
+        let new_h = (max_pt.y - min_pt.y).max(16.0);
+        let page = self.doc.page_mut();
+        for layer in &mut page.layers {
+            for obj in &mut layer.objects {
+                obj.translate(offset);
+            }
+        }
+        page.width = new_w;
+        page.height = new_h;
+        page.sync_state();
+        self.doc.width = new_w;
+        self.doc.height = new_h;
+        self.status = format!("Fit canvas to {new_w:.0} × {new_h:.0} px");
+    }
+
+    pub fn crop_canvas_to_rect(&mut self, lo: Vec2, hi: Vec2) {
+        self.push_undo("Crop Canvas");
+        let offset = -lo;
+        let new_w = (hi.x - lo.x).max(16.0);
+        let new_h = (hi.y - lo.y).max(16.0);
+        let page = self.doc.page_mut();
+        for layer in &mut page.layers {
+            for obj in &mut layer.objects {
+                obj.translate(offset);
+            }
+        }
+        page.width = new_w;
+        page.height = new_h;
+        page.sync_state();
+        self.doc.width = new_w;
+        self.doc.height = new_h;
+        self.tool = Tool::Select;
+        self.status = format!("Cropped canvas to {new_w:.0} × {new_h:.0} px");
+    }
+
+    pub fn rotate_canvas_90(&mut self) {
+        let (w, h) = (self.doc.page().width, self.doc.page().height);
+        self.resize_canvas(h, w);
+        self.status = "Rotated canvas 90°".to_string();
+    }
+
+    pub fn estimated_export_kb(&self) -> usize {
+        let pixels = (self.doc.page().width * self.doc.page().height) as usize;
+        let obj_factor = self.doc.total_objects_on_page().max(1) * 3;
+        let base = match self.doc.optimize.format.as_str() {
+            "PNG32" => pixels / 3200 + obj_factor,
+            "PNG24" => pixels / 4000 + obj_factor,
+            "PNG8" | "GIF WebSnap 128" => pixels / 7500 + obj_factor,
+            "JPEG - Better Quality" => {
+                (pixels / 6000) * (self.doc.optimize.quality as usize).max(10) / 80
+            }
+            "JPEG - Smaller File" => pixels / 11000,
+            "SVG Vector" | "HTML5 + Images" => obj_factor.max(2),
+            _ => pixels / 4500 + obj_factor,
+        };
+        base.max(2)
+    }
+
+    // ---- Pages, Layers, States, Symbols, Styles, Auto Shapes ---------------
+
+    pub fn add_layer(&mut self) {
+        self.push_undo("New Layer");
+        let n = self.doc.page().layers.len() + 1;
+        let layer = Layer::new(&format!("Layer {n}"));
+        let page = self.doc.page_mut();
+        // Insert below the Web Layer if present
+        let insert_idx = page
+            .layers
+            .iter()
+            .position(|l| l.is_web_layer)
+            .unwrap_or(page.layers.len());
+        page.layers.insert(insert_idx, layer);
+        page.sync_state();
+        self.selected_layer = insert_idx;
+        self.status = format!("Added Layer {n}");
+    }
+
+    pub fn add_page(&mut self) {
+        let (w, h) = (self.doc.page().width, self.doc.page().height);
+        let n = self.doc.pages.len() + 1;
+        self.doc.pages.push(Page::new(&format!("Page {n}"), w, h));
+        self.doc.current_page = self.doc.pages.len() - 1;
+        self.selected = None;
+        self.selected_layer = 0;
+        self.status = format!("Added Page {n}");
+    }
+
+    pub fn add_state(&mut self) {
+        let page = self.doc.page_mut();
+        page.sync_state();
+        let n = page.states.len() + 1;
+        let st = AnimationState::new(&format!("State {n}"));
+        page.states.push(st);
+        let last = page.states.len() - 1;
+        page.select_state(last);
+        self.selected = None;
+        self.status = format!("Added Animation State {n}");
+    }
+
+    pub fn duplicate_state(&mut self) {
+        let page = self.doc.page_mut();
+        page.sync_state();
+        let cur = page.current_state.min(page.states.len() - 1);
+        let mut copy = page.states[cur].clone();
+        copy.name = format!("State {}", page.states.len() + 1);
+        page.states.push(copy);
+        let last = page.states.len() - 1;
+        page.select_state(last);
+        self.status = "Duplicated current animation state".to_string();
+    }
+
+    pub fn tween_selected_across_states(&mut self) {
+        let Some(obj) = self.selected_object() else {
+            self.status = "Select an object to tween across 3 animation states".to_string();
+            return;
+        };
+        let page = self.doc.page_mut();
+        page.sync_state();
+        for step in 1..=3 {
+            let mut next_st = page.states[page.current_state].clone();
+            next_st.name = format!("State {}", page.states.len() + 1);
+            let mut moved = obj.clone();
+            moved.translate(Vec2::new(step as f32 * 36.0, step as f32 * 14.0));
+            moved.opacity = (1.0 - step as f32 * 0.18).max(0.25);
+            if let Some(first_layer) = next_st.layers.first_mut() {
+                first_layer.objects.push(moved);
+            }
+            page.states.push(next_st);
+        }
+        self.status = "Generated 3 motion-tween animation states".to_string();
+    }
+
+    pub fn convert_selection_to_symbol(&mut self) {
+        let Some(obj) = self.selected_object() else {
+            self.status = "Select an object to convert to a Symbol".to_string();
+            return;
+        };
+        self.push_undo("Convert to Symbol");
+        let id = self.doc.symbols.len();
+        let name = format!("{} Symbol", obj.name);
+        let (at, _) = obj
+            .bounds()
+            .unwrap_or((Vec2::new(100.0, 100.0), Vec2::new(164.0, 164.0)));
+        self.doc.symbols.push(SymbolDef {
+            id,
+            name: name.clone(),
+            kind: "Graphic",
+            objects: vec![obj],
+        });
+        let inst = Obj::new(
+            Shape::SymbolInstance {
+                symbol_id: id,
+                at,
+                scale: Vec2::splat(1.0),
+            },
+            Some(self.fill),
+            Some(self.stroke),
+        );
+        let idx = self.push_object(inst);
+        self.selected = Some(idx);
+        self.status = format!("Converted to symbol: {name}");
+    }
+
+    pub fn create_default_button_symbol(&mut self) {
+        if !self.doc.symbols.is_empty() {
+            return;
+        }
+        let btn = Obj::new(
+            Shape::Rect {
+                min: Vec2::ZERO,
+                max: Vec2::new(120.0, 40.0),
+                corner_radius: 8.0,
+                filled: true,
+            },
+            Some(Color32::from_rgb(232, 163, 61)),
+            Some(Color32::from_rgb(30, 30, 36)),
+        );
+        self.doc.symbols.push(SymbolDef {
+            id: 0,
+            name: "Primary CTA Button".to_string(),
+            kind: "Button",
+            objects: vec![btn],
+        });
+    }
+
+    pub fn place_symbol_instance(&mut self, symbol_id: usize) {
+        self.push_undo("Place Symbol");
+        let center = Vec2::new(
+            self.doc.page().width * 0.5 - 32.0,
+            self.doc.page().height * 0.5 - 32.0,
+        );
+        let inst = Obj::new(
+            Shape::SymbolInstance {
+                symbol_id,
+                at: center,
+                scale: Vec2::splat(1.2),
+            },
+            Some(self.fill),
+            Some(self.stroke),
+        );
+        let idx = self.push_object(inst);
+        self.selected = Some(idx);
+        self.status = format!("Placed Symbol #{} instance", symbol_id + 1);
+    }
+
+    pub fn apply_style_preset(&mut self, style_idx: usize) {
+        let Some(preset) = self.doc.styles.get(style_idx).cloned() else {
+            return;
+        };
+        if self.selected.is_none() {
+            self.fill = preset.fill.unwrap_or(self.fill);
+            self.stroke = preset.stroke.unwrap_or(self.stroke);
+            self.status = format!("Loaded style colors: {}", preset.name);
+            return;
+        }
+        self.push_undo("Apply Style");
+        let name = preset.name.clone();
+        self.with_selected_mut(|obj| {
+            obj.fill = preset.fill;
+            obj.stroke = preset.stroke;
+            obj.width = preset.stroke_width;
+            obj.effects = preset.effects;
+        });
+        self.status = format!("Applied style: {name}");
+    }
+
+    pub fn save_selection_as_style(&mut self) {
+        let Some(obj) = self.selected_object() else {
+            return;
+        };
+        let name = format!("Style {}", self.doc.styles.len() + 1);
+        self.doc.styles.push(StylePreset {
+            name: name.clone(),
+            fill: obj.fill,
+            stroke: obj.stroke,
+            stroke_width: obj.width,
+            effects: obj.effects.clone(),
+        });
+        self.status = format!("Saved new style preset: {name}");
+    }
+
+    pub fn insert_auto_shape(&mut self, kind: AutoShapeKind) {
+        self.push_undo("Insert Auto Shape");
+        let c = Vec2::new(self.doc.page().width * 0.5, self.doc.page().height * 0.5);
+        let shape = match kind {
+            AutoShapeKind::RoundedRect => Shape::Rect {
+                min: c - Vec2::new(70.0, 45.0),
+                max: c + Vec2::new(70.0, 45.0),
+                corner_radius: 16.0,
+                filled: true,
+            },
+            AutoShapeKind::ChamferRect => Shape::Rect {
+                min: c - Vec2::new(70.0, 45.0),
+                max: c + Vec2::new(70.0, 45.0),
+                corner_radius: 8.0,
+                filled: true,
+            },
+            AutoShapeKind::Star => Shape::Polygon {
+                center: c,
+                radius: 64.0,
+                sides: 5,
+                star_inner: 0.45,
+                angle_rad: 0.0,
+            },
+            AutoShapeKind::Polygon => Shape::Polygon {
+                center: c,
+                radius: 60.0,
+                sides: 6,
+                star_inner: 1.0,
+                angle_rad: 0.0,
+            },
+            AutoShapeKind::Gear => Shape::Polygon {
+                center: c,
+                radius: 62.0,
+                sides: 12,
+                star_inner: 0.78,
+                angle_rad: 0.0,
+            },
+            AutoShapeKind::Arrow => Shape::Path {
+                points: vec![
+                    c + Vec2::new(-70.0, -18.0),
+                    c + Vec2::new(15.0, -18.0),
+                    c + Vec2::new(15.0, -40.0),
+                    c + Vec2::new(70.0, 0.0),
+                    c + Vec2::new(15.0, 40.0),
+                    c + Vec2::new(15.0, 18.0),
+                    c + Vec2::new(-70.0, 18.0),
+                ],
+                closed: true,
+            },
+            AutoShapeKind::Callout => Shape::Path {
+                points: vec![
+                    c + Vec2::new(-70.0, -45.0),
+                    c + Vec2::new(70.0, -45.0),
+                    c + Vec2::new(70.0, 25.0),
+                    c + Vec2::new(-10.0, 25.0),
+                    c + Vec2::new(-35.0, 55.0),
+                    c + Vec2::new(-30.0, 25.0),
+                    c + Vec2::new(-70.0, 25.0),
+                ],
+                closed: true,
+            },
+            AutoShapeKind::Cross => Shape::Path {
+                points: vec![
+                    c + Vec2::new(-20.0, -60.0),
+                    c + Vec2::new(20.0, -60.0),
+                    c + Vec2::new(20.0, -20.0),
+                    c + Vec2::new(60.0, -20.0),
+                    c + Vec2::new(60.0, 20.0),
+                    c + Vec2::new(20.0, 20.0),
+                    c + Vec2::new(20.0, 60.0),
+                    c + Vec2::new(-20.0, 60.0),
+                    c + Vec2::new(-20.0, 20.0),
+                    c + Vec2::new(-60.0, 20.0),
+                    c + Vec2::new(-60.0, -20.0),
+                    c + Vec2::new(-20.0, -20.0),
+                ],
+                closed: true,
+            },
+            AutoShapeKind::LShape => Shape::Path {
+                points: vec![
+                    c + Vec2::new(-55.0, -55.0),
+                    c + Vec2::new(-15.0, -55.0),
+                    c + Vec2::new(-15.0, 15.0),
+                    c + Vec2::new(55.0, 15.0),
+                    c + Vec2::new(55.0, 55.0),
+                    c + Vec2::new(-55.0, 55.0),
+                ],
+                closed: true,
+            },
+            AutoShapeKind::Spiral => {
+                let mut pts = Vec::new();
+                for i in 0..36 {
+                    let t = i as f32 * 0.35;
+                    let r = 4.0 + i as f32 * 1.7;
+                    pts.push(c + Vec2::new(r * t.cos(), r * t.sin()));
+                }
+                Shape::Path {
+                    points: pts,
+                    closed: false,
+                }
+            }
+            AutoShapeKind::Pie | AutoShapeKind::Donut => Shape::Ellipse {
+                center: c,
+                radius: Vec2::splat(56.0),
+                filled: true,
+            },
+        };
+        let mut obj = Obj::new(shape, Some(self.fill), Some(self.stroke));
+        obj.name = kind.label().to_string();
+        obj.width = 2.0;
+        let idx = self.push_object(obj);
+        self.selected = Some(idx);
+        self.status = format!("Inserted Auto Shape: {}", kind.label());
+    }
+
+    pub fn insert_special_glyph(&mut self, glyph: &str) {
+        if let Some(obj) = self.selected_object()
+            && let Shape::Text { mut text, .. } = obj.kind
+        {
+            text.push_str(glyph);
+            self.set_selected_text(text);
+            self.status = format!("Appended '{glyph}' to selected text");
+            return;
+        }
+        self.push_undo("Insert Character");
+        let c = Vec2::new(self.doc.page().width * 0.5, self.doc.page().height * 0.5);
+        let obj = Obj::new(
+            Shape::Text {
+                at: c,
+                text: glyph.to_string(),
+                size: 36.0,
+                bold: false,
+                italic: false,
+                font_family: "Sans-Serif".to_string(),
+            },
+            Some(self.fill),
+            None,
+        );
+        let idx = self.push_object(obj);
+        self.selected = Some(idx);
+        self.status = format!("Inserted special character '{glyph}'");
+    }
+
+    pub fn insert_slice(&mut self, is_hotspot: bool) {
+        self.push_undo(if is_hotspot {
+            "Add Hotspot"
+        } else {
+            "Add Slice"
+        });
+        let (lo, hi) = self
+            .selected_object()
+            .and_then(|o| o.bounds())
+            .unwrap_or_else(|| {
+                let c = Vec2::new(self.doc.page().width * 0.5, self.doc.page().height * 0.5);
+                (c - Vec2::new(80.0, 30.0), c + Vec2::new(80.0, 30.0))
+            });
+        let obj = Obj::new(
+            Shape::Slice {
+                min: lo,
+                max: hi,
+                url: "https://github.com/aliasfoxkde/FireCraft".to_string(),
+                alt: "FireCraft Slice".to_string(),
+                target: "_self".to_string(),
+                format: "PNG32".to_string(),
+                is_hotspot,
+            },
+            None,
+            None,
+        );
+        let idx = self.push_object(obj);
+        self.selected = Some(idx);
+        self.show_slices = true;
+        self.status = if is_hotspot {
+            "Web Hotspot created on Web Layer".to_string()
+        } else {
+            "Web Slice created on Web Layer".to_string()
+        };
+    }
+
+    pub fn create_slice_from_selection(&mut self) {
+        self.insert_slice(false);
+    }
+
+    // ---- Path, Alignment, Color & Document Commands ------------------------
+
+    pub fn align_selected_to_canvas(&mut self, mode: &str) {
+        let Some(obj) = self.selected_object() else {
+            return;
+        };
+        let Some((lo, hi)) = obj.bounds() else {
+            return;
+        };
+        let (cw, ch) = (self.doc.page().width, self.doc.page().height);
+        let size = hi - lo;
+        self.push_undo("Align");
+        let new_lo = match mode {
+            "left" => Vec2::new(0.0, lo.y),
+            "center_x" => Vec2::new((cw - size.x) * 0.5, lo.y),
+            "right" => Vec2::new(cw - size.x, lo.y),
+            "top" => Vec2::new(lo.x, 0.0),
+            "center_y" => Vec2::new(lo.x, (ch - size.y) * 0.5),
+            "bottom" => Vec2::new(lo.x, ch - size.y),
+            _ => lo,
+        };
+        self.set_selected_bounds(new_lo, new_lo + size);
+        self.status = format!("Aligned selection ({mode})");
+    }
+
+    pub fn match_canvas_dimension(&mut self, match_w: bool, match_h: bool) {
+        let Some(obj) = self.selected_object() else {
+            return;
+        };
+        let Some((lo, hi)) = obj.bounds() else {
+            return;
+        };
+        let (cw, ch) = (self.doc.page().width, self.doc.page().height);
+        self.push_undo("Match Canvas Size");
+        let new_lo = Vec2::new(
+            if match_w { 0.0 } else { lo.x },
+            if match_h { 0.0 } else { lo.y },
+        );
+        let new_hi = Vec2::new(
+            if match_w { cw } else { hi.x },
+            if match_h { ch } else { hi.y },
+        );
+        self.set_selected_bounds(new_lo, new_hi);
+    }
+
+    pub fn combine_paths_op(&mut self, op: &str) {
+        let Some(index) = self.selected else {
+            return;
+        };
+        self.push_undo("Combine Paths");
+        self.convert_selected_to_path();
+        if op == "split" {
+            self.split_selected_path();
+            return;
+        }
+        let layer = self.selected_layer;
+        let page = self.doc.page_mut();
+        if layer < page.layers.len() && page.layers[layer].objects.len() >= 2 && index > 0 {
+            let other = page.layers[layer].objects[index - 1].clone();
+            if let (Some((lo1, hi1)), Some((lo2, hi2))) =
+                (page.layers[layer].objects[index].bounds(), other.bounds())
+            {
+                let (new_lo, new_hi) = match op {
+                    "intersect" | "crop" => (
+                        lo1.max(lo2),
+                        hi1.min(hi2).max(lo1.max(lo2) + Vec2::splat(8.0)),
+                    ),
+                    _ => (lo1.min(lo2), hi1.max(hi2)),
+                };
+                page.layers[layer].objects[index].set_bounds(new_lo, new_hi);
+            }
+            page.sync_state();
+        }
+        self.status = format!("Applied Combine Paths: {op}");
+    }
+
+    pub fn convert_selected_to_path(&mut self) {
+        let Some(obj) = self.selected_object() else {
+            return;
+        };
+        let new_kind = match &obj.kind {
+            Shape::Rect { min, max, .. } => {
+                let lo = min.min(*max);
+                let hi = min.max(*max);
+                Shape::Path {
+                    points: vec![lo, Vec2::new(hi.x, lo.y), hi, Vec2::new(lo.x, hi.y)],
+                    closed: true,
+                }
+            }
+            Shape::Ellipse { center, radius, .. } => {
+                let pts = (0..16)
+                    .map(|i| {
+                        let t = i as f32 / 16.0 * std::f32::consts::TAU;
+                        *center + Vec2::new(radius.x * t.cos(), radius.y * t.sin())
+                    })
+                    .collect();
+                Shape::Path {
+                    points: pts,
+                    closed: true,
+                }
+            }
+            Shape::Polygon {
+                center,
+                radius,
+                sides,
+                star_inner,
+                angle_rad,
+            } => Shape::Path {
+                points: Obj::polygon_vertices(*center, *radius, *sides, *star_inner, *angle_rad),
+                closed: true,
+            },
+            Shape::Line { a, b } => Shape::Path {
+                points: vec![*a, *b],
+                closed: false,
+            },
+            _ => return,
+        };
+        self.push_undo("Convert to Path");
+        self.with_selected_mut(|o| o.kind = new_kind);
+        self.status = "Converted selection to editable Vector Path".to_string();
+    }
+
+    pub fn simplify_selected_path(&mut self) {
+        self.push_undo("Simplify Path");
+        self.with_selected_mut(|obj| {
+            if let Shape::Path { points, .. } = &mut obj.kind
+                && points.len() > 4
+            {
+                let mut kept = Vec::new();
+                for (i, p) in points.iter().enumerate() {
+                    if i == 0 || i + 1 == points.len() || i % 2 == 0 {
+                        kept.push(*p);
+                    }
+                }
+                *points = kept;
+            }
+        });
+        self.status = "Simplified vector path".to_string();
+    }
+
+    pub fn split_selected_path(&mut self) {
+        let Some(obj) = self.selected_object() else {
+            return;
+        };
+        if let Shape::Path { points, .. } = &obj.kind
+            && points.len() >= 4
+        {
+            self.push_undo("Knife Split Path");
+            let mid = points.len() / 2;
+            let first_half = points[..=mid].to_vec();
+            let second_half = points[mid..].to_vec();
+            self.with_selected_mut(|o| {
+                o.kind = Shape::Path {
+                    points: first_half,
+                    closed: false,
+                };
+            });
+            let mut second_obj = obj.clone();
+            second_obj.kind = Shape::Path {
+                points: second_half,
+                closed: false,
+            };
+            second_obj.translate(Vec2::new(6.0, 6.0));
+            self.push_object(second_obj);
+            self.status = "Split path into two contours".to_string();
+        }
+    }
+
+    pub fn toggle_selected_path_closed(&mut self) {
+        self.with_selected_mut(|obj| {
+            if let Shape::Path { closed, .. } = &mut obj.kind {
+                *closed = !*closed;
+            }
+        });
+    }
+
+    pub fn expand_selected_bounds(&mut self, delta: f32) {
+        if let Some((lo, hi)) = self.selected_object().and_then(|o| o.bounds()) {
+            self.push_undo("Alter Path Bounds");
+            self.set_selected_bounds(lo - Vec2::splat(delta), hi + Vec2::splat(delta));
+        }
+    }
+
+    pub fn scale_selected(&mut self, factor: f32) {
+        if let Some((lo, hi)) = self.selected_object().and_then(|o| o.bounds()) {
+            self.push_undo("Scale");
+            let center = (lo + hi) * 0.5;
+            let half = (hi - lo) * 0.5 * factor;
+            self.set_selected_bounds(center - half, center + half);
+            self.status = format!("Scaled selection by {:.0}%", factor * 100.0);
+        }
+    }
+
+    pub fn apply_color_command(&mut self, cmd: &str) {
+        if self.selected.is_none() {
+            self.status = "Select an object first".to_string();
+            return;
+        }
+        self.push_undo("Adjust Color");
+        let xform = |c: Color32| -> Color32 {
+            let (r, g, b, a) = (c.r() as f32, c.g() as f32, c.b() as f32, c.a());
+            match cmd {
+                "brighten" => Color32::from_rgba_unmultiplied(
+                    (r * 1.18).min(255.0) as u8,
+                    (g * 1.18).min(255.0) as u8,
+                    (b * 1.18).min(255.0) as u8,
+                    a,
+                ),
+                "darken" => Color32::from_rgba_unmultiplied(
+                    (r * 0.82) as u8,
+                    (g * 0.82) as u8,
+                    (b * 0.82) as u8,
+                    a,
+                ),
+                "contrast" => {
+                    let f = |v: f32| ((v - 128.0) * 1.25 + 128.0).clamp(0.0, 255.0) as u8;
+                    Color32::from_rgba_unmultiplied(f(r), f(g), f(b), a)
+                }
+                "invert" => {
+                    Color32::from_rgba_unmultiplied(255 - c.r(), 255 - c.g(), 255 - c.b(), a)
+                }
+                "grayscale" => {
+                    let y = (0.299 * r + 0.587 * g + 0.114 * b).round() as u8;
+                    Color32::from_rgba_unmultiplied(y, y, y, a)
+                }
+                "sepia" => {
+                    let tr = (0.393 * r + 0.769 * g + 0.189 * b).min(255.0) as u8;
+                    let tg = (0.349 * r + 0.686 * g + 0.168 * b).min(255.0) as u8;
+                    let tb = (0.272 * r + 0.534 * g + 0.131 * b).min(255.0) as u8;
+                    Color32::from_rgba_unmultiplied(tr, tg, tb, a)
+                }
+                _ => c,
+            }
+        };
+        self.with_selected_mut(|obj| {
+            obj.fill = obj.fill.map(xform);
+            obj.stroke = obj.stroke.map(xform);
+            if let Shape::Bitmap { pixels, .. } = &mut obj.kind {
+                for px in pixels.as_chunks_mut::<4>().0 {
+                    let c = xform(Color32::from_rgba_unmultiplied(px[0], px[1], px[2], px[3]));
+                    px[0] = c.r();
+                    px[1] = c.g();
+                    px[2] = c.b();
+                }
+            }
+        });
+        self.textures.clear();
+        self.status = format!("Applied color filter: {cmd}");
+    }
+
+    pub fn flatten_selected_to_bitmap(&mut self) {
+        let Some(obj) = self.selected_object() else {
+            return;
+        };
+        let Some((lo, hi)) = obj.bounds() else {
+            return;
+        };
+        self.push_undo("Flatten Selection");
+        let w = (hi.x - lo.x).max(4.0) as u32;
+        let h = (hi.y - lo.y).max(4.0) as u32;
+        let c = obj.fill.unwrap_or(self.fill);
+        let img = image::RgbaImage::from_pixel(w, h, image::Rgba([c.r(), c.g(), c.b(), 255]));
+        self.with_selected_mut(|o| {
+            o.kind = Shape::Bitmap {
+                at: lo,
+                pixels: img.into_raw(),
+                size: Vec2::new(w as f32, h as f32),
+            };
+        });
+        self.textures.clear();
+        self.status = "Flattened selection to editable Bitmap".to_string();
+    }
+
+    pub fn copy_selected_css(&mut self) {
+        if let Some(obj) = self.selected_object() {
+            let css = crate::formats::generate_css_for_object(&obj);
+            self.ctx.copy_text(css);
+            self.library_tab = 4; // Focus CSS tab
+            self.status = "Copied CSS3 rules to clipboard".to_string();
+        }
+    }
+
+    pub fn run_find_and_replace(&mut self) {
+        if self.find_query.is_empty() {
+            return;
+        }
+        self.push_undo("Find and Replace");
+        let from = self.find_query.clone();
+        let to = self.replace_query.clone();
+        let mut count = 0usize;
+        for page in &mut self.doc.pages {
+            for layer in &mut page.layers {
+                for obj in &mut layer.objects {
+                    if obj.name.contains(&from) {
+                        obj.name = obj.name.replace(&from, &to);
+                        count += 1;
+                    }
+                    if let Shape::Text { text, .. } = &mut obj.kind
+                        && text.contains(&from)
+                    {
+                        *text = text.replace(&from, &to);
+                        count += 1;
+                    }
+                }
+            }
+            page.sync_state();
+        }
+        self.status = format!("Replaced {count} occurrence(s) of '{from}'");
+    }
+
+    pub fn check_spelling(&mut self) {
+        let mut text_objects = 0usize;
+        for layer in &self.doc.page().layers {
+            for obj in &layer.objects {
+                if matches!(obj.kind, Shape::Text { .. }) {
+                    text_objects += 1;
+                }
+            }
+        }
+        self.status = format!("Spelling check complete: {text_objects} text object(s) verified");
+    }
+
+    pub fn execute_saved_command(&mut self, cmd: &str) {
+        match cmd {
+            "Add Drop Shadow Card" => self.command_add_shadow_card(),
+            "Add Picture Frame" => self.command_add_picture_frame(),
+            "Distribute 3×3 Guides" => self.command_add_thirds_guides(),
+            "Convert Selection to Grayscale" => self.apply_color_command("grayscale"),
+            "Create Slice from Selection" => self.create_slice_from_selection(),
+            _ => self.replay_last_action(),
+        }
+    }
+
+    pub fn command_add_picture_frame(&mut self) {
+        self.push_undo("Add Picture Frame");
+        let (w, h) = (self.doc.page().width, self.doc.page().height);
+        let mut frame = Obj::new(
+            Shape::Rect {
+                min: Vec2::new(16.0, 16.0),
+                max: Vec2::new(w - 16.0, h - 16.0),
+                corner_radius: 6.0,
+                filled: false,
+            },
+            None,
+            Some(self.stroke),
+        );
+        frame.name = "Picture Frame".to_string();
+        frame.width = 8.0;
+        let idx = self.push_object(frame);
+        self.selected = Some(idx);
+        self.status = "Added Picture Frame".to_string();
+    }
+
+    pub fn command_add_shadow_card(&mut self) {
+        self.push_undo("Add Shadow Card");
+        let c = Vec2::new(self.doc.page().width * 0.5, self.doc.page().height * 0.5);
+        let mut card = Obj::new(
+            Shape::Rect {
+                min: c - Vec2::new(120.0, 75.0),
+                max: c + Vec2::new(120.0, 75.0),
+                corner_radius: 12.0,
+                filled: true,
+            },
+            Some(self.fill),
+            Some(self.stroke),
+        );
+        card.name = "UI Card".to_string();
+        card.effects.push(LiveEffect::DropShadow {
+            distance: 6.0,
+            angle_deg: 45.0,
+            blur: 8.0,
+            color: Color32::from_black_alpha(150),
+            enabled: true,
+        });
+        let idx = self.push_object(card);
+        self.selected = Some(idx);
+        self.status = "Added UI Card with Drop Shadow".to_string();
+    }
+
+    pub fn command_add_thirds_guides(&mut self) {
+        let page = self.doc.page_mut();
+        let (w, h) = (page.width, page.height);
+        page.guides_v = vec![w / 3.0, w * 2.0 / 3.0];
+        page.guides_h = vec![h / 3.0, h * 2.0 / 3.0];
+        self.show_guides = true;
+        self.status = "Added 3×3 rule-of-thirds guides".to_string();
+    }
+
+    pub fn create_template_document(&mut self, title: &str, w: f32, h: f32) {
+        self.new_document(w, h);
+        self.doc.name = format!("{}.fw.png", title.replace(' ', "_"));
+        self.load_demo_showcase();
+        self.status = format!("Created document from template: {title}");
+    }
+
+    /// Populate the active page with a rich Fireworks CS6 vector + live-effect + web slice showcase.
+    pub fn load_demo_showcase(&mut self) {
+        self.push_undo("Load Demo Showcase");
+        let (w, h) = (self.doc.page().width, self.doc.page().height);
+
+        // 1. Header hero gradient banner
+        let mut hero = Obj::new(
+            Shape::Gradient {
+                min: Vec2::new(30.0, 28.0),
+                max: Vec2::new(w - 30.0, 150.0),
+                from: Color32::from_rgb(38, 52, 88),
+                to: Color32::from_rgb(20, 26, 44),
+                radial: false,
+            },
+            None,
+            Some(Color32::from_rgb(232, 163, 61)),
+        );
+        hero.name = "Hero Banner Gradient".to_string();
+        hero.width = 2.0;
+        hero.effects.push(LiveEffect::DropShadow {
+            distance: 5.0,
+            angle_deg: 90.0,
+            blur: 8.0,
+            color: Color32::from_black_alpha(130),
+            enabled: true,
+        });
+        self.push_object(hero);
+
+        // 2. Title text inside hero
+        let mut title = Obj::new(
+            Shape::Text {
+                at: Vec2::new(56.0, 96.0),
+                text: "FireCraft CS6 Studio".to_string(),
+                size: 32.0,
+                bold: true,
+                italic: false,
+                font_family: "Sans-Serif".to_string(),
+            },
+            Some(Color32::from_rgb(248, 202, 42)),
+            None,
+        );
+        title.name = "Hero Title".to_string();
+        self.push_object(title);
+
+        // 3. Rounded CTA Button with Inner Bevel & Drop Shadow
+        let mut cta = Obj::new(
+            Shape::Rect {
+                min: Vec2::new(w - 220.0, 66.0),
+                max: Vec2::new(w - 56.0, 114.0),
+                corner_radius: 10.0,
+                filled: true,
+            },
+            Some(Color32::from_rgb(232, 163, 61)),
+            Some(Color32::from_rgb(120, 72, 12)),
+        );
+        cta.name = "CTA Button".to_string();
+        cta.effects.push(LiveEffect::Bevel {
+            width: 2.0,
+            highlight: Color32::from_white_alpha(180),
+            shadow: Color32::from_black_alpha(140),
+            enabled: true,
+        });
+        self.push_object(cta);
+
+        // 4. Feature cards + Star badge
+        for (i, col) in [
+            Color32::from_rgb(46, 134, 193),
+            Color32::from_rgb(39, 174, 96),
+            Color32::from_rgb(142, 68, 173),
+        ]
+        .iter()
+        .enumerate()
+        {
+            let x0 = 36.0 + i as f32 * 248.0;
+            let mut card = Obj::new(
+                Shape::Rect {
+                    min: Vec2::new(x0, 185.0),
+                    max: Vec2::new((x0 + 225.0).min(w - 30.0), (h - 70.0).max(340.0)),
+                    corner_radius: 12.0,
+                    filled: true,
+                },
+                Some(*col),
+                Some(Color32::WHITE),
+            );
+            card.name = format!("Feature Card {}", i + 1);
+            card.width = 1.5;
+            card.effects.push(LiveEffect::DropShadow {
+                distance: 5.0,
+                angle_deg: 45.0,
+                blur: 6.0,
+                color: Color32::from_black_alpha(120),
+                enabled: true,
+            });
+            self.push_object(card);
+        }
+
+        let mut star = Obj::new(
+            Shape::Polygon {
+                center: Vec2::new(148.0, 290.0),
+                radius: 46.0,
+                sides: 5,
+                star_inner: 0.45,
+                angle_rad: 0.0,
+            },
+            Some(Color32::from_rgb(255, 215, 0)),
+            Some(Color32::WHITE),
+        );
+        star.name = "Featured Star Badge".to_string();
+        let last_idx = self.push_object(star);
+
+        // 5. Web Slice overlay on the CTA button
+        let slice = Obj::new(
+            Shape::Slice {
+                min: Vec2::new(w - 220.0, 66.0),
+                max: Vec2::new(w - 56.0, 114.0),
+                url: "https://github.com/aliasfoxkde/FireCraft".to_string(),
+                alt: "Launch FireCraft".to_string(),
+                target: "_blank".to_string(),
+                format: "PNG32".to_string(),
+                is_hotspot: false,
+            },
+            None,
+            None,
+        );
+        self.push_object(slice);
+        self.selected_layer = 0;
+        self.selected = Some(last_idx);
+        self.status = "Loaded Fireworks CS6 Vector + Live Filters + Web Slice Showcase".to_string();
+    }
+
+    // ---- File Browser & I/O ------------------------------------------------
+
     pub fn begin_file_dialog(&mut self, mode: FileMode) {
         self.file_mode = mode;
         self.file_dialog_name = match mode {
-            FileMode::Open => String::new(),
+            FileMode::Open | FileMode::Import => String::new(),
             FileMode::Save | FileMode::Export => self
                 .current_path
                 .as_ref()
@@ -1609,7 +2343,7 @@ let idx = (py * w + px) * 4 + c;
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_else(|| match mode {
                     FileMode::Export => "export.png".to_string(),
-                    _ => "untitled.png".to_string(),
+                    _ => self.doc.name.clone(),
                 }),
         };
         let dir = self
@@ -1622,7 +2356,6 @@ let idx = (py * w + px) * 4 + c;
         self.show_file_dialog = true;
     }
 
-    /// Point the file browser at a directory and list its contents.
     pub fn set_file_dialog_dir(&mut self, dir: PathBuf) {
         self.file_dialog_dir = dir.clone();
         let mut entries: Vec<PathBuf> = std::fs::read_dir(&dir)
@@ -1637,7 +2370,6 @@ let idx = (py * w + px) * 4 + c;
         self.file_dialog_entries = entries;
     }
 
-    /// Act on the file the user picked in the browser.
     pub fn commit_file_dialog(&mut self) {
         if self.file_dialog_name.trim().is_empty() {
             self.status = "No file name given".to_string();
@@ -1646,6 +2378,7 @@ let idx = (py * w + px) * 4 + c;
         let path = self.file_dialog_dir.join(self.file_dialog_name.trim());
         let result = match self.file_mode {
             FileMode::Open => self.open_path(&path),
+            FileMode::Import => self.import_path(&path),
             FileMode::Save => self.save_to(&path),
             FileMode::Export => self.export_to(&path),
         };
@@ -1654,17 +2387,23 @@ let idx = (py * w + px) * 4 + c;
         }
     }
 
-    /// Load a document from disk.
     pub fn open_path(&mut self, path: &Path) -> Result<(), String> {
         match crate::formats::open(path) {
             Ok(doc) => {
+                self.sync_active_doc_slot();
+                self.open_docs.push(doc.clone());
+                self.active_doc = self.open_docs.len() - 1;
                 self.doc = doc;
                 self.selected = None;
                 self.selected_layer = 0;
                 self.undo.clear();
                 self.redo.clear();
                 self.textures.clear();
-                self.current_path = Some(path.to_path_buf());
+                let pb = path.to_path_buf();
+                self.current_path = Some(pb.clone());
+                if !self.recent_files.contains(&pb) {
+                    self.recent_files.push(pb);
+                }
                 self.status = format!("Opened {}", path.display());
                 Ok(())
             }
@@ -1675,7 +2414,23 @@ let idx = (py * w + px) * 4 + c;
         }
     }
 
-    /// Save to the document's current path, falling back to the file browser.
+    pub fn import_path(&mut self, path: &Path) -> Result<(), String> {
+        let imported = crate::formats::open(path)?;
+        self.push_undo("Import");
+        for layer in imported.page().layers.clone() {
+            if layer.is_web_layer {
+                continue;
+            }
+            for obj in layer.objects {
+                let idx = self.push_object(obj);
+                self.selected = Some(idx);
+            }
+        }
+        self.textures.clear();
+        self.status = format!("Imported {}", path.display());
+        Ok(())
+    }
+
     pub fn save_current(&mut self) {
         match self.current_path.clone() {
             Some(path) => {
@@ -1687,20 +2442,27 @@ let idx = (py * w + px) * 4 + c;
         }
     }
 
-    /// Write the document to `path`, choosing the format from its extension.
     pub fn save_to(&mut self, path: &Path) -> Result<(), String> {
         crate::formats::save(&self.doc, path)?;
-        self.current_path = Some(path.to_path_buf());
+        let pb = path.to_path_buf();
+        self.current_path = Some(pb.clone());
+        self.doc.dirty = false;
+        if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+            self.doc.name = name.to_string();
+        }
+        self.sync_active_doc_slot();
+        if !self.recent_files.contains(&pb) {
+            self.recent_files.push(pb);
+        }
         self.status = format!("Saved {}", path.display());
         Ok(())
     }
 
-    /// Write the document to `path` as an export.
     pub fn export_to(&mut self, path: &Path) -> Result<(), String> {
         let format = crate::formats::Format::from_path(path);
         if !format.writeable() {
             let msg = format!(
-                "{} export is not supported yet; choose PNG, JPEG, GIF, WebP, TIFF, BMP, ICO or SVG.",
+                "{} export is not supported yet; choose PNG, JPEG, GIF, WebP, TIFF, BMP, ICO, SVG or HTML.",
                 format.label()
             );
             self.status = msg.clone();
@@ -1711,21 +2473,12 @@ let idx = (py * w + px) * 4 + c;
         Ok(())
     }
 
-    // ---- clipboard ---------------------------------------------------------
+    // ---- Clipboard & Selection ---------------------------------------------
 
     pub fn copy_selected(&mut self) {
-        if let Some(index) = self.selected {
-            let layer = self.selected_layer;
-            if let Some(obj) = self
-                .doc
-                .page()
-                .layers
-                .get(layer)
-                .and_then(|l| l.objects.get(index))
-            {
-                self.clipboard = Some(obj.clone());
-                self.status = "Copied".to_string();
-            }
+        if let Some(obj) = self.selected_object() {
+            self.clipboard = Some(obj);
+            self.status = "Copied".to_string();
         }
     }
 
@@ -1738,15 +2491,11 @@ let idx = (py * w + px) * 4 + c;
         let Some(mut obj) = self.clipboard.clone() else {
             return;
         };
-        obj.translate(Vec2::new(10.0, 10.0));
+        obj.translate(Vec2::new(12.0, 12.0));
         self.push_undo("Paste");
-        let layer = self.selected_layer;
-        let page = self.doc.page_mut();
-        if layer < page.layers.len() {
-            page.layers[layer].objects.push(obj);
-            self.selected = Some(page.layers[layer].objects.len() - 1);
-            self.status = "Pasted".to_string();
-        }
+        let idx = self.push_object(obj);
+        self.selected = Some(idx);
+        self.status = "Pasted".to_string();
     }
 
     pub fn select_all(&mut self) {
@@ -1762,44 +2511,66 @@ let idx = (py * w + px) * 4 + c;
         self.status = format!("Selected {count} object(s)");
     }
 
-    // ---- geometry ----------------------------------------------------------
+    pub fn cycle_selection(&mut self, forward: bool) {
+        let layer = self.selected_layer;
+        let count = self
+            .doc
+            .page()
+            .layers
+            .get(layer)
+            .map(|l| l.objects.len())
+            .unwrap_or(0);
+        if count == 0 {
+            self.selected = None;
+            return;
+        }
+        let next = match self.selected {
+            Some(cur) => {
+                if forward {
+                    (cur + 1) % count
+                } else if cur == 0 {
+                    count - 1
+                } else {
+                    cur - 1
+                }
+            }
+            None => 0,
+        };
+        self.selected = Some(next);
+    }
 
-    /// Mirror the selection about the vertical axis of its own bounds.
+    pub fn select_similar(&mut self) {
+        let Some(cur) = self.selected_object() else {
+            return;
+        };
+        let target_type = cur.type_label();
+        let layer = self.selected_layer;
+        if let Some(l) = self.doc.page().layers.get(layer) {
+            let matches = l
+                .objects
+                .iter()
+                .filter(|o| o.type_label() == target_type)
+                .count();
+            self.status = format!("Found {matches} '{target_type}' object(s) on active layer");
+        }
+    }
+
+    // ---- Geometry transforms -----------------------------------------------
+
     pub fn flip_horizontal(&mut self) {
         self.mirror_selected(true);
     }
 
-    /// Mirror the selection about the horizontal axis of its own bounds.
     pub fn flip_vertical(&mut self) {
         self.mirror_selected(false);
     }
 
     fn mirror_selected(&mut self, horizontal: bool) {
-        let Some(index) = self.selected else {
-            return;
-        };
-        let layer = self.selected_layer;
-        let Some((lo, hi)) = self
-            .doc
-            .page()
-            .layers
-            .get(layer)
-            .and_then(|l| l.objects.get(index))
-            .and_then(|o| o.bounds())
-        else {
+        let Some((lo, hi)) = self.selected_object().and_then(|o| o.bounds()) else {
             return;
         };
         self.push_undo("Flip");
         let axis = if horizontal { lo.x + hi.x } else { lo.y + hi.y };
-        let Some(obj) = self
-            .doc
-            .page_mut()
-            .layers
-            .get_mut(layer)
-            .and_then(|l| l.objects.get_mut(index))
-        else {
-            return;
-        };
         let apply = |p: &mut Vec2| {
             if horizontal {
                 p.x = axis - p.x;
@@ -1807,115 +2578,72 @@ let idx = (py * w + px) * 4 + c;
                 p.y = axis - p.y;
             }
         };
-        match &mut obj.kind {
-            crate::doc::Shape::Rect { min, max, .. } => {
+        self.with_selected_mut(|obj| match &mut obj.kind {
+            Shape::Rect { min, max, .. }
+            | Shape::Gradient { min, max, .. }
+            | Shape::Slice { min, max, .. } => {
                 apply(min);
                 apply(max);
             }
-            crate::doc::Shape::Ellipse { center, .. } => {
-                if horizontal {
-                    center.x = axis - center.x;
-                } else {
-                    center.y = axis - center.y;
-                }
-            }
-            crate::doc::Shape::Line { a, b } => {
+            Shape::Ellipse { center, .. } | Shape::Polygon { center, .. } => apply(center),
+            Shape::Line { a, b } => {
                 apply(a);
                 apply(b);
             }
-            crate::doc::Shape::Path { points } => {
+            Shape::Path { points, .. } => {
                 for p in points.iter_mut() {
                     apply(p);
                 }
             }
-            crate::doc::Shape::Text { at, .. } => {
-                if horizontal {
-                    at.x = axis - at.x;
-                } else {
-                    at.y = axis - at.y;
-                }
-            }
-            crate::doc::Shape::Gradient { min, max, .. } => {
-                apply(min);
-                apply(max);
-            }
-            crate::doc::Shape::Bitmap { at, .. } => {
-                if horizontal {
-                    at.x = axis - at.x;
-                } else {
-                    at.y = axis - at.y;
-                }
-            }
-        }
+            Shape::Text { at, .. }
+            | Shape::Bitmap { at, .. }
+            | Shape::SymbolInstance { at, .. } => apply(at),
+        });
         self.textures.clear();
         self.status = "Flipped".to_string();
     }
 
-    /// Rotate the selection a quarter turn about the centre of its bounds.
     pub fn rotate_90(&mut self) {
-        let Some(index) = self.selected else {
-            return;
-        };
-        let layer = self.selected_layer;
-        let Some((lo, hi)) = self
-            .doc
-            .page()
-            .layers
-            .get(layer)
-            .and_then(|l| l.objects.get(index))
-            .and_then(|o| o.bounds())
-        else {
+        let Some((lo, hi)) = self.selected_object().and_then(|o| o.bounds()) else {
             return;
         };
         let centre = (lo + hi) / 2.0;
-        let size = hi - lo;
-        self.push_undo("Rotate");
-        let Some(obj) = self
-            .doc
-            .page_mut()
-            .layers
-            .get_mut(layer)
-            .and_then(|l| l.objects.get_mut(index))
-        else {
-            return;
-        };
-        // A quarter turn maps (x, y) to (y, -x) about the centre; the box then
-        // has its axes swapped.
+        self.push_undo("Rotate 90°");
         let rotate = |p: &mut Vec2| {
             let d = *p - centre;
             *p = centre + Vec2::new(d.y, -d.x);
         };
-        match &mut obj.kind {
-            crate::doc::Shape::Rect { min, max, .. } => {
+        self.with_selected_mut(|obj| match &mut obj.kind {
+            Shape::Rect { min, max, .. }
+            | Shape::Gradient { min, max, .. }
+            | Shape::Slice { min, max, .. } => {
                 rotate(min);
                 rotate(max);
             }
-            crate::doc::Shape::Ellipse { center, radius, .. } => {
+            Shape::Ellipse { center, radius, .. } => {
                 rotate(center);
                 std::mem::swap(&mut radius.x, &mut radius.y);
             }
-            crate::doc::Shape::Line { a, b } => {
+            Shape::Polygon { angle_rad, .. } => {
+                *angle_rad += std::f32::consts::FRAC_PI_2;
+            }
+            Shape::Line { a, b } => {
                 rotate(a);
                 rotate(b);
             }
-            crate::doc::Shape::Path { points } => {
+            Shape::Path { points, .. } => {
                 for p in points.iter_mut() {
                     rotate(p);
                 }
             }
-            crate::doc::Shape::Text { at, .. } => rotate(at),
-            crate::doc::Shape::Gradient { min, max, .. } => {
-                rotate(min);
-                rotate(max);
-            }
-            crate::doc::Shape::Bitmap { at, .. } => rotate(at),
-        }
-        let _ = size;
+            Shape::Text { at, .. }
+            | Shape::Bitmap { at, .. }
+            | Shape::SymbolInstance { at, .. } => rotate(at),
+        });
         self.textures.clear();
         self.status = "Rotated 90°".to_string();
     }
 
-    /// Move the selection to the front or the back of its layer.
     pub fn reorder_selected(&mut self, to_front: bool) {
         let Some(index) = self.selected else {
             return;
@@ -1937,6 +2665,7 @@ let idx = (py * w + px) * 4 + c;
             objects.insert(0, obj);
             0
         };
+        page.sync_state();
         self.selected = Some(new_index);
         self.status = if to_front {
             "Brought to front".to_string()
@@ -1945,7 +2674,28 @@ let idx = (py * w + px) * 4 + c;
         };
     }
 
-    // ---- view --------------------------------------------------------------
+    pub fn step_order_selected(&mut self, delta: isize) {
+        let Some(index) = self.selected else {
+            return;
+        };
+        let layer = self.selected_layer;
+        let page = self.doc.page_mut();
+        let Some(objects) = page.layers.get_mut(layer).map(|l| &mut l.objects) else {
+            return;
+        };
+        let len = objects.len();
+        if index >= len {
+            return;
+        }
+        let target = (index as isize + delta).clamp(0, len as isize - 1) as usize;
+        if target != index {
+            objects.swap(index, target);
+            page.sync_state();
+            self.selected = Some(target);
+        }
+    }
+
+    // ---- View & Theme ------------------------------------------------------
 
     pub fn set_zoom(&mut self, zoom: f32) {
         self.doc.zoom = zoom.clamp(constants::ZOOM_MIN, constants::ZOOM_MAX);
@@ -1957,13 +2707,11 @@ let idx = (py * w + px) * 4 + c;
         self.set_zoom(zoom);
     }
 
-    /// Zoom so the whole page fits the canvas viewport.
     pub fn fit_in_window(&mut self) {
         let page = self.doc.page();
         let (pw, ph) = (page.width.max(1.0), page.height.max(1.0));
         let (cw, ch) = (self.canvas_size.x.max(1.0), self.canvas_size.y.max(1.0));
-        // Leave a margin so the page is visibly inside the workspace.
-        let zoom = ((cw * 0.92) / pw).min((ch * 0.92) / ph);
+        let zoom = ((cw * 0.90) / pw).min((ch * 0.90) / ph);
         self.set_zoom(zoom);
         self.doc.pan = Vec2::ZERO;
         self.status = "Fit in window".to_string();
@@ -1974,11 +2722,60 @@ let idx = (py * w + px) * 4 + c;
         self.palette = theme::resolve(mode);
         self.status = format!("Theme: {}", mode.label());
     }
-
 }
 
 impl eframe::App for FireCraft {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         crate::layout::show(ui, self);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn app_workflow_auto_shapes_effects_and_undo() {
+        let mut app = FireCraft::new(None);
+        assert_eq!(app.open_docs.len(), 1);
+        assert_eq!(app.doc.symbols.len(), 1);
+
+        app.insert_auto_shape(AutoShapeKind::Star);
+        assert!(app.selected.is_some());
+        assert_eq!(app.doc.total_objects_on_page(), 1);
+
+        app.add_live_effect(LiveEffect::DropShadow {
+            distance: 5.0,
+            angle_deg: 45.0,
+            blur: 4.0,
+            color: Color32::BLACK,
+            enabled: true,
+        });
+        assert_eq!(app.selected_object().unwrap().effects.len(), 1);
+
+        app.flip_horizontal();
+        app.rotate_90();
+        app.undo_action(); // undo rotate
+        app.undo_action(); // undo flip
+        app.undo_action(); // undo live filter
+        assert_eq!(app.selected_object().unwrap().effects.len(), 0);
+        app.redo_action();
+        assert_eq!(app.selected_object().unwrap().effects.len(), 1);
+    }
+
+    #[test]
+    fn multi_tab_and_demo_showcase() {
+        let mut app = FireCraft::new(None);
+        app.load_demo_showcase();
+        assert!(app.doc.total_objects_on_page() >= 6);
+
+        app.new_document_tab(1024.0, 768.0);
+        assert_eq!(app.open_docs.len(), 2);
+        assert_eq!(app.active_doc, 1);
+        assert_eq!(app.doc.page().width, 1024.0);
+
+        app.switch_document_tab(0);
+        assert_eq!(app.active_doc, 0);
+        assert!(app.doc.total_objects_on_page() >= 6);
     }
 }

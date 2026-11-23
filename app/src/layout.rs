@@ -1,20 +1,23 @@
-//! The window layout: menu bar, docks, canvas, status bar and dialogs.
-//!
-//! This module owns the whole frame. `FireCraft::ui` delegates to it.
+//! The window layout: menu bar, CS6 Main Toolbar, document tabs + Original/Preview/2-Up/4-Up bar,
+//! left 2-column tool palette, right stacked tab-group dock, bottom Properties Inspector,
+//! status bar, and modal dialogs.
 
-use crate::app::{FileMode, FireCraft};
+use crate::app::{CanvasViewMode, FileMode, FireCraft, Tool};
 use crate::canvas;
+use crate::constants;
 use crate::dialogs;
+use crate::icons;
 use crate::menus;
 use crate::panels;
 use crate::theme;
 
-use eframe::egui::{self, Key, Ui};
+use eframe::egui::{self, Key, RichText, Ui, Vec2};
 
 /// Draw the whole editor for one frame.
 pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     let ctx = ui.ctx().clone();
     app.ctx = ctx.clone();
+    app.frames = app.frames.saturating_add(1);
     if app.logo_tex.is_none() {
         app.logo_tex = FireCraft::load_logo(&ctx);
     }
@@ -22,143 +25,498 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
 
     shortcuts(ui, app);
 
+    // 1. Top Menu Bar (10 CS6 menus + Bridge/Hand/Zoom/Workspace mode selector)
     egui::Panel::top("menu")
         .frame(
             egui::Frame::new()
                 .fill(app.palette.panel)
-                .inner_margin(egui::Margin::symmetric(4, 2)),
+                .inner_margin(egui::Margin::symmetric(6, 3)),
         )
         .show(ui, |ui| menus::menu_bar(ui, app));
 
-    egui::Panel::left("tools")
-        .exact_size(72.0)
-        .resizable(false)
-        .frame(egui::Frame::new().fill(app.palette.panel))
-        .show(ui, |ui| {
-            egui::ScrollArea::vertical().show(ui, |ui| panels::tools_panel(ui, app));
-        });
+    // 2. CS6 Main Toolbar (New, Open, Save, Import, Export, Cut, Copy, Paste, Undo, Redo, Align, Arrange)
+    egui::Panel::top("main_toolbar")
+        .frame(
+            egui::Frame::new()
+                .fill(app.palette.panel_alt)
+                .inner_margin(egui::Margin::symmetric(6, 2)),
+        )
+        .show(ui, |ui| main_toolbar(ui, app));
 
-    egui::Panel::right("dock")
-        .default_size(300.0)
-        .resizable(true)
-        .frame(egui::Frame::new().fill(app.palette.panel))
-        .show(ui, |ui| right_dock(ui, app));
-
-    egui::CentralPanel::default()
-        .frame(egui::Frame::new().fill(app.palette.bg))
-        .show(ui, |ui| canvas::show(ui, app));
-
+    // 3. Bottom Status Bar
     egui::Panel::bottom("status")
-        .frame(egui::Frame::new().fill(app.palette.panel))
+        .frame(
+            egui::Frame::new()
+                .fill(app.palette.panel_alt)
+                .inner_margin(egui::Margin::symmetric(6, 2)),
+        )
         .show(ui, |ui| status_bar(ui, app));
 
+    // 4. Bottom Dock: Properties & Symbol Properties Inspector (exact CS6 position)
+    if app.show_bottom_inspector {
+        egui::Panel::bottom("properties_dock")
+            .default_size(94.0)
+            .resizable(true)
+            .frame(
+                egui::Frame::new()
+                    .fill(app.palette.panel)
+                    .inner_margin(egui::Margin::symmetric(6, 4)),
+            )
+            .show(ui, |ui| bottom_properties_dock(ui, app));
+    }
+
+    // 5. Left Dock: 2-Column CS6 Tool Strip
+    if app.show_tools_dock {
+        egui::Panel::left("tools")
+            .exact_size(64.0)
+            .resizable(false)
+            .frame(
+                egui::Frame::new()
+                    .fill(app.palette.panel)
+                    .inner_margin(egui::Margin::symmetric(4, 3)),
+            )
+            .show(ui, |ui| {
+                egui::ScrollArea::vertical().show(ui, |ui| panels::tools_panel(ui, app));
+            });
+    }
+
+    // 6. Right Dock: CS6 Stacked Tab-Groups
+    if app.show_right_dock {
+        egui::Panel::right("dock")
+            .default_size(295.0)
+            .resizable(true)
+            .frame(
+                egui::Frame::new()
+                    .fill(app.palette.panel)
+                    .inner_margin(egui::Margin::same(3)),
+            )
+            .show(ui, |ui| right_dock(ui, app));
+    }
+
+    // 7. Central Panel: Document Tab Bar + Original/Preview/2-Up/4-Up Bar + Canvas
+    egui::CentralPanel::default()
+        .frame(egui::Frame::new().fill(app.palette.bg))
+        .show(ui, |ui| {
+            document_tab_strip(ui, app);
+            canvas::show(ui, app);
+        });
+
     dialogs::new_document_dialog(app);
+    dialogs::canvas_size_dialog(app);
+    dialogs::find_replace_dialog(app);
+    dialogs::saved_commands_dialog(app);
+    dialogs::about_dialog(app);
     dialogs::file_dialog(app);
     dialogs::welcome_overlay(app);
 
     screenshot(ui, app);
 }
 
-/// The tabbed dock on the right: Properties, Color, Paths, Pages, Styles,
-/// Library and Swatches.
-fn right_dock(ui: &mut Ui, app: &mut FireCraft) {
-    const TABS: &[&str] = &[
-        "Properties",
-        "Color",
-        "Paths",
-        "Pages",
-        "Styles",
-        "Library",
-        "Swatches",
-    ];
-    let current = app.right_tab.min(TABS.len() - 1);
-    let mut tab = current;
-    let palette = app.palette;
-    panels::panel(ui, TABS[current], TABS, &mut tab, palette, |ui| {
-        egui::ScrollArea::vertical().show(ui, |ui| match current {
-            1 => panels::color_panel(ui, app),
-            2 => panels::paths_panel(ui, app),
-            3 => panels::pages_panel(ui, app),
-            4 => panels::styles_panel(ui, app),
-            5 => panels::library_panel(ui, app),
-            6 => panels::swatches_panel(ui, app),
-            _ => panels::properties_panel(ui, app),
-        });
-    });
-    app.right_tab = tab;
-}
-
-/// The status bar along the bottom.
-fn status_bar(ui: &mut Ui, app: &mut FireCraft) {
+fn main_toolbar(ui: &mut Ui, app: &mut FireCraft) {
     ui.horizontal(|ui| {
-        ui.label(app.status.as_str());
+        ui.spacing_mut().item_spacing = Vec2::new(4.0, 2.0);
+        if canvas::tool_button(ui, icons::Icon::New, false, "New Document (Ctrl+N)").clicked() {
+            app.show_new_dialog = true;
+        }
+        if canvas::tool_button(ui, icons::Icon::Open, false, "Open Document (Ctrl+O)").clicked() {
+            app.begin_file_dialog(FileMode::Open);
+        }
+        if canvas::tool_button(ui, icons::Icon::Save, false, "Save Document (Ctrl+S)").clicked() {
+            app.save_current();
+        }
+        if canvas::tool_button(ui, icons::Icon::Import, false, "Import (Ctrl+R)").clicked() {
+            app.begin_file_dialog(FileMode::Import);
+        }
+        if canvas::tool_button(ui, icons::Icon::Export, false, "Export (Ctrl+Shift+R)").clicked() {
+            app.begin_file_dialog(FileMode::Export);
+        }
         ui.separator();
-        let (w, h) = {
-            let page = app.doc.page();
-            (page.width as u32, page.height as u32)
-        };
-        ui.label(format!("{w} × {h} px"));
+        if canvas::tool_button(ui, icons::Icon::Cut, false, "Cut (Ctrl+X)").clicked() {
+            app.cut_selected();
+        }
+        if canvas::tool_button(ui, icons::Icon::Copy, false, "Copy (Ctrl+C)").clicked() {
+            app.copy_selected();
+        }
+        if canvas::tool_button(ui, icons::Icon::Paste, false, "Paste (Ctrl+V)").clicked() {
+            app.paste();
+        }
+        if canvas::tool_button(ui, icons::Icon::Duplicate, false, "Duplicate (Ctrl+D)").clicked() {
+            app.duplicate_selected();
+        }
         ui.separator();
-        ui.label(format!("Layer {}", app.selected_layer + 1));
+        if canvas::tool_button(ui, icons::Icon::Undo, false, "Undo (Ctrl+Z)").clicked() {
+            app.undo_action();
+        }
+        if canvas::tool_button(ui, icons::Icon::Redo, false, "Redo (Ctrl+Y)").clicked() {
+            app.redo_action();
+        }
         ui.separator();
-        ui.label(app.tool.name());
+        if ui
+            .small_button("Up Front")
+            .on_hover_text("Bring Selection to Front")
+            .clicked()
+        {
+            app.reorder_selected(true);
+        }
+        if ui
+            .small_button("Dn Back")
+            .on_hover_text("Send Selection to Back")
+            .clicked()
+        {
+            app.reorder_selected(false);
+        }
+        if ui
+            .small_button("Flip H")
+            .on_hover_text("Flip Horizontal")
+            .clicked()
+        {
+            app.flip_horizontal();
+        }
+        if ui
+            .small_button("Flip V")
+            .on_hover_text("Flip Vertical")
+            .clicked()
+        {
+            app.flip_vertical();
+        }
+        if ui
+            .small_button("Rot 90°")
+            .on_hover_text("Rotate 90° Clockwise")
+            .clicked()
+        {
+            app.rotate_90();
+        }
         ui.separator();
-        ui.label(format!("Zoom {:.0}%", app.doc.zoom * 100.0));
-        if let Some(sel) = app.selected {
-            let name = app
-                .doc
-                .page()
-                .layers
-                .get(app.selected_layer)
-                .and_then(|l| l.objects.get(sel))
-                .map(|o| o.name.clone())
-                .unwrap_or_default();
-            ui.separator();
-            ui.label(name);
+        if ui
+            .small_button("Demo Showcase")
+            .on_hover_text("Populate canvas with a Fireworks CS6 vector + live-effect UI showcase")
+            .clicked()
+        {
+            app.load_demo_showcase();
         }
     });
 }
 
-/// The keyboard shortcuts handled here rather than in the menus.
+fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
+    let p = app.palette;
+    egui::Frame::new()
+        .fill(p.panel)
+        .inner_margin(egui::Margin::symmetric(6, 2))
+        .show(ui, |ui| {
+            // Row 1: Open Document Tabs
+            ui.horizontal(|ui| {
+                let doc_count = app.open_docs.len();
+                let mut switch_to = None;
+                let mut close_idx = None;
+                for i in 0..doc_count {
+                    let is_active = i == app.active_doc;
+                    let name = if is_active {
+                        if app.doc.dirty {
+                            format!("*{}", app.doc.name)
+                        } else {
+                            app.doc.name.clone()
+                        }
+                    } else if app.open_docs[i].dirty {
+                        format!("*{}", app.open_docs[i].name)
+                    } else {
+                        app.open_docs[i].name.clone()
+                    };
+                    if ui.selectable_label(is_active, &name).clicked() && !is_active {
+                        switch_to = Some(i);
+                    }
+                    if doc_count > 1 && ui.small_button("×").clicked() {
+                        close_idx = Some(i);
+                    }
+                    ui.separator();
+                }
+                if ui
+                    .small_button("+")
+                    .on_hover_text("New Document Tab")
+                    .clicked()
+                {
+                    app.new_document_tab(constants::DEFAULT_WIDTH, constants::DEFAULT_HEIGHT);
+                }
+                if let Some(target) = switch_to {
+                    app.switch_document_tab(target);
+                }
+                if let Some(ci) = close_idx {
+                    app.close_document_tab(ci);
+                }
+            });
+
+            // Row 2: Original | Preview | 2-Up | 4-Up + Page Selector
+            ui.horizontal(|ui| {
+                for (mode, label) in [
+                    (CanvasViewMode::Original, "Original"),
+                    (CanvasViewMode::Preview, "Preview"),
+                    (CanvasViewMode::TwoUp, "2-Up"),
+                    (CanvasViewMode::FourUp, "4-Up"),
+                ] {
+                    if ui.selectable_label(app.view_mode == mode, label).clicked() {
+                        app.view_mode = mode;
+                    }
+                }
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    let page_count = app.doc.pages.len();
+                    let cur_page_name = app.doc.page().name.clone();
+                    egui::ComboBox::from_id_salt("canvas_page_selector")
+                        .width(95.0)
+                        .selected_text(cur_page_name)
+                        .show_ui(ui, |ui| {
+                            for pi in 0..page_count {
+                                let pname = app.doc.pages[pi].name.clone();
+                                if ui
+                                    .selectable_label(app.doc.current_page == pi, pname)
+                                    .clicked()
+                                {
+                                    app.doc.current_page = pi;
+                                    app.selected = None;
+                                }
+                            }
+                        });
+                });
+            });
+        });
+}
+
+fn bottom_properties_dock(ui: &mut Ui, app: &mut FireCraft) {
+    const TABS: &[&str] = &["◊ Properties", "Symbol Properties"];
+    let current = app.bottom_tab.min(1);
+    let mut tab = current;
+    let palette = app.palette;
+    panels::panel(ui, TABS[current], TABS, &mut tab, palette, |ui| {
+        if current == 0 {
+            panels::properties_panel(ui, app);
+        } else {
+            ui.horizontal(|ui| {
+                ui.label(
+                    RichText::new("Symbol Library Instances:")
+                        .small()
+                        .color(palette.text_dim),
+                );
+                if ui
+                    .small_button("Convert Selection to Symbol (F8)")
+                    .clicked()
+                {
+                    app.convert_selection_to_symbol();
+                }
+                ui.label(
+                    RichText::new(format!(
+                        "{} symbol definition(s) in current document",
+                        app.doc.symbols.len()
+                    ))
+                    .small(),
+                );
+            });
+        }
+    });
+    app.bottom_tab = tab;
+}
+
+/// The stacked right-hand dock matching Fireworks CS6's Expanded Mode:
+/// 1. Optimize | History | Align | Path
+/// 2. Pages | States | Layers
+/// 3. Styles | Color Palette | Swatches | Info
+/// 4. Chars | Image Edit | Auto Shapes | Library | CSS
+fn right_dock(ui: &mut Ui, app: &mut FireCraft) {
+    let palette = app.palette;
+    egui::ScrollArea::vertical().show(ui, |ui| {
+        // Group 1: Optimize | History | Align | Path
+        const G1_TABS: &[&str] = &["Optimize", "History", "Align", "Path"];
+        let c1 = app.top_right_tab.min(G1_TABS.len() - 1);
+        let mut g1 = c1;
+        panels::panel(ui, G1_TABS[c1], G1_TABS, &mut g1, palette, |ui| match c1 {
+            0 => panels::optimize_panel(ui, app),
+            1 => panels::history_panel(ui, app),
+            2 => panels::align_panel(ui, app),
+            _ => panels::paths_panel(ui, app),
+        });
+        app.top_right_tab = g1;
+
+        ui.add_space(3.0);
+
+        // Group 2: Pages | States | Layers
+        const G2_TABS: &[&str] = &["Pages", "States", "Layers"];
+        let c2 = app.layers_tab.min(G2_TABS.len() - 1);
+        let mut g2 = c2;
+        panels::panel(ui, G2_TABS[c2], G2_TABS, &mut g2, palette, |ui| {
+            panels::pages_panel(ui, app);
+        });
+        app.layers_tab = g2;
+
+        ui.add_space(3.0);
+
+        // Group 3: Styles | Color Palette | Swatches | Info
+        const G3_TABS: &[&str] = &["Styles", "Color Palette", "Swatches", "Info"];
+        let c3 = app.middle_right_tab.min(G3_TABS.len() - 1);
+        let mut g3 = c3;
+        panels::panel(ui, G3_TABS[c3], G3_TABS, &mut g3, palette, |ui| match c3 {
+            0 => panels::styles_panel(ui, app),
+            1 => panels::color_panel(ui, app),
+            2 => panels::swatches_panel(ui, app),
+            _ => panels::info_panel(ui, app),
+        });
+        app.middle_right_tab = g3;
+
+        ui.add_space(3.0);
+
+        // Group 4: Chars | Image Edit | Auto Shapes | Library | CSS
+        const G4_TABS: &[&str] = &["Chars", "Image Edit", "Auto Shapes", "Library", "CSS"];
+        let c4 = app.library_tab.min(G4_TABS.len() - 1);
+        let mut g4 = c4;
+        panels::panel(ui, G4_TABS[c4], G4_TABS, &mut g4, palette, |ui| {
+            panels::library_panel(ui, app);
+        });
+        app.library_tab = g4;
+    });
+}
+
+/// The bottom status bar + CS6 animation playback transport controls.
+fn status_bar(ui: &mut Ui, app: &mut FireCraft) {
+    ui.horizontal(|ui| {
+        ui.label(RichText::new(app.status.as_str()).small());
+        ui.separator();
+        ui.label(
+            RichText::new(format!("Tool: {}", app.tool.name()))
+                .small()
+                .color(app.palette.text_dim),
+        );
+        if let Some(pos) = app.cursor_doc_pos {
+            ui.separator();
+            ui.label(
+                RichText::new(format!("X: {:.0}, Y: {:.0}", pos.x, pos.y))
+                    .small()
+                    .color(app.palette.text_dim),
+            );
+        }
+
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            ui.label(
+                RichText::new(format!("{:.0}%", app.doc.zoom * 100.0))
+                    .small()
+                    .strong(),
+            );
+            ui.separator();
+            let (w, h, cur_st, total_st) = {
+                let page = app.doc.page();
+                (
+                    page.width as u32,
+                    page.height as u32,
+                    page.current_state + 1,
+                    page.states.len(),
+                )
+            };
+            ui.label(RichText::new(format!("{w} × {h}")).small());
+            ui.separator();
+            if ui
+                .small_button(">|")
+                .on_hover_text("Next Animation State")
+                .clicked()
+            {
+                let next = (cur_st) % total_st.max(1);
+                app.doc.page_mut().select_state(next);
+            }
+            ui.label(RichText::new(format!("State {cur_st} of {total_st}")).small());
+            if ui
+                .small_button("|<")
+                .on_hover_text("Previous Animation State")
+                .clicked()
+            {
+                let prev = if cur_st > 1 {
+                    cur_st - 2
+                } else {
+                    total_st.saturating_sub(1)
+                };
+                app.doc.page_mut().select_state(prev);
+            }
+        });
+    });
+}
+
 enum Shortcut {
     Undo,
     Redo,
     Save,
     New,
     Open,
+    Import,
+    Export,
     SelectAll,
+    Deselect,
     Copy,
     Cut,
     Paste,
     Duplicate,
     Delete,
+    Find,
+    FitWindow,
+    ZoomIn,
+    ZoomOut,
+    Tool(Tool),
+    SwapColors,
+    Nudge(Vec2),
+    ConvertSymbol,
 }
 
-/// Keyboard shortcuts. Skipped while a text field has focus so typing a
-/// filename never triggers a command.
 fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
     if ui.memory(|m| m.focused()).is_some() {
         return;
     }
-    let ctrl = ui.input(|i| i.modifiers.ctrl);
+    let (ctrl, shift) = ui.input(|i| (i.modifiers.ctrl, i.modifiers.shift));
+    let step = if shift { 10.0 } else { 1.0 };
     let mut action = None;
     ui.input(|i| {
         for event in &i.events {
-            let egui::Event::Key { key, pressed: true, .. } = event else {
+            let egui::Event::Key {
+                key, pressed: true, ..
+            } = event
+            else {
                 continue;
             };
-            action = match (key, ctrl) {
-                (Key::Z, true) => Some(Shortcut::Undo),
-                (Key::Y, true) => Some(Shortcut::Redo),
-                (Key::S, true) => Some(Shortcut::Save),
-                (Key::N, true) => Some(Shortcut::New),
-                (Key::O, true) => Some(Shortcut::Open),
-                (Key::A, true) => Some(Shortcut::SelectAll),
-                (Key::C, true) => Some(Shortcut::Copy),
-                (Key::X, true) => Some(Shortcut::Cut),
-                (Key::V, true) => Some(Shortcut::Paste),
-                (Key::D, true) => Some(Shortcut::Duplicate),
-                (Key::Delete | Key::Backspace, _) => Some(Shortcut::Delete),
+            action = match (key, ctrl, shift) {
+                (Key::Z, true, false) => Some(Shortcut::Undo),
+                (Key::Y, true, _) | (Key::Z, true, true) => Some(Shortcut::Redo),
+                (Key::S, true, _) => Some(Shortcut::Save),
+                (Key::N, true, _) => Some(Shortcut::New),
+                (Key::O, true, _) => Some(Shortcut::Open),
+                (Key::R, true, false) => Some(Shortcut::Import),
+                (Key::R, true, true) => Some(Shortcut::Export),
+                (Key::A, true, _) => Some(Shortcut::SelectAll),
+                (Key::D, true, true) => Some(Shortcut::Deselect),
+                (Key::C, true, _) => Some(Shortcut::Copy),
+                (Key::X, true, _) => Some(Shortcut::Cut),
+                (Key::V, true, _) => Some(Shortcut::Paste),
+                (Key::D, true, false) => Some(Shortcut::Duplicate),
+                (Key::F, true, _) => Some(Shortcut::Find),
+                (Key::Num0, true, _) => Some(Shortcut::FitWindow),
+                (Key::Plus | Key::Equals, true, _) => Some(Shortcut::ZoomIn),
+                (Key::Minus, true, _) => Some(Shortcut::ZoomOut),
+                (Key::Delete | Key::Backspace, false, _) => Some(Shortcut::Delete),
+                (Key::F8, false, _) => Some(Shortcut::ConvertSymbol),
+                (Key::ArrowLeft, false, _) => Some(Shortcut::Nudge(Vec2::new(-step, 0.0))),
+                (Key::ArrowRight, false, _) => Some(Shortcut::Nudge(Vec2::new(step, 0.0))),
+                (Key::ArrowUp, false, _) => Some(Shortcut::Nudge(Vec2::new(0.0, -step))),
+                (Key::ArrowDown, false, _) => Some(Shortcut::Nudge(Vec2::new(0.0, step))),
+                (Key::V, false, _) => Some(Shortcut::Tool(Tool::Select)),
+                (Key::A, false, _) => Some(Shortcut::Tool(Tool::Subselect)),
+                (Key::Q, false, _) => Some(Shortcut::Tool(Tool::Scale)),
+                (Key::M, false, _) => Some(Shortcut::Tool(Tool::Marquee)),
+                (Key::L, false, _) => Some(Shortcut::Tool(Tool::Lasso)),
+                (Key::W, false, _) => Some(Shortcut::Tool(Tool::Wand)),
+                (Key::C, false, _) => Some(Shortcut::Tool(Tool::Crop)),
+                (Key::B, false, _) => Some(Shortcut::Tool(Tool::Brush)),
+                (Key::E, false, _) => Some(Shortcut::Tool(Tool::Eraser)),
+                (Key::N, false, _) => Some(Shortcut::Tool(Tool::Line)),
+                (Key::P, false, _) => Some(Shortcut::Tool(Tool::Path)),
+                (Key::U, false, _) => Some(Shortcut::Tool(Tool::Rectangle)),
+                (Key::T, false, _) => Some(Shortcut::Tool(Tool::Text)),
+                (Key::K, false, _) => Some(Shortcut::Tool(Tool::Slice)),
+                (Key::J, false, _) => Some(Shortcut::Tool(Tool::Hotspot)),
+                (Key::I, false, _) => Some(Shortcut::Tool(Tool::Picker)),
+                (Key::G, false, _) => Some(Shortcut::Tool(Tool::Gradient)),
+                (Key::H, false, _) => Some(Shortcut::Tool(Tool::Hand)),
+                (Key::Z, false, _) => Some(Shortcut::Tool(Tool::Zoom)),
+                (Key::X, false, _) => Some(Shortcut::SwapColors),
                 _ => None,
             };
             if action.is_some() {
@@ -172,22 +530,40 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
         Some(Shortcut::Save) => app.save_current(),
         Some(Shortcut::New) => app.show_new_dialog = true,
         Some(Shortcut::Open) => app.begin_file_dialog(FileMode::Open),
+        Some(Shortcut::Import) => app.begin_file_dialog(FileMode::Import),
+        Some(Shortcut::Export) => app.begin_file_dialog(FileMode::Export),
         Some(Shortcut::SelectAll) => app.select_all(),
+        Some(Shortcut::Deselect) => app.selected = None,
         Some(Shortcut::Copy) => app.copy_selected(),
         Some(Shortcut::Cut) => app.cut_selected(),
         Some(Shortcut::Paste) => app.paste(),
         Some(Shortcut::Duplicate) => app.duplicate_selected(),
         Some(Shortcut::Delete) => app.delete_selected(),
+        Some(Shortcut::Find) => app.show_find_replace = true,
+        Some(Shortcut::FitWindow) => app.fit_in_window(),
+        Some(Shortcut::ZoomIn) => app.zoom_by(constants::ZOOM_STEP),
+        Some(Shortcut::ZoomOut) => app.zoom_by(1.0 / constants::ZOOM_STEP),
+        Some(Shortcut::Tool(t)) => {
+            app.tool = t;
+            app.status = format!("{} selected", t.name());
+        }
+        Some(Shortcut::SwapColors) => std::mem::swap(&mut app.fill, &mut app.stroke),
+        Some(Shortcut::Nudge(delta)) => app.nudge_selected(delta),
+        Some(Shortcut::ConvertSymbol) => app.convert_selection_to_symbol(),
         None => return,
     }
     ui.ctx().request_repaint();
 }
 
-/// Capture the rendered window to `app.screenshot_path` and exit.
+/// Capture the rendered window to `app.screenshot_path` after a few frames and exit.
 fn screenshot(ui: &mut Ui, app: &mut FireCraft) {
     let Some(path) = app.screenshot_path.clone() else {
         return;
     };
+    if app.frames < 10 {
+        ui.ctx().request_repaint();
+        return;
+    }
     if app.screenshot_saved {
         return;
     }
@@ -195,23 +571,27 @@ fn screenshot(ui: &mut Ui, app: &mut FireCraft) {
     let done = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let flag = done.clone();
     let waiter = done.clone();
-    ui.ctx().request_screenshot(move |image: std::sync::Arc<egui::ColorImage>| {
-        let w = image.width();
-        let h = image.height();
-        let mut rgba = Vec::with_capacity(w * h * 4);
-        for c in &image.pixels {
-            rgba.push(c.r());
-            rgba.push(c.g());
-            rgba.push(c.b());
-            rgba.push(c.a());
-        }
-        if let Some(img) = image::RgbaImage::from_raw(w as u32, h as u32, rgba) {
-            if img.save(&path).is_ok() {
-                eprintln!("Screenshot saved to {path}");
+    ui.ctx()
+        .request_screenshot(move |image: std::sync::Arc<egui::ColorImage>| {
+            let w = image.width();
+            let h = image.height();
+            let mut rgba = Vec::with_capacity(w * h * 4);
+            for c in &image.pixels {
+                rgba.push(c.r());
+                rgba.push(c.g());
+                rgba.push(c.b());
+                rgba.push(c.a());
             }
-        }
-        flag.store(true, std::sync::atomic::Ordering::SeqCst);
-    });
+            if let Some(img) = image::RgbaImage::from_raw(w as u32, h as u32, rgba) {
+                if let Some(parent) = std::path::Path::new(&path).parent() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+                if img.save(&path).is_ok() {
+                    eprintln!("Screenshot saved to {path}");
+                }
+            }
+            flag.store(true, std::sync::atomic::Ordering::SeqCst);
+        });
     ui.ctx().request_repaint();
     std::thread::spawn(move || {
         for _ in 0..150 {

@@ -1,11 +1,6 @@
-﻿#![allow(dead_code, unused_imports, unused_variables)]
+﻿//! Colour maths shared by the swatches, the colour picker and the canvas.
 
-#![allow(dead_code)]
-#![allow(unused_imports)]
-#![allow(unused_variables)]
-
-//! Colour maths shared by the swatches, the colour picker and the canvas.
-
+use crate::constants;
 use eframe::egui::Color32;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -39,9 +34,9 @@ pub fn rgb_to_hsv(c: Color32) -> Hsv {
     let d = max - min;
     let h = if d <= f32::EPSILON {
         0.0
-    } else if max == r {
+    } else if (max - r).abs() <= f32::EPSILON {
         60.0 * (((g - b) / d) % 6.0)
-    } else if max == g {
+    } else if (max - g).abs() <= f32::EPSILON {
         60.0 * ((b - r) / d + 2.0)
     } else {
         60.0 * ((r - g) / d + 4.0)
@@ -53,9 +48,11 @@ pub fn rgb_to_hsv(c: Color32) -> Hsv {
 
 pub fn hsv_to_rgb(hsv: Hsv) -> Color32 {
     let h = hsv.h.rem_euclid(360.0);
-    let c = hsv.v * hsv.s;
+    let s = hsv.s.clamp(0.0, 1.0);
+    let v = hsv.v.clamp(0.0, 1.0);
+    let c = v * s;
     let x = c * (1.0 - ((h / 60.0) % 2.0 - 1.0).abs());
-    let m = hsv.v - c;
+    let m = v - c;
     let (r, g, b) = match h as u32 / 60 {
         0 => (c, x, 0.0),
         1 => (x, c, 0.0),
@@ -65,9 +62,9 @@ pub fn hsv_to_rgb(hsv: Hsv) -> Color32 {
         _ => (c, 0.0, x),
     };
     Color32::from_rgb(
-        ((r + m) * 255.0).round() as u8,
-        ((g + m) * 255.0).round() as u8,
-        ((b + m) * 255.0).round() as u8,
+        ((r + m) * 255.0).round().clamp(0.0, 255.0) as u8,
+        ((g + m) * 255.0).round().clamp(0.0, 255.0) as u8,
+        ((b + m) * 255.0).round().clamp(0.0, 255.0) as u8,
     )
 }
 
@@ -87,9 +84,9 @@ pub fn rgb_to_hls(c: Color32) -> Hls {
     } else {
         d / (max + min)
     };
-    let h = if max == r {
+    let h = if (max - r).abs() <= f32::EPSILON {
         60.0 * (((g - b) / d) % 6.0)
-    } else if max == g {
+    } else if (max - g).abs() <= f32::EPSILON {
         60.0 * ((b - r) / d + 2.0)
     } else {
         60.0 * ((r - g) / d + 4.0)
@@ -100,9 +97,11 @@ pub fn rgb_to_hls(c: Color32) -> Hls {
 
 pub fn hls_to_rgb(hls: Hls) -> Color32 {
     let h = hls.h.rem_euclid(360.0);
-    let c = (1.0 - (2.0 * hls.l - 1.0).abs()) * hls.s;
+    let l = hls.l.clamp(0.0, 1.0);
+    let s = hls.s.clamp(0.0, 1.0);
+    let c = (1.0 - (2.0 * l - 1.0).abs()) * s;
     let x = c * (1.0 - ((h / 60.0) % 2.0 - 1.0).abs());
-    let m = hls.l - c / 2.0;
+    let m = l - c / 2.0;
     let (r, g, b) = match h as u32 / 60 {
         0 => (c, x, 0.0),
         1 => (x, c, 0.0),
@@ -112,9 +111,9 @@ pub fn hls_to_rgb(hls: Hls) -> Color32 {
         _ => (c, 0.0, x),
     };
     Color32::from_rgb(
-        ((r + m) * 255.0).round() as u8,
-        ((g + m) * 255.0).round() as u8,
-        ((b + m) * 255.0).round() as u8,
+        ((r + m) * 255.0).round().clamp(0.0, 255.0) as u8,
+        ((g + m) * 255.0).round().clamp(0.0, 255.0) as u8,
+        ((b + m) * 255.0).round().clamp(0.0, 255.0) as u8,
     )
 }
 
@@ -124,7 +123,12 @@ pub fn rgb_to_cmyk(c: Color32) -> Cmyk {
     let b = c.b() as f32 / 255.0;
     let k = 1.0 - r.max(g).max(b);
     if (1.0 - k) <= f32::EPSILON {
-        return Cmyk { c: 0.0, m: 0.0, y: 0.0, k: 1.0 };
+        return Cmyk {
+            c: 0.0,
+            m: 0.0,
+            y: 0.0,
+            k: 1.0,
+        };
     }
     Cmyk {
         c: (1.0 - r - k) / (1.0 - k),
@@ -135,10 +139,14 @@ pub fn rgb_to_cmyk(c: Color32) -> Cmyk {
 }
 
 pub fn cmyk_to_rgb(v: Cmyk) -> Color32 {
+    let c = v.c.clamp(0.0, 1.0);
+    let m = v.m.clamp(0.0, 1.0);
+    let y = v.y.clamp(0.0, 1.0);
+    let k = v.k.clamp(0.0, 1.0);
     Color32::from_rgb(
-        (255.0 * (1.0 - v.k) * (1.0 - v.c)).round() as u8,
-        (255.0 * (1.0 - v.k) * (1.0 - v.m)).round() as u8,
-        (255.0 * (1.0 - v.k) * (1.0 - v.y)).round() as u8,
+        (255.0 * (1.0 - k) * (1.0 - c)).round().clamp(0.0, 255.0) as u8,
+        (255.0 * (1.0 - k) * (1.0 - m)).round().clamp(0.0, 255.0) as u8,
+        (255.0 * (1.0 - k) * (1.0 - y)).round().clamp(0.0, 255.0) as u8,
     )
 }
 
@@ -148,6 +156,12 @@ pub fn hex_of(c: Color32) -> String {
 
 pub fn from_hex(text: &str) -> Option<Color32> {
     let t = text.trim().trim_start_matches('#');
+    if t.len() == 3 {
+        let r = u8::from_str_radix(&t[0..1], 16).ok()?;
+        let g = u8::from_str_radix(&t[1..2], 16).ok()?;
+        let b = u8::from_str_radix(&t[2..3], 16).ok()?;
+        return Some(Color32::from_rgb(r * 17, g * 17, b * 17));
+    }
     if t.len() != 6 {
         return None;
     }
@@ -157,18 +171,87 @@ pub fn from_hex(text: &str) -> Option<Color32> {
     Some(Color32::from_rgb(r, g, b))
 }
 
-/// The default Fireworks-like swatch ramp: 16 hues x 9 lightness/saturation steps.
+/// The default Fireworks CS6 Color Cubes swatch ramp (21 columns × 12 rows = 252 swatches):
+/// Col 0 is the 12-step grayscale + primary ramp, followed by the 6×6×6 web-safe cube
+/// laid out in three 6-column blocks across 12 rows.
 pub fn swatch_grid() -> Vec<Color32> {
-    let mut out = Vec::new();
-    for row in 0..9 {
-        let v = 1.0 - row as f32 * 0.09;
-        for col in 0..16 {
-            let h = col as f32 * 22.5;
-            let s = if row == 8 { 0.0 } else { 0.85 };
-            out.push(hsv_to_rgb(Hsv { h, s, v }));
+    let mut out = Vec::with_capacity(constants::SWATCH_COUNT);
+    let levels = [0u8, 51, 102, 153, 204, 255];
+    let prim = [
+        Color32::from_rgb(0, 0, 0),
+        Color32::from_rgb(51, 51, 51),
+        Color32::from_rgb(102, 102, 102),
+        Color32::from_rgb(153, 153, 153),
+        Color32::from_rgb(204, 204, 204),
+        Color32::from_rgb(255, 255, 255),
+        Color32::from_rgb(255, 0, 0),
+        Color32::from_rgb(0, 255, 0),
+        Color32::from_rgb(0, 0, 255),
+        Color32::from_rgb(255, 255, 0),
+        Color32::from_rgb(0, 255, 255),
+        Color32::from_rgb(255, 0, 255),
+    ];
+    for row in 0..constants::SWATCH_ROWS {
+        out.push(prim[row % prim.len()]);
+        out.push(Color32::from_rgb(0, 0, 0));
+        for block in 0..3 {
+            let r_idx = (row / 6) * 3 + block;
+            let g_idx = row % 6;
+            for &b in &levels {
+                out.push(Color32::from_rgb(levels[r_idx], levels[g_idx], b));
+            }
         }
+        out.push(Color32::from_rgb(255, 255, 255));
     }
     out
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
 
+    #[test]
+    fn hex_roundtrip() {
+        let c = Color32::from_rgb(0x99, 0x00, 0x41);
+        assert_eq!(hex_of(c), "#990041");
+        assert_eq!(from_hex("#990041"), Some(c));
+        assert_eq!(from_hex("990041"), Some(c));
+        assert_eq!(from_hex("#f0a"), Some(Color32::from_rgb(0xFF, 0x00, 0xAA)));
+        assert_eq!(from_hex("invalid"), None);
+    }
+
+    #[test]
+    fn hsv_hls_cmyk_roundtrip() {
+        for &c in &[
+            Color32::from_rgb(255, 0, 0),
+            Color32::from_rgb(0, 180, 90),
+            Color32::from_rgb(65, 139, 101),
+            Color32::from_rgb(0, 0, 0),
+            Color32::from_rgb(255, 255, 255),
+        ] {
+            let hsv = rgb_to_hsv(c);
+            let back = hsv_to_rgb(hsv);
+            assert!((c.r() as i16 - back.r() as i16).abs() <= 1);
+            assert!((c.g() as i16 - back.g() as i16).abs() <= 1);
+            assert!((c.b() as i16 - back.b() as i16).abs() <= 1);
+
+            let hls = rgb_to_hls(c);
+            let back_hls = hls_to_rgb(hls);
+            assert!((c.r() as i16 - back_hls.r() as i16).abs() <= 1);
+            assert!((c.g() as i16 - back_hls.g() as i16).abs() <= 1);
+            assert!((c.b() as i16 - back_hls.b() as i16).abs() <= 1);
+
+            let cmyk = rgb_to_cmyk(c);
+            let back_cmyk = cmyk_to_rgb(cmyk);
+            assert!((c.r() as i16 - back_cmyk.r() as i16).abs() <= 1);
+            assert!((c.g() as i16 - back_cmyk.g() as i16).abs() <= 1);
+            assert!((c.b() as i16 - back_cmyk.b() as i16).abs() <= 1);
+        }
+    }
+
+    #[test]
+    fn swatch_grid_dimensions() {
+        let grid = swatch_grid();
+        assert_eq!(grid.len(), constants::SWATCH_COUNT);
+    }
+}

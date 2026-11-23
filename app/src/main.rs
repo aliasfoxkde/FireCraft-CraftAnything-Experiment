@@ -18,6 +18,7 @@ mod theme;
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let mut screenshot_path: Option<String> = None;
+    let mut load_demo = false;
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -25,19 +26,24 @@ fn main() {
                 screenshot_path = Some(args[i + 1].clone());
                 i += 2;
             }
+            "--demo" => {
+                load_demo = true;
+                i += 1;
+            }
             _ => i += 1,
         }
     }
 
     let mut viewport = eframe::egui::ViewportBuilder::default()
-        .with_inner_size([800.0, 600.0])
-        .with_title("FireCraft")
+        .with_inner_size([1280.0, 820.0])
+        .with_min_inner_size([800.0, 600.0])
+        .with_title("FireCraft Studio — Adobe Fireworks CS6 Edition")
         .with_app_id("firecraft.editor")
         .with_visible(true)
-        .with_active(true);
+        .with_active(screenshot_path.is_none());
 
     if screenshot_path.is_some() {
-        viewport = viewport.with_window_level(eframe::egui::WindowLevel::Normal);
+        viewport = viewport.with_window_level(eframe::egui::WindowLevel::AlwaysOnBottom);
     }
 
     let native_options = eframe::NativeOptions {
@@ -49,7 +55,13 @@ fn main() {
     eframe::run_native(
         "FireCraft",
         native_options,
-        Box::new(move |_cc| Ok(Box::new(app::FireCraft::new(path_for_closure.clone())))),
+        Box::new(move |_cc| {
+            let mut fc = app::FireCraft::new(path_for_closure.clone());
+            if load_demo {
+                fc.load_demo_showcase();
+            }
+            Ok(Box::new(fc))
+        }),
     )
     .expect("FireCraft could not start");
 }
