@@ -2,28 +2,60 @@
 
 All notable changes to **FireCraft** are documented in this file.
 
-## [0.2.1] — 2026-11-22
+## [0.2.1] — 2026-11-24
 
 ### Added
-- **Dynamic CS6 Panel Grouping, Floating Windows & Magnetic Snapping:**
-  - Every panel group now supports collapse/expand (`▾`/`▸` chevron or double-click header), bottom vertical resize splitters, draggable tabs (group onto another header, dock into a column, or tear off onto the canvas as a floating window), undock/pin (`⧉` / `📌`), and a `≡` Panel Options menu.
-  - Dual-column right docking (`RightOuter` + `RightInner`), left docking (`LeftInner`), and floating windows (`DockZone::Floating`) with magnetic edge-to-edge snapping.
-  - 5 new CS6 panels: **Color Mixer**, **Auto Shape Properties**, **Common Library**, **URL**, and **Behaviors** (21 panels total).
-  - New workspace presets: `CS6 Dual-Column` and `All Panels Floating`.
-- **Shortcuts & Navigation:**
-  - `Insert` key centers and fits the page to the viewport (matching Fusion 360).
-  - `F11` added alongside `Tab` and `F4` for Full-Screen Canvas mode.
-- **Path & Subselection Audit:**
-  - `combine_paths_op` now operates on multi-selection (`selected_set`) for `join`, `union`, `intersect`, `crop`, and `punch`.
-  - `Tool::Subselect` supports dragging individual path vertices (`DragKind::MoveNode`), and `DragKind::Move` displays live smart alignment guides.
-- **CI/CD:**
-  - Added `.github/workflows/ci.yml` for automated formatting, Clippy (`-D warnings`), unit tests, and `wasm32-unknown-unknown` verification.
+- **Infinite canvas mode:** new `∞ Canvas` toggle in the canvas footer draws a dotted page-bound
+  box with an export disclaimer. Out-of-page objects remain editable.
+- **Layered `.fw.png` documents:** saving a `*.fw.png` now embeds a versioned project payload in an
+  iTXt chunk. Reopening restores layers, states, symbols, styles, and out-of-page objects while the
+  visible PNG stays cropped to the page.
+- **Intelligence inspector tab:** OpenAI-compatible endpoint/model/key settings, real prompt calls
+  with selection context, response/error display, and MCP client-config copying.
+- **Window stacking:** dropping a floating panel on the top/bottom of another creates a persistent
+  stack that moves as one unit; `Detach from Window Stack` restores independence.
+- **Unsaved-session prompt:** window close and `Ctrl+Q` now offer Save All / Discard / Cancel.
+- **Escape returns to the Pointer tool** and cancels in-progress creation, path, and text edits.
+- New shortcuts: `[`/`]` brush size, bare `+`/`-` zoom, `Home`/`End` first/last state,
+  `Ctrl+Alt+I` Intelligence tab, `Ctrl+Shift+F` infinite canvas.
+- **Dynamic CS6 panel grouping, floating windows & magnetic snapping:** collapse/expand chevrons
+  and double-click headers, bottom resize splitters, draggable tabs (merge, dock, or tear off),
+  undock/pin controls, a Panel Options menu, dual-column right and left docking, floating windows
+  with edge snapping, five new CS6 panels (21 total), and `CS6 Dual-Column` / `All Panels Floating`
+  workspace presets.
+- **Navigation and path audit:** `Insert` fits the page, `F11` mirrors `Tab`/`F4` for Full-Screen
+  Canvas, path boolean commands operate on the full multi-selection, and Subselect can drag
+  individual path vertices with live alignment guides.
+- Added `.github/workflows/ci.yml` for formatting, Clippy (`-D warnings`), unit tests, and
+  `wasm32-unknown-unknown` verification.
 
 ### Changed
-- Removed the redundant `Fc` icon and badge next to `File` in the menu bar so menus align cleanly to the left.
+- Moved the DPI/PPI selector from the Main Toolbar into the canvas footer beside resolution and
+  zoom; removed duplicate zoom/resolution/state readouts from the status bar.
+- Rebuilt the state transport with one monochrome icon set and proper disabled states.
+- Merged the bottom inspector's double header into the shared panel header, with the collapse
+  chevron left of the tabs and double-click-to-collapse on every panel bar.
+- Properties inspector height is now app-owned and survives resize; the drag can no longer snap back.
+- Tool rail pins the color chips and Full Screen button outside the scroll area; tool flyouts are
+  compact and fit their labels. The narrow rail uses a full-width full-screen glyph so its label
+  cannot clip.
+- Panel-group tabs clip their labels to the tab rect and overflow into a `»` menu instead of
+  painting labels on top of each other in narrow docks.
+- Removed the redundant `Fc` icon and badge next to `File` in the menu bar so menus align cleanly
+  to the left.
+- Styles now apply to every selected object, and style gradients render as real gradient fills on
+  rectangles, ellipses, polygons, and closed paths. Shadows/glows follow the object silhouette.
+- Path Join chains nearest endpoints, Split produces two contiguous contours, and Union/Intersect/
+  Punch/Crop use real polygon booleans (`geo`) instead of a convex hull / bounding-box approximation.
+- Context/menu audit: Paste enablement, Join/Split availability, Intersect/Crop entries, and
+  corrected shortcut labels.
 
 ### Fixed
-- Cached `system_is_light()` in `theme.rs` with `OnceLock<bool>` and `CREATE_NO_WINDOW` on Windows, eliminating the UI freeze when switching to System/Auto theme.
+- Native clear color forced to the workspace background, preventing the light flash when Windows
+  re-composites the window (notably in full-screen mode).
+- Cached `system_is_light()` in `theme.rs` with `OnceLock<bool>` and `CREATE_NO_WINDOW` on Windows,
+  eliminating the UI freeze when switching to System/Auto theme.
+- Clipboard tests no longer open an OS clipboard connection, so headless test runs cannot hang.
 
 ## [0.2.0] — 2026-11-22
 

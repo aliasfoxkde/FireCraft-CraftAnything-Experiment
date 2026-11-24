@@ -65,6 +65,12 @@ pub enum Icon {
     Unlock,
     Trash,
     Folder,
+    StateFirst,
+    StatePrev,
+    StatePlay,
+    StatePause,
+    StateNext,
+    StateLast,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -1254,6 +1260,61 @@ pub fn draw(painter: &Painter, rect: Rect, icon: Icon, color: Color32, width: f3
                 ],
                 st,
             ));
+        }
+        Icon::StateFirst | Icon::StateLast => {
+            let back = matches!(icon, Icon::StateFirst);
+            let bar_x = if back { cx - u * 0.75 } else { cx + u * 0.75 };
+            painter.line_segment(
+                [pos2(bar_x, cy - u * 0.7), pos2(bar_x, cy + u * 0.7)],
+                Stroke::new(1.4, color),
+            );
+            let dir = if back { -1.0 } else { 1.0 };
+            painter.add(egui::Shape::convex_polygon(
+                vec![
+                    pos2(cx + dir * u * 0.55, cy - u * 0.65),
+                    pos2(cx + dir * u * 0.55, cy + u * 0.65),
+                    pos2(cx - dir * u * 0.35, cy),
+                ],
+                color,
+                Stroke::NONE,
+            ));
+        }
+        Icon::StatePrev | Icon::StateNext => {
+            let dir = if matches!(icon, Icon::StatePrev) {
+                -1.0
+            } else {
+                1.0
+            };
+            painter.add(egui::Shape::convex_polygon(
+                vec![
+                    pos2(cx + dir * u * 0.65, cy - u * 0.75),
+                    pos2(cx + dir * u * 0.65, cy + u * 0.75),
+                    pos2(cx - dir * u * 0.45, cy),
+                ],
+                color,
+                Stroke::NONE,
+            ));
+        }
+        Icon::StatePlay => {
+            painter.add(egui::Shape::convex_polygon(
+                vec![
+                    pos2(cx - u * 0.45, cy - u * 0.75),
+                    pos2(cx - u * 0.45, cy + u * 0.75),
+                    pos2(cx + u * 0.7, cy),
+                ],
+                color,
+                Stroke::NONE,
+            ));
+        }
+        Icon::StatePause => {
+            let w = u * 0.28;
+            for dx in [-u * 0.32, u * 0.32] {
+                painter.rect_filled(
+                    Rect::from_center_size(pos2(cx + dx, cy), Vec2::new(w, u * 1.5)),
+                    0.0,
+                    color,
+                );
+            }
         }
     }
 }

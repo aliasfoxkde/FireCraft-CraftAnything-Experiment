@@ -4,9 +4,11 @@
 use eframe::egui::{Color32, Vec2};
 
 use crate::constants;
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 /// Live non-destructive effects attached to an object (Fireworks CS6 Live Filters).
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum LiveEffect {
     DropShadow {
         distance: f32,
@@ -132,7 +134,7 @@ impl AutoShapeKind {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum Shape {
     Rect {
         min: Vec2,
@@ -200,7 +202,7 @@ pub enum Shape {
 }
 
 /// Blend modes supported by Fireworks CS6 layers and objects.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum BlendMode {
     Normal,
     Multiply,
@@ -235,10 +237,20 @@ impl BlendMode {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+/// Per-object linear gradient fill. `fill` in `Obj` remains the representative/fallback color used
+/// by thumbnails and CSS export.
+#[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
+pub struct GradientFill {
+    pub start: Color32,
+    pub end: Color32,
+}
+
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Obj {
     pub kind: Shape,
     pub fill: Option<Color32>,
+    /// Optional gradient fill rendered instead of the flat `fill`.
+    pub gradient: Option<GradientFill>,
     pub stroke: Option<Color32>,
     pub width: f32,
     pub opacity: f32,
@@ -291,6 +303,7 @@ impl Obj {
         Self {
             kind,
             fill,
+            gradient: None,
             stroke,
             width: 1.0,
             opacity: 1.0,
@@ -519,7 +532,7 @@ pub fn text_width(text: &str, size: f32) -> f32 {
     (0.55 * size * text.chars().count().max(1) as f32).max(size * 0.5)
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Layer {
     pub name: String,
     pub visible: bool,
@@ -551,7 +564,7 @@ impl Layer {
 }
 
 /// An animation / rollover state in Fireworks CS6 (formerly Frames).
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct AnimationState {
     pub name: String,
     /// Frame delay in 1/100s of a second (CS6 default is 7 = 70ms).
@@ -570,11 +583,11 @@ impl AnimationState {
 }
 
 /// Reusable Symbol definition in the Document Library.
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct SymbolDef {
     pub id: usize,
     pub name: String,
-    pub kind: &'static str, // "Graphic", "Button", "Animation"
+    pub kind: String, // "Graphic", "Button", "Animation"
     pub objects: Vec<Obj>,
 }
 
@@ -613,7 +626,7 @@ impl StyleLibrary {
 }
 
 /// Reusable graphic Style preset (fill, optional gradient end, stroke, width, live effects).
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct StylePreset {
     pub name: String,
     pub fill: Option<Color32>,
@@ -1101,7 +1114,7 @@ impl StylePreset {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Page {
     pub name: String,
     pub width: f32,
@@ -1158,7 +1171,7 @@ impl Page {
 }
 
 /// Optimize panel settings (CS6 Optimize panel: format, palette, quality, matte, dither).
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct OptimizeSettings {
     pub format: String, // "PNG32", "PNG24", "PNG8", "JPEG", "GIF", "WebP", "SVG", "BMP", "TIFF"
     pub palette: String, // "Adaptive", "WebAdaptive", "Web 216", "Exact", "Grayscale"
@@ -1181,7 +1194,7 @@ impl Default for OptimizeSettings {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Document {
     pub name: String,
     pub width: f32,
@@ -1196,6 +1209,9 @@ pub struct Document {
     pub styles: Vec<StylePreset>,
     pub optimize: OptimizeSettings,
     pub urls: Vec<String>,
+    /// Backing file, if this document has been saved. Stored per document so tab switches do
+    /// not lose the save target.
+    pub file_path: Option<PathBuf>,
 }
 
 impl Document {
@@ -1218,6 +1234,7 @@ impl Document {
                 "https://github.com/aliasfoxkde/FireCraft/wiki".to_string(),
                 "index.html".to_string(),
             ],
+            file_path: None,
         }
     }
 

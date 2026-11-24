@@ -103,6 +103,20 @@ pub fn open(path: &Path) -> Result<Document, String> {
 }
 
 fn open_raster(path: &Path) -> Result<Document, String> {
+    let bytes = std::fs::read(path).map_err(|e| format!("Could not read the file: {e}"))?;
+    if let Some(payload) = extract_firecraft_payload(&bytes)
+        && let Ok(mut doc) = serde_json::from_slice::<Document>(&payload)
+    {
+        doc.file_path = Some(path.to_path_buf());
+        doc.dirty = false;
+        doc.name = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or(&doc.name)
+            .to_string();
+        doc.current_page = doc.current_page.min(doc.pages.len().saturating_sub(1));
+        return Ok(doc);
+    }
     let img = image::open(path).map_err(|e| format!("Could not read the image: {e}"))?;
     let rgba = img.to_rgba8();
     let (w, h) = rgba.dimensions();
@@ -830,15 +844,23 @@ fn draw_obj(img: &mut image::RgbaImage, obj: &Obj, alpha: u8) {
         Shape::Rect { min, max, .. } => {
             let (x0, y0) = to_px(*min);
             let (x1, y1) = to_px(*max);
-            let color = obj
-                .fill
-                .map(|c| image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha]))
-                .unwrap_or(image::Rgba::<u8>([0, 0, 0, 0]));
             let lo_x = x0.min(x1);
             let lo_y = y0.min(y1);
             let hi_x = x0.max(x1);
             let hi_y = y0.max(y1);
+            let span = (hi_y - lo_y).max(1) as f32;
             for y in lo_y.max(0)..=hi_y.min(img.height() as i32 - 1) {
+                let t = ((y - lo_y) as f32 / span).clamp(0.0, 1.0);
+                let color = match obj.gradient {
+                    Some(g) => {
+                        let c = g.start.lerp_to_gamma(g.end, t);
+                        image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha])
+                    }
+                    None => obj
+                        .fill
+                        .map(|c| image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha]))
+                        .unwrap_or(image::Rgba::<u8>([0, 0, 0, 0])),
+                };
                 for x in lo_x.max(0)..=hi_x.min(img.width() as i32 - 1) {
                     let old = img.get_pixel(x as u32, y as u32);
                     img.put_pixel(x as u32, y as u32, blend(*old, color));
@@ -846,14 +868,23 @@ fn draw_obj(img: &mut image::RgbaImage, obj: &Obj, alpha: u8) {
             }
         }
         Shape::Ellipse { center, radius, .. } => {
-            let color = obj
-                .fill
-                .map(|c| image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha]))
-                .unwrap_or(image::Rgba::<u8>([0, 0, 0, 0]));
             let (cx, cy) = to_px(*center);
             let rx = radius.x.abs().max(1.0);
             let ry = radius.y.abs().max(1.0);
+            let top = cy - ry as i32;
+            let span = (ry * 2.0).max(1.0);
             for y in (cy - ry as i32).max(0)..=(cy + ry as i32).min(img.height() as i32 - 1) {
+                let t = ((y - top) as f32 / span).clamp(0.0, 1.0);
+                let color = match obj.gradient {
+                    Some(g) => {
+                        let c = g.start.lerp_to_gamma(g.end, t);
+                        image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha])
+                    }
+                    None => obj
+                        .fill
+                        .map(|c| image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha]))
+                        .unwrap_or(image::Rgba::<u8>([0, 0, 0, 0])),
+                };
                 for x in (cx - rx as i32).max(0)..=(cx + rx as i32).min(img.width() as i32 - 1) {
                     let dx = (x as f32 - cx as f32) / rx;
                     let dy = (y as f32 - cy as f32) / ry;
@@ -1047,9 +1078,125 @@ pub fn save(doc: &Document, path: &Path) -> Result<(), String> {
                 Format::Jpeg | Format::Bmp => dyn_img.to_rgb8().save(path),
                 _ => dyn_img.to_rgba8().save(path),
             };
-            result.map_err(|e| format!("Could not write the file: {e}"))
+            result.map_err(|e| format!("Could not write the file: {e}"))?;
+            // A `.fw.png` is a normal page-bounded PNG plus an embedded, versioned project
+            // payload. Reopening it restores layers, states, symbols, styles, and objects that
+            // sit outside the visible page bounds.
+            let is_layered_png = path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.to_ascii_lowercase().ends_with(".fw.png"));
+            if is_layered_png && format == Format::Png {
+                let json = serde_json::to_vec(doc)
+                    .map_err(|e| format!("Could not encode layered project: {e}"))?;
+                embed_firecraft_payload(path, &json)?;
+            }
+            Ok(())
         }
     }
+}
+
+const FIRECRAFT_PNG_KEYWORD: &str = "FireCraft";
+
+fn crc32(bytes: &[u8]) -> u32 {
+    let mut crc = 0xFFFF_FFFFu32;
+    for &b in bytes {
+        crc ^= b as u32;
+        for _ in 0..8 {
+            let mask = (crc & 1).wrapping_neg();
+            crc = (crc >> 1) ^ (0xEDB8_8320 & mask);
+        }
+    }
+    !crc
+}
+
+/// Appends an iTXt chunk before IEND without disturbing the image data.
+fn embed_firecraft_payload(path: &Path, payload: &[u8]) -> Result<(), String> {
+    let png = std::fs::read(path).map_err(|e| format!("Could not re-read PNG: {e}"))?;
+    if png.len() < 8 || &png[..8] != b"\x89PNG\r\n\x1a\n" {
+        return Err("Layered save expected a PNG file".to_string());
+    }
+    let mut data = Vec::new();
+    data.extend_from_slice(FIRECRAFT_PNG_KEYWORD.as_bytes());
+    data.push(0); // keyword terminator
+    data.push(0); // compression flag: uncompressed
+    data.push(0); // compression method
+    data.push(0); // language tag terminator
+    data.push(0); // translated keyword terminator
+    data.extend_from_slice(payload);
+
+    let mut chunk = Vec::with_capacity(data.len() + 12);
+    chunk.extend_from_slice(&(data.len() as u32).to_be_bytes());
+    let mut crc_input = Vec::with_capacity(data.len() + 4);
+    crc_input.extend_from_slice(b"iTXt");
+    crc_input.extend_from_slice(&data);
+    chunk.extend_from_slice(&crc_input);
+    chunk.extend_from_slice(&crc32(&crc_input).to_be_bytes());
+
+    let mut iend_offset = None;
+    let mut off = 8usize;
+    while off + 12 <= png.len() {
+        let len = u32::from_be_bytes([png[off], png[off + 1], png[off + 2], png[off + 3]]) as usize;
+        let ty = &png[off + 4..off + 8];
+        if ty == b"IEND" {
+            iend_offset = Some(off);
+            break;
+        }
+        let next = off.saturating_add(12).saturating_add(len);
+        if next <= off || next > png.len() {
+            break;
+        }
+        off = next;
+    }
+    let insert_at = iend_offset.ok_or("PNG is missing its IEND chunk")?;
+    let mut out = Vec::with_capacity(png.len() + chunk.len());
+    out.extend_from_slice(&png[..insert_at]);
+    out.extend_from_slice(&chunk);
+    out.extend_from_slice(&png[insert_at..]);
+    std::fs::write(path, out).map_err(|e| format!("Could not write layered PNG: {e}"))
+}
+
+fn extract_firecraft_payload(png: &[u8]) -> Option<Vec<u8>> {
+    if png.len() < 8 || &png[..8] != b"\x89PNG\r\n\x1a\n" {
+        return None;
+    }
+    let mut off = 8usize;
+    while off + 12 <= png.len() {
+        let len = u32::from_be_bytes([png[off], png[off + 1], png[off + 2], png[off + 3]]) as usize;
+        if off + 12 + len > png.len() {
+            break;
+        }
+        let ty = &png[off + 4..off + 8];
+        let data = &png[off + 8..off + 8 + len];
+        if (ty == b"iTXt" || ty == b"tEXt")
+            && let Some(key_end) = data.iter().position(|&b| b == 0)
+            && &data[..key_end] == FIRECRAFT_PNG_KEYWORD.as_bytes()
+        {
+            if ty == b"tEXt" {
+                return Some(data[key_end + 1..].to_vec());
+            }
+            let mut p = key_end + 1;
+            if p + 2 > data.len() {
+                return None;
+            }
+            let compression_flag = data[p];
+            p += 2;
+            let mut ok = true;
+            for _ in 0..2 {
+                if let Some(end) = data[p..].iter().position(|&b| b == 0) {
+                    p += end + 1;
+                } else {
+                    ok = false;
+                    break;
+                }
+            }
+            if ok && compression_flag == 0 {
+                return Some(data[p..].to_vec());
+            }
+        }
+        off = off.saturating_add(12).saturating_add(len);
+    }
+    None
 }
 
 pub fn rasterize_selection(objs: &[Obj], lo: Vec2, hi: Vec2) -> image::RgbaImage {
@@ -1231,6 +1378,34 @@ mod tests {
         let html = export_html(&doc);
         assert!(html.contains("<!DOCTYPE html>"));
         assert!(html.contains("<svg"));
+    }
+
+    #[test]
+    fn layered_fw_png_roundtrip_preserves_out_of_page_objects() {
+        let mut doc = Document::new(64.0, 48.0);
+        doc.page_mut().layers[0].objects.push(Obj::new(
+            Shape::Rect {
+                min: Vec2::new(200.0, 200.0),
+                max: Vec2::new(260.0, 240.0),
+                corner_radius: 0.0,
+                filled: true,
+            },
+            Some(Color32::from_rgb(12, 34, 56)),
+            None,
+        ));
+        doc.file_path = None;
+        let path = std::env::temp_dir().join(format!(
+            "firecraft_layered_test_{}.fw.png",
+            std::process::id()
+        ));
+        save(&doc, &path).expect("layered save");
+        let loaded = open(&path).expect("layered open");
+        assert_eq!(loaded.page().layers[0].objects.len(), 1);
+        assert_eq!(loaded.page().layers.len(), doc.page().layers.len());
+        let obj = &loaded.page().layers[0].objects[0];
+        let (lo, _) = obj.bounds().expect("bounds");
+        assert!(lo.x >= 200.0);
+        let _ = std::fs::remove_file(path);
     }
 
     #[test]

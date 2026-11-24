@@ -1041,6 +1041,82 @@ pub fn unsaved_changes_dialog(app: &mut FireCraft) {
         app.pending_close_tab = None;
     }
 }
+/// Session-close confirmation. Shown when the OS close button or Ctrl+Q is used while any open
+/// document has unsaved edits.
+pub fn quit_confirm_dialog(app: &mut FireCraft) {
+    if !app.show_quit_confirm {
+        return;
+    }
+    let p = app.palette;
+    let dirty = app
+        .open_docs
+        .iter()
+        .filter(|d| d.dirty)
+        .map(|d| d.name.clone())
+        .collect::<Vec<_>>();
+    let dirty_count = dirty.len().max(usize::from(app.doc.dirty));
+    let mut open = true;
+    let mut close = false;
+    egui::Window::new("Unsaved Changes")
+        .open(&mut open)
+        .collapsible(false)
+        .resizable(false)
+        .fixed_size([430.0, 170.0])
+        .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
+        .show(&app.ctx.clone(), |ui| {
+            ui.label(
+                RichText::new(if dirty_count == 1 {
+                    "There is 1 document with unsaved changes.".to_string()
+                } else {
+                    format!("There are {dirty_count} documents with unsaved changes.")
+                })
+                .strong(),
+            );
+            ui.add_space(4.0);
+            ui.label(
+                RichText::new(if dirty.is_empty() {
+                    &app.doc.name
+                } else {
+                    dirty.first().unwrap_or(&app.doc.name)
+                })
+                .small()
+                .color(p.text_dim),
+            );
+            ui.label(
+                RichText::new("Save all documents before quitting? Untitled documents need a file path first.")
+                    .small()
+                    .color(p.text_dim),
+            );
+            ui.add_space(12.0);
+            ui.separator();
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui.button("Cancel").clicked() {
+                    app.show_quit_confirm = false;
+                }
+                if ui.button("Discard & Quit").clicked() {
+                    app.show_quit_confirm = false;
+                    close = true;
+                }
+                if ui.button("Save All & Quit").clicked() {
+                    match app.save_all_for_quit() {
+                        Ok(()) => {
+                            app.show_quit_confirm = false;
+                            close = true;
+                        }
+                        Err(err) => {
+                            app.status = err;
+                        }
+                    }
+                }
+            });
+        });
+    if close {
+        app.ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+    }
+    if !open {
+        app.show_quit_confirm = false;
+    }
+}
 
 pub fn update_dialog(app: &mut FireCraft) {
     if !app.show_update_dialog {

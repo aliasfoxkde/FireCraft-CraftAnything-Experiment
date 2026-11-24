@@ -5,8 +5,8 @@ use crate::canvas::{self, TextureCache};
 use crate::colors;
 use crate::constants;
 use crate::doc::{
-    AnimationState, AutoShapeKind, Document, Layer, LiveEffect, Obj, Page, Shape, Snapshot,
-    StylePreset, SymbolDef,
+    AnimationState, AutoShapeKind, Document, GradientFill, Layer, LiveEffect, Obj, Page, Shape,
+    Snapshot, StylePreset, SymbolDef,
 };
 use crate::theme::{self, Palette, ThemeMode};
 
@@ -303,6 +303,9 @@ pub struct PanelGroup {
     pub body_height: f32,
     pub floating_pos: egui::Pos2,
     pub floating_width: f32,
+    /// When set, this floating group is vertically stacked under the referenced group and
+    /// follows it when that group moves.
+    pub stack_parent: Option<u64>,
 }
 
 #[derive(Clone, Debug)]
@@ -443,6 +446,7 @@ pub struct FireCraft {
     pub floating_doc_tabs: Vec<usize>,
     pub show_bottom_inspector: bool,
     pub bottom_collapsed: bool,
+    pub bottom_height: f32,
     pub full_screen_canvas: bool,
     pub window_fullscreen: bool,
     pub panel_groups: Vec<PanelGroup>,
@@ -475,6 +479,7 @@ pub struct FireCraft {
     pub snap_to_objects: bool,
     pub show_guides: bool,
     pub show_slices: bool,
+    pub infinite_canvas: bool,
     pub onion_skin: bool,
     pub align_to_canvas: bool,
     pub space_mode: String,
@@ -500,6 +505,7 @@ pub struct FireCraft {
     pub show_about_dialog: bool,
     pub show_update_dialog: bool,
     pub pending_close_tab: Option<usize>,
+    pub show_quit_confirm: bool,
     pub update_status: String,
     pub update_latest_version: Option<String>,
     pub update_release_url: Option<String>,
@@ -520,6 +526,14 @@ pub struct FireCraft {
     pub clipboard: Option<Obj>,
     pub clipboard_set: Vec<Obj>,
     pub last_effect: Option<LiveEffect>,
+    pub ai_base_url: String,
+    pub ai_model: String,
+    pub ai_key: String,
+    pub ai_prompt: String,
+    pub ai_response: String,
+    pub ai_status: String,
+    pub ai_rx: Option<std::sync::mpsc::Receiver<Result<String, String>>>,
+    pub show_ai_settings: bool,
     pub show_welcome: bool,
     pub dont_show_welcome_again: bool,
 }
@@ -579,6 +593,7 @@ impl FireCraft {
             floating_doc_tabs: Vec::new(),
             show_bottom_inspector: true,
             bottom_collapsed: false,
+            bottom_height: 142.0,
             full_screen_canvas: false,
             window_fullscreen: false,
             panel_groups: Self::cs6_dual_column_groups(),
@@ -619,6 +634,7 @@ impl FireCraft {
             snap_to_objects: true,
             show_guides: true,
             show_slices: true,
+            infinite_canvas: false,
             onion_skin: false,
             align_to_canvas: false,
             space_mode: "Evenly".to_string(),
@@ -644,6 +660,7 @@ impl FireCraft {
             show_about_dialog: false,
             show_update_dialog: false,
             pending_close_tab: None,
+            show_quit_confirm: false,
             update_status: format!("Current version: v{}", env!("CARGO_PKG_VERSION")),
             update_latest_version: None,
             update_release_url: Some(
@@ -673,6 +690,16 @@ impl FireCraft {
             clipboard: None,
             clipboard_set: Vec::new(),
             last_effect: None,
+            ai_base_url: std::env::var("FIRECRAFT_AI_BASE_URL")
+                .unwrap_or_else(|_| "https://api.openai.com/v1".to_string()),
+            ai_model: std::env::var("FIRECRAFT_AI_MODEL").unwrap_or_default(),
+            ai_key: String::new(),
+            ai_prompt: String::new(),
+            ai_response: String::new(),
+            ai_status: "Configure an OpenAI-compatible endpoint to enable AI assistance."
+                .to_string(),
+            ai_rx: None,
+            show_ai_settings: true,
             show_welcome: show_welcome_default,
             dont_show_welcome_again: false,
         };
@@ -696,6 +723,7 @@ impl FireCraft {
                 body_height: 182.0,
                 floating_pos: egui::pos2(740.0, 62.0),
                 floating_width: 286.0,
+                stack_parent: None,
             },
             PanelGroup {
                 id: 2,
@@ -711,6 +739,7 @@ impl FireCraft {
                 body_height: 140.0,
                 floating_pos: egui::pos2(740.0, 270.0),
                 floating_width: 286.0,
+                stack_parent: None,
             },
             PanelGroup {
                 id: 3,
@@ -727,6 +756,7 @@ impl FireCraft {
                 body_height: 144.0,
                 floating_pos: egui::pos2(740.0, 440.0),
                 floating_width: 286.0,
+                stack_parent: None,
             },
             PanelGroup {
                 id: 4,
@@ -746,6 +776,7 @@ impl FireCraft {
                 body_height: 112.0,
                 floating_pos: egui::pos2(740.0, 610.0),
                 floating_width: 286.0,
+                stack_parent: None,
             },
         ]
     }
@@ -763,6 +794,7 @@ impl FireCraft {
                 body_height: 142.0,
                 floating_pos: egui::pos2(680.0, 62.0),
                 floating_width: 268.0,
+                stack_parent: None,
             },
             PanelGroup {
                 id: 12,
@@ -773,6 +805,7 @@ impl FireCraft {
                 body_height: 175.0,
                 floating_pos: egui::pos2(680.0, 232.0),
                 floating_width: 268.0,
+                stack_parent: None,
             },
             PanelGroup {
                 id: 13,
@@ -783,6 +816,7 @@ impl FireCraft {
                 body_height: 158.0,
                 floating_pos: egui::pos2(680.0, 434.0),
                 floating_width: 268.0,
+                stack_parent: None,
             },
             // Outer Right Column
             PanelGroup {
@@ -794,6 +828,7 @@ impl FireCraft {
                 body_height: 186.0,
                 floating_pos: egui::pos2(960.0, 62.0),
                 floating_width: 286.0,
+                stack_parent: None,
             },
             PanelGroup {
                 id: 15,
@@ -804,6 +839,7 @@ impl FireCraft {
                 body_height: 140.0,
                 floating_pos: egui::pos2(960.0, 274.0),
                 floating_width: 286.0,
+                stack_parent: None,
             },
             PanelGroup {
                 id: 16,
@@ -814,6 +850,7 @@ impl FireCraft {
                 body_height: 98.0,
                 floating_pos: egui::pos2(960.0, 440.0),
                 floating_width: 286.0,
+                stack_parent: None,
             },
             PanelGroup {
                 id: 17,
@@ -834,6 +871,7 @@ impl FireCraft {
                 body_height: 112.0,
                 floating_pos: egui::pos2(960.0, 564.0),
                 floating_width: 286.0,
+                stack_parent: None,
             },
         ]
     }
@@ -868,6 +906,7 @@ impl FireCraft {
                 body_height: h,
                 floating_pos: egui::pos2(x, y),
                 floating_width: 236.0,
+                stack_parent: None,
             });
         }
         groups
@@ -1022,6 +1061,7 @@ impl FireCraft {
             body_height: id.default_height(),
             floating_pos: egui::pos2(420.0, 96.0),
             floating_width: 272.0,
+            stack_parent: None,
         });
         self.status = format!("Opened {} panel", id.title());
     }
@@ -1091,6 +1131,7 @@ impl FireCraft {
             body_height: id.default_height(),
             floating_pos: pos,
             floating_width: 274.0,
+            stack_parent: None,
         });
         self.status = format!(
             "Split {} into a Floating Window (drag onto any panel's tab bar to re-group)",
@@ -1126,6 +1167,7 @@ impl FireCraft {
                 body_height: id.default_height(),
                 floating_pos: egui::pos2(440.0, 120.0),
                 floating_width: 274.0,
+                stack_parent: None,
             };
             if ins <= self.panel_groups.len() {
                 self.panel_groups.insert(ins, new_group);
@@ -1182,6 +1224,11 @@ impl FireCraft {
         };
         let src_tabs = self.panel_groups[src_idx].tabs.clone();
         self.panel_groups.remove(src_idx);
+        for g in &mut self.panel_groups {
+            if g.stack_parent == Some(src_id) {
+                g.stack_parent = None;
+            }
+        }
         if let Some(dst) = self.panel_groups.iter_mut().find(|g| g.id == dst_id) {
             for t in src_tabs {
                 if !dst.tabs.contains(&t) {
@@ -1202,6 +1249,7 @@ impl FireCraft {
     ) {
         if let Some(g) = self.panel_groups.iter_mut().find(|g| g.id == group_id) {
             g.zone = zone;
+            g.stack_parent = None;
             if let Some(pos) = floating_pos {
                 g.floating_pos = pos;
             }
@@ -1233,6 +1281,78 @@ impl FireCraft {
 
     /// Magnetically snaps a floating panel window (`group_id`) within 12px of other floating windows
     /// or the canvas/dock edges (`screenshots/Fireworks-All_Window_Panels.jpg`).
+    pub fn panel_group_height(group: &PanelGroup) -> f32 {
+        if group.collapsed {
+            24.0
+        } else {
+            (group.body_height + 30.0).clamp(60.0, 480.0)
+        }
+    }
+
+    /// Stacks `child_id` directly above or below `target_id`. Stacked windows follow their root
+    /// when it moves and are rendered as one visual column.
+    pub fn stack_group(&mut self, child_id: u64, target_id: u64, below: bool) -> bool {
+        if child_id == target_id {
+            return false;
+        }
+        let Some((target_parent, target_pos, target_width, target_h)) = self
+            .panel_groups
+            .iter()
+            .find(|g| g.id == target_id)
+            .map(|g| {
+                (
+                    g.stack_parent,
+                    g.floating_pos,
+                    g.floating_width,
+                    Self::panel_group_height(g),
+                )
+            })
+        else {
+            return false;
+        };
+        if below || target_parent.is_some() {
+            if let Some(child) = self.panel_groups.iter_mut().find(|g| g.id == child_id) {
+                child.stack_parent = Some(target_id);
+                child.zone = DockZone::Floating;
+                child.floating_pos = target_pos + Vec2::new(0.0, target_h + 2.0);
+                child.floating_width = target_width;
+            }
+            self.status = "Stacked panel below target window".to_string();
+        } else {
+            // Place the dragged group above the target and make the target its child. Only safe
+            // when the target is a stack root; otherwise fall back to stacking below.
+            let child_h = self
+                .panel_groups
+                .iter()
+                .find(|g| g.id == child_id)
+                .map(Self::panel_group_height)
+                .unwrap_or(160.0);
+            if let Some(child) = self.panel_groups.iter_mut().find(|g| g.id == child_id) {
+                child.stack_parent = None;
+                child.zone = DockZone::Floating;
+                child.floating_pos = target_pos;
+                child.floating_width = target_width;
+            }
+            if let Some(target) = self.panel_groups.iter_mut().find(|g| g.id == target_id) {
+                target.stack_parent = Some(child_id);
+                target.floating_pos = target_pos + Vec2::new(0.0, child_h + 2.0);
+                target.floating_width = target_width;
+            }
+            self.status = "Stacked panel above target window".to_string();
+        }
+        true
+    }
+
+    pub fn detach_stack(&mut self, group_id: u64) {
+        if let Some(g) = self.panel_groups.iter_mut().find(|g| g.id == group_id)
+            && g.stack_parent.take().is_some()
+        {
+            g.floating_pos += Vec2::new(18.0, 18.0);
+            g.zone = DockZone::Floating;
+            self.status = "Detached panel from its window stack".to_string();
+        }
+    }
+
     pub fn snap_floating_pos(
         &self,
         group_id: u64,
@@ -1257,7 +1377,10 @@ impl FireCraft {
 
         // Snap edge-to-edge and corner-aligned against other floating panel windows
         for other in &self.panel_groups {
-            if other.id == group_id || other.zone != DockZone::Floating {
+            if other.id == group_id
+                || other.zone != DockZone::Floating
+                || other.stack_parent.is_some()
+            {
                 continue;
             }
             let oh = if other.collapsed {
@@ -1698,20 +1821,79 @@ impl FireCraft {
         self.with_selected_mut(|obj| obj.name = name);
     }
 
+    /// Applies an appearance edit to every member of the selection on the active layer, plus any
+    /// multi-layer selection entries. Used for fill/stroke/effects so multi-selection is not stale.
+    fn with_selection_mut(&mut self, mut f: impl FnMut(&mut Obj)) {
+        let mut targets: Vec<usize> = self.selected_set.clone();
+        if let Some(s) = self.selected
+            && !targets.contains(&s)
+        {
+            targets.push(s);
+        }
+        targets.sort_unstable();
+        targets.dedup();
+        let layer = self.selected_layer;
+        if let Some(objs) = self
+            .doc
+            .page_mut()
+            .layers
+            .get_mut(layer)
+            .map(|l| &mut l.objects)
+        {
+            for idx in targets {
+                if let Some(obj) = objs.get_mut(idx) {
+                    f(obj);
+                }
+            }
+        }
+        let extras = self.selected_extra_layers.clone();
+        for (li, oi) in extras {
+            if let Some(obj) = self
+                .doc
+                .page_mut()
+                .layers
+                .get_mut(li)
+                .and_then(|l| l.objects.get_mut(oi))
+            {
+                f(obj);
+            }
+        }
+        self.doc.page_mut().sync_state();
+        self.doc.dirty = true;
+    }
+
     pub fn set_selected_fill(&mut self, color: Option<Color32>) {
-        self.with_selected_mut(|obj| obj.fill = color);
+        self.with_selection_mut(|obj| {
+            obj.fill = color;
+            // Editing the solid Fill swatch switches the object back to a flat fill.
+            obj.gradient = None;
+        });
     }
 
     pub fn set_selected_stroke(&mut self, color: Option<Color32>) {
-        self.with_selected_mut(|obj| obj.stroke = color);
+        self.with_selection_mut(|obj| obj.stroke = color);
     }
 
     pub fn set_selected_width(&mut self, width: f32) {
-        self.with_selected_mut(|obj| obj.width = width);
+        self.with_selection_mut(|obj| obj.width = width);
     }
 
     pub fn set_selected_opacity(&mut self, opacity: f32) {
-        self.with_selected_mut(|obj| obj.opacity = opacity.clamp(0.0, 1.0));
+        self.with_selection_mut(|obj| obj.opacity = opacity.clamp(0.0, 1.0));
+    }
+
+    pub fn set_selected_blend_mode(&mut self, mode: crate::doc::BlendMode) {
+        self.with_selection_mut(|obj| obj.blend_mode = mode);
+    }
+
+    pub fn set_selected_gradient(&mut self, gradient: Option<GradientFill>) {
+        self.push_undo("Edit Gradient");
+        self.with_selection_mut(|obj| {
+            obj.gradient = gradient;
+            if let Some(g) = gradient {
+                obj.fill = Some(g.start);
+            }
+        });
     }
 
     pub fn set_selected_bounds(&mut self, lo: Vec2, hi: Vec2) {
@@ -1803,19 +1985,19 @@ impl FireCraft {
     // ---- Live Effects & Filters --------------------------------------------
 
     pub fn add_live_effect(&mut self, effect: LiveEffect) {
-        if self.selected.is_none() {
+        if self.selected.is_none() && self.selected_set.is_empty() {
             self.status = "Select an object first to attach a Live Filter".to_string();
             return;
         }
         self.push_undo("Add Live Filter");
         let label = effect.label();
         self.last_effect = Some(effect.clone());
-        self.with_selected_mut(|obj| obj.effects.push(effect));
+        self.with_selection_mut(|obj| obj.effects.push(effect.clone()));
         self.status = format!("Added Live Filter: {label}");
     }
 
     pub fn toggle_live_effect(&mut self, eff_idx: usize, enabled: bool) {
-        self.with_selected_mut(|obj| {
+        self.with_selection_mut(|obj| {
             if let Some(eff) = obj.effects.get_mut(eff_idx) {
                 eff.set_enabled(enabled);
             }
@@ -1824,7 +2006,7 @@ impl FireCraft {
 
     pub fn clear_live_effects(&mut self) {
         self.push_undo("Clear Filters");
-        self.with_selected_mut(|obj| obj.effects.clear());
+        self.with_selection_mut(|obj| obj.effects.clear());
         self.status = "Cleared live filters on selection".to_string();
     }
 
@@ -2782,12 +2964,47 @@ impl FireCraft {
             self.sync_active_doc_slot();
             self.active_doc = idx;
             self.doc = self.open_docs[idx].clone();
+            self.current_path = self.doc.file_path.clone();
             self.selected = None;
             self.selected_layer = 0;
             self.undo.clear();
             self.redo.clear();
             self.textures.clear();
             self.status = format!("Switched to {}", self.doc.name);
+        }
+    }
+
+    pub fn has_unsaved_changes(&self) -> bool {
+        self.doc.dirty || self.open_docs.iter().any(|d| d.dirty)
+    }
+
+    /// Saves every dirty document that already has a file path. Untitled documents cannot be
+    /// saved without asking for a path, so they are reported rather than silently discarded.
+    pub fn save_all_for_quit(&mut self) -> Result<(), String> {
+        self.sync_active_doc_slot();
+        for doc in &mut self.open_docs {
+            if !doc.dirty {
+                continue;
+            }
+            let Some(path) = doc.file_path.clone() else {
+                return Err(format!(
+                    "\"{}\" has no file path yet. Save it before closing.",
+                    doc.name
+                ));
+            };
+            crate::formats::save(doc, &path)?;
+            doc.dirty = false;
+        }
+        self.doc = self.open_docs[self.active_doc.min(self.open_docs.len() - 1)].clone();
+        self.current_path = self.doc.file_path.clone();
+        Ok(())
+    }
+
+    pub fn request_quit(&mut self) {
+        if self.has_unsaved_changes() {
+            self.show_quit_confirm = true;
+        } else {
+            self.ctx.send_viewport_cmd(egui::ViewportCommand::Close);
         }
     }
 
@@ -3129,7 +3346,7 @@ impl FireCraft {
         self.doc.symbols.push(SymbolDef {
             id,
             name: name.clone(),
-            kind: "Graphic",
+            kind: "Graphic".to_string(),
             objects: vec![obj],
         });
         let inst = Obj::new(
@@ -3163,7 +3380,7 @@ impl FireCraft {
         self.doc.symbols.push(SymbolDef {
             id: 0,
             name: "Primary CTA Button".to_string(),
-            kind: "Button",
+            kind: "Button".to_string(),
             objects: vec![btn],
         });
     }
@@ -3198,11 +3415,15 @@ impl FireCraft {
         self.push_undo("Apply Style");
         let name = preset.name.clone();
         let preset_clone = preset.clone();
-        self.with_selected_mut(|obj| {
+        self.with_selection_mut(|obj| {
             obj.fill = preset_clone.fill;
             obj.stroke = preset_clone.stroke;
             obj.width = preset_clone.stroke_width;
-            obj.effects = preset_clone.effects;
+            obj.effects = preset_clone.effects.clone();
+            obj.gradient = match (preset_clone.fill, preset_clone.gradient_end) {
+                (Some(start), Some(end)) => Some(GradientFill { start, end }),
+                _ => None,
+            };
         });
         self.status = format!("Applied style: {name}");
     }
@@ -3229,7 +3450,7 @@ impl FireCraft {
         self.doc.styles.push(StylePreset {
             name: name.clone(),
             fill: obj.fill,
-            gradient_end: None,
+            gradient_end: obj.gradient.map(|g| g.end),
             stroke: obj.stroke,
             stroke_width: obj.width,
             effects: obj.effects.clone(),
@@ -3806,97 +4027,6 @@ impl FireCraft {
         }
     }
 
-    fn sutherland_hodgman_clip(subject: &[Vec2], clip: &[Vec2]) -> Vec<Vec2> {
-        if subject.len() < 3 || clip.len() < 3 {
-            return Vec::new();
-        }
-        // Ensure clip winding is consistent (CCW in screen coords: signed area > 0)
-        let area: f32 = (0..clip.len())
-            .map(|i| {
-                let a = clip[i];
-                let b = clip[(i + 1) % clip.len()];
-                a.x * b.y - b.x * a.y
-            })
-            .sum();
-        let sign = if area >= 0.0 { 1.0 } else { -1.0 };
-        let inside = |p: Vec2, e1: Vec2, e2: Vec2| -> bool {
-            ((e2.x - e1.x) * (p.y - e1.y) - (e2.y - e1.y) * (p.x - e1.x)) * sign >= -1e-4
-        };
-        let intersect_seg = |a: Vec2, b: Vec2, e1: Vec2, e2: Vec2| -> Vec2 {
-            let dc = e1 - e2;
-            let dp = a - b;
-            let n1 = e1.x * e2.y - e1.y * e2.x;
-            let n2 = a.x * b.y - a.y * b.x;
-            let denom = dc.x * dp.y - dc.y * dp.x;
-            if denom.abs() < 1e-6 {
-                return (a + b) * 0.5;
-            }
-            Vec2::new(
-                (n1 * dp.x - n2 * dc.x) / denom,
-                (n1 * dp.y - n2 * dc.y) / denom,
-            )
-        };
-        let mut output = subject.to_vec();
-        for i in 0..clip.len() {
-            let e1 = clip[i];
-            let e2 = clip[(i + 1) % clip.len()];
-            let input = output;
-            output = Vec::new();
-            if input.is_empty() {
-                break;
-            }
-            let mut s = *input.last().unwrap();
-            for &e in &input {
-                if inside(e, e1, e2) {
-                    if !inside(s, e1, e2) {
-                        output.push(intersect_seg(s, e, e1, e2));
-                    }
-                    output.push(e);
-                } else if inside(s, e1, e2) {
-                    output.push(intersect_seg(s, e, e1, e2));
-                }
-                s = e;
-            }
-        }
-        output
-    }
-
-    fn union_polygon_hull(pts: &[Vec2]) -> Vec<Vec2> {
-        if pts.len() < 3 {
-            return pts.to_vec();
-        }
-        let mut sorted = pts.to_vec();
-        sorted.sort_by(|a, b| {
-            a.x.partial_cmp(&b.x)
-                .unwrap_or(std::cmp::Ordering::Equal)
-                .then_with(|| a.y.partial_cmp(&b.y).unwrap_or(std::cmp::Ordering::Equal))
-        });
-        let cross =
-            |o: Vec2, a: Vec2, b: Vec2| (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
-        let mut lower: Vec<Vec2> = Vec::new();
-        for &p in &sorted {
-            while lower.len() >= 2
-                && cross(lower[lower.len() - 2], lower[lower.len() - 1], p) <= 0.0
-            {
-                lower.pop();
-            }
-            lower.push(p);
-        }
-        let mut upper: Vec<Vec2> = Vec::new();
-        for &p in sorted.iter().rev() {
-            while upper.len() >= 2
-                && cross(upper[upper.len() - 2], upper[upper.len() - 1], p) <= 0.0
-            {
-                upper.pop();
-            }
-            upper.push(p);
-        }
-        lower.pop();
-        upper.pop();
-        lower.extend(upper);
-        lower
-    }
-
     pub fn combine_paths_op(&mut self, op: &str) {
         let mut indices = self.selected_set.clone();
         if let Some(s) = self.selected
@@ -3939,65 +4069,77 @@ impl FireCraft {
             return;
         }
 
-        let mut acc_pts = Self::obj_to_polygon_points(&objs[first_idx]);
-        let mut closed = true;
-        for &other_idx in &indices[1..] {
-            let other_pts = Self::obj_to_polygon_points(&objs[other_idx]);
-            match op {
-                "join" => {
-                    acc_pts.extend(other_pts);
-                    closed = false;
+        let mut failure: Option<String> = None;
+        if op == "join" {
+            // Join chains contours at their nearest endpoints instead of closing every path and
+            // importing unrelated subpaths into one object.
+            let mut joined: Vec<Vec2> = Vec::new();
+            for &idx in &indices {
+                let mut pts = Self::obj_to_polygon_points(&objs[idx]);
+                if pts.len() < 2 {
+                    continue;
                 }
-                "intersect" | "crop" => {
-                    let clipped = Self::sutherland_hodgman_clip(&acc_pts, &other_pts);
-                    if clipped.len() >= 3 {
-                        acc_pts = clipped;
+                if joined.is_empty() {
+                    joined = pts;
+                    continue;
+                }
+                let tail = *joined.last().unwrap_or(&Vec2::ZERO);
+                let d_start = (tail - pts[0]).length();
+                let d_end = (tail - *pts.last().unwrap()).length();
+                if d_end < d_start {
+                    pts.reverse();
+                }
+                let first = pts[0];
+                if (tail - first).length() < 0.01 {
+                    pts.remove(0);
+                }
+                joined.extend(pts);
+            }
+            if joined.len() < 2 {
+                failure = Some("Join needs at least one path with two points".to_string());
+            } else {
+                objs[first_idx].kind = Shape::Path {
+                    points: joined,
+                    closed: false,
+                };
+                for &other_idx in indices[1..].iter().rev() {
+                    objs.remove(other_idx);
+                }
+            }
+        } else {
+            let mut acc_pts = Self::obj_to_polygon_points(&objs[first_idx]);
+            for &other_idx in &indices[1..] {
+                let other_pts = Self::obj_to_polygon_points(&objs[other_idx]);
+                match polygon_boolean(&acc_pts, &other_pts, op) {
+                    Some(result) if result.len() >= 3 => acc_pts = result,
+                    Some(_) => {
+                        failure = Some(format!("{op} produced an empty path"));
+                        break;
+                    }
+                    None => {
+                        failure = Some(format!("{op} needs two closed, non-degenerate paths"));
+                        break;
                     }
                 }
-                "punch" => {
-                    // Notch/subtract `other_pts` from `acc_pts` by keeping vertices outside other's bounds
-                    if let Some((olo, ohi)) = objs[other_idx].bounds() {
-                        let mut punched = Vec::new();
-                        for &pt in &acc_pts {
-                            if pt.x >= olo.x && pt.x <= ohi.x && pt.y >= olo.y && pt.y <= ohi.y {
-                                // Project inward vertex to nearest boundary edge of puncher
-                                let dl = (pt.x - olo.x).abs();
-                                let dr = (ohi.x - pt.x).abs();
-                                let dt = (pt.y - olo.y).abs();
-                                let db = (ohi.y - pt.y).abs();
-                                let m = dl.min(dr).min(dt).min(db);
-                                if (m - dl).abs() < 0.1 {
-                                    punched.push(Vec2::new(olo.x, pt.y));
-                                } else if (m - dr).abs() < 0.1 {
-                                    punched.push(Vec2::new(ohi.x, pt.y));
-                                } else if (m - dt).abs() < 0.1 {
-                                    punched.push(Vec2::new(pt.x, olo.y));
-                                } else {
-                                    punched.push(Vec2::new(pt.x, ohi.y));
-                                }
-                            } else {
-                                punched.push(pt);
-                            }
-                        }
-                        acc_pts = punched;
-                    }
-                }
-                _ => {
-                    // Union: combine all points into outer contour hull
-                    acc_pts.extend(other_pts);
-                    acc_pts = Self::union_polygon_hull(&acc_pts);
+            }
+            if failure.is_none() {
+                objs[first_idx].kind = Shape::Path {
+                    points: acc_pts,
+                    closed: true,
+                };
+                for &other_idx in indices[1..].iter().rev() {
+                    objs.remove(other_idx);
                 }
             }
         }
-
-        objs[first_idx].kind = Shape::Path {
-            points: acc_pts,
-            closed,
-        };
-        for &other_idx in indices[1..].iter().rev() {
-            objs.remove(other_idx);
-        }
         page.sync_state();
+        if let Some(err) = failure {
+            // The undo snapshot was pushed before validation; discard the empty snapshot so a
+            // failed boolean operation cannot be undone into a duplicate state.
+            self.undo.pop();
+            self.status = format!("Combine Paths failed: {err}");
+            return;
+        }
         self.select_single(Some(first_idx));
         self.status = format!("Applied Combine Paths: {op}");
     }
@@ -4173,9 +4315,9 @@ impl FireCraft {
                 points: second_half,
                 closed: false,
             };
-            second_obj.translate(Vec2::new(6.0, 6.0));
+            second_obj.name = "Split Path".to_string();
             self.push_object(second_obj);
-            self.status = "Split path into two contours".to_string();
+            self.status = "Split path into two contiguous contours".to_string();
         }
     }
 
@@ -4970,8 +5112,9 @@ impl FireCraft {
 
     pub fn open_path(&mut self, path: &Path) -> Result<(), String> {
         match crate::formats::open(path) {
-            Ok(doc) => {
+            Ok(mut doc) => {
                 self.sync_active_doc_slot();
+                doc.file_path = Some(path.to_path_buf());
                 self.open_docs.push(doc.clone());
                 self.active_doc = self.open_docs.len() - 1;
                 self.doc = doc;
@@ -5111,6 +5254,7 @@ impl FireCraft {
         crate::formats::save(&self.doc, path)?;
         let pb = path.to_path_buf();
         self.current_path = Some(pb.clone());
+        self.doc.file_path = Some(pb.clone());
         self.doc.dirty = false;
         if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
             self.doc.name = name.to_string();
@@ -5166,7 +5310,9 @@ impl FireCraft {
         self.clipboard_set = copied;
         let marker = format!("FIRECRAFT_CLIPBOARD:{}", self.clipboard_set.len());
         self.ctx.copy_text(marker.clone());
-        #[cfg(not(target_arch = "wasm32"))]
+        // Tests and headless CI must not open an OS clipboard connection (X11 clipboard ownership
+        // can block indefinitely without a display server).
+        #[cfg(all(not(target_arch = "wasm32"), not(test)))]
         if let Ok(mut cb) = arboard::Clipboard::new() {
             let _ = cb.set_text(marker);
         }
@@ -5187,7 +5333,7 @@ impl FireCraft {
 
     pub fn paste_with_text(&mut self, event_text: Option<&str>) {
         let event_non_empty = event_text.filter(|s| !s.is_empty());
-        #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
+        #[cfg_attr(any(target_arch = "wasm32", test), allow(unused_variables))]
         let is_svg_or_marker = event_non_empty.is_some_and(|s| {
             let t = s.trim_start();
             t.starts_with("FIRECRAFT_CLIPBOARD") || t.starts_with("<svg")
@@ -5196,7 +5342,7 @@ impl FireCraft {
         // 1. Check if the OS clipboard holds a bitmap image (e.g. Win+Shift+S screenshot, browser Copy Image).
         // Note: on Windows, Ctrl+V often emits `Event::Paste("")` (or a URL when copying an image from a browser),
         // so we check `cb.get_image()` whenever the event text is not an internal FireCraft marker or SVG payload.
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(all(not(target_arch = "wasm32"), not(test)))]
         if !is_svg_or_marker
             && let Ok(mut cb) = arboard::Clipboard::new()
             && let Ok(img) = cb.get_image()
@@ -5230,13 +5376,13 @@ impl FireCraft {
         }
 
         // 2. Determine clipboard text (from egui Paste event or OS clipboard)
-        #[cfg(not(target_arch = "wasm32"))]
+        #[cfg(all(not(target_arch = "wasm32"), not(test)))]
         let os_text = event_non_empty.map(|s| s.to_string()).or_else(|| {
             arboard::Clipboard::new()
                 .ok()
                 .and_then(|mut cb| cb.get_text().ok())
         });
-        #[cfg(target_arch = "wasm32")]
+        #[cfg(any(target_arch = "wasm32", test))]
         let os_text = event_non_empty.map(|s| s.to_string());
         let is_internal_marker = os_text
             .as_deref()
@@ -6073,6 +6219,155 @@ impl FireCraft {
         };
     }
 
+    pub fn ai_key_present(&self) -> bool {
+        !self.ai_key.trim().is_empty()
+            || std::env::var("FIRECRAFT_AI_API_KEY")
+                .map(|k| !k.trim().is_empty())
+                .unwrap_or(false)
+    }
+
+    pub fn start_ai_request(&mut self) {
+        if self.ai_rx.is_some() {
+            return;
+        }
+        if !self.ai_key_present() {
+            self.ai_status =
+                "Missing API key: set FIRECRAFT_AI_API_KEY or enter a key.".to_string();
+            return;
+        }
+        if self.ai_model.trim().is_empty() {
+            self.ai_status =
+                "Missing model name (for example, your provider's chat model id).".to_string();
+            return;
+        }
+        let prompt = self.ai_prompt.trim().to_string();
+        if prompt.is_empty() {
+            self.ai_status = "Enter a question or instruction first.".to_string();
+            return;
+        }
+        let key = if !self.ai_key.trim().is_empty() {
+            self.ai_key.trim().to_string()
+        } else {
+            std::env::var("FIRECRAFT_AI_API_KEY").unwrap_or_default()
+        };
+        let base = self.ai_base_url.trim().trim_end_matches('/').to_string();
+        if base.is_empty() {
+            self.ai_status = "Missing API base URL.".to_string();
+            return;
+        }
+        let model = self.ai_model.trim().to_string();
+        let context = match self.selected_object() {
+            Some(obj) => format!(
+                "Selection: {} ({}) at bounds {:?}, fill {:?}, stroke {:?}, opacity {:.0}%, {} live filter(s).",
+                obj.name,
+                obj.type_label(),
+                obj.bounds(),
+                obj.fill,
+                obj.stroke,
+                obj.opacity * 100.0,
+                obj.effects.len()
+            ),
+            None => format!(
+                "No object selected. Document '{}' is {:.0}x{:.0} px at {} dpi with {} layer(s) and {} state(s).",
+                self.doc.name,
+                self.doc.page().width,
+                self.doc.page().height,
+                self.doc.dpi,
+                self.doc.page().layers.len(),
+                self.doc.page().states.len()
+            ),
+        };
+        let user_content = format!("{prompt}\n\nEditor context:\n{context}");
+        let payload = format!(
+            "{{\"model\":{},\"messages\":[{{\"role\":\"system\",\"content\":{}}},{{\"role\":\"user\",\"content\":{}}}]}}",
+            json_escape(&model),
+            json_escape(
+                "You are FireCraft's design assistant. Answer concisely and use the supplied editor context. Never claim to have changed the document."
+            ),
+            json_escape(&user_content)
+        );
+        let url = format!("{base}/chat/completions");
+        let (tx, rx) = std::sync::mpsc::channel();
+        self.ai_rx = Some(rx);
+        self.ai_status = "Requesting response…".to_string();
+        std::thread::spawn(move || {
+            let mut cmd = std::process::Command::new("curl");
+            cmd.args([
+                "-sS",
+                "--max-time",
+                "90",
+                "-X",
+                "POST",
+                &url,
+                "-H",
+                "Content-Type: application/json",
+                "-H",
+                &format!("Authorization: Bearer {key}"),
+                "--data-raw",
+                &payload,
+            ]);
+            #[cfg(target_os = "windows")]
+            {
+                use std::os::windows::process::CommandExt;
+                const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+                cmd.creation_flags(CREATE_NO_WINDOW);
+            }
+            let result = match cmd.output() {
+                Ok(out) => {
+                    let body = String::from_utf8_lossy(&out.stdout).to_string();
+                    if out.status.success() {
+                        match ai_extract_content(&body) {
+                            Some(text) if !text.trim().is_empty() => Ok(text),
+                            _ => Err(format!(
+                                "Provider returned no assistant message. Response: {}",
+                                body.trim()
+                            )),
+                        }
+                    } else {
+                        let err = String::from_utf8_lossy(&out.stderr);
+                        Err(format!(
+                            "Request failed ({}). {}{}",
+                            out.status,
+                            err.trim(),
+                            if body.trim().is_empty() {
+                                String::new()
+                            } else {
+                                format!(" Body: {}", body.trim())
+                            }
+                        ))
+                    }
+                }
+                Err(e) => Err(format!("Could not run curl: {e}")),
+            };
+            let _ = tx.send(result);
+        });
+    }
+
+    pub fn poll_ai(&mut self) {
+        let Some(rx) = &self.ai_rx else {
+            return;
+        };
+        match rx.try_recv() {
+            Ok(Ok(text)) => {
+                self.ai_response = text;
+                self.ai_status = "Response received.".to_string();
+                self.ai_rx = None;
+            }
+            Ok(Err(err)) => {
+                self.ai_status = err;
+                self.ai_rx = None;
+            }
+            Err(std::sync::mpsc::TryRecvError::Empty) => {
+                self.ctx
+                    .request_repaint_after(std::time::Duration::from_millis(120));
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                self.ai_status = "AI request worker stopped unexpectedly.".to_string();
+                self.ai_rx = None;
+            }
+        }
+    }
+
     pub fn check_for_updates(&mut self) {
         let cur = env!("CARGO_PKG_VERSION");
         #[cfg(not(target_arch = "wasm32"))]
@@ -6156,6 +6451,165 @@ impl eframe::App for FireCraft {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         crate::layout::show(ui, self);
     }
+
+    /// Keep the native backbuffer the same dark tone as the workspace. Without this the default
+    /// light clear color can appear for a frame on Windows when the window is resized (entering or
+    /// leaving full-screen) or when DWM re-composites after an app switch.
+    fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
+        let p = self.palette.bg;
+        [
+            p.r() as f32 / 255.0,
+            p.g() as f32 / 255.0,
+            p.b() as f32 / 255.0,
+            1.0,
+        ]
+    }
+}
+
+/// Polygon boolean operations backed by `geo`. `join` is handled separately because it is an
+/// endpoint operation, not an area operation.
+fn polygon_boolean(a: &[Vec2], b: &[Vec2], op: &str) -> Option<Vec<Vec2>> {
+    use geo::{BooleanOps, LineString, MultiPolygon, Polygon};
+    if a.len() < 3 || b.len() < 3 {
+        return None;
+    }
+    let poly = |pts: &[Vec2]| {
+        let mut coords: Vec<(f64, f64)> = pts.iter().map(|p| (p.x as f64, p.y as f64)).collect();
+        if coords.first() != coords.last() {
+            coords.push(coords[0]);
+        }
+        Polygon::new(LineString::from(coords), Vec::new())
+    };
+    let pa = poly(a);
+    let pb = poly(b);
+    let result: MultiPolygon<f64> = match op {
+        "intersect" | "crop" => pa.intersection(&pb),
+        "punch" => pa.difference(&pb),
+        _ => pa.union(&pb),
+    };
+    let mut best: Option<(f64, Vec<Vec2>)> = None;
+    for polygon in result.0 {
+        let pts: Vec<Vec2> = polygon
+            .exterior()
+            .0
+            .iter()
+            .map(|c| Vec2::new(c.x as f32, c.y as f32))
+            .collect();
+        if pts.len() < 3 {
+            continue;
+        }
+        let area = polygon_area(&pts).abs();
+        if best.as_ref().is_none_or(|(best_area, _)| area > *best_area) {
+            best = Some((area, pts));
+        }
+    }
+    best.map(|(_, pts)| pts)
+}
+
+fn polygon_area(pts: &[Vec2]) -> f64 {
+    let mut area = 0.0_f64;
+    for i in 0..pts.len() {
+        let a = pts[i];
+        let b = pts[(i + 1) % pts.len()];
+        area += (a.x as f64) * (b.y as f64) - (b.x as f64) * (a.y as f64);
+    }
+    area * 0.5
+}
+
+fn json_escape(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + 2);
+    out.push('"');
+    for ch in s.chars() {
+        match ch {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
+}
+
+fn json_unescape(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars();
+    while let Some(c) = chars.next() {
+        if c != '\\' {
+            out.push(c);
+            continue;
+        }
+        match chars.next() {
+            Some('n') => out.push('\n'),
+            Some('r') => out.push('\r'),
+            Some('t') => out.push('\t'),
+            Some('b') => out.push('\u{8}'),
+            Some('f') => out.push('\u{c}'),
+            Some('"') => out.push('"'),
+            Some('\\') => out.push('\\'),
+            Some('/') => out.push('/'),
+            Some('u') => {
+                let hex: String = chars.by_ref().take(4).collect();
+                if let Ok(code) = u32::from_str_radix(&hex, 16)
+                    && let Some(ch) = char::from_u32(code)
+                {
+                    out.push(ch);
+                }
+            }
+            Some(other) => out.push(other),
+            None => break,
+        }
+    }
+    out
+}
+
+/// Pulls the first non-empty assistant `content` string out of an OpenAI-compatible response.
+fn ai_extract_content(json: &str) -> Option<String> {
+    let mut search_from = 0;
+    while let Some(rel) = json[search_from..].find("\"content\"") {
+        let mut i = search_from + rel + "\"content\"".len();
+        let bytes = json.as_bytes();
+        while i < bytes.len() && bytes[i].is_ascii_whitespace() {
+            i += 1;
+        }
+        if i >= bytes.len() || bytes[i] != b':' {
+            search_from = i;
+            continue;
+        }
+        i += 1;
+        while i < bytes.len() && bytes[i].is_ascii_whitespace() {
+            i += 1;
+        }
+        if i >= bytes.len() || bytes[i] != b'"' {
+            search_from = i;
+            continue;
+        }
+        i += 1;
+        let start = i;
+        let mut escaped = false;
+        while i < bytes.len() {
+            let b = bytes[i];
+            if b == b'"' && !escaped {
+                break;
+            }
+            escaped = b == b'\\' && !escaped;
+            if b != b'\\' {
+                escaped = false;
+            }
+            i += 1;
+        }
+        if i <= bytes.len() {
+            let text = json_unescape(&json[start..i]);
+            if !text.trim().is_empty() {
+                return Some(text);
+            }
+        }
+        search_from = i.saturating_add(1).min(json.len());
+    }
+    None
 }
 
 fn open_in_default_app(path: &std::path::Path) {
@@ -6227,6 +6681,51 @@ mod tests {
         assert_eq!(app.selected_object().unwrap().effects.len(), 0);
         app.redo_action();
         assert_eq!(app.selected_object().unwrap().effects.len(), 1);
+    }
+
+    #[test]
+    fn polygon_booleans_are_area_correct() {
+        let a = vec![
+            Vec2::new(0.0, 0.0),
+            Vec2::new(100.0, 0.0),
+            Vec2::new(100.0, 100.0),
+            Vec2::new(0.0, 100.0),
+        ];
+        let b = vec![
+            Vec2::new(50.0, 50.0),
+            Vec2::new(150.0, 50.0),
+            Vec2::new(150.0, 150.0),
+            Vec2::new(50.0, 150.0),
+        ];
+        let union = polygon_boolean(&a, &b, "union").expect("union");
+        assert!((polygon_area(&union).abs() - 17_500.0).abs() < 1.0);
+        let intersect = polygon_boolean(&a, &b, "intersect").expect("intersect");
+        assert!((polygon_area(&intersect).abs() - 2_500.0).abs() < 1.0);
+        let punch = polygon_boolean(&a, &b, "punch").expect("punch");
+        assert!((polygon_area(&punch).abs() - 7_500.0).abs() < 1.0);
+    }
+
+    #[test]
+    fn style_gradient_applies_to_every_selected_object() {
+        let mut app = FireCraft::new(None);
+        app.insert_auto_shape(AutoShapeKind::RoundedRect);
+        app.insert_auto_shape(AutoShapeKind::Star);
+        app.select_all();
+        let preset = StylePreset {
+            name: "Test Gradient".to_string(),
+            fill: Some(Color32::from_rgb(255, 0, 0)),
+            gradient_end: Some(Color32::from_rgb(0, 0, 255)),
+            stroke: Some(Color32::BLACK),
+            stroke_width: 2.0,
+            effects: Vec::new(),
+        };
+        app.apply_style_preset_value(&preset);
+        let objects = &app.doc.page().layers[0].objects;
+        assert_eq!(objects.len(), 2);
+        for obj in objects {
+            let gradient = obj.gradient.expect("gradient applied");
+            assert_eq!(gradient.end, Color32::from_rgb(0, 0, 255));
+        }
     }
 
     #[test]

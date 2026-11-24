@@ -3,7 +3,7 @@
 
 use crate::app::{CanvasViewMode, DragKind, FireCraft, Tool};
 use crate::constants;
-use crate::doc::{LiveEffect, Obj, Shape};
+use crate::doc::{GradientFill, LiveEffect, Obj, Shape};
 use crate::icons;
 use eframe::egui::{
     self, Align2, Color32, FontId, Painter, Pos2, Rect, Sense, Stroke, TextureHandle, Vec2, pos2,
@@ -667,7 +667,8 @@ fn canvas_context_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
                         app.copy_selected_css();
                         close_menu = true;
                     }
-                    if ctx_menu_row(ui, p, true, "Paste", "Ctrl+V") {
+                    let has_clipboard = app.clipboard.is_some() || !app.clipboard_set.is_empty();
+                    if ctx_menu_row(ui, p, has_clipboard, "Paste", "Ctrl+V") {
                         app.paste();
                         close_menu = true;
                     }
@@ -679,7 +680,7 @@ fn canvas_context_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
                         close_menu = true;
                     }
                     if has_sel {
-                        if ctx_menu_row(ui, p, true, "Duplicate", "Ctrl+Alt+D") {
+                        if ctx_menu_row(ui, p, true, "Duplicate", "Ctrl+D") {
                             app.duplicate_selected();
                             close_menu = true;
                         }
@@ -767,22 +768,31 @@ fn canvas_context_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
                             app.convert_selected_to_path();
                             close_menu = true;
                         }
-                        if multi_sel {
+                        if multi_sel || is_path {
                             ui.menu_button("  Combine Paths  ▸", |ui| {
-                                for (op, lbl) in [
-                                    ("union", "Union"),
-                                    ("intersect", "Intersect"),
-                                    ("punch", "Punch"),
-                                    ("crop", "Crop"),
-                                    ("join", "Join"),
+                                for (op, lbl, needs_two) in [
+                                    ("union", "Union", true),
+                                    ("intersect", "Intersect", true),
+                                    ("punch", "Punch", true),
+                                    ("crop", "Crop", true),
+                                    ("join", "Join Endpoints", false),
+                                    ("split", "Split Path", false),
                                 ] {
-                                    if ui.button(lbl).clicked() {
+                                    if ui
+                                        .add_enabled(
+                                            !needs_two || multi_sel,
+                                            egui::Button::new(lbl),
+                                        )
+                                        .clicked()
+                                    {
                                         app.combine_paths_op(op);
                                         close_menu = true;
                                         ui.close();
                                     }
                                 }
                             });
+                        }
+                        if multi_sel {
                             ui.menu_button("  Align Selection  ▸", |ui| {
                                 for (op, lbl) in [
                                     ("left", "Align Left"),
@@ -922,7 +932,7 @@ fn canvas_context_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
                             p,
                             true,
                             if app.show_grid { "✓ Grid" } else { "  Grid" },
-                            "Ctrl+'",
+                            "Ctrl+Alt+G",
                         ) {
                             app.show_grid = !app.show_grid;
                             close_menu = true;
@@ -999,12 +1009,32 @@ fn render_viewport(
     }
 
     draw_page(&clip, app, origin, zoom, preview_mode);
-    clip_vp.rect_stroke(
-        page_rect,
-        0.0,
-        Stroke::new(1.0, app.palette.stroke),
-        egui::StrokeKind::Middle,
-    );
+    if app.infinite_canvas {
+        draw_dotted_rect(
+            &clip_vp,
+            page_rect,
+            Stroke::new(1.2, app.palette.accent),
+            6.0,
+            4.0,
+        );
+        let label_pos = pos2(page_rect.left(), page_rect.top() - 6.0);
+        if label_pos.y > viewport_rect.top() + 10.0 {
+            clip_vp.text(
+                label_pos,
+                Align2::LEFT_BOTTOM,
+                "PAGE BOUNDS · flat exports crop here",
+                FontId::proportional(10.0),
+                app.palette.accent,
+            );
+        }
+    } else {
+        clip_vp.rect_stroke(
+            page_rect,
+            0.0,
+            Stroke::new(1.0, app.palette.stroke),
+            egui::StrokeKind::Middle,
+        );
+    }
 
     if !badge.is_empty() {
         let badge_rect = Rect::from_min_size(
@@ -1019,6 +1049,160 @@ fn render_viewport(
             FontId::proportional(11.0),
             Color32::WHITE,
         );
+    }
+}
+
+/// Paints a solid, optionally expanded silhouette of `obj` for shadows and glows. Expansion is
+/// applied in document space so the falloff stays proportional at every zoom level.
+fn paint_silhouette(
+    painter: &Painter,
+    obj: &Obj,
+    origin: Vec2,
+    zoom: f32,
+    color: Color32,
+    expand_screen: f32,
+    offset: Vec2,
+) {
+    let expand_doc = expand_screen / zoom.max(0.01);
+    match &obj.kind {
+        Shape::Rect {
+            min,
+            max,
+            corner_radius,
+            ..
+        } => {
+            let a = to_screen(origin, zoom, *min) + offset;
+            let b = to_screen(origin, zoom, *max) + offset;
+            let r = Rect::from_min_max(a.min(b), a.max(b)).expand(expand_screen);
+            painter.rect_filled(r, (*corner_radius * zoom + expand_screen).max(0.0), color);
+        }
+        Shape::Ellipse { center, radius, .. } => {
+            let c = to_screen(origin, zoom, *center) + offset;
+            let rr = Vec2::new(
+                (radius.x.abs() + expand_doc) * zoom,
+                (radius.y.abs() + expand_doc) * zoom,
+            );
+            painter.add(egui::Shape::ellipse_filled(c, rr, color));
+        }
+        Shape::Polygon {
+            center,
+            radius,
+            sides,
+            star_inner,
+            angle_rad,
+        } => {
+            let pts: Vec<Pos2> = Obj::polygon_vertices(
+                *center,
+                *radius + expand_doc,
+                *sides,
+                *star_inner,
+                *angle_rad,
+            )
+            .into_iter()
+            .map(|p| to_screen(origin, zoom, p) + offset)
+            .collect();
+            let c = to_screen(origin, zoom, *center) + offset;
+            fill_polygon(painter, &pts, *star_inner, c, color);
+        }
+        Shape::Path { points, closed } => {
+            if points.len() > 1 {
+                let bounds = obj.bounds();
+                let center = bounds.map(|(lo, hi)| (lo + hi) * 0.5).unwrap_or_default();
+                let pts: Vec<Pos2> = points
+                    .iter()
+                    .map(|p| {
+                        let dir = *p - center;
+                        let scaled = *p + dir.normalized() * expand_doc;
+                        to_screen(origin, zoom, scaled) + offset
+                    })
+                    .collect();
+                if *closed {
+                    painter.add(egui::Shape::convex_polygon(pts, color, Stroke::NONE));
+                } else {
+                    painter.add(egui::Shape::line(
+                        pts,
+                        Stroke::new((obj.width * zoom + expand_screen * 2.0).max(1.0), color),
+                    ));
+                }
+            }
+        }
+        _ => {
+            if let Some((lo, hi)) = obj.bounds() {
+                let a = to_screen(origin, zoom, lo) + offset;
+                let b = to_screen(origin, zoom, hi) + offset;
+                let r = Rect::from_min_max(a.min(b), a.max(b)).expand(expand_screen);
+                painter.rect_filled(r, 0.0, color);
+            }
+        }
+    }
+}
+
+fn fill_polygon(painter: &Painter, pts: &[Pos2], star_inner: f32, center: Pos2, color: Color32) {
+    if (star_inner - 1.0).abs() <= 0.02 {
+        painter.add(egui::Shape::convex_polygon(
+            pts.to_vec(),
+            color,
+            Stroke::NONE,
+        ));
+    } else {
+        for i in 0..pts.len() {
+            painter.add(egui::Shape::convex_polygon(
+                vec![center, pts[i], pts[(i + 1) % pts.len()]],
+                color,
+                Stroke::NONE,
+            ));
+        }
+    }
+}
+
+/// Draws a vertical linear gradient in bands, clipping each band to `bounds`. The caller draws
+/// the actual shape inside the clip, so rectangles, ellipses, polygons, and paths all get a
+/// gradient that respects their silhouette.
+fn paint_gradient(
+    painter: &Painter,
+    bounds: Rect,
+    gradient: GradientFill,
+    alpha: f32,
+    mut draw: impl FnMut(&Painter, Color32),
+) {
+    if bounds.height() <= 0.5 {
+        draw(painter, gradient.start.gamma_multiply(alpha));
+        return;
+    }
+    let steps = 32;
+    let clip = painter.clip_rect();
+    for i in 0..steps {
+        let t = (i as f32 + 0.5) / steps as f32;
+        let color = gradient
+            .start
+            .lerp_to_gamma(gradient.end, t)
+            .gamma_multiply(alpha);
+        let y0 = bounds.top() + bounds.height() * (i as f32 / steps as f32);
+        let y1 = bounds.top() + bounds.height() * ((i + 1) as f32 / steps as f32) + 0.6;
+        let band = Rect::from_min_max(
+            pos2(bounds.left() - 1.0, y0),
+            pos2(bounds.right() + 1.0, y1),
+        );
+        let clipped = painter.with_clip_rect(band.intersect(clip));
+        draw(&clipped, color);
+    }
+}
+
+fn draw_dotted_rect(painter: &Painter, rect: Rect, stroke: Stroke, dash: f32, gap: f32) {
+    let step = (dash + gap).max(2.0);
+    let mut x = rect.left();
+    while x < rect.right() {
+        let x2 = (x + dash).min(rect.right());
+        painter.line_segment([pos2(x, rect.top()), pos2(x2, rect.top())], stroke);
+        painter.line_segment([pos2(x, rect.bottom()), pos2(x2, rect.bottom())], stroke);
+        x += step;
+    }
+    let mut y = rect.top();
+    while y < rect.bottom() {
+        let y2 = (y + dash).min(rect.bottom());
+        painter.line_segment([pos2(rect.left(), y), pos2(rect.left(), y2)], stroke);
+        painter.line_segment([pos2(rect.right(), y), pos2(rect.right(), y2)], stroke);
+        y += step;
     }
 }
 
@@ -1285,16 +1469,9 @@ fn draw_obj(
         .unwrap_or(Color32::TRANSPARENT);
     let sw = (obj.width * zoom).max(0.6);
 
-    // Draw Live Effects (Drop Shadow, Outer Glow) underneath the object
-    if let Some((lo, hi)) = obj.bounds() {
-        let a = to_screen(origin, zoom, lo);
-        let b = to_screen(origin, zoom, hi);
-        let base_rect = Rect::from_min_max(a.min(b), a.max(b));
-        let cr = match &obj.kind {
-            Shape::Rect { corner_radius, .. } => *corner_radius * zoom,
-            Shape::Ellipse { .. } => base_rect.width().min(base_rect.height()) * 0.5,
-            _ => 0.0,
-        };
+    // Draw Live Effects (Drop Shadow, Outer Glow) underneath the object, following the actual
+    // silhouette instead of always painting a rectangle.
+    if obj.bounds().is_some() {
         for eff in &obj.effects {
             if !eff.is_enabled() {
                 continue;
@@ -1313,11 +1490,7 @@ fn draw_obj(
                     for s in (1..=steps).rev() {
                         let expand = (s as f32 / steps as f32) * blur * zoom * 0.5;
                         let c = color.gamma_multiply(alpha / (steps as f32 * 0.9));
-                        painter.rect_filled(
-                            base_rect.translate(offset).expand(expand),
-                            cr + expand,
-                            c,
-                        );
+                        paint_silhouette(painter, obj, origin, zoom, c, expand, offset);
                     }
                 }
                 LiveEffect::Glow {
@@ -1330,7 +1503,7 @@ fn draw_obj(
                     for s in (1..=steps).rev() {
                         let expand = (s as f32 / steps as f32) * radius * zoom * 0.6;
                         let c = color.gamma_multiply(alpha * 0.35);
-                        painter.rect_filled(base_rect.expand(expand), cr + expand, c);
+                        paint_silhouette(painter, obj, origin, zoom, c, expand, Vec2::ZERO);
                     }
                 }
                 _ => {}
@@ -1349,7 +1522,11 @@ fn draw_obj(
             let b = to_screen(origin, zoom, *max);
             let r = Rect::from_min_max(a.min(b), a.max(b));
             let cr = *corner_radius * zoom;
-            if let Some(f) = fill {
+            if let Some(g) = obj.gradient {
+                paint_gradient(painter, r, g, alpha, |p, c| {
+                    p.rect_filled(r, cr, c);
+                });
+            } else if let Some(f) = fill {
                 painter.rect_filled(r, cr, f);
             }
             if obj.stroke.is_some() && obj.width > 0.0 {
@@ -1359,7 +1536,12 @@ fn draw_obj(
         Shape::Ellipse { center, radius, .. } => {
             let c = to_screen(origin, zoom, *center);
             let rr = Vec2::new(radius.x.abs() * zoom, radius.y.abs() * zoom);
-            if let Some(f) = fill {
+            let bounds = Rect::from_center_size(c, rr * 2.0);
+            if let Some(g) = obj.gradient {
+                paint_gradient(painter, bounds, g, alpha, |p, col| {
+                    p.add(egui::Shape::ellipse_filled(c, rr, col));
+                });
+            } else if let Some(f) = fill {
                 painter.add(egui::Shape::ellipse_filled(c, rr, f));
             }
             if obj.stroke.is_some() && obj.width > 0.0 {
@@ -1384,27 +1566,16 @@ fn draw_obj(
                     .into_iter()
                     .map(|p| to_screen(origin, zoom, p))
                     .collect();
-            if let Some(f) = fill {
-                if (*star_inner - 1.0).abs() <= 0.02 {
-                    painter.add(egui::Shape::convex_polygon(
-                        pts.clone(),
-                        f,
-                        Stroke::new(sw, stroke),
-                    ));
-                } else {
-                    let c = to_screen(origin, zoom, *center);
-                    for i in 0..pts.len() {
-                        painter.add(egui::Shape::convex_polygon(
-                            vec![c, pts[i], pts[(i + 1) % pts.len()]],
-                            f,
-                            Stroke::NONE,
-                        ));
-                    }
-                    if obj.stroke.is_some() {
-                        painter.add(egui::Shape::closed_line(pts, Stroke::new(sw, stroke)));
-                    }
-                }
-            } else {
+            let center_screen = to_screen(origin, zoom, *center);
+            let bounds = Rect::from_points(&pts);
+            if let Some(g) = obj.gradient {
+                paint_gradient(painter, bounds, g, alpha, |p, col| {
+                    fill_polygon(p, &pts, *star_inner, center_screen, col);
+                });
+            } else if let Some(f) = fill {
+                fill_polygon(painter, &pts, *star_inner, center_screen, f);
+            }
+            if obj.stroke.is_some() && obj.width > 0.0 {
                 painter.add(egui::Shape::closed_line(pts, Stroke::new(sw, stroke)));
             }
         }
@@ -1412,13 +1583,15 @@ fn draw_obj(
             if points.len() > 1 {
                 let pts: Vec<Pos2> = points.iter().map(|p| to_screen(origin, zoom, *p)).collect();
                 if *closed {
-                    if let Some(f) = fill {
-                        painter.add(egui::Shape::convex_polygon(
-                            pts.clone(),
-                            f,
-                            Stroke::new(sw, stroke),
-                        ));
-                    } else {
+                    let bounds = Rect::from_points(&pts);
+                    if let Some(g) = obj.gradient {
+                        paint_gradient(painter, bounds, g, alpha, |p, col| {
+                            p.add(egui::Shape::convex_polygon(pts.clone(), col, Stroke::NONE));
+                        });
+                    } else if let Some(f) = fill {
+                        painter.add(egui::Shape::convex_polygon(pts.clone(), f, Stroke::NONE));
+                    }
+                    if obj.stroke.is_some() && obj.width > 0.0 {
                         painter.add(egui::Shape::closed_line(pts, Stroke::new(sw, stroke)));
                     }
                 } else {

@@ -10,7 +10,7 @@
 use crate::app::{DockZone, FileMode, FireCraft, PanelId, Tool};
 use crate::colors;
 use crate::constants;
-use crate::doc::{AutoShapeKind, BlendMode, LiveEffect, Obj, Shape};
+use crate::doc::{AutoShapeKind, BlendMode, GradientFill, LiveEffect, Obj, Shape};
 use crate::icons;
 
 use eframe::egui::{
@@ -18,16 +18,45 @@ use eframe::egui::{
     Vec2, pos2,
 };
 
-/// A titled, tabbed panel container matching the Fireworks CS6 dock look (`screenshots/Fireworks_Layout_Design.jpg`).
-pub fn panel(
+/// A titled, tabbed panel container matching the Fireworks CS6 dock look
+/// (`screenshots/Fireworks_Layout_Design.jpg`). Includes a leading collapse chevron and shared
+/// double-click-to-collapse
+/// behavior. Returns `true` when the header requested a collapse/expand toggle.
+#[allow(clippy::too_many_arguments)]
+pub fn panel_collapsible(
     ui: &mut Ui,
     title: &str,
     tabs: &[&str],
     tab_index: &mut usize,
     palette: crate::theme::Palette,
     body_height: Option<f32>,
+    collapsed: bool,
     body: impl FnOnce(&mut Ui),
-) {
+) -> bool {
+    panel_impl(
+        ui,
+        title,
+        tabs,
+        tab_index,
+        palette,
+        body_height,
+        Some(collapsed),
+        body,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn panel_impl(
+    ui: &mut Ui,
+    title: &str,
+    tabs: &[&str],
+    tab_index: &mut usize,
+    palette: crate::theme::Palette,
+    body_height: Option<f32>,
+    collapsed: Option<bool>,
+    body: impl FnOnce(&mut Ui),
+) -> bool {
+    let mut toggle_requested = false;
     Frame::new()
         .fill(palette.panel)
         .stroke(Stroke::new(1.0, palette.stroke))
@@ -57,16 +86,69 @@ pub fn panel(
                 );
             }
 
+            let mut tabs_x = bar.left() + 8.0;
+            if let Some(is_collapsed) = collapsed {
+                // Keep the collapse affordance left of the tabs, matching the dock/tool strip
+                // direction language (open points right, collapsed points down).
+                let chev_r =
+                    Rect::from_min_size(pos2(bar.left() + 3.0, bar.top() + 3.0), Vec2::splat(14.0));
+                let chev_resp = ui.interact(
+                    chev_r,
+                    ui.make_persistent_id(("panel-collapse-btn", title)),
+                    Sense::click(),
+                );
+                if chev_resp.hovered() {
+                    painter.rect_filled(chev_r, 0.0, palette.well);
+                }
+                let (cx, cy) = (chev_r.center().x, chev_r.center().y);
+                let col = if chev_resp.hovered() {
+                    palette.accent
+                } else {
+                    palette.text_dim
+                };
+                if is_collapsed {
+                    painter.add(egui::Shape::convex_polygon(
+                        vec![
+                            pos2(cx - 2.5, cy - 3.5),
+                            pos2(cx + 2.5, cy + 0.5),
+                            pos2(cx - 2.5, cy + 3.5),
+                        ],
+                        col,
+                        Stroke::NONE,
+                    ));
+                } else {
+                    painter.add(egui::Shape::convex_polygon(
+                        vec![
+                            pos2(cx - 3.5, cy - 2.5),
+                            pos2(cx + 3.5, cy - 2.5),
+                            pos2(cx, cy + 2.5),
+                        ],
+                        col,
+                        Stroke::NONE,
+                    ));
+                }
+                if chev_resp
+                    .on_hover_text(if is_collapsed {
+                        "Expand panel"
+                    } else {
+                        "Collapse panel"
+                    })
+                    .clicked()
+                {
+                    toggle_requested = true;
+                }
+                tabs_x = bar.left() + 23.0;
+            }
             if tabs.is_empty() {
                 painter.text(
-                    pos2(bar.left() + 9.0, bar.center().y),
+                    pos2(tabs_x + 1.0, bar.center().y),
                     Align2::LEFT_CENTER,
                     title,
                     FontId::proportional(11.0),
                     palette.text,
                 );
             } else {
-                let mut x = bar.left() + 8.0;
+                let mut x = tabs_x;
                 for (i, t) in tabs.iter().enumerate() {
                     let w = (10.0 + t.len() as f32 * 5.2).min(88.0);
                     let r = Rect::from_min_size(pos2(x, bar.top() + 1.0), Vec2::new(w, 19.0));
@@ -161,6 +243,19 @@ pub fn panel(
                 *tab_index = (*tab_index + 1) % tabs.len();
             }
 
+            if collapsed.is_some() {
+                let bar_resp = ui.interact(
+                    bar,
+                    ui.make_persistent_id(("panel-double-click", title)),
+                    Sense::click(),
+                );
+                if bar_resp.double_clicked() {
+                    toggle_requested = true;
+                }
+            }
+            if collapsed == Some(true) {
+                return;
+            }
             ui.add_space(3.0);
             if let Some(h) = body_height {
                 ui.allocate_ui_with_layout(
@@ -181,6 +276,7 @@ pub fn panel(
                 body(ui);
             }
         });
+    toggle_requested
 }
 
 type ToolSection = (&'static str, &'static [(icons::Icon, Tool, &'static str)]);
@@ -274,7 +370,7 @@ fn tool_variations(tool: Tool) -> &'static [(Tool, &'static str)] {
     }
 }
 
-pub fn tools_panel(ui: &mut Ui, app: &mut FireCraft) {
+pub fn tools_panel_body(ui: &mut Ui, app: &mut FireCraft) {
     let p = app.palette;
     let sections: [ToolSection; 6] = [
         (
@@ -401,15 +497,30 @@ pub fn tools_panel(ui: &mut Ui, app: &mut FireCraft) {
             let flyout_state_id = ui.make_persistent_id("tool_flyout_open");
             let mut open_flyout: Option<(Tool, egui::Pos2)> =
                 ui.ctx().data(|d| d.get_temp(flyout_state_id));
-            for (icon, tool, tip) in tools {
-                let active = app.tool == *tool;
+            for (_icon, tool, tip) in tools {
                 let vars = tool_variations(*tool);
+                // Only the first member of a flyout group gets a slot; the rest live in its menu.
+                if !vars.is_empty() && vars[0].0 != *tool {
+                    continue;
+                }
+                let active = if vars.is_empty() {
+                    app.tool == *tool
+                } else {
+                    vars.iter().any(|(t, _)| *t == app.tool)
+                };
+                let display_tool = if active { app.tool } else { *tool };
                 let full_tip = if vars.is_empty() {
                     (*tip).to_string()
                 } else {
-                    format!("{tip}\nClick ◢ arrow or right-click for variations")
+                    let active_label = vars
+                        .iter()
+                        .find(|(t, _)| *t == display_tool)
+                        .map(|(_, l)| *l)
+                        .unwrap_or(tip);
+                    format!("{active_label}\nClick ◢ arrow or right-click for variations")
                 };
-                let response = crate::canvas::tool_button(ui, *icon, active, &full_tip);
+                let response =
+                    crate::canvas::tool_button(ui, tool_icon(display_tool), active, &full_tip);
                 let mut opened_here = false;
                 if !vars.is_empty() {
                     let br = response.rect.right_bottom();
@@ -456,12 +567,20 @@ pub fn tools_panel(ui: &mut Ui, app: &mut FireCraft) {
                                 .stroke(Stroke::new(1.0, p.stroke))
                                 .inner_margin(egui::Margin::same(4))
                                 .show(ui, |ui| {
-                                    ui.set_min_width(196.0);
+                                    // Size to the widest label instead of a fixed 196 px box with
+                                    // empty space on the right.
+                                    let flyout_w = vars
+                                        .iter()
+                                        .map(|(_, label)| label.chars().count() as f32 * 5.8 + 48.0)
+                                        .fold(130.0_f32, f32::max)
+                                        .clamp(140.0, 270.0);
+                                    ui.set_min_width(flyout_w);
+                                    ui.set_max_width(flyout_w);
                                     ui.spacing_mut().item_spacing = Vec2::new(0.0, 1.0);
                                     for &(v_tool, v_label) in vars {
                                         let is_selected = app.tool == v_tool;
                                         let (row_r, row_resp) = ui.allocate_exact_size(
-                                            Vec2::new(ui.available_width().max(192.0), 22.0),
+                                            Vec2::new(flyout_w - 8.0, 22.0),
                                             Sense::click(),
                                         );
                                         let row_p = ui.painter();
@@ -532,8 +651,14 @@ pub fn tools_panel(ui: &mut Ui, app: &mut FireCraft) {
                     if *tool == Tool::Fit {
                         app.fit_in_window();
                     } else {
-                        app.tool = *tool;
-                        app.status = format!("{} selected", tool.name());
+                        let next_tool = if active && vars.len() > 1 {
+                            let cur = vars.iter().position(|(t, _)| *t == app.tool).unwrap_or(0);
+                            vars[(cur + 1) % vars.len()].0
+                        } else {
+                            *tool
+                        };
+                        app.tool = next_tool;
+                        app.status = format!("{} selected", next_tool.name());
                     }
                 }
             }
@@ -546,9 +671,91 @@ pub fn tools_panel(ui: &mut Ui, app: &mut FireCraft) {
             });
         });
     }
+}
 
-    ui.separator();
-    // Active Stroke / Fill color chips + Swap (X) + Default (D) in the Colors section of the tool strip
+/// Pinned footer of the tool rail: color chips, swap/default/no-fill, and Full Screen. It sits
+/// outside the scrolling tool list so it can never be clipped at the bottom of the window.
+pub fn tools_panel_footer(ui: &mut Ui, app: &mut FireCraft) {
+    let p = app.palette;
+    if app.tools_collapsed {
+        // Single-column variant so the palette and Full Screen stay reachable when the rail is
+        // collapsed to one icon column.
+        ui.vertical_centered(|ui| {
+            let mut stroke_rgb = [
+                app.stroke.r() as f32 / 255.0,
+                app.stroke.g() as f32 / 255.0,
+                app.stroke.b() as f32 / 255.0,
+            ];
+            if ui
+                .color_edit_button_rgb(&mut stroke_rgb)
+                .on_hover_text("Stroke Color")
+                .changed()
+            {
+                let c = Color32::from_rgb(
+                    (stroke_rgb[0] * 255.0) as u8,
+                    (stroke_rgb[1] * 255.0) as u8,
+                    (stroke_rgb[2] * 255.0) as u8,
+                );
+                app.stroke = c;
+                app.set_selected_stroke(Some(c));
+            }
+            let mut fill_rgb = [
+                app.fill.r() as f32 / 255.0,
+                app.fill.g() as f32 / 255.0,
+                app.fill.b() as f32 / 255.0,
+            ];
+            if ui
+                .color_edit_button_rgb(&mut fill_rgb)
+                .on_hover_text("Fill Color")
+                .changed()
+            {
+                let c = Color32::from_rgb(
+                    (fill_rgb[0] * 255.0) as u8,
+                    (fill_rgb[1] * 255.0) as u8,
+                    (fill_rgb[2] * 255.0) as u8,
+                );
+                app.fill = c;
+                app.set_selected_fill(Some(c));
+            }
+            if ui
+                .small_button("⇄")
+                .on_hover_text("Swap Fill & Stroke (X)")
+                .clicked()
+            {
+                std::mem::swap(&mut app.fill, &mut app.stroke);
+            }
+            if ui
+                .small_button("▣")
+                .on_hover_text("Default Colors (D)")
+                .clicked()
+            {
+                app.fill = Color32::WHITE;
+                app.stroke = Color32::BLACK;
+            }
+            if ui
+                .small_button("⊘")
+                .on_hover_text("No Fill on Selection")
+                .clicked()
+            {
+                app.set_selected_fill(None);
+            }
+            if ui
+                .small_button("⛶")
+                .on_hover_text("Toggle Full-Screen Canvas (Tab / F4)")
+                .clicked()
+            {
+                app.toggle_full_screen_canvas();
+            }
+        });
+        return;
+    }
+    ui.painter().line_segment(
+        [
+            ui.available_rect_before_wrap().left_bottom(),
+            ui.available_rect_before_wrap().right_bottom(),
+        ],
+        Stroke::new(1.0, p.stroke),
+    );
     ui.vertical_centered(|ui| {
         ui.horizontal(|ui| {
             let mut stroke_rgb = [
@@ -612,8 +819,14 @@ pub fn tools_panel(ui: &mut Ui, app: &mut FireCraft) {
                 app.set_selected_fill(None);
             }
         });
+        // The rail is only wide enough for two icon columns; a text button would clip. Use the
+        // same full-screen glyph as the collapsed rail, stretched to the available width.
+        let full_w = ui.available_width();
         if ui
-            .small_button("Full Screen")
+            .add_sized(
+                [full_w, 20.0],
+                egui::Button::new(RichText::new("⛶").small()).frame(false),
+            )
             .on_hover_text("Toggle Full-Screen Canvas / Hide Panels (Tab or F4)")
             .clicked()
         {
@@ -2430,6 +2643,141 @@ pub fn styles_panel(ui: &mut Ui, app: &mut FireCraft) {
     });
 }
 
+/// Intelligence tab: real AI-assistant integration plus the existing MCP server status.
+/// When no endpoint/key is configured the panel explains what is missing and never fabricates
+/// a response.
+pub fn intelligence_panel(ui: &mut Ui, app: &mut FireCraft) {
+    app.poll_ai();
+    let p = app.palette;
+    ui.horizontal(|ui| {
+        ui.label(
+            RichText::new("AI Assistant")
+                .small()
+                .strong()
+                .color(p.accent),
+        );
+        let configured = app.ai_key_present() && !app.ai_model.trim().is_empty();
+        ui.label(
+            RichText::new(if configured {
+                "Configured"
+            } else {
+                "Not configured"
+            })
+            .small()
+            .color(if configured { p.text } else { p.text_dim }),
+        );
+        ui.separator();
+        ui.label(
+            RichText::new("MCP: firecraft mcp (stdio JSON-RPC 2.0)")
+                .small()
+                .color(p.text_dim),
+        );
+        if ui
+            .small_button("Copy MCP config")
+            .on_hover_text("Copy a client configuration for the FireCraft MCP stdio server")
+            .clicked()
+        {
+            app.ctx.copy_text(
+                r#"{"mcpServers":{"firecraft":{"command":"firecraft","args":["mcp"]}}}"#
+                    .to_string(),
+            );
+            app.status = "Copied FireCraft MCP client configuration".to_string();
+        }
+        if ui
+            .small_button(if app.show_ai_settings {
+                "Hide settings"
+            } else {
+                "Settings…"
+            })
+            .clicked()
+        {
+            app.show_ai_settings = !app.show_ai_settings;
+        }
+    });
+
+    if app.show_ai_settings {
+        Grid::new("ai_settings_grid")
+            .num_columns(2)
+            .spacing([6.0, 3.0])
+            .show(ui, |ui| {
+                ui.label(RichText::new("Endpoint:").small().color(p.text_dim));
+                ui.add(
+                    TextEdit::singleline(&mut app.ai_base_url)
+                        .desired_width(230.0)
+                        .hint_text("https://api.openai.com/v1"),
+                );
+                ui.end_row();
+                ui.label(RichText::new("Model:").small().color(p.text_dim));
+                ui.add(
+                    TextEdit::singleline(&mut app.ai_model)
+                        .desired_width(230.0)
+                        .hint_text("Provider chat model id"),
+                );
+                ui.end_row();
+                ui.label(RichText::new("API key:").small().color(p.text_dim));
+                ui.add(
+                    TextEdit::singleline(&mut app.ai_key)
+                        .password(true)
+                        .desired_width(230.0)
+                        .hint_text("or set FIRECRAFT_AI_API_KEY"),
+                );
+                ui.end_row();
+            });
+    }
+
+    ui.horizontal(|ui| {
+        ui.label(RichText::new("Prompt:").small().color(p.text_dim));
+        let can_run = app.ai_rx.is_none()
+            && app.ai_key_present()
+            && !app.ai_model.trim().is_empty()
+            && !app.ai_prompt.trim().is_empty();
+        if ui
+            .add_enabled(can_run, egui::Button::new("Ask about selection").small())
+            .on_hover_text(
+                "Send the prompt plus real selection/document context to the configured endpoint",
+            )
+            .clicked()
+        {
+            app.start_ai_request();
+        }
+        if app.ai_rx.is_some() {
+            ui.spinner();
+        }
+        if ui
+            .add_enabled(
+                !app.ai_response.is_empty(),
+                egui::Button::new("Clear").small(),
+            )
+            .clicked()
+        {
+            app.ai_response.clear();
+            app.ai_status = "Response cleared.".to_string();
+        }
+        ui.label(RichText::new(&app.ai_status).small().color(p.text_dim));
+    });
+    ui.add(
+        TextEdit::multiline(&mut app.ai_prompt)
+            .desired_rows(2)
+            .desired_width(f32::INFINITY)
+            .hint_text("Describe what you want to know or change…"),
+    );
+    if !app.ai_response.is_empty() {
+        egui::Frame::new()
+            .fill(p.well)
+            .stroke(Stroke::new(1.0, p.stroke))
+            .inner_margin(egui::Margin::same(4))
+            .show(ui, |ui| {
+                egui::ScrollArea::vertical()
+                    .id_salt("ai_response_scroll")
+                    .max_height(90.0)
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| {
+                        ui.label(RichText::new(&app.ai_response).small().color(p.text));
+                    });
+            });
+    }
+}
+
 /// Bottom-right dock group: Special Characters | Image Editing | Auto Shapes | Document Library | CSS/URL.
 pub fn library_panel(ui: &mut Ui, app: &mut FireCraft) {
     let p = app.palette;
@@ -2662,6 +3010,7 @@ pub fn library_panel(ui: &mut Ui, app: &mut FireCraft) {
 pub fn properties_panel(ui: &mut Ui, app: &mut FireCraft) {
     let p = app.palette;
     if app.selected_set.len() >= 2 {
+        let primary = app.selected_object();
         ui.horizontal(|ui| {
             ui.vertical(|ui| {
                 ui.label(
@@ -2696,6 +3045,78 @@ pub fn properties_panel(ui: &mut Ui, app: &mut FireCraft) {
                         if ui.small_button(lbl).clicked() {
                             app.align_selected_to_canvas(mode);
                         }
+                    }
+                });
+            });
+            ui.separator();
+            ui.vertical(|ui| {
+                ui.label(
+                    RichText::new("Selection Appearance:")
+                        .small()
+                        .color(p.text_dim),
+                );
+                ui.horizontal(|ui| {
+                    let mut fill = primary.as_ref().and_then(|o| o.fill).unwrap_or(app.fill);
+                    let mut fc = [
+                        fill.r() as f32 / 255.0,
+                        fill.g() as f32 / 255.0,
+                        fill.b() as f32 / 255.0,
+                    ];
+                    if ui
+                        .color_edit_button_rgb(&mut fc)
+                        .on_hover_text("Fill all selected objects")
+                        .changed()
+                    {
+                        fill = Color32::from_rgb(
+                            (fc[0] * 255.0) as u8,
+                            (fc[1] * 255.0) as u8,
+                            (fc[2] * 255.0) as u8,
+                        );
+                        app.fill = fill;
+                        app.set_selected_fill(Some(fill));
+                    }
+                    let mut stroke = primary
+                        .as_ref()
+                        .and_then(|o| o.stroke)
+                        .unwrap_or(app.stroke);
+                    let mut sc = [
+                        stroke.r() as f32 / 255.0,
+                        stroke.g() as f32 / 255.0,
+                        stroke.b() as f32 / 255.0,
+                    ];
+                    if ui
+                        .color_edit_button_rgb(&mut sc)
+                        .on_hover_text("Stroke all selected objects")
+                        .changed()
+                    {
+                        stroke = Color32::from_rgb(
+                            (sc[0] * 255.0) as u8,
+                            (sc[1] * 255.0) as u8,
+                            (sc[2] * 255.0) as u8,
+                        );
+                        app.stroke = stroke;
+                        app.set_selected_stroke(Some(stroke));
+                    }
+                    let mut opacity = primary.as_ref().map(|o| o.opacity * 100.0).unwrap_or(100.0);
+                    if ui
+                        .add(
+                            egui::DragValue::new(&mut opacity)
+                                .range(0.0..=100.0)
+                                .suffix("%"),
+                        )
+                        .on_hover_text("Opacity for all selected objects")
+                        .changed()
+                    {
+                        app.set_selected_opacity(opacity / 100.0);
+                    }
+                    if ui.small_button("+ Shadow").clicked() {
+                        app.add_live_effect(LiveEffect::DropShadow {
+                            distance: 5.0,
+                            angle_deg: 45.0,
+                            blur: 5.0,
+                            color: Color32::from_black_alpha(150),
+                            enabled: true,
+                        });
                     }
                 });
             });
@@ -2891,6 +3312,7 @@ pub fn properties_panel(ui: &mut Ui, app: &mut FireCraft) {
                             size,
                             bold,
                             italic,
+                            font_family,
                             ..
                         } => {
                             ui.label(RichText::new("Text:").small().color(p.text_dim));
@@ -2912,6 +3334,20 @@ pub fn properties_panel(ui: &mut Ui, app: &mut FireCraft) {
                             {
                                 app.set_selected_text_size(sz);
                             }
+                            let mut family = font_family.clone();
+                            egui::ComboBox::from_id_salt("prop_text_font")
+                                .width(92.0)
+                                .selected_text(family.as_str())
+                                .show_ui(ui, |ui| {
+                                    for fam in
+                                        ["Sans-Serif", "Serif", "Monospace", "Display", "Geometric"]
+                                    {
+                                        if ui.selectable_label(family == fam, fam).clicked() {
+                                            family = fam.to_string();
+                                            app.set_selected_font_family(fam);
+                                        }
+                                    }
+                                });
                             if ui
                                 .selectable_label(*bold, RichText::new("B").strong())
                                 .clicked()
@@ -2959,14 +3395,59 @@ pub fn properties_panel(ui: &mut Ui, app: &mut FireCraft) {
                         }
                         _ => {
                             ui.label(
-                                RichText::new(format!(
-                                    "Layer: {} · Blend: {}",
-                                    app.selected_layer + 1,
-                                    obj.blend_mode.label()
-                                ))
-                                .small()
-                                .color(p.text_dim),
+                                RichText::new(format!("Layer: {}", app.selected_layer + 1))
+                                    .small()
+                                    .color(p.text_dim),
                             );
+                            ui.label(RichText::new("Blend:").small().color(p.text_dim));
+                            egui::ComboBox::from_id_salt("prop_blend_mode")
+                                .width(96.0)
+                                .selected_text(obj.blend_mode.label())
+                                .show_ui(ui, |ui| {
+                                    for mode in BlendMode::ALL {
+                                        if ui
+                                            .selectable_label(obj.blend_mode == mode, mode.label())
+                                            .clicked()
+                                        {
+                                            app.set_selected_blend_mode(mode);
+                                        }
+                                    }
+                                });
+                        }
+                    });
+
+                    // Gradient fill editor (styles with gradient_end create these automatically).
+                    ui.horizontal(|ui| {
+                        if let Some(g) = obj.gradient {
+                            ui.label(RichText::new("Gradient:").small().color(p.text_dim));
+                            let mut start = g.start;
+                            let mut end = g.end;
+                            let mut changed = false;
+                            if cs6_color_button(ui, "prop_grad_start", p, &mut start, None) {
+                                changed = true;
+                            }
+                            ui.label(RichText::new("→").small().color(p.text_dim));
+                            if cs6_color_button(ui, "prop_grad_end", p, &mut end, None) {
+                                changed = true;
+                            }
+                            if changed {
+                                app.set_selected_gradient(Some(GradientFill { start, end }));
+                            }
+                            if ui
+                                .small_button("Remove")
+                                .on_hover_text("Switch back to a flat fill")
+                                .clicked()
+                            {
+                                app.set_selected_gradient(None);
+                            }
+                        } else if ui
+                            .small_button("+ Gradient")
+                            .on_hover_text("Use a linear start→end gradient as this object's fill")
+                            .clicked()
+                        {
+                            let start = obj.fill.unwrap_or(app.fill);
+                            let end = obj.stroke.unwrap_or(app.stroke);
+                            app.set_selected_gradient(Some(GradientFill { start, end }));
                         }
                     });
                 });
@@ -4292,6 +4773,10 @@ pub fn panel_group_widget(ui: &mut Ui, app: &mut FireCraft, group_idx: usize, is
                     app.ungroup_panel_below(active_panel);
                     ui.close();
                 }
+                if group.stack_parent.is_some() && ui.button("Detach from Window Stack").clicked() {
+                    app.detach_stack(group.id);
+                    ui.close();
+                }
                 ui.menu_button("Group With...", |ui| {
                     for (tid, ttitle) in &other_groups {
                         if ui.button(ttitle).clicked() {
@@ -4311,12 +4796,32 @@ pub fn panel_group_widget(ui: &mut Ui, app: &mut FireCraft, group_idx: usize, is
                 }
             });
 
-            // Draggable Tabs
+            // Draggable Tabs. Narrow dock columns can hold many tabs; never draw labels on top
+            // of each other. Fit as many as the minimum width allows, keep the active tab
+            // visible, and expose every tab through an overflow menu.
             let tabs_area_w = (header_rect.width() - 18.0 - ctrl_w).max(40.0);
-            let tab_w = (tabs_area_w / group.tabs.len() as f32).clamp(38.0, 130.0);
-            for (ti, &tab_id) in group.tabs.iter().enumerate() {
+            let max_visible = ((tabs_area_w / 42.0).floor() as usize).max(1);
+            let needs_overflow = group.tabs.len() > max_visible;
+            let overflow_w = if needs_overflow { 20.0 } else { 0.0 };
+            let visible_count = if needs_overflow {
+                max_visible.saturating_sub(1).max(1)
+            } else {
+                group.tabs.len()
+            };
+            let tab_w = ((tabs_area_w - overflow_w) / visible_count as f32).clamp(24.0, 130.0);
+            let mut shown: Vec<usize> = (0..visible_count).collect();
+            if !shown.contains(&active_idx) {
+                shown.pop();
+                shown.push(active_idx);
+                shown.sort_unstable();
+            }
+            for (slot, &ti) in shown.iter().enumerate() {
+                let tab_id = group.tabs[ti];
                 let tab_r = Rect::from_min_size(
-                    pos2(chev_r.right() + ti as f32 * tab_w, header_rect.top() + 2.0),
+                    pos2(
+                        chev_r.right() + slot as f32 * tab_w,
+                        header_rect.top() + 2.0,
+                    ),
                     Vec2::new(tab_w - 1.0, header_h - 2.0),
                 );
                 let is_active = ti == active_idx;
@@ -4328,13 +4833,15 @@ pub fn panel_group_widget(ui: &mut Ui, app: &mut FireCraft, group_idx: usize, is
                 } else {
                     tab_id.title()
                 };
-                ui.painter().text(
-                    tab_r.center(),
-                    Align2::CENTER_CENTER,
-                    label,
-                    FontId::proportional(10.5),
-                    if is_active { p.text } else { p.text_dim },
-                );
+                ui.painter()
+                    .with_clip_rect(tab_r.shrink2(Vec2::new(2.0, 0.0)))
+                    .text(
+                        tab_r.center(),
+                        Align2::CENTER_CENTER,
+                        label,
+                        FontId::proportional(10.5),
+                        if is_active { p.text } else { p.text_dim },
+                    );
                 let tab_resp = ui.interact(
                     tab_r,
                     ui.make_persistent_id(("pg_tab", group.id, ti)),
@@ -4349,6 +4856,34 @@ pub fn panel_group_widget(ui: &mut Ui, app: &mut FireCraft, group_idx: usize, is
                 if tab_resp.drag_started() {
                     app.dragging_panel = Some(tab_id);
                 }
+            }
+
+            if needs_overflow {
+                let overflow_r = Rect::from_min_size(
+                    pos2(
+                        chev_r.right() + shown.len() as f32 * tab_w,
+                        header_rect.top() + 2.0,
+                    ),
+                    Vec2::new(overflow_w, header_h - 2.0),
+                );
+                let mut overflow_ui = ui.new_child(egui::UiBuilder::new().max_rect(overflow_r));
+                overflow_ui
+                    .menu_button(RichText::new("»").small().color(p.text_dim), |ui| {
+                        for (ti, &tab_id) in group.tabs.iter().enumerate() {
+                            if ui
+                                .selectable_label(ti == active_idx, tab_id.title())
+                                .clicked()
+                            {
+                                if let Some(g) = app.panel_groups.get_mut(group_idx) {
+                                    g.active_tab = ti;
+                                    g.collapsed = false;
+                                }
+                                ui.close();
+                            }
+                        }
+                    })
+                    .response
+                    .on_hover_text("All tabs in this panel group");
             }
 
             if !group.collapsed {

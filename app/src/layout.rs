@@ -11,7 +11,7 @@ use crate::menus;
 use crate::panels;
 use crate::theme;
 
-use eframe::egui::{self, Key, RichText, Ui, Vec2};
+use eframe::egui::{self, Key, RichText, Sense, Ui, Vec2};
 
 /// Draw the whole editor for one frame.
 pub fn show(ui: &mut Ui, app: &mut FireCraft) {
@@ -30,6 +30,14 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
 
     if dialogs::startup_splash(ui, app) {
         return;
+    }
+
+    // Intercept the OS close button before eframe tears the window down. CancelClose is issued
+    // only while there is unsaved work so a clean session still closes normally.
+    if ui.ctx().input(|i| i.viewport().close_requested()) && app.has_unsaved_changes() {
+        ui.ctx()
+            .send_viewport_cmd(egui::ViewportCommand::CancelClose);
+        app.show_quit_confirm = true;
     }
 
     shortcuts(ui, app);
@@ -66,7 +74,9 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
         )
         .show(ui, |ui| status_bar(ui, app));
 
-    // 4. Bottom Dock: Properties & Symbol Properties Inspector (taller default + resizable)
+    // 4. Bottom Dock: Properties, Symbol Properties & Intelligence Inspector.
+    // Height is owned by the app (not egui panel memory) so a drag cannot snap back when the
+    // nested panel re-measures its content.
     if app.show_bottom_inspector {
         let frame =
             egui::Frame::new()
@@ -75,21 +85,16 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
                     8,
                     if app.bottom_collapsed { 2 } else { 5 },
                 ));
-        if app.bottom_collapsed {
-            egui::Panel::bottom("properties_dock")
-                .exact_size(24.0)
-                .resizable(false)
-                .frame(frame)
-                .show(ui, |ui| bottom_properties_dock(ui, app));
+        let dock_h = if app.bottom_collapsed {
+            30.0
         } else {
-            egui::Panel::bottom("properties_dock")
-                .default_size(142.0)
-                .min_size(118.0)
-                .max_size(240.0)
-                .resizable(true)
-                .frame(frame)
-                .show(ui, |ui| bottom_properties_dock(ui, app));
-        }
+            app.bottom_height.clamp(118.0, 340.0)
+        };
+        egui::Panel::bottom("properties_dock")
+            .exact_size(dock_h)
+            .resizable(false)
+            .frame(frame)
+            .show(ui, |ui| bottom_properties_dock(ui, app));
     }
 
     // 5. Left/Right/Floating CS6 Tool Strip (with top grip bar to drag/float/snap + >> / << collapse)
@@ -107,9 +112,7 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
                     )
                     .show(ui, |ui| {
                         tools_top_bar(ui, app);
-                        egui::ScrollArea::vertical()
-                            .id_salt("tools_scroll_left")
-                            .show(ui, |ui| panels::tools_panel(ui, app));
+                        tools_dock_contents(ui, app, "tools_scroll_left");
                     });
             }
             crate::app::ToolsDockMode::Right => {
@@ -123,9 +126,7 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
                     )
                     .show(ui, |ui| {
                         tools_top_bar(ui, app);
-                        egui::ScrollArea::vertical()
-                            .id_salt("tools_scroll_right")
-                            .show(ui, |ui| panels::tools_panel(ui, app));
+                        tools_dock_contents(ui, app, "tools_scroll_right");
                     });
             }
             crate::app::ToolsDockMode::Floating => {}
@@ -343,10 +344,7 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
                         ui.set_width(tools_w);
                         ui.set_max_height(max_h);
                         tools_top_bar(ui, app);
-                        egui::ScrollArea::vertical()
-                            .id_salt("tools_scroll_floating")
-                            .max_height(max_h - 24.0)
-                            .show(ui, |ui| panels::tools_panel(ui, app));
+                        tools_dock_contents(ui, app, "tools_scroll_floating");
                     });
             });
     }
@@ -359,8 +357,35 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
         .filter(|(_, g)| g.zone == crate::app::DockZone::Floating && !g.tabs.is_empty())
         .map(|(i, _)| i)
         .collect();
+    // Resolve stack geometry before drawing: each stacked group sits flush below its parent and
+    // inherits the parent's width, so dragging the root moves the whole column as one unit.
+    for _ in 0..app.panel_groups.len() {
+        for i in 0..app.panel_groups.len() {
+            let Some(parent_id) = app.panel_groups[i].stack_parent else {
+                continue;
+            };
+            let Some((pp, pw, ph)) = app
+                .panel_groups
+                .iter()
+                .find(|g| g.id == parent_id)
+                .map(|g| {
+                    (
+                        g.floating_pos,
+                        g.floating_width,
+                        FireCraft::panel_group_height(g),
+                    )
+                })
+            else {
+                continue;
+            };
+            let g = &mut app.panel_groups[i];
+            g.floating_pos = egui::pos2(pp.x, pp.y + ph + 2.0);
+            g.floating_width = pw;
+        }
+    }
+
     for idx in floating_indices {
-        let (gid, fpos, fwidth, fheight, collapsed) = {
+        let (gid, fpos, fwidth, fheight, collapsed, stacked) = {
             let g = &app.panel_groups[idx];
             (
                 g.id,
@@ -368,18 +393,19 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
                 g.floating_width,
                 g.body_height,
                 g.collapsed,
+                g.stack_parent.is_some(),
             )
         };
         let area_resp = egui::Area::new(ui.make_persistent_id(("floating_pg", gid)))
             .order(egui::Order::Middle)
             .current_pos(fpos)
-            .movable(true)
+            .movable(!stacked)
             .show(ui.ctx(), |ui| {
                 ui.set_width(fwidth);
                 panels::panel_group_widget(ui, app, idx, true);
             });
         let new_pos = area_resp.response.rect.min;
-        if (new_pos - fpos).length() > 0.5 {
+        if !stacked && (new_pos - fpos).length() > 0.5 {
             let est_h = if collapsed { 24.0 } else { fheight + 28.0 };
             let snapped = app.snap_floating_pos(
                 gid,
@@ -399,26 +425,27 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
         let released = ui.input(|i| !i.pointer.primary_down());
         if !released && let Some(pos) = pointer_pos {
             ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
-            let ghost_r =
-                egui::Rect::from_min_size(pos + Vec2::new(8.0, 8.0), Vec2::new(200.0, 26.0));
-            let fg = ui.ctx().layer_painter(egui::LayerId::new(
-                egui::Order::Tooltip,
-                ui.make_persistent_id("group_drag_ghost"),
-            ));
-            fg.rect_filled(ghost_r, 0.0, app.palette.panel_alt.gamma_multiply(0.92));
-            fg.rect_stroke(
-                ghost_r,
-                0.0,
-                egui::Stroke::new(1.5, app.palette.accent),
-                egui::StrokeKind::Inside,
+            let (width, height, titles) = app
+                .panel_groups
+                .iter()
+                .find(|g| g.id == dragged_gid)
+                .map(|g| {
+                    (
+                        g.floating_width.clamp(180.0, 360.0),
+                        if g.collapsed {
+                            24.0
+                        } else {
+                            (g.body_height + 30.0).clamp(80.0, 420.0)
+                        },
+                        g.tabs.iter().map(|t| t.title().to_string()).collect(),
+                    )
+                })
+                .unwrap_or((260.0, 160.0, vec!["Panel".to_string()]));
+            let ghost_r = egui::Rect::from_min_size(
+                pos - Vec2::new(width * 0.5, 10.0),
+                Vec2::new(width, height),
             );
-            fg.text(
-                ghost_r.center(),
-                egui::Align2::CENTER_CENTER,
-                "Moving Panel Group (Drop to Dock / Merge / Float)",
-                egui::FontId::proportional(10.5),
-                app.palette.text,
-            );
+            draw_widget_drag_ghost(ui, app, ghost_r, &titles);
         }
         if released {
             app.dragging_group = None;
@@ -434,6 +461,23 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
                     app.move_group_to_zone(dragged_gid, crate::app::DockZone::RightInner, None);
                 } else if right_outer_rect.is_some_and(|r| r.contains(pos)) {
                     app.move_group_to_zone(dragged_gid, crate::app::DockZone::RightOuter, None);
+                } else if let Some((target_id, drop_above)) = app
+                    .panel_groups
+                    .iter()
+                    .filter(|g| {
+                        g.id != dragged_gid
+                            && g.zone == crate::app::DockZone::Floating
+                            && !g.tabs.is_empty()
+                    })
+                    .find_map(|g| {
+                        let r = egui::Rect::from_min_size(
+                            g.floating_pos,
+                            Vec2::new(g.floating_width, FireCraft::panel_group_height(g)),
+                        );
+                        r.contains(pos).then(|| (g.id, pos.y < r.center().y))
+                    })
+                {
+                    app.stack_group(dragged_gid, target_id, !drop_above);
                 } else {
                     let snapped = app.snap_floating_pos(
                         dragged_gid,
@@ -456,26 +500,17 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
         let released = ui.input(|i| !i.pointer.primary_down());
         if !released && let Some(pos) = pointer_pos {
             ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
-            let ghost_r =
-                egui::Rect::from_min_size(pos + Vec2::new(8.0, 8.0), Vec2::new(180.0, 26.0));
-            let fg = ui.ctx().layer_painter(egui::LayerId::new(
-                egui::Order::Tooltip,
-                ui.make_persistent_id("panel_drag_ghost"),
-            ));
-            fg.rect_filled(ghost_r, 0.0, app.palette.panel_alt.gamma_multiply(0.92));
-            fg.rect_stroke(
-                ghost_r,
-                0.0,
-                egui::Stroke::new(1.5, app.palette.accent),
-                egui::StrokeKind::Inside,
+            let width = app
+                .panel_groups
+                .iter()
+                .find(|g| g.tabs.contains(&dragged))
+                .map(|g| g.floating_width.clamp(180.0, 360.0))
+                .unwrap_or(260.0);
+            let ghost_r = egui::Rect::from_min_size(
+                pos - Vec2::new(width * 0.5, 10.0),
+                Vec2::new(width, 170.0),
             );
-            fg.text(
-                ghost_r.center(),
-                egui::Align2::CENTER_CENTER,
-                format!("Moving: {}", dragged.title()),
-                egui::FontId::proportional(11.0),
-                app.palette.text,
-            );
+            draw_widget_drag_ghost(ui, app, ghost_r, &[dragged.title().to_string()]);
         }
         if released {
             app.dragging_panel = None;
@@ -510,6 +545,7 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     dialogs::page_setup_dialog(app);
     dialogs::find_replace_dialog(app);
     dialogs::saved_commands_dialog(app);
+    dialogs::quit_confirm_dialog(app);
     // 10. Detached Floating Canvas Windows (Multi-Monitor Native OS Viewports)
     #[cfg(not(target_arch = "wasm32"))]
     if !app.floating_doc_tabs.is_empty() {
@@ -767,35 +803,6 @@ fn main_toolbar(ui: &mut Ui, app: &mut FireCraft) {
         if canvas::tool_button(ui, icons::Icon::FlipV, false, "Flip Vertical").clicked() {
             app.flip_vertical();
         }
-        ui.separator();
-        // Canvas Resolution & DPI Dropdown right on the Main Toolbar
-        let cur_res = format!("{:.0}×{:.0}", app.doc.page().width, app.doc.page().height);
-        egui::ComboBox::from_id_salt("toolbar_resolution_combo")
-            .width(105.0)
-            .selected_text(cur_res)
-            .show_ui(ui, |ui| {
-                for &(label, w, h) in constants::RESOLUTION_PRESETS {
-                    let active = (app.doc.page().width - w).abs() < 0.5
-                        && (app.doc.page().height - h).abs() < 0.5;
-                    if ui.selectable_label(active, label).clicked() {
-                        app.resize_canvas(w, h);
-                    }
-                }
-            });
-        egui::ComboBox::from_id_salt("toolbar_dpi_combo")
-            .width(68.0)
-            .selected_text(format!("{} ppi", app.doc.dpi))
-            .show_ui(ui, |ui| {
-                for &dpi in constants::DPI_PRESETS {
-                    if ui
-                        .selectable_label(app.doc.dpi == dpi, format!("{dpi} ppi"))
-                        .clicked()
-                    {
-                        app.doc.dpi = dpi;
-                        app.status = format!("Document resolution set to {dpi} ppi");
-                    }
-                }
-            });
         ui.separator();
         if ui
             .small_button("Demo Showcase")
@@ -1111,56 +1118,47 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
 }
 
 fn bottom_properties_dock(ui: &mut Ui, app: &mut FireCraft) {
-    const TABS: &[&str] = &["◊ Properties", "Symbol Properties"];
-    let current = app.bottom_tab.min(1);
+    const TABS: &[&str] = &["◊ Properties", "Symbol Properties", "Intelligence"];
+    let current = app.bottom_tab.min(TABS.len() - 1);
     let mut tab = current;
     let palette = app.palette;
-    if app.bottom_collapsed {
-        ui.horizontal(|ui| {
-            ui.spacing_mut().item_spacing = Vec2::new(6.0, 0.0);
-            for (i, label) in TABS.iter().enumerate() {
-                if ui
-                    .selectable_label(current == i, RichText::new(*label).small())
-                    .clicked()
-                {
-                    app.bottom_tab = i;
-                    app.bottom_collapsed = false;
-                }
-            }
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui
-                    .small_button("▴")
-                    .on_hover_text("Expand Properties Inspector")
-                    .clicked()
-                {
-                    app.bottom_collapsed = false;
-                }
-            });
-        });
-        return;
+    let collapsed = app.bottom_collapsed;
+
+    if !collapsed {
+        // Slim resize grip owned by the app so the height survives content re-measurement.
+        let (grip, grip_resp) =
+            ui.allocate_exact_size(Vec2::new(ui.available_width(), 4.0), Sense::drag());
+        if grip_resp.hovered() || grip_resp.dragged() {
+            ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeVertical);
+            ui.painter().line_segment(
+                [grip.left_center(), grip.right_center()],
+                egui::Stroke::new(1.0, palette.accent),
+            );
+        }
+        if grip_resp.dragged() {
+            let dy = ui.ctx().input(|i| i.pointer.delta().y);
+            app.bottom_height = (app.bottom_height - dy).clamp(118.0, 340.0);
+            ui.ctx().request_repaint();
+        }
+        grip_resp.on_hover_text("Drag to resize the Properties inspector");
     }
-    ui.horizontal(|ui| {
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if ui
-                .small_button("▾")
-                .on_hover_text("Collapse Properties Inspector")
-                .clicked()
-            {
-                app.bottom_collapsed = true;
-            }
-        });
-    });
-    panels::panel(
+
+    let toggle = panels::panel_collapsible(
         ui,
-        TABS[current],
+        "Properties",
         TABS,
         &mut tab,
         palette,
-        Some(58.0),
+        if collapsed {
+            None
+        } else {
+            Some((app.bottom_height - 42.0).clamp(58.0, 300.0))
+        },
+        collapsed,
         |ui| {
             if current == 0 {
                 panels::properties_panel(ui, app);
-            } else {
+            } else if current == 1 {
                 ui.horizontal(|ui| {
                     ui.label(
                         RichText::new("Symbol Library Instances:")
@@ -1181,9 +1179,14 @@ fn bottom_properties_dock(ui: &mut Ui, app: &mut FireCraft) {
                         .small(),
                     );
                 });
+            } else {
+                panels::intelligence_panel(ui, app);
             }
         },
     );
+    if toggle {
+        app.bottom_collapsed = !app.bottom_collapsed;
+    }
     app.bottom_tab = tab;
 }
 
@@ -1226,7 +1229,76 @@ fn canvas_footer_bar(ui: &mut Ui, app: &mut FireCraft) {
                 "Snapping disabled".to_string()
             };
         }
+        ui.separator();
+        if ui
+            .selectable_label(
+                app.infinite_canvas,
+                RichText::new(if app.infinite_canvas {
+                    "∞ Canvas: On"
+                } else {
+                    "∞ Canvas"
+                })
+                .small(),
+            )
+            .on_hover_text(
+                "Infinite canvas: objects may extend beyond the page. The dotted box marks the page bounds. Flat raster, SVG, and HTML exports crop to the page; out-of-page objects stay editable in the project.",
+            )
+            .clicked()
+        {
+            app.infinite_canvas = !app.infinite_canvas;
+            app.status = if app.infinite_canvas {
+                "Infinite canvas ON — dotted box marks page bounds; flat exports crop to it"
+                    .to_string()
+            } else {
+                "Infinite canvas OFF".to_string()
+            };
+        }
+        if app.infinite_canvas {
+            ui.label(
+                RichText::new("only page bounds are included in flat exports")
+                    .small()
+                    .color(p.text_dim),
+            );
+        }
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            // DPI / PPI Dropdown (moved down from the Main Toolbar)
+            egui::ComboBox::from_id_salt("canvas_footer_dpi")
+                .width(68.0)
+                .selected_text(format!("{} ppi", app.doc.dpi))
+                .show_ui(ui, |ui| {
+                    for &dpi in constants::DPI_PRESETS {
+                        if ui
+                            .selectable_label(app.doc.dpi == dpi, format!("{dpi} ppi"))
+                            .clicked()
+                        {
+                            app.doc.dpi = dpi;
+                            app.status = format!("Document resolution set to {dpi} ppi");
+                        }
+                    }
+                });
+
+            // Resolution Dropdown (e.g. 1920 × 1080 ▾)
+            let (pw, ph) = (
+                app.doc.page().width.round() as i32,
+                app.doc.page().height.round() as i32,
+            );
+            egui::ComboBox::from_id_salt("canvas_footer_res")
+                .width(122.0)
+                .selected_text(format!("{pw} × {ph}"))
+                .show_ui(ui, |ui| {
+                    for &(label, w, h) in constants::RESOLUTION_PRESETS {
+                        let active = (app.doc.page().width - w).abs() < 0.5
+                            && (app.doc.page().height - h).abs() < 0.5;
+                        if ui.selectable_label(active, label).clicked() {
+                            app.resize_canvas(w, h);
+                        }
+                    }
+                    ui.separator();
+                    if ui.button("Custom Canvas Size…").clicked() {
+                        app.open_canvas_size_dialog();
+                    }
+                });
+
             // Zoom Scale Dropdown (e.g. 50% ▾)
             let zoom_pct = (app.doc.zoom * 100.0).round() as i32;
             egui::ComboBox::from_id_salt("canvas_footer_zoom")
@@ -1247,61 +1319,171 @@ fn canvas_footer_bar(ui: &mut Ui, app: &mut FireCraft) {
                     }
                 });
 
-            // Resolution Dropdown (e.g. 1920 x 1080 ▾)
-            let (pw, ph) = (app.doc.page().width as i32, app.doc.page().height as i32);
-            egui::ComboBox::from_id_salt("canvas_footer_res")
-                .width(108.0)
-                .selected_text(format!("{pw} x {ph}"))
-                .show_ui(ui, |ui| {
-                    for (w, h, lbl) in [
-                        (1920, 1080, "1920 × 1080 (Full HD)"),
-                        (1440, 900, "1440 × 900 (WXGA+)"),
-                        (1280, 720, "1280 × 720 (HD)"),
-                        (1024, 768, "1024 × 768 (XGA)"),
-                        (800, 600, "800 × 600 (SVGA)"),
-                    ] {
-                        if ui.selectable_label(pw == w && ph == h, lbl).clicked() {
-                            app.resize_canvas(w as f32, h as f32);
-                        }
-                    }
-                    ui.separator();
-                    if ui.button("Custom Canvas Size…").clicked() {
-                        app.open_canvas_size_dialog();
-                    }
-                });
-
             ui.separator();
 
-            // Animation / State Transport Controls: |<  ▶/⏸  >|  <frame>  ◀  ▶
+            // Single canonical state transport. Widgets are added right-to-left so the
+            // visual order is: First · Previous · Play/Pause · 1 / N · Next · Last.
             let state_count = app.doc.page().states.len().max(1);
-            let cur_state = app.doc.page().current_state;
-            if ui.small_button("▶").on_hover_text("Next State").clicked() {
+            let cur_state = app.doc.page().current_state.min(state_count - 1);
+            let can_prev = cur_state > 0;
+            let can_next = cur_state + 1 < state_count;
+            let can_play = state_count > 1;
+
+            if footer_icon_button(ui, icons::Icon::StateLast, can_next, "Last State")
+                && can_next
+            {
+                app.doc.page_mut().select_state(state_count - 1);
+                app.selected = None;
+                app.selected_set.clear();
+            }
+            if footer_icon_button(ui, icons::Icon::StateNext, can_next, "Next State")
+                && can_next
+            {
                 app.select_state_step(1);
             }
-            if ui
-                .small_button("◀")
-                .on_hover_text("Previous State")
-                .clicked()
-            {
-                app.select_state_step(-1);
-            }
-            ui.label(RichText::new(format!("{}", cur_state + 1)).small().strong());
-            if ui.small_button(">|").on_hover_text("Last State").clicked() {
-                app.doc.page_mut().select_state(state_count - 1);
-            }
-            if ui
-                .small_button(if app.anim_playing { "⏸" } else { "▶" })
-                .on_hover_text("Play / Pause Animation States")
-                .clicked()
+            ui.label(
+                RichText::new(format!("{} / {}", cur_state + 1, state_count))
+                    .small()
+                    .strong(),
+            );
+            let play_icon = if app.anim_playing {
+                icons::Icon::StatePause
+            } else {
+                icons::Icon::StatePlay
+            };
+            if footer_icon_button(
+                ui,
+                play_icon,
+                can_play,
+                if app.anim_playing {
+                    "Pause Animation States"
+                } else {
+                    "Play Animation States"
+                },
+            ) && can_play
             {
                 app.anim_playing = !app.anim_playing;
                 app.anim_last_tick = ui.input(|i| i.time);
             }
-            if ui.small_button("|<").on_hover_text("First State").clicked() {
+            if footer_icon_button(ui, icons::Icon::StatePrev, can_prev, "Previous State")
+                && can_prev
+            {
+                app.select_state_step(-1);
+            }
+            if footer_icon_button(ui, icons::Icon::StateFirst, can_prev, "First State")
+                && can_prev
+            {
                 app.doc.page_mut().select_state(0);
+                app.selected = None;
+                app.selected_set.clear();
             }
         });
     });
+}
+
+/// Compact monochrome transport button used by the canvas footer. Disabled controls stay
+/// visible (dimmed) so the available actions never reflow while stepping through states.
+fn footer_icon_button(ui: &mut Ui, icon: icons::Icon, enabled: bool, tip: &str) -> bool {
+    let (rect, resp) = ui.allocate_exact_size(Vec2::new(20.0, 18.0), Sense::click());
+    let hovered = enabled && resp.hovered();
+    if hovered {
+        ui.painter()
+            .rect_filled(rect.shrink(1.0), 0.0, egui::Color32::from_white_alpha(18));
+    }
+    let color = if enabled {
+        if hovered {
+            egui::Color32::WHITE
+        } else {
+            egui::Color32::from_gray(196)
+        }
+    } else {
+        egui::Color32::from_gray(96)
+    };
+    icons::draw(ui.painter(), rect.shrink(2.0), icon, color, 1.15);
+    let clicked = resp.clicked() && enabled;
+    if enabled {
+        if resp.hovered() {
+            ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+        }
+        resp.on_hover_text(tip);
+    } else {
+        resp.on_hover_text(format!("{tip} (unavailable)"));
+    }
+    clicked
+}
+
+/// Full-widget drag preview: a translucent facsimile of the panel header, tabs, and body so the
+/// user sees the whole object moving, while the real window stays in place until drop.
+fn draw_widget_drag_ghost(ui: &Ui, app: &FireCraft, rect: egui::Rect, titles: &[String]) {
+    let p = app.palette;
+    let fg = ui.ctx().layer_painter(egui::LayerId::new(
+        egui::Order::Tooltip,
+        ui.make_persistent_id("widget_drag_ghost"),
+    ));
+    fg.rect_filled(
+        rect.translate(Vec2::new(3.0, 4.0)),
+        2.0,
+        egui::Color32::from_black_alpha(70),
+    );
+    fg.rect_filled(rect, 2.0, p.panel.gamma_multiply(0.93));
+    fg.rect_stroke(
+        rect,
+        2.0,
+        egui::Stroke::new(1.5, p.accent),
+        egui::StrokeKind::Inside,
+    );
+    let header = egui::Rect::from_min_size(rect.min, Vec2::new(rect.width(), 22.0));
+    fg.rect_filled(header, 2.0, p.panel_alt.gamma_multiply(0.96));
+    fg.line_segment(
+        [header.left_bottom(), header.right_bottom()],
+        egui::Stroke::new(1.0, p.stroke),
+    );
+    let mut x = header.left() + 8.0;
+    for (i, title) in titles.iter().take(4).enumerate() {
+        let tw = (title.len() as f32 * 5.4 + 12.0).min(96.0);
+        let tab_r = egui::Rect::from_min_size(
+            egui::pos2(x, header.top() + 2.0),
+            Vec2::new(tw, header.height() - 3.0),
+        );
+        if i == 0 {
+            fg.rect_filled(tab_r, 0.0, p.panel);
+            fg.line_segment(
+                [tab_r.left_top(), tab_r.right_top()],
+                egui::Stroke::new(1.5, p.accent),
+            );
+        }
+        fg.text(
+            tab_r.center(),
+            egui::Align2::CENTER_CENTER,
+            title,
+            egui::FontId::proportional(10.0),
+            if i == 0 { p.text } else { p.text_dim },
+        );
+        x += tw + 2.0;
+    }
+    let body = rect.shrink2(Vec2::new(4.0, 0.0));
+    let body_top = header.bottom() + 6.0;
+    if rect.height() > 48.0 {
+        for row in 0..4 {
+            let y = body_top + row as f32 * 15.0;
+            if y > rect.bottom() - 10.0 {
+                break;
+            }
+            let w = (body.width() * (0.8 - row as f32 * 0.12)).max(40.0);
+            fg.rect_filled(
+                egui::Rect::from_min_size(egui::pos2(body.left() + 6.0, y), Vec2::new(w, 7.0)),
+                0.0,
+                p.well.gamma_multiply(0.85),
+            );
+        }
+        fg.text(
+            egui::pos2(rect.center().x, rect.bottom() - 12.0),
+            egui::Align2::CENTER_CENTER,
+            "Drop on a tab bar to group · edge to dock · elsewhere to float",
+            egui::FontId::proportional(9.5),
+            p.text_dim,
+        );
+    }
 }
 
 fn panel_mini_icon(id: crate::app::PanelId) -> icons::Icon {
@@ -1816,6 +1998,35 @@ fn right_dock(ui: &mut Ui, app: &mut FireCraft) {
     dock_column(ui, app, crate::app::DockZone::RightOuter);
 }
 
+/// Scrolling tool sections plus an always-visible footer pinned to the bottom of the rail.
+fn tools_dock_contents(ui: &mut Ui, app: &mut FireCraft, scroll_id: &str) {
+    let footer_h = if app.tools_collapsed { 118.0 } else { 66.0 };
+    let total_h = ui.available_height();
+    let body_h = (total_h - footer_h).max(90.0);
+    ui.allocate_ui_with_layout(
+        Vec2::new(ui.available_width(), body_h),
+        egui::Layout::top_down(egui::Align::Min),
+        |ui| {
+            ui.set_min_height(body_h);
+            ui.set_max_height(body_h);
+            egui::ScrollArea::vertical()
+                .id_salt(scroll_id)
+                .auto_shrink([false, false])
+                .max_height(body_h)
+                .show(ui, |ui| panels::tools_panel_body(ui, app));
+        },
+    );
+    ui.allocate_ui_with_layout(
+        Vec2::new(ui.available_width(), footer_h),
+        egui::Layout::top_down(egui::Align::Min),
+        |ui| {
+            ui.set_min_height(footer_h);
+            ui.set_max_height(footer_h);
+            panels::tools_panel_footer(ui, app);
+        },
+    );
+}
+
 /// The bottom status bar + CS6 animation playback transport controls.
 fn status_bar(ui: &mut Ui, app: &mut FireCraft) {
     ui.horizontal(|ui| {
@@ -1843,47 +2054,8 @@ fn status_bar(ui: &mut Ui, app: &mut FireCraft) {
             );
         }
 
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            ui.label(
-                RichText::new(format!("{:.0}%", app.doc.zoom * 100.0))
-                    .small()
-                    .strong(),
-            );
-            ui.separator();
-            let (w, h, dpi, cur_st, total_st) = {
-                let page = app.doc.page();
-                (
-                    page.width as u32,
-                    page.height as u32,
-                    app.doc.dpi,
-                    page.current_state + 1,
-                    page.states.len(),
-                )
-            };
-            ui.label(RichText::new(format!("{w} × {h} @ {dpi}ppi")).small());
-            ui.separator();
-            if ui
-                .small_button(">|")
-                .on_hover_text("Next Animation State")
-                .clicked()
-            {
-                let next = (cur_st) % total_st.max(1);
-                app.doc.page_mut().select_state(next);
-            }
-            ui.label(RichText::new(format!("State {cur_st} of {total_st}")).small());
-            if ui
-                .small_button("|<")
-                .on_hover_text("Previous Animation State")
-                .clicked()
-            {
-                let prev = if cur_st > 1 {
-                    cur_st - 2
-                } else {
-                    total_st.saturating_sub(1)
-                };
-                app.doc.page_mut().select_state(prev);
-            }
-        });
+        // Zoom, resolution, DPI, and state transport live only in the canvas footer so the
+        // status bar never duplicates document controls.
     });
 }
 
@@ -1946,6 +2118,11 @@ enum Shortcut {
     ToggleItalic,
     PageStep(isize),
     StateStep(isize),
+    StateFirst,
+    StateLast,
+    BrushSize(f32),
+    FocusIntelligence,
+    InfiniteCanvas,
 }
 
 fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
@@ -1980,7 +2157,15 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
         app.show_file_dialog = false;
         app.show_welcome = false;
         if !closed_popup {
-            app.clear_selection();
+            // Cancel any in-progress creation/drag/text edit, then return to the Pointer tool.
+            // Selection is preserved so users can immediately continue editing.
+            app.drag = None;
+            app.inline_text_edit_obj = None;
+            app.alt_hand_pan = false;
+            if app.tool != Tool::Select {
+                app.status = "Pointer tool (Esc)".to_string();
+            }
+            app.tool = Tool::Select;
         }
         ui.ctx().request_repaint();
         return;
@@ -2136,6 +2321,14 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
                         (Key::R, true, false, true) => Some(Shortcut::ToggleRulers),
                         (Key::G, true, false, true) => Some(Shortcut::ToggleGrid),
                         (Key::Semicolon, true, false, false) => Some(Shortcut::ToggleGuides),
+                        (Key::I, true, false, true) => Some(Shortcut::FocusIntelligence),
+                        (Key::F, true, true, false) => Some(Shortcut::InfiniteCanvas),
+                        (Key::OpenBracket, false, false, false) => Some(Shortcut::BrushSize(-1.0)),
+                        (Key::CloseBracket, false, false, false) => Some(Shortcut::BrushSize(1.0)),
+                        (Key::Plus | Key::Equals, false, false, false) => Some(Shortcut::ZoomIn),
+                        (Key::Minus, false, false, false) => Some(Shortcut::ZoomOut),
+                        (Key::Home, false, false, false) => Some(Shortcut::StateFirst),
+                        (Key::End, false, false, false) => Some(Shortcut::StateLast),
 
                         // Arrange, Paths & Selection cycling
                         (Key::ArrowUp, true, true, false) => Some(Shortcut::ReorderFront(true)),
@@ -2244,7 +2437,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
         Some(Shortcut::New) => app.show_new_dialog = true,
         Some(Shortcut::Open) => app.begin_file_dialog(FileMode::Open),
         Some(Shortcut::CloseTab) => app.request_close_active_tab(),
-        Some(Shortcut::Quit) => std::process::exit(0),
+        Some(Shortcut::Quit) => app.request_quit(),
         Some(Shortcut::Import) => app.begin_file_dialog(FileMode::Import),
         Some(Shortcut::Export) => app.begin_file_dialog(FileMode::Export),
         Some(Shortcut::ImagePreview) => {
@@ -2317,6 +2510,36 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
         Some(Shortcut::ToggleItalic) => app.toggle_selected_text_italic(),
         Some(Shortcut::PageStep(d)) => app.select_page_step(d),
         Some(Shortcut::StateStep(d)) => app.select_state_step(d),
+        Some(Shortcut::StateFirst) => {
+            let count = app.doc.page().states.len();
+            app.doc.page_mut().select_state(0);
+            app.clear_selection();
+            app.status = format!("First Animation State (1 of {count})");
+        }
+        Some(Shortcut::StateLast) => {
+            let count = app.doc.page().states.len();
+            app.doc.page_mut().select_state(count.saturating_sub(1));
+            app.clear_selection();
+            app.status = format!("Last Animation State ({count} of {count})");
+        }
+        Some(Shortcut::BrushSize(d)) => {
+            app.brush_size = (app.brush_size + d).clamp(1.0, 128.0);
+            app.status = format!("Brush size: {:.0} px", app.brush_size);
+        }
+        Some(Shortcut::FocusIntelligence) => {
+            app.show_bottom_inspector = true;
+            app.bottom_collapsed = false;
+            app.bottom_tab = 2;
+            app.status = "Opened Intelligence inspector".to_string();
+        }
+        Some(Shortcut::InfiniteCanvas) => {
+            app.infinite_canvas = !app.infinite_canvas;
+            app.status = if app.infinite_canvas {
+                "Infinite canvas ON — flat exports crop to page bounds".to_string()
+            } else {
+                "Infinite canvas OFF".to_string()
+            };
+        }
         None => return,
     }
     ui.ctx().request_repaint();

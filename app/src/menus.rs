@@ -621,16 +621,22 @@ fn edit_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
     if nav.row(ui, p, has_sel, "Copy", "Ctrl+C") {
         app.copy_selected();
     }
-    if nav.row(ui, p, has_sel, "Copy HTML / CSS Code…", "Ctrl+Alt+C") {
+    if nav.row(ui, p, has_sel, "Copy HTML / CSS Code…", "Ctrl+Shift+C") {
         app.copy_selected_css();
     }
-    if nav.row(ui, p, true, "Paste", "Ctrl+V") {
+    if nav.row(
+        ui,
+        p,
+        app.clipboard.is_some() || !app.clipboard_set.is_empty(),
+        "Paste",
+        "Ctrl+V",
+    ) {
         app.paste();
     }
     if nav.row(
         ui,
         p,
-        has_sel && app.clipboard.is_some(),
+        has_sel && (app.clipboard.is_some() || !app.clipboard_set.is_empty()),
         "Paste Attributes",
         "Ctrl+Alt+Shift+V",
     ) {
@@ -640,7 +646,7 @@ fn edit_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
         app.delete_selected();
     }
     ui.separator();
-    if nav.row(ui, p, has_sel, "Duplicate", "Ctrl+Alt+D") {
+    if nav.row(ui, p, has_sel, "Duplicate", "Ctrl+D") {
         app.duplicate_selected();
     }
     if nav.row(ui, p, has_sel, "Clone", "Ctrl+Shift+D") {
@@ -856,11 +862,17 @@ fn modify_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
     if nav.row(ui, p, has_sel, "Split Paths", "Ctrl+Shift+J") {
         app.combine_paths_op("split");
     }
-    if nav.row(ui, p, has_sel, "Union Paths", "") {
+    if nav.row(ui, p, multi_sel, "Union Paths", "") {
         app.combine_paths_op("union");
     }
-    if nav.row(ui, p, has_sel, "Punch Paths", "") {
+    if nav.row(ui, p, multi_sel, "Intersect Paths", "") {
+        app.combine_paths_op("intersect");
+    }
+    if nav.row(ui, p, multi_sel, "Punch Paths", "") {
         app.combine_paths_op("punch");
+    }
+    if nav.row(ui, p, multi_sel, "Crop Paths", "") {
+        app.combine_paths_op("crop");
     }
     if nav.row(ui, p, has_sel, "Snap To Pixel", "") {
         app.snap_selected_to_pixel();
