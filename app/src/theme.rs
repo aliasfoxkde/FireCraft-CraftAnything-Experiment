@@ -208,26 +208,44 @@ pub fn apply_cs6_style(ctx: &egui::Context, p: &Palette, dark: bool) {
     v.selection.bg_fill = p.accent;
     v.selection.stroke = egui_stroke(p.selection);
     v.hyperlink_color = p.selection;
-    v.window_stroke = egui_stroke(p.stroke);
+    v.window_stroke = egui_stroke(p.accent.gamma_multiply(0.8));
+    v.window_shadow = egui::epaint::Shadow {
+        offset: [0, 8],
+        blur: 24,
+        spread: 0,
+        color: Color32::from_black_alpha(125),
+    };
+    v.popup_shadow = egui::epaint::Shadow {
+        offset: [2, 4],
+        blur: 12,
+        spread: 0,
+        color: Color32::from_black_alpha(105),
+    };
 
     ctx.all_styles_mut(|style| {
         style.visuals = v.clone();
         style
             .text_styles
-            .insert(egui::TextStyle::Body, egui::FontId::proportional(12.0));
+            .insert(egui::TextStyle::Body, egui::FontId::proportional(12.5));
         style
             .text_styles
-            .insert(egui::TextStyle::Button, egui::FontId::proportional(11.5));
+            .insert(egui::TextStyle::Button, egui::FontId::proportional(12.0));
         style
             .text_styles
             .insert(egui::TextStyle::Small, egui::FontId::proportional(10.5));
         style
             .text_styles
-            .insert(egui::TextStyle::Heading, egui::FontId::proportional(14.5));
+            .insert(egui::TextStyle::Heading, egui::FontId::proportional(15.5));
+        style
+            .text_styles
+            .insert(egui::TextStyle::Monospace, egui::FontId::monospace(11.5));
         style.spacing.menu_margin = egui::Margin::same(2);
-        style.spacing.button_padding = egui::Vec2::new(6.0, 2.0);
-        style.spacing.item_spacing = egui::Vec2::new(6.0, 3.0);
-        style.spacing.window_margin = egui::Margin::same(6);
+        style.spacing.button_padding = egui::Vec2::new(8.0, 3.0);
+        style.spacing.item_spacing = egui::Vec2::new(6.0, 4.0);
+        style.spacing.window_margin = egui::Margin::same(10);
+        style.spacing.interact_size.y = 21.0;
+        style.spacing.combo_width = 120.0;
+        style.spacing.slider_width = 120.0;
     });
 }
 

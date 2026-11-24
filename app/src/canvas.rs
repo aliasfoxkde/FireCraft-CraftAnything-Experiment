@@ -281,9 +281,12 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
                     app.doc.page().width * app.doc.zoom,
                     app.doc.page().height * app.doc.zoom,
                 );
-                if new_page_size.x <= rect.width() - 48.0 && new_page_size.y <= rect.height() - 48.0
+                if !app.infinite_canvas
+                    && new_page_size.x <= rect.width() - 48.0
+                    && new_page_size.y <= rect.height() - 48.0
                 {
-                    // Gently ease pan toward center when zoomed out smaller than viewport
+                    // Gently ease pan toward center when zoomed out smaller than viewport.
+                    // God view keeps the user's chosen position instead of snapping back.
                     app.doc.pan *= 0.45;
                     if app.doc.pan.length() < 2.0 {
                         app.doc.pan = Vec2::ZERO;
@@ -303,9 +306,15 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
                         .to_string();
             } else if shift {
                 let cur_page_w = app.doc.page().width * app.doc.zoom;
-                let can_scroll_h = cur_page_w > rect.width() - 64.0 || app.doc.pan.x.abs() > 1.0;
+                let can_scroll_h = cur_page_w > rect.width() - 64.0
+                    || app.doc.pan.x.abs() > 1.0
+                    || app.infinite_canvas;
                 if can_scroll_h {
-                    let max_pan_x = ((cur_page_w - rect.width() * 0.55) * 0.5 + 140.0).max(60.0);
+                    let max_pan_x = if app.infinite_canvas {
+                        100_000.0
+                    } else {
+                        ((cur_page_w - rect.width() * 0.55) * 0.5 + 140.0).max(60.0)
+                    };
                     app.doc.pan.x =
                         (app.doc.pan.x + wheel_delta * 1.4).clamp(-max_pan_x, max_pan_x);
                     app.status = format!(
@@ -321,17 +330,29 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
             } else {
                 let cur_page_w = app.doc.page().width * app.doc.zoom;
                 let cur_page_h = app.doc.page().height * app.doc.zoom;
-                let can_scroll_v = cur_page_h > rect.height() - 64.0 || app.doc.pan.y.abs() > 1.0;
-                let can_scroll_h = cur_page_w > rect.width() - 64.0 || app.doc.pan.x.abs() > 1.0;
+                let can_scroll_v = cur_page_h > rect.height() - 64.0
+                    || app.doc.pan.y.abs() > 1.0
+                    || app.infinite_canvas;
+                let can_scroll_h = cur_page_w > rect.width() - 64.0
+                    || app.doc.pan.x.abs() > 1.0
+                    || app.infinite_canvas;
                 if can_scroll_v {
-                    let max_pan_y = ((cur_page_h - rect.height() * 0.55) * 0.5 + 140.0).max(60.0);
+                    let max_pan_y = if app.infinite_canvas {
+                        100_000.0
+                    } else {
+                        ((cur_page_h - rect.height() * 0.55) * 0.5 + 140.0).max(60.0)
+                    };
                     app.doc.pan.y =
                         (app.doc.pan.y + scroll_vec.y * 1.4).clamp(-max_pan_y, max_pan_y);
                 } else {
                     app.doc.pan.y = 0.0;
                 }
                 if can_scroll_h && scroll_vec.x.abs() > 0.1 {
-                    let max_pan_x = ((cur_page_w - rect.width() * 0.55) * 0.5 + 140.0).max(60.0);
+                    let max_pan_x = if app.infinite_canvas {
+                        100_000.0
+                    } else {
+                        ((cur_page_w - rect.width() * 0.55) * 0.5 + 140.0).max(60.0)
+                    };
                     app.doc.pan.x =
                         (app.doc.pan.x + scroll_vec.x * 1.4).clamp(-max_pan_x, max_pan_x);
                 }
@@ -353,13 +374,26 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
                 let a = (origin + drag.start * zoom).to_pos2();
                 let b = (origin + drag.current * zoom).to_pos2();
                 let sel = Rect::from_min_max(a.min(b), a.max(b));
-                painter.rect_filled(sel, 0.0, app.palette.selection.gamma_multiply(0.15));
-                painter.rect_stroke(
-                    sel,
-                    0.0,
-                    Stroke::new(1.0, app.palette.selection),
-                    egui::StrokeKind::Middle,
-                );
+                if app.tool == Tool::OvalMarquee {
+                    painter.add(egui::Shape::ellipse_filled(
+                        sel.center(),
+                        sel.size() * 0.5,
+                        app.palette.selection.gamma_multiply(0.15),
+                    ));
+                    painter.add(egui::Shape::ellipse_stroke(
+                        sel.center(),
+                        sel.size() * 0.5,
+                        Stroke::new(1.0, app.palette.selection),
+                    ));
+                } else {
+                    painter.rect_filled(sel, 0.0, app.palette.selection.gamma_multiply(0.15));
+                    painter.rect_stroke(
+                        sel,
+                        0.0,
+                        Stroke::new(1.0, app.palette.selection),
+                        egui::StrokeKind::Middle,
+                    );
+                }
             }
             DragKind::Lasso if drag.path.len() > 1 => {
                 let pts: Vec<Pos2> = drag
@@ -985,39 +1019,58 @@ fn render_viewport(
 ) {
     let clip_vp = painter.with_clip_rect(viewport_rect);
     let zoom = app.doc.zoom;
+    // God view is an editing view: it deliberately exposes the whole object graph. Preview
+    // remains an export-faithful rendering, so it never leaks out-of-page or hidden content.
+    let god_view = app.infinite_canvas && !preview_mode;
     let page = app.doc.page();
     let page_size = Vec2::new(page.width * zoom, page.height * zoom);
     let origin: Vec2 = (viewport_rect.center() - page_size / 2.0 + app.doc.pan).to_vec2();
     let page_rect = Rect::from_min_size(origin.to_pos2(), page_size);
 
-    clip_vp.rect_filled(
-        page_rect.translate(Vec2::new(4.0, 4.0)),
-        0.0,
-        Color32::from_black_alpha(95),
-    );
-
-    let clip = clip_vp.with_clip_rect(page_rect.intersect(viewport_rect));
-    if page.transparent_bg {
-        draw_checkerboard(&clip, page_rect);
-    } else {
-        let bg = if preview_mode && !app.doc.optimize.transparency {
-            app.doc.optimize.matte
+    if god_view {
+        // Extend the page surface to the entire viewport. Opaque pages fill with their own color;
+        // transparent pages show the checkerboard everywhere. No page clip is applied, so every
+        // object (including off-page and hidden elements) is visible while panning.
+        if page.transparent_bg {
+            draw_checkerboard(&clip_vp, viewport_rect);
         } else {
-            page.bg_color
-        };
-        clip.rect_filled(page_rect, 0.0, bg);
+            clip_vp.rect_filled(viewport_rect, 0.0, page.bg_color);
+        }
+    } else {
+        clip_vp.rect_filled(
+            page_rect.translate(Vec2::new(4.0, 4.0)),
+            0.0,
+            Color32::from_black_alpha(95),
+        );
+        if page.transparent_bg {
+            draw_checkerboard(&clip_vp, page_rect);
+        } else {
+            let bg = if preview_mode && !app.doc.optimize.transparency {
+                app.doc.optimize.matte
+            } else {
+                page.bg_color
+            };
+            clip_vp.rect_filled(page_rect, 0.0, bg);
+        }
     }
 
-    draw_page(&clip, app, origin, zoom, preview_mode);
-    if app.infinite_canvas {
+    let clip = if god_view {
+        clip_vp.clone()
+    } else {
+        clip_vp.with_clip_rect(page_rect.intersect(viewport_rect))
+    };
+    draw_page(&clip, app, origin, zoom, preview_mode, god_view);
+    if god_view {
+        // Keep the page usable as an export artifact: dotted bounds, subtle page wash, and a
+        // compact legend. The wash is a border only; the interior remains the page color.
         draw_dotted_rect(
             &clip_vp,
             page_rect,
-            Stroke::new(1.2, app.palette.accent),
-            6.0,
+            Stroke::new(1.4, app.palette.accent),
+            7.0,
             4.0,
         );
-        let label_pos = pos2(page_rect.left(), page_rect.top() - 6.0);
+        let label_pos = pos2(page_rect.left() + 2.0, page_rect.top() - 6.0);
         if label_pos.y > viewport_rect.top() + 10.0 {
             clip_vp.text(
                 label_pos,
@@ -1027,6 +1080,30 @@ fn render_viewport(
                 app.palette.accent,
             );
         }
+        let hidden = app.hidden_object_count();
+        let legend = if hidden > 0 {
+            format!("GOD VIEW · all layers · {hidden} hidden element(s) ghosted")
+        } else {
+            "GOD VIEW · all layers and off-page elements visible".to_string()
+        };
+        let legend_rect = Rect::from_min_size(
+            pos2(viewport_rect.left() + 8.0, viewport_rect.bottom() - 26.0),
+            Vec2::new(legend.chars().count() as f32 * 6.1 + 18.0, 19.0),
+        );
+        clip_vp.rect_filled(legend_rect, 3.0, Color32::from_black_alpha(165));
+        clip_vp.rect_stroke(
+            legend_rect,
+            3.0,
+            Stroke::new(1.0, app.palette.accent.gamma_multiply(0.8)),
+            egui::StrokeKind::Inside,
+        );
+        clip_vp.text(
+            legend_rect.center(),
+            Align2::CENTER_CENTER,
+            legend,
+            FontId::proportional(10.0),
+            app.palette.text,
+        );
     } else {
         clip_vp.rect_stroke(
             page_rect,
@@ -1398,7 +1475,14 @@ fn draw_rulers(
     );
 }
 
-fn draw_page(painter: &Painter, app: &mut FireCraft, origin: Vec2, zoom: f32, preview_mode: bool) {
+fn draw_page(
+    painter: &Painter,
+    app: &mut FireCraft,
+    origin: Vec2,
+    zoom: f32,
+    preview_mode: bool,
+    god_view: bool,
+) {
     let doc = app.doc.clone();
     if app.onion_skin && !preview_mode && doc.page().states.len() > 1 {
         let cur = doc.page().current_state;
@@ -1418,20 +1502,24 @@ fn draw_page(painter: &Painter, app: &mut FireCraft, origin: Vec2, zoom: f32, pr
     }
 
     for (li, layer) in doc.page().layers.iter().enumerate() {
-        if !layer.visible {
+        if !layer.visible && !god_view {
             continue;
         }
-        if layer.is_web_layer && (preview_mode || !app.show_slices) {
+        if layer.is_web_layer && !god_view && (preview_mode || !app.show_slices) {
             continue;
         }
+        // Hidden layers remain inspectable in god view, but at low opacity so visible content
+        // still dominates. This is a view-only treatment and never mutates the document.
+        let layer_alpha = layer.opacity * if layer.visible { 1.0 } else { 0.28 };
         for (oi, obj) in layer.objects.iter().enumerate() {
-            if !obj.visible {
+            if !obj.visible && !god_view {
                 continue;
             }
             if app.inline_text_edit_obj == Some(oi) && li == app.selected_layer {
                 continue;
             }
-            let alpha = (layer.opacity * obj.opacity).clamp(0.0, 1.0);
+            let obj_alpha = if obj.visible { 1.0 } else { 0.30 };
+            let alpha = (layer_alpha * obj.opacity * obj_alpha).clamp(0.0, 1.0);
             draw_obj(
                 painter,
                 app,

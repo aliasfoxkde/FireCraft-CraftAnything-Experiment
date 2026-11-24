@@ -99,7 +99,7 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
 
     // 5. Left/Right/Floating CS6 Tool Strip (with top grip bar to drag/float/snap + >> / << collapse)
     if app.show_tools_dock {
-        let tools_w = if app.tools_collapsed { 38.0 } else { 76.0 };
+        let tools_w = if app.tools_collapsed { 40.0 } else { 90.0 };
         match app.tools_zone {
             crate::app::ToolsDockMode::Left => {
                 egui::Panel::left("tools")
@@ -322,7 +322,7 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
 
     // 8. Floating CS6 Tools Palette (when undocked via its top grip bar)
     if app.show_tools_dock && app.tools_zone == crate::app::ToolsDockMode::Floating {
-        let tools_w = if app.tools_collapsed { 38.0 } else { 76.0 };
+        let tools_w = if app.tools_collapsed { 40.0 } else { 90.0 };
         let screen = ui.ctx().content_rect();
         let max_h = (screen.height() - 160.0).max(240.0);
         egui::Area::new(ui.make_persistent_id("floating_tools_palette"))
@@ -1520,7 +1520,7 @@ fn tools_top_bar(ui: &mut Ui, app: &mut FireCraft) {
         egui::Stroke::new(1.0, p.stroke),
     );
 
-    // Collapse / Expand chevron button (<< to collapse to 1-col, >> to expand to 2-col)
+    // Collapse / Expand chevron button (<< collapse to one column, >> show the full three-column palette)
     let btn_r = egui::Rect::from_min_max(
         egui::pos2(bar_r.right() - 16.0, bar_r.top() + 1.0),
         egui::pos2(bar_r.right() - 1.0, bar_r.bottom() - 1.0),
@@ -1554,9 +1554,9 @@ fn tools_top_bar(ui: &mut Ui, app: &mut FireCraft) {
         app.tools_collapsed = !app.tools_collapsed;
     }
     btn_resp.on_hover_text(if app.tools_collapsed {
-        "Expand Tools (2 columns)"
+        "Expand tool palette"
     } else {
-        "Collapse Tools (1 column)"
+        "Collapse tool palette"
     });
 
     // Draggable CS6 dotted grip (drag to float anywhere or snap to left/right edge)
@@ -1608,7 +1608,7 @@ fn tools_top_bar(ui: &mut Ui, app: &mut FireCraft) {
                     app.tools_floating_pos.x = app
                         .tools_floating_pos
                         .x
-                        .clamp(screen.left(), (screen.right() - 76.0).max(screen.left()));
+                        .clamp(screen.left(), (screen.right() - 90.0).max(screen.left()));
                     app.tools_floating_pos.y = app.tools_floating_pos.y.clamp(
                         screen.top() + 50.0,
                         (screen.bottom() - 120.0).max(screen.top() + 50.0),
@@ -2372,14 +2372,18 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
                         (Key::A, false, false, false) => Some(Shortcut::Tool(Tool::Subselect)),
                         (Key::Q, false, false, false) => Some(Shortcut::Tool(Tool::Scale)),
                         (Key::M, false, false, false) => Some(Shortcut::Tool(Tool::Marquee)),
+                        (Key::O, false, false, false) => Some(Shortcut::Tool(Tool::OvalMarquee)),
                         (Key::L, false, false, false) => Some(Shortcut::Tool(Tool::Lasso)),
                         (Key::W, false, false, false) => Some(Shortcut::Tool(Tool::Wand)),
                         (Key::C, false, false, false) => Some(Shortcut::Tool(Tool::Crop)),
                         (Key::B, false, false, false) => Some(Shortcut::Tool(Tool::Brush)),
                         (Key::E, false, false, false) => Some(Shortcut::Tool(Tool::Eraser)),
                         (Key::S, false, false, false) => Some(Shortcut::Tool(Tool::Stamp)),
+                        (Key::R, false, false, false) => Some(Shortcut::Tool(Tool::ReplaceColor)),
+                        (Key::Y, false, false, false) => Some(Shortcut::Tool(Tool::RedEye)),
                         (Key::N, false, false, false) => Some(Shortcut::Tool(Tool::Line)),
                         (Key::P, false, false, false) => Some(Shortcut::Tool(Tool::Path)),
+                        (Key::F, false, false, false) => Some(Shortcut::Tool(Tool::Freeform)),
                         (Key::U, false, false, false) => Some(Shortcut::Tool(Tool::Rectangle)),
                         (Key::T, false, false, false) => Some(Shortcut::Tool(Tool::Text)),
                         (Key::K, false, false, false) => Some(Shortcut::Tool(Tool::Slice)),

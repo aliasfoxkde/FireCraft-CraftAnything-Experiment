@@ -2,6 +2,34 @@
 
 All notable changes to **FireCraft** are documented in this file.
 
+## [Unreleased]
+
+### Added
+- **Infinite canvas god view:** the workspace now continues the page background past the page
+  bounds, shows out-of-page and hidden layers/objects (hidden geometry at ghost opacity), marks the
+  printable page with a dotted boundary, and expands pan limits. Exports stay page-bounded.
+- **Find and Replace modes:** Text, Fill Color, Stroke Color, and Any Color, including gradient
+  stops and live effects, with live match counts, Find Next, color pickers, hex input, and
+  “Use Fill”/“Use Stroke”.
+- **Windows shell integration:** explicit AppUserModelID, New/About jump-list tasks, and recent
+  documents; shell failures are non-fatal.
+- **Release profile:** `opt-level=3`, fat LTO, one codegen unit, symbol stripping, and abort-on-panic.
+
+### Changed
+- Rebuilt the left rail as a three-column, 36-tool palette so no tool hides behind a flyout; added
+  Oval Marquee, Freeform, Replace Color, and Red Eye with shortcuts.
+- Rebuilt the file browser as an in-app window with an editable address bar, breadcrumb navigation,
+  type filter, dense columns, and quick places. This removes the drag lag of the old viewport.
+- Redesigned About and standardized dialog headers/footers, movable/resizable windows, and one
+  primary-button treatment.
+- Fixed the Unsaved Changes / Quit prompt clipping and wired Save/Discard/Quit continuations.
+- Split Find/Replace, dialog file browsing, and the tool palette into focused modules. Added a
+  navigable `docs/` tree (architecture, build/release, features, ADRs, glossary) and shortened the
+  README to an entry point.
+
+### Fixed
+- Hidden text objects and color values are included in Find/Replace matching and replacement.
+
 ## [0.2.1] — 2026-11-24
 
 ### Added

@@ -5,11 +5,49 @@
 //! Notice: Every dialog uses a local `should_close` flag combined with `open` so clicking
 //! `Cancel` or `OK` inside the window body is never overwritten by `open = true` at the end.
 
-use crate::app::{FileMode, FireCraft};
+use crate::app::{FileMode, FindReplaceMode, FireCraft};
 use crate::constants;
 use crate::mcp;
 
 use eframe::egui::{self, Align2, Color32, RichText, Vec2};
+
+mod file_browser;
+mod find_replace;
+
+pub use file_browser::file_dialog;
+pub use find_replace::find_replace_dialog;
+
+/// Shared dialog header: a compact accent rule, title, and one-line explanation. Keeping this in
+/// one place makes every modal read as part of the same application instead of a collection of
+/// unrelated windows.
+fn dialog_header(ui: &mut egui::Ui, p: crate::theme::Palette, title: &str, subtitle: &str) {
+    let (rule, _) =
+        ui.allocate_exact_size(Vec2::new(ui.available_width(), 2.0), egui::Sense::hover());
+    ui.painter().rect_filled(rule, 0.0, p.accent);
+    ui.add_space(7.0);
+    ui.label(RichText::new(title).size(16.0).strong().color(p.text));
+    if !subtitle.is_empty() {
+        ui.label(RichText::new(subtitle).small().color(p.text_dim));
+    }
+    ui.add_space(8.0);
+}
+
+fn primary_button(ui: &mut egui::Ui, p: crate::theme::Palette, label: &str) -> bool {
+    ui.add(
+        egui::Button::new(RichText::new(label).strong().color(p.accent_text))
+            .fill(p.accent)
+            .stroke(egui::Stroke::new(1.0, p.selection)),
+    )
+    .clicked()
+}
+
+fn dialog_footer_rule(ui: &mut egui::Ui, p: crate::theme::Palette) {
+    ui.add_space(8.0);
+    let (rule, _) =
+        ui.allocate_exact_size(Vec2::new(ui.available_width(), 1.0), egui::Sense::hover());
+    ui.painter().rect_filled(rule, 0.0, p.stroke);
+    ui.add_space(7.0);
+}
 
 /// The Fireworks CS6 New Document dialog.
 pub fn new_document_dialog(app: &mut FireCraft) {
@@ -18,12 +56,22 @@ pub fn new_document_dialog(app: &mut FireCraft) {
     }
     let mut open = app.show_new_dialog;
     let mut close_now = false;
+    let p = app.palette;
+    let center = app.ctx.content_rect().center();
     egui::Window::new("New Document")
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
-        .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
+        .movable(true)
+        .default_width(430.0)
+        .default_pos(center - Vec2::new(215.0, 190.0))
         .show(&app.ctx.clone(), |ui| {
+            dialog_header(
+                ui,
+                p,
+                "New Document",
+                "Set up the canvas and color space. Presets are editable before creation.",
+            );
             let bytes = (app.new_doc_width * app.new_doc_height * 4.0) / (1024.0 * 1024.0);
             ui.label(
                 RichText::new(format!(
@@ -133,9 +181,9 @@ pub fn new_document_dialog(app: &mut FireCraft) {
                 }
             });
 
-            ui.separator();
+            dialog_footer_rule(ui, p);
             ui.horizontal(|ui| {
-                if ui.button("Templates…").clicked() {
+                if ui.button("Template: Web Hero").clicked() {
                     app.create_template_document(
                         "Web Hero Banner",
                         app.new_doc_width.max(800.0),
@@ -143,11 +191,11 @@ pub fn new_document_dialog(app: &mut FireCraft) {
                     );
                     close_now = true;
                 }
+                if ui.button("Cancel").clicked() {
+                    close_now = true;
+                }
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button("Cancel").clicked() {
-                        close_now = true;
-                    }
-                    if ui.button("   OK   ").clicked() {
+                    if primary_button(ui, p, "Create") {
                         let w = app.new_doc_width.max(1.0);
                         let h = app.new_doc_height.max(1.0);
                         let bg = Color32::from_rgb(
@@ -177,12 +225,22 @@ pub fn canvas_size_dialog(app: &mut FireCraft) {
     }
     let mut open = app.show_canvas_size_dialog;
     let mut close_now = false;
+    let p = app.palette;
+    let center = app.ctx.content_rect().center();
     egui::Window::new("Canvas Size & Resolution")
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
-        .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
+        .movable(true)
+        .default_width(500.0)
+        .default_pos(center - Vec2::new(250.0, 150.0))
         .show(&app.ctx.clone(), |ui| {
+            dialog_header(
+                ui,
+                p,
+                "Canvas Size & Resolution",
+                "Resize the document canvas without scaling its objects.",
+            );
             ui.horizontal(|ui| {
                 ui.label("Preset:");
                 egui::ComboBox::from_id_salt("canvas_size_preset_combo")
@@ -232,7 +290,7 @@ pub fn canvas_size_dialog(app: &mut FireCraft) {
                         }
                     });
             });
-            ui.separator();
+            dialog_footer_rule(ui, p);
             ui.horizontal(|ui| {
                 if ui.button("Fit to Objects").clicked() {
                     app.fit_canvas_to_contents();
@@ -241,10 +299,12 @@ pub fn canvas_size_dialog(app: &mut FireCraft) {
                 if ui.button("Cancel").clicked() {
                     close_now = true;
                 }
-                if ui.button("Apply").clicked() {
-                    app.resize_canvas(app.new_doc_width.max(1.0), app.new_doc_height.max(1.0));
-                    close_now = true;
-                }
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if primary_button(ui, p, "Apply") {
+                        app.resize_canvas(app.new_doc_width.max(1.0), app.new_doc_height.max(1.0));
+                        close_now = true;
+                    }
+                });
             });
         });
     app.show_canvas_size_dialog = open && !close_now;
@@ -257,13 +317,22 @@ pub fn html_setup_dialog(app: &mut FireCraft) {
     }
     let mut open = app.show_html_setup_dialog;
     let mut close_now = app.ctx.input(|i| i.key_pressed(egui::Key::Escape));
+    let p = app.palette;
+    let center = app.ctx.content_rect().center();
     egui::Window::new("HTML Setup")
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
-        .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
+        .movable(true)
+        .default_width(440.0)
+        .default_pos(center - Vec2::new(220.0, 180.0))
         .show(&app.ctx.clone(), |ui| {
-            ui.set_min_width(320.0);
+            dialog_header(
+                ui,
+                p,
+                "HTML Setup",
+                "Choose the markup style and web overlays included in HTML export.",
+            );
             ui.horizontal(|ui| {
                 ui.label("HTML Style:");
                 let style_label = match app.html_setup.style {
@@ -321,16 +390,21 @@ pub fn html_setup_dialog(app: &mut FireCraft) {
                 &mut app.html_setup.export_doc_bg,
                 "Export Document Background Color",
             );
-            ui.separator();
+            dialog_footer_rule(ui, p);
             ui.horizontal(|ui| {
                 if ui.button("Preview in Browser (F12)").clicked() {
                     app.preview_in_browser();
                     close_now = true;
                 }
-                if ui.button("OK").clicked() {
-                    app.status = "Updated HTML Setup options".to_string();
+                if ui.button("Cancel").clicked() {
                     close_now = true;
                 }
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if primary_button(ui, p, "OK") {
+                        app.status = "Updated HTML Setup options".to_string();
+                        close_now = true;
+                    }
+                });
             });
         });
     app.show_html_setup_dialog = open && !close_now;
@@ -343,13 +417,22 @@ pub fn page_setup_dialog(app: &mut FireCraft) {
     }
     let mut open = app.show_page_setup_dialog;
     let mut close_now = app.ctx.input(|i| i.key_pressed(egui::Key::Escape));
+    let p = app.palette;
+    let center = app.ctx.content_rect().center();
     egui::Window::new("Page Setup")
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
-        .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
+        .movable(true)
+        .default_width(440.0)
+        .default_pos(center - Vec2::new(220.0, 180.0))
         .show(&app.ctx.clone(), |ui| {
-            ui.set_min_width(320.0);
+            dialog_header(
+                ui,
+                p,
+                "Page Setup",
+                "Print layout, margins, and guide output. These settings do not resize the canvas.",
+            );
             ui.horizontal(|ui| {
                 ui.label("Paper Size:");
                 egui::ComboBox::from_id_salt("page_setup_paper_combo")
@@ -401,7 +484,7 @@ pub fn page_setup_dialog(app: &mut FireCraft) {
                 &mut app.page_setup.print_guides_slices,
                 "Print Guides & Slice Overlays",
             );
-            ui.separator();
+            dialog_footer_rule(ui, p);
             ui.horizontal(|ui| {
                 if ui.button("Print…").clicked() {
                     app.print_document();
@@ -410,50 +493,16 @@ pub fn page_setup_dialog(app: &mut FireCraft) {
                 if ui.button("Cancel").clicked() {
                     close_now = true;
                 }
-                if ui.button("OK").clicked() {
-                    app.status = format!("Page Setup updated ({})", app.page_setup.paper.label());
-                    close_now = true;
-                }
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if primary_button(ui, p, "OK") {
+                        app.status =
+                            format!("Page Setup updated ({})", app.page_setup.paper.label());
+                        close_now = true;
+                    }
+                });
             });
         });
     app.show_page_setup_dialog = open && !close_now;
-}
-
-/// Find and Replace dialog (Edit > Find and Replace).
-pub fn find_replace_dialog(app: &mut FireCraft) {
-    if !app.show_find_replace {
-        return;
-    }
-    let mut open = app.show_find_replace;
-    let mut close_now = false;
-    egui::Window::new("Find and Replace")
-        .open(&mut open)
-        .collapsible(false)
-        .resizable(false)
-        .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
-        .show(&app.ctx.clone(), |ui| {
-            egui::Grid::new("find_replace_grid")
-                .num_columns(2)
-                .spacing([8.0, 6.0])
-                .show(ui, |ui| {
-                    ui.label("Find text / name:");
-                    ui.text_edit_singleline(&mut app.find_query);
-                    ui.end_row();
-                    ui.label("Replace with:");
-                    ui.text_edit_singleline(&mut app.replace_query);
-                    ui.end_row();
-                });
-            ui.separator();
-            ui.horizontal(|ui| {
-                if ui.button("Replace All in Document").clicked() {
-                    app.run_find_and_replace();
-                }
-                if ui.button("Close").clicked() {
-                    close_now = true;
-                }
-            });
-        });
-    app.show_find_replace = open && !close_now;
 }
 
 /// Manage Saved Commands dialog (Commands > Manage Saved Commands).
@@ -463,43 +512,64 @@ pub fn saved_commands_dialog(app: &mut FireCraft) {
     }
     let mut open = app.show_commands_dialog;
     let mut close_now = false;
+    let p = app.palette;
+    let center = app.ctx.content_rect().center();
     egui::Window::new("Manage Saved Commands")
         .open(&mut open)
         .collapsible(false)
-        .resizable(false)
-        .default_size([380.0, 260.0])
-        .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
+        .resizable(true)
+        .movable(true)
+        .default_width(470.0)
+        .default_height(330.0)
+        .default_pos(center - Vec2::new(235.0, 165.0))
         .show(&app.ctx.clone(), |ui| {
-            ui.label(
-                RichText::new("Saved Automation & Batch Commands")
-                    .small()
-                    .color(app.palette.text_dim),
+            dialog_header(
+                ui,
+                p,
+                "Saved Commands",
+                "Reusable automation steps and batch actions for the current document.",
             );
             egui::ScrollArea::vertical()
-                .max_height(150.0)
+                .max_height(170.0)
+                .auto_shrink([false, false])
                 .show(ui, |ui| {
                     for cmd in app.saved_commands.clone() {
                         ui.horizontal(|ui| {
-                            ui.label(&cmd);
-                            if ui.small_button("Run").clicked() {
-                                app.execute_saved_command(&cmd);
-                            }
+                            ui.label(RichText::new(&cmd).color(p.text));
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if ui.small_button("Run").clicked() {
+                                        app.execute_saved_command(&cmd);
+                                    }
+                                },
+                            );
                         });
+                        ui.separator();
                     }
                 });
-            ui.separator();
+            ui.add_space(4.0);
             ui.horizontal(|ui| {
                 ui.label("New command:");
-                ui.text_edit_singleline(&mut app.new_command_name);
-                if ui.button("Save Step").clicked() && !app.new_command_name.trim().is_empty() {
+                ui.add(
+                    egui::TextEdit::singleline(&mut app.new_command_name)
+                        .desired_width(f32::INFINITY)
+                        .hint_text("Name this command"),
+                );
+            });
+            dialog_footer_rule(ui, p);
+            ui.horizontal(|ui| {
+                if primary_button(ui, p, "Save Step") && !app.new_command_name.trim().is_empty() {
                     let name = app.new_command_name.trim().to_string();
                     app.saved_commands.push(name.clone());
                     app.new_command_name.clear();
                     app.status = format!("Saved command: {name}");
                 }
-                if ui.button("Close").clicked() {
-                    close_now = true;
-                }
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui.button("Close").clicked() {
+                        close_now = true;
+                    }
+                });
             });
         });
     app.show_commands_dialog = open && !close_now;
@@ -531,12 +601,16 @@ pub fn command_palette_dialog(app: &mut FireCraft) {
 
     let mut open = app.show_command_palette;
     let mut close_now = false;
-    egui::Window::new("Command Palette & Search (Ctrl+K)")
+    let screen = app.ctx.content_rect();
+    egui::Window::new("Command Palette")
         .open(&mut open)
         .collapsible(false)
-        .resizable(false)
-        .fixed_size([560.0, 390.0])
-        .anchor(Align2::CENTER_TOP, Vec2::new(0.0, 48.0))
+        .resizable(true)
+        .movable(true)
+        .default_width(600.0)
+        .default_height(410.0)
+        .min_width(480.0)
+        .default_pos(egui::pos2(screen.center().x - 300.0, screen.top() + 54.0))
         .show(&app.ctx.clone(), |ui| {
             let p = app.palette;
             ui.horizontal(|ui| {
@@ -904,20 +978,31 @@ pub fn mcp_cli_dialog(app: &mut FireCraft) {
     }
     let mut open = app.show_mcp_dialog;
     let mut close_now = false;
-    egui::Window::new("MCP JSON-RPC 2.0 Server & Headless CLI Console")
+    let p = app.palette;
+    let center = app.ctx.content_rect().center();
+    egui::Window::new("MCP & Headless CLI Console")
         .open(&mut open)
         .collapsible(false)
         .resizable(true)
-        .default_size([560.0, 380.0])
-        .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
+        .movable(true)
+        .default_width(660.0)
+        .default_height(480.0)
+        .min_width(520.0)
+        .default_pos(center - Vec2::new(330.0, 240.0))
         .show(&app.ctx.clone(), |ui| {
+            dialog_header(
+                ui,
+                p,
+                "MCP & Headless CLI Console",
+                "Test the live JSON-RPC server or copy a headless command for scripts and CI.",
+            );
             ui.label(
                 RichText::new(format!(
                     "MCP Protocol {} · Tools: firecraft.info, firecraft.apply, firecraft.export, firecraft.undo, firecraft.redo, firecraft.listCommands",
                     mcp::PROTOCOL_VERSION
                 ))
                 .small()
-                .color(app.palette.text_dim),
+                .color(p.text_dim),
             );
             ui.add_space(4.0);
             ui.label(RichText::new("Headless CLI Commands (run on firecraft.exe):").strong());
@@ -970,13 +1055,15 @@ pub fn mcp_cli_dialog(app: &mut FireCraft) {
                 if ui.button("Copy Reply").clicked() {
                     app.ctx.copy_text(app.mcp_output.clone());
                 }
-                if ui.button("Close").clicked() {
-                    close_now = true;
-                }
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if primary_button(ui, p, "Close") {
+                        close_now = true;
+                    }
+                });
             });
             if !app.mcp_output.is_empty() {
                 ui.separator();
-                egui::ScrollArea::vertical().max_height(110.0).show(ui, |ui| {
+                egui::ScrollArea::vertical().max_height(150.0).show(ui, |ui| {
                     ui.code(&app.mcp_output);
                 });
             }
@@ -984,7 +1071,8 @@ pub fn mcp_cli_dialog(app: &mut FireCraft) {
     app.show_mcp_dialog = open && !close_now;
 }
 
-/// About & Keyboard Shortcuts dialog (Help > About FireCraft).
+/// Per-tab close confirmation. The window is deliberately not fixed-height: the old 145 px
+/// fixed size clipped the entire action row, which made Save / Don't Save / Cancel appear dead.
 pub fn unsaved_changes_dialog(app: &mut FireCraft) {
     let Some(idx) = app.pending_close_tab else {
         return;
@@ -997,52 +1085,82 @@ pub fn unsaved_changes_dialog(app: &mut FireCraft) {
             .map(|d| d.name.clone())
             .unwrap_or_else(|| "Untitled".to_string())
     };
+    let has_path = app
+        .open_docs
+        .get(idx)
+        .is_some_and(|d| d.file_path.is_some());
     let mut open = true;
+    let mut close_now = false;
     let p = app.palette;
+    let center = app.ctx.content_rect().center();
     egui::Window::new("Save Changes?")
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
-        .fixed_size([390.0, 145.0])
-        .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
+        .movable(true)
+        .default_width(432.0)
+        .min_width(400.0)
+        .default_pos(center - Vec2::new(216.0, 120.0))
         .show(&app.ctx.clone(), |ui| {
-            ui.label(
-                RichText::new(format!("Save changes to \"{doc_name}\" before closing?")).strong(),
+            dialog_header(
+                ui,
+                p,
+                "Save changes?",
+                &format!("\"{doc_name}\" has unsaved edits."),
             );
-            ui.add_space(4.0);
             ui.label(
-                RichText::new("Your changes will be lost if you close without saving.")
+                RichText::new(if has_path {
+                    "Save the document before closing this tab?"
+                } else {
+                    "This document has not been saved yet. Save will ask for a filename."
+                })
+                .color(p.text),
+            );
+            ui.label(
+                RichText::new("Closing without saving discards the changes.")
                     .small()
                     .color(p.text_dim),
             );
-            ui.add_space(14.0);
-            ui.separator();
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.button("Save").clicked() {
+            dialog_footer_rule(ui, p);
+            ui.horizontal(|ui| {
+                if primary_button(ui, p, "Save") {
                     if idx != app.active_doc {
                         app.switch_document_tab(idx);
                     }
-                    app.save_current();
-                    if !app.doc.dirty {
-                        app.close_document_tab(idx);
+                    if app.current_path.is_some() {
+                        app.save_current();
+                        if !app.doc.dirty {
+                            app.close_document_tab(idx);
+                        }
+                        app.pending_close_tab = None;
+                    } else {
+                        // Keep the request alive while the Save As browser is open.
+                        app.pending_close_after_save = Some(idx);
+                        app.pending_close_tab = None;
+                        app.begin_file_dialog(FileMode::Save);
                     }
-                    app.pending_close_tab = None;
+                    close_now = true;
                 }
                 if ui.button("Don't Save").clicked() {
                     app.close_document_tab(idx);
                     app.pending_close_tab = None;
+                    close_now = true;
                 }
-                if ui.button("Cancel").clicked() {
-                    app.pending_close_tab = None;
-                }
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui.button("Cancel").clicked() {
+                        app.pending_close_tab = None;
+                        close_now = true;
+                    }
+                });
             });
         });
-    if !open {
+    if !open || close_now {
         app.pending_close_tab = None;
     }
 }
-/// Session-close confirmation. Shown when the OS close button or Ctrl+Q is used while any open
-/// document has unsaved edits.
+
+/// Session-close confirmation. Buttons are visible, clickable, and never discard an untitled
+/// document silently: Save All walks through Save As dialogs one document at a time.
 pub fn quit_confirm_dialog(app: &mut FireCraft) {
     if !app.show_quit_confirm {
         return;
@@ -1057,13 +1175,26 @@ pub fn quit_confirm_dialog(app: &mut FireCraft) {
     let dirty_count = dirty.len().max(usize::from(app.doc.dirty));
     let mut open = true;
     let mut close = false;
+    let center = app.ctx.content_rect().center();
     egui::Window::new("Unsaved Changes")
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
-        .fixed_size([430.0, 170.0])
-        .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
+        .movable(true)
+        .default_width(460.0)
+        .min_width(420.0)
+        .default_pos(center - Vec2::new(230.0, 130.0))
         .show(&app.ctx.clone(), |ui| {
+            dialog_header(
+                ui,
+                p,
+                "Unsaved changes",
+                if dirty_count == 1 {
+                    "One document has edits that are not on disk."
+                } else {
+                    "Several documents have edits that are not on disk."
+                },
+            );
             ui.label(
                 RichText::new(if dirty_count == 1 {
                     "There is 1 document with unsaved changes.".to_string()
@@ -1072,7 +1203,7 @@ pub fn quit_confirm_dialog(app: &mut FireCraft) {
                 })
                 .strong(),
             );
-            ui.add_space(4.0);
+            ui.add_space(3.0);
             ui.label(
                 RichText::new(if dirty.is_empty() {
                     &app.doc.name
@@ -1083,31 +1214,31 @@ pub fn quit_confirm_dialog(app: &mut FireCraft) {
                 .color(p.text_dim),
             );
             ui.label(
-                RichText::new("Save all documents before quitting? Untitled documents need a file path first.")
+                RichText::new("Save all documents before quitting? Untitled documents will each ask for a filename.")
                     .small()
                     .color(p.text_dim),
             );
-            ui.add_space(12.0);
-            ui.separator();
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.button("Cancel").clicked() {
+            dialog_footer_rule(ui, p);
+            ui.horizontal(|ui| {
+                if primary_button(ui, p, "Save All & Quit") {
                     app.show_quit_confirm = false;
+                    match app.save_all_and_quit_step() {
+                        Ok(true) => {}
+                        Ok(false) => close = true,
+                        Err(err) => app.status = err,
+                    }
                 }
                 if ui.button("Discard & Quit").clicked() {
                     app.show_quit_confirm = false;
+                    app.pending_quit_after_save = false;
                     close = true;
                 }
-                if ui.button("Save All & Quit").clicked() {
-                    match app.save_all_for_quit() {
-                        Ok(()) => {
-                            app.show_quit_confirm = false;
-                            close = true;
-                        }
-                        Err(err) => {
-                            app.status = err;
-                        }
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui.button("Cancel").clicked() {
+                        app.show_quit_confirm = false;
+                        app.pending_quit_after_save = false;
                     }
-                }
+                });
             });
         });
     if close {
@@ -1115,6 +1246,7 @@ pub fn quit_confirm_dialog(app: &mut FireCraft) {
     }
     if !open {
         app.show_quit_confirm = false;
+        app.pending_quit_after_save = false;
     }
 }
 
@@ -1125,16 +1257,23 @@ pub fn update_dialog(app: &mut FireCraft) {
     let mut open = app.show_update_dialog;
     let mut close_now = false;
     let p = app.palette;
+    let center = app.ctx.content_rect().center();
     egui::Window::new("Check for Updates")
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
-        .fixed_size([430.0, 210.0])
-        .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
+        .movable(true)
+        .default_width(470.0)
+        .default_pos(center - Vec2::new(235.0, 130.0))
         .show(&app.ctx.clone(), |ui| {
+            dialog_header(
+                ui,
+                p,
+                "Check for Updates",
+                "FireCraft can check GitHub Releases for a newer build.",
+            );
             ui.label(
                 RichText::new(format!("FireCraft Studio v{}", env!("CARGO_PKG_VERSION")))
-                    .heading()
                     .strong()
                     .color(p.accent),
             );
@@ -1149,19 +1288,27 @@ pub fn update_dialog(app: &mut FireCraft) {
             }
             ui.add_space(10.0);
             ui.horizontal(|ui| {
-                if ui.button("Check Now").clicked() {
+                if primary_button(ui, p, "Check Now") {
                     app.check_for_updates();
                 }
-                if ui.button("Open Releases Page (Download)").clicked() {
+                if ui.button("Open Releases Page").clicked() {
                     app.open_update_release_page();
                 }
             });
-            ui.add_space(12.0);
-            ui.separator();
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.button("Close").clicked() {
-                    close_now = true;
+            dialog_footer_rule(ui, p);
+            ui.horizontal(|ui| {
+                if ui.button("Copy Version Info").clicked() {
+                    app.ctx.copy_text(format!(
+                        "FireCraft Studio v{} ({})",
+                        env!("CARGO_PKG_VERSION"),
+                        std::env::consts::OS
+                    ));
                 }
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if primary_button(ui, p, "Close") {
+                        close_now = true;
+                    }
+                });
             });
         });
     app.show_update_dialog = open && !close_now;
@@ -1173,388 +1320,123 @@ pub fn about_dialog(app: &mut FireCraft) {
     }
     let mut open = app.show_about_dialog;
     let mut close_now = false;
-    egui::Window::new("About FireCraft — Adobe Fireworks CS6 Reimagined")
+    let p = app.palette;
+    let center = app.ctx.content_rect().center();
+    egui::Window::new("About FireCraft")
         .open(&mut open)
         .collapsible(false)
-        .resizable(false)
-        .default_size([480.0, 340.0])
-        .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
+        .resizable(true)
+        .movable(true)
+        .default_width(610.0)
+        .min_width(520.0)
+        .default_height(440.0)
+        .min_height(360.0)
+        .default_pos(center - Vec2::new(305.0, 230.0))
         .show(&app.ctx.clone(), |ui| {
-            ui.heading(RichText::new("FireCraft Studio (CS6 Parity Edition)").color(app.palette.selection));
-            ui.label("Clean-room hybrid vector + bitmap & web graphics editor inspired by Adobe Fireworks CS6 (v12.0).");
-            ui.add_space(4.0);
             ui.horizontal(|ui| {
-                ui.hyperlink_to("FireCraft Wiki", "https://github.com/aliasfoxkde/FireCraft/wiki");
-                ui.separator();
-                ui.hyperlink_to("GitHub Repository", "https://github.com/aliasfoxkde/FireCraft/blob/main/README.md");
+                if let Some(tex) = &app.logo_tex {
+                    let (rect, _) = ui.allocate_exact_size(Vec2::splat(64.0), egui::Sense::hover());
+                    ui.painter().image(
+                        tex.id(),
+                        rect,
+                        egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                        Color32::WHITE,
+                    );
+                }
+                ui.vertical(|ui| {
+                    ui.label(
+                        RichText::new("FireCraft Studio")
+                            .size(22.0)
+                            .strong()
+                            .color(p.text),
+                    );
+                    ui.label(
+                        RichText::new(format!(
+                            "CS6 Parity Edition · v{} · {}",
+                            env!("CARGO_PKG_VERSION"),
+                            std::env::consts::OS
+                        ))
+                        .small()
+                        .color(p.accent),
+                    );
+                    ui.label(
+                        RichText::new("Hybrid vector, bitmap, and web graphics editor")
+                            .small()
+                            .color(p.text_dim),
+                    );
+                });
             });
-            ui.separator();
-            ui.label(RichText::new("Key Shortcuts & Workflow").strong());
-            egui::Grid::new("shortcuts_help_grid")
-                .num_columns(2)
-                .spacing([18.0, 3.0])
+            ui.add_space(8.0);
+            let (rule, _) = ui.allocate_exact_size(
+                Vec2::new(ui.available_width(), 1.0),
+                egui::Sense::hover(),
+            );
+            ui.painter().rect_filled(rule, 0.0, p.stroke);
+            ui.add_space(8.0);
+
+            egui::ScrollArea::vertical()
+                .auto_shrink([false, false])
+                .max_height(280.0)
                 .show(ui, |ui| {
-                    for (k, d) in [
-                        ("Alt+F / E / V / S / M / T / C / L / W / H", "Open Top Menu + Arrow-Key Navigation"),
-                        ("Tab or F4 (Shift+Tab)", "Toggle Full-Screen Canvas Mode (or Right Dock)"),
-                        ("Ctrl + Mouse Wheel", "Zoom In / Out Anchored at Cursor"),
-                        ("Shift + Mouse Wheel", "Horizontal Canvas Scroll (Left / Right)"),
-                        ("Mouse Wheel", "Vertical Canvas Scroll (Up / Down)"),
-                        ("Alt + Mouse Wheel / Middle-Drag / Space", "2D Hand Pan Across Canvas"),
-                        ("Ctrl+C / Ctrl+X / Ctrl+V", "Copy / Cut / Paste Shapes, OS Images & Text"),
-                        ("Right-Click on Canvas", "Adaptive CS6 Context Menu"),
-                        ("Shift-Click / Marquee Drag", "Multi-Object Selection"),
-                        ("Middle-Click Document Tab", "Close Document Tab"),
-                        ("Ctrl+G / Ctrl+Shift+G", "Group / Ungroup Selected Objects"),
-                        ("F2 / F5 / F6 / F7 / F8", "Layers / Pages / Optimize / Library / Convert Symbol"),
-                        ("Ctrl+K / Ctrl+P", "Searchable Command Palette (60 CS6 Commands)"),
-                        ("V / A / Q / U / P / T / B / E / I / G / D / X", "CS6 Single-Key Tools, Default & Swap Colors"),
-                    ] {
-                        ui.label(RichText::new(k).monospace().color(app.palette.selection));
-                        ui.label(d);
-                        ui.end_row();
+                    ui.label(
+                        RichText::new("A clean-room reimagining of Adobe Fireworks CS6, built for modern displays, larger documents, and cross-application workflows.")
+                            .color(p.text),
+                    );
+                    ui.add_space(4.0);
+                    ui.horizontal_wrapped(|ui| {
+                        ui.hyperlink_to("Project Wiki", "https://github.com/aliasfoxkde/FireCraft/wiki");
+                        ui.label(RichText::new("·").color(p.text_dim));
+                        ui.hyperlink_to(
+                            "Source & Releases",
+                            "https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment",
+                        );
+                    });
+                    ui.add_space(10.0);
+                    ui.label(
+                        RichText::new("WORKFLOW SHORTCUTS")
+                            .small()
+                            .strong()
+                            .color(p.accent),
+                    );
+                    ui.add_space(2.0);
+                    egui::Grid::new("about_shortcuts_grid")
+                        .num_columns(2)
+                        .spacing([20.0, 4.0])
+                        .striped(true)
+                        .show(ui, |ui| {
+                            for (k, d) in [
+                                ("V  A  Q  U  P  T  B  E  G  I", "Core CS6 tool switches"),
+                                ("Tab / F4", "Full-screen canvas; Shift+Tab toggles right dock"),
+                                ("Ctrl+0 / Ctrl+1 / Ctrl+2", "Fit, 100%, and 200% zoom"),
+                                ("Ctrl+F", "Find & Replace (text, names, fills, strokes, any color)"),
+                                ("Ctrl+Shift+F", "God-view infinite canvas"),
+                                ("Ctrl+G / Ctrl+Shift+G", "Group / ungroup selection"),
+                                ("F2 / F5 / F6", "Layers / Pages / Optimize panels"),
+                                ("Ctrl+K / Ctrl+P", "Command palette"),
+                                ("Space / middle-drag / Alt+wheel", "Pan without changing tools"),
+                            ] {
+                                ui.label(RichText::new(k).monospace().color(p.selection));
+                                ui.label(RichText::new(d).color(p.text));
+                                ui.end_row();
+                            }
+                        });
+                });
+
+            dialog_footer_rule(ui, p);
+            ui.horizontal(|ui| {
+                ui.label(
+                    RichText::new("Built with Rust + egui · No Adobe code used")
+                        .small()
+                        .color(p.text_dim),
+                );
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if primary_button(ui, p, "Close") {
+                        close_now = true;
                     }
                 });
-            ui.separator();
-            if ui.button("Close").clicked() {
-                close_now = true;
-            }
+            });
         });
     app.show_about_dialog = open && !close_now;
-}
-
-/// The refactored file browser used for Open, Save, Import and Export.
-/// Opens as a real OS window outside the main app on desktop so it is not constrained by app walls.
-pub fn file_dialog(app: &mut FireCraft) {
-    if !app.show_file_dialog {
-        return;
-    }
-    let title = match app.file_mode {
-        FileMode::Open => "Open Document",
-        FileMode::Import => "Import Image / Vector into Layer",
-        FileMode::Save => "Save Document As",
-        FileMode::Export => "Export Document",
-    };
-    let mut close_now = app.ctx.input(|i| i.key_pressed(egui::Key::Escape));
-
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        let vp_id = egui::ViewportId::from_hash_of("firecraft_file_dialog_os");
-        let builder = egui::ViewportBuilder::default()
-            .with_title(title)
-            .with_inner_size([700.0, 480.0])
-            .with_min_inner_size([520.0, 360.0])
-            .with_resizable(true);
-        app.ctx
-            .clone()
-            .show_viewport_immediate(vp_id, builder, |vui, _class| {
-                if vui
-                    .ctx()
-                    .input(|i| i.viewport().close_requested() || i.key_pressed(egui::Key::Escape))
-                {
-                    close_now = true;
-                }
-                egui::CentralPanel::default()
-                    .frame(
-                        egui::Frame::new()
-                            .fill(app.palette.panel)
-                            .inner_margin(egui::Margin::same(10)),
-                    )
-                    .show(vui, |ui| {
-                        file_dialog_body(ui, app, &mut close_now);
-                    });
-            });
-        if close_now {
-            app.show_file_dialog = false;
-        }
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    {
-        let mut open = app.show_file_dialog;
-        let center = app.ctx.content_rect().center();
-        egui::Window::new(title)
-            .open(&mut open)
-            .collapsible(false)
-            .movable(true)
-            .resizable(true)
-            .min_size([520.0, 360.0])
-            .default_size([680.0, 460.0])
-            .default_pos(center - Vec2::new(340.0, 230.0))
-            .show(&app.ctx.clone(), |ui| {
-                file_dialog_body(ui, app, &mut close_now);
-            });
-        app.show_file_dialog = open && !close_now;
-    }
-}
-
-fn file_dialog_body(ui: &mut egui::Ui, app: &mut FireCraft, close_now: &mut bool) {
-    let p = app.palette;
-    let filter_id = ui.make_persistent_id("file_dialog_filter_str");
-    let mut filter_str: String = ui.ctx().data(|d| d.get_temp(filter_id).unwrap_or_default());
-
-    // Top Navigation Bar: Up + Clickable Breadcrumbs + Filter
-    ui.horizontal(|ui| {
-        if ui.button("⬆ Up").clicked()
-            && let Some(parent) = app.file_dialog_dir.parent()
-        {
-            let parent = parent.to_path_buf();
-            app.set_file_dialog_dir(parent);
-        }
-        if ui.button("↻").on_hover_text("Refresh folder").clicked() {
-            let cur = app.file_dialog_dir.clone();
-            app.set_file_dialog_dir(cur);
-        }
-        ui.separator();
-        let mut nav_target: Option<std::path::PathBuf> = None;
-        let mut accum = std::path::PathBuf::new();
-        for comp in app.file_dialog_dir.components() {
-            accum.push(comp);
-            let lbl = comp.as_os_str().to_string_lossy();
-            if ui.small_button(lbl.as_ref()).clicked() {
-                nav_target = Some(accum.clone());
-            }
-            ui.label(RichText::new("›").small().color(p.text_dim));
-        }
-        if let Some(t) = nav_target {
-            app.set_file_dialog_dir(t);
-        }
-    });
-
-    let type_filter_id = ui.make_persistent_id("file_dialog_type_filter");
-    let mut type_filter: usize = ui.ctx().data(|d| d.get_temp(type_filter_id).unwrap_or(0));
-    ui.add_space(4.0);
-    ui.horizontal(|ui| {
-        ui.label(RichText::new("Filter:").small().color(p.text_dim));
-        ui.add(
-            egui::TextEdit::singleline(&mut filter_str)
-                .desired_width(210.0)
-                .hint_text("Filter files by name or extension…"),
-        );
-        if !filter_str.is_empty() && ui.small_button("×").clicked() {
-            filter_str.clear();
-        }
-        if matches!(app.file_mode, FileMode::Open | FileMode::Import) {
-            ui.separator();
-            for (ti, tlbl) in ["All", "Images", "SVG", "PSD/AI"].iter().enumerate() {
-                if ui.selectable_label(type_filter == ti, *tlbl).clicked() {
-                    type_filter = ti;
-                }
-            }
-        }
-    });
-    ui.ctx().data_mut(|d| {
-        d.insert_temp(filter_id, filter_str.clone());
-        d.insert_temp(type_filter_id, type_filter);
-    });
-    ui.separator();
-
-    // Two-Column Body: Quick Places Sidebar | File List
-    let mut confirm_now = false;
-    ui.horizontal(|ui| {
-        ui.vertical(|ui| {
-            ui.set_width(132.0);
-            ui.label(
-                RichText::new("Quick Places")
-                    .strong()
-                    .small()
-                    .color(p.text_dim),
-            );
-            ui.add_space(4.0);
-            if let Ok(home) = std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")) {
-                let hp = std::path::PathBuf::from(home);
-                for (lbl, sub) in [
-                    ("🏠 Home", ""),
-                    ("🖥 Desktop", "Desktop"),
-                    ("📄 Documents", "Documents"),
-                    ("🖼 Pictures", "Pictures"),
-                    ("⬇ Downloads", "Downloads"),
-                ] {
-                    let target = if sub.is_empty() {
-                        hp.clone()
-                    } else {
-                        hp.join(sub)
-                    };
-                    if target.exists()
-                        && ui
-                            .selectable_label(app.file_dialog_dir == target, lbl)
-                            .clicked()
-                    {
-                        app.set_file_dialog_dir(target);
-                    }
-                }
-            }
-            if let Ok(cwd) = std::env::current_dir()
-                && ui
-                    .selectable_label(app.file_dialog_dir == cwd, "📁 Workspace")
-                    .clicked()
-            {
-                app.set_file_dialog_dir(cwd);
-            }
-        });
-
-        ui.separator();
-
-        ui.vertical(|ui| {
-            let q = filter_str.trim().to_lowercase();
-            let list_h = (ui.available_height() - 115.0).max(160.0);
-            egui::ScrollArea::vertical()
-                .max_height(list_h)
-                .show(ui, |ui| {
-                    for entry in app.file_dialog_entries.clone() {
-                        let name = entry
-                            .file_name()
-                            .map(|n| n.to_string_lossy().to_string())
-                            .unwrap_or_default();
-                        if !q.is_empty() && !name.to_lowercase().contains(&q) {
-                            continue;
-                        }
-                        let is_dir = entry.is_dir();
-                        let ext = entry
-                            .extension()
-                            .and_then(|e| e.to_str())
-                            .unwrap_or("")
-                            .to_uppercase();
-                        if !is_dir && matches!(app.file_mode, FileMode::Open | FileMode::Import) {
-                            let ext_l = ext.to_lowercase();
-                            let ok = match type_filter {
-                                1 => matches!(
-                                    ext_l.as_str(),
-                                    "png"
-                                        | "jpg"
-                                        | "jpeg"
-                                        | "webp"
-                                        | "gif"
-                                        | "bmp"
-                                        | "tiff"
-                                        | "tif"
-                                        | "ico"
-                                ),
-                                2 => ext_l == "svg",
-                                3 => matches!(ext_l.as_str(), "psd" | "psb" | "ai"),
-                                _ => true,
-                            };
-                            if !ok {
-                                continue;
-                            }
-                        }
-                        let badge = if is_dir {
-                            "📁".to_string()
-                        } else if ext.is_empty() {
-                            "📄".to_string()
-                        } else {
-                            format!("[{ext}]")
-                        };
-                        let size_str = if is_dir {
-                            "Folder".to_string()
-                        } else if let Ok(meta) = std::fs::metadata(&entry) {
-                            let kb = meta.len() / 1024;
-                            if kb >= 1024 {
-                                format!("{:.1} MB", kb as f32 / 1024.0)
-                            } else {
-                                format!("{} KB", kb.max(1))
-                            }
-                        } else {
-                            String::new()
-                        };
-                        ui.horizontal(|ui| {
-                            ui.label(RichText::new(badge).monospace().small().color(if is_dir {
-                                p.accent
-                            } else {
-                                p.text_dim
-                            }));
-                            let row_resp = ui.selectable_label(app.file_dialog_name == name, &name);
-                            if row_resp.clicked() {
-                                if is_dir {
-                                    app.set_file_dialog_dir(entry);
-                                } else {
-                                    app.file_dialog_name = name;
-                                }
-                            }
-                            if !is_dir && row_resp.double_clicked() {
-                                confirm_now = true;
-                            }
-                            ui.with_layout(
-                                egui::Layout::right_to_left(egui::Align::Center),
-                                |ui| {
-                                    ui.label(RichText::new(size_str).small().color(p.text_dim));
-                                },
-                            );
-                        });
-                    }
-                });
-        });
-    });
-
-    ui.separator();
-    ui.horizontal(|ui| {
-        ui.label(RichText::new("File name:").strong());
-        ui.add(egui::TextEdit::singleline(&mut app.file_dialog_name).desired_width(380.0));
-    });
-    if matches!(app.file_mode, FileMode::Save | FileMode::Export) {
-        ui.horizontal_wrapped(|ui| {
-            ui.label(RichText::new("Format:").small().color(p.text_dim));
-            for fmt in [
-                crate::formats::Format::Png,
-                crate::formats::Format::Jpeg,
-                crate::formats::Format::Gif,
-                crate::formats::Format::WebP,
-                crate::formats::Format::Svg,
-                crate::formats::Format::Html,
-                crate::formats::Format::Tiff,
-                crate::formats::Format::Bmp,
-                crate::formats::Format::Ico,
-            ] {
-                let cur_fmt =
-                    crate::formats::Format::from_path(std::path::Path::new(&app.file_dialog_name));
-                if ui.selectable_label(cur_fmt == fmt, fmt.label()).clicked() {
-                    let stem = std::path::Path::new(&app.file_dialog_name)
-                        .file_stem()
-                        .and_then(|s| s.to_str())
-                        .filter(|s| !s.is_empty())
-                        .unwrap_or("export");
-                    app.file_dialog_name = format!("{stem}.{}", fmt.extension());
-                    app.doc.optimize.format = fmt.label().to_string();
-                }
-            }
-        });
-        ui.horizontal(|ui| {
-            ui.label(RichText::new("Quality:").small().color(p.text_dim));
-            ui.add(egui::Slider::new(&mut app.doc.optimize.quality, 10..=100).suffix("%"));
-            ui.separator();
-            let mut trans = app.doc.page().transparent_bg;
-            if ui.checkbox(&mut trans, "Transparent BG").changed() {
-                app.doc.page_mut().transparent_bg = trans;
-            }
-            ui.separator();
-            ui.label(
-                RichText::new(format!("Est: ~{} KB", app.estimated_export_kb()))
-                    .small()
-                    .color(p.accent),
-            );
-        });
-    }
-    if confirm_now {
-        app.commit_file_dialog();
-        *close_now = true;
-    }
-    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-        let label = match app.file_mode {
-            FileMode::Open => "Open",
-            FileMode::Import => "Import",
-            FileMode::Save => "Save",
-            FileMode::Export => "Export",
-        };
-        if ui.button(label).clicked() {
-            app.commit_file_dialog();
-            if !app.show_file_dialog {
-                *close_now = true;
-            }
-        }
-        if ui.button("Cancel").clicked() {
-            *close_now = true;
-        }
-    });
 }
 
 /// The Fireworks CS6 Welcome Splash screen overlay (`screenshots/Fireworks-Tab_View.jpg`).
@@ -1578,7 +1460,7 @@ pub fn startup_splash(ui: &mut egui::Ui, app: &mut FireCraft) -> bool {
     let tex = ctx
         .data_mut(|d| d.get_temp::<egui::TextureHandle>(tex_id))
         .unwrap_or_else(|| {
-            let bytes = include_bytes!("../../screenshots/FireCraft Flame Tech Logo.png");
+            let bytes = include_bytes!("../../../screenshots/FireCraft Flame Tech Logo.png");
             let img = image::load_from_memory(bytes).expect("valid splash logo");
             let size = [img.width() as usize, img.height() as usize];
             let rgba = img.to_rgba8();

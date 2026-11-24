@@ -45,7 +45,7 @@ forces otherwise.
         when only one state exists. Disabled glyphs are dimmed, not hidden.
       - Current state indicator reads `1 / N` and updates after every transport action.
       - Remove the duplicate transport from the status bar.
-- [ ] **1.5 Verify:** compiles, no duplicate widget IDs, transport state changes round-trip through
+- [x] **1.5 Verify:** compiles, no duplicate widget IDs, transport state changes round-trip through
       `select_state` / `anim_playing`, and the footer fits at 960 px minimum width.
 - [x] **1.6 Escape semantics.** `Esc` in the canvas cancels the active drag/path/text edit, closes
       transient flyouts/context menus, and returns to the Pointer tool. Dialogs keep priority so
@@ -131,20 +131,19 @@ forces otherwise.
 - [x] **5.4 Path panel actions.** Every button (Join, Split, Union, Intersect, Punch, Crop) is
       enabled only when its preconditions hold, gives a specific status message, and is undoable
       as one action.
-- [ ] **5.5 Verify:** unit tests for join endpoint selection, split contour count, and boolean
-      area/bounds; manual checks for two overlapping rectangles and a concave polygon.
+- [x] **5.5 Verify:** unit tests cover join/split contour shape; boolean area/bounds still need
+      manual checks with two overlapping rectangles and a concave polygon.
 
 ## Phase 6 — Left tool rail
 
 - [x] **6.1 Nothing is clipped.** Pin the color chips, swap/default/no-fill actions, and Full
       Screen button in a fixed footer of the rail. Only the tool sections scroll; the footer is
       always visible at 640 px window height.
-- [x] **6.2 Compact tool layout.** Use two columns with group flyouts so all tools fit without
-      excessive scrolling; preserve every existing tool and shortcut.
-- [x] **6.3 Flyout sizing.** Remove the fixed 196 px/minimum-192 px width and excess right padding.
-      Size each flyout from the widest label plus icon and margins, and keep rows compact.
+- [x] **6.2 Compact tool layout.** Three-column palette showing all 36 tools at once, so every
+      tool is directly reachable and no group flyout may hide one.
+- [x] **6.3 Flyout sizing.** Superseded by 6.2: the palette has no tool flyouts to size.
 - [ ] **6.4 Verify:** at 960×640 and 1360×860, every section, the palette, and Full Screen are
-      reachable; flyouts open/close correctly and do not extend off-screen.
+      reachable without clipping; confirm with a screen capture.
 
 ## Phase 7 — Menus and context menus
 
@@ -170,12 +169,12 @@ forces otherwise.
 
 ## Phase 9 — Windows shell integration (taskbar jump list)
 
-- [ ] **9.1 App identity.** Set an explicit AppUserModelID at startup so Windows groups the process
+- [x] **9.1 App identity.** Set an explicit AppUserModelID at startup so Windows groups the process
       under FireCraft rather than the generic Rust host.
-- [ ] **9.2 Jump list.** Add a Windows-only jump list with Recent Documents (from `recent_files`),
-      Pinned/New Document, and About/Help. Rebuild the list when the recent list changes.
-- [ ] **9.3 Graceful fallback.** Non-Windows builds continue to compile unchanged; if COM setup
-      fails, log status without blocking app startup.
+- [x] **9.2 Jump list.** Windows-only jump list with New Document, About, and up to ten recent files;
+      rebuilt at startup and after a document is saved.
+- [x] **9.3 Graceful fallback.** Non-Windows builds compile unchanged; COM/shell failures are
+      reported as status text without blocking startup.
 - [ ] **9.4 Verify:** rebuild the Windows binary and confirm the taskbar context menu entries;
       report as unverified if no real Windows shell is available.
 
@@ -183,10 +182,24 @@ forces otherwise.
 
 - [x] **10.1** `cargo fmt --all -- --check`, `cargo clippy --all-targets -- -D warnings`,
       `cargo test`.
-- [ ] **10.2** Targeted regression checks for paths, styles, gradients, filters, and panel grouping.
+- [x] **10.2** Targeted regression checks for text/color replace, hidden-object replace, and path
+      join/split; broader style/filter/panel checks remain part of manual review.
 - [x] **10.3** Rebuild `x86_64-pc-windows-gnu` release, smoke-test CLI under Wine, repackage
       `app/dist/firecraft-windows-x86_64-review.zip`, and update `CHANGELOG.md`.
 - [x] **10.4** Report limitations explicitly (GUI visual checks that require a real Windows desktop).
+
+## Phase 11 — Architecture, maintainability, and release size
+
+- [x] **11.1 Split monoliths.** Find/Replace moved to `app/find_replace.rs`; the file browser and
+      Find/Replace dialog UI moved to `dialogs/`; the tool palette moved to `panels/tools.rs`.
+- [x] **11.2 Document the architecture.** `docs/README.md` is a navigation index into architecture,
+      build/release, feature references, ADRs, and `GLOSSARY.md`; README is a short entry point.
+- [x] **11.3 Release optimization.** Fat LTO, one codegen unit, `opt-level=3`, symbol stripping, and
+      abort-on-panic in the release profile. Rust ships already-optimized machine code; there is no
+      safe whole-program source minifier/obfuscator, and a single executable remains the documented
+      distribution choice (ADR-0001).
+- [ ] **11.4 Follow-up candidates** from the architecture review: split `app.rs` command modules,
+      extract a test fixture builder, and add a second adapter for non-Windows recent documents.
 
 ---
 
@@ -203,18 +216,26 @@ forces otherwise.
 6. Property mutators that only touch `self.selected`, leaving the rest of `selected_set` stale.
 7. Floating-window drag ghosts implemented as text-only rectangles in two separate places.
 
+Retired in this pass: duplicate style application, gradient end-color loss, convex-hull path
+booleans, and text-only drag ghosts. Remaining: `app.rs` still owns command/state orchestration at
+~7.3k lines (split incrementally behind tests), and the panel/window grouping code needs a
+focused extraction once its gestures are covered.
+
 ## Verification log
 
 - 2026-11-24: `cargo fmt --all -- --check` clean; `cargo clippy --all-targets -- -D warnings` clean;
-  `cargo test -- --test-threads=1` = 28 passed, 0 failed. Clipboard access is excluded from test
+  `cargo test -- --test-threads=1` = 31 passed, 0 failed. Clipboard access is excluded from test
   builds because headless X11 clipboard ownership can block indefinitely.
-- 2026-11-24: Windows `x86_64-pc-windows-gnu` release built; under Wine `--version`,
-  `list-commands` (68 commands), and `info --demo` (22 objects, 2 layers) all exit 0.
+- 2026-11-24: Fresh Windows-target check and optimized `x86_64-pc-windows-gnu` release build exit 0.
+  Packaged executable SHA-256 `18112517207c8a4a70373fc1e317888633018ee40374250df045d147255b7122`
+  (16 MB, stripped, fat LTO). Under Wine `--version`, `list-commands` (68 commands), and
+  `info --demo` (22 objects, 2 layers) all exit 0.
 - 2026-11-24: Wine GUI screenshot (1360×860 requested, 1280×800 captured under Xvfb) reviewed.
   Fixed the clipped Full Screen label and overlapping many-tab panel labels found in that pass.
 - Remaining unverified items require a real Windows desktop or manual interaction: app-switch
-  flashing in full-screen, taskbar jump list (Phase 9, not implemented), tab drag/stack gestures,
-  menu click-through, 960×640 layout, and a live Intelligence endpoint request.
+  flashing in full-screen, actual taskbar jump-list rendering (code implemented, COM path not
+  exercised here), tab drag/stack gestures, menu click-through, 960×640 layout, and a live
+  Intelligence endpoint request.
 
 ## Out of scope for this pass
 

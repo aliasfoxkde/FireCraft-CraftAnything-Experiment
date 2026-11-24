@@ -16,6 +16,8 @@ mod mcp;
 mod menus;
 mod page;
 mod panels;
+#[cfg(windows)]
+mod shell_windows;
 mod theme;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -50,6 +52,9 @@ fn main() {
     let mut load_demo = false;
     let mut show_splash = false;
     let mut initial_top_tab: Option<usize> = None;
+    let mut initial_path: Option<String> = None;
+    let mut new_document = false;
+    let mut show_about = false;
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -69,9 +74,26 @@ fn main() {
                 show_splash = true;
                 i += 1;
             }
+            "--new" => {
+                new_document = true;
+                i += 1;
+            }
+            "--about" => {
+                show_about = true;
+                i += 1;
+            }
+            arg if !arg.starts_with('-') && initial_path.is_none() => {
+                initial_path = Some(arg.to_string());
+                i += 1;
+            }
             _ => i += 1,
         }
     }
+
+    #[cfg(windows)]
+    shell_windows::init_app_id();
+    #[cfg(windows)]
+    shell_windows::update_jump_list(&[]);
 
     let mut viewport = eframe::egui::ViewportBuilder::default()
         .with_inner_size([1360.0, 860.0])
@@ -111,6 +133,15 @@ fn main() {
             if let Some(t) = initial_top_tab {
                 fc.top_right_tab = t.min(3);
             }
+            if let Some(path) = &initial_path
+                && let Err(err) = fc.open_path(std::path::Path::new(path))
+            {
+                fc.status = err;
+            }
+            if new_document {
+                fc.show_welcome = false;
+            }
+            fc.show_about_dialog = show_about;
             Ok(Box::new(fc))
         }),
     )

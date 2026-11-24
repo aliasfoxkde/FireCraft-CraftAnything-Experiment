@@ -16,6 +16,8 @@ use eframe::egui::{self, Color32, Context, TextureHandle, Vec2};
 
 use std::path::{Path, PathBuf};
 
+mod find_replace;
+
 /// What the file dialog is being used for.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FileMode {
@@ -23,6 +25,34 @@ pub enum FileMode {
     Import,
     Save,
     Export,
+}
+
+/// Find & Replace can operate on text/object names or on the color channels Fireworks retrofit
+/// tools depend on (flat fills, gradient stops, strokes, and live-effect colors).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum FindReplaceMode {
+    Text,
+    FillColor,
+    StrokeColor,
+    AnyColor,
+}
+
+impl FindReplaceMode {
+    pub const ALL: [FindReplaceMode; 4] = [
+        FindReplaceMode::Text,
+        FindReplaceMode::FillColor,
+        FindReplaceMode::StrokeColor,
+        FindReplaceMode::AnyColor,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            FindReplaceMode::Text => "Text & object names",
+            FindReplaceMode::FillColor => "Fill colors",
+            FindReplaceMode::StrokeColor => "Stroke colors",
+            FindReplaceMode::AnyColor => "Any object color",
+        }
+    }
 }
 
 /// Canvas view mode (CS6 top document bar: Original | Preview | 2-Up | 4-Up).
@@ -40,6 +70,7 @@ pub enum Tool {
     Subselect,
     Scale,
     Marquee,
+    OvalMarquee,
     Lasso,
     Wand,
     Crop,
@@ -54,6 +85,8 @@ pub enum Tool {
     Dodge,
     Burn,
     Stamp,
+    ReplaceColor,
+    RedEye,
     Line,
     Rectangle,
     RoundedRect,
@@ -61,6 +94,7 @@ pub enum Tool {
     Polygon,
     Star,
     Path,
+    Freeform,
     Knife,
     Text,
     Slice,
@@ -77,6 +111,7 @@ impl Tool {
             Tool::Subselect => "Subselection",
             Tool::Scale => "Scale / Transform",
             Tool::Marquee => "Marquee Select",
+            Tool::OvalMarquee => "Oval Marquee",
             Tool::Lasso => "Lasso Select",
             Tool::Wand => "Magic Wand",
             Tool::Crop => "Crop",
@@ -91,6 +126,8 @@ impl Tool {
             Tool::Dodge => "Dodge",
             Tool::Burn => "Burn",
             Tool::Stamp => "Rubber Stamp",
+            Tool::ReplaceColor => "Replace Color",
+            Tool::RedEye => "Red Eye Removal",
             Tool::Line => "Line",
             Tool::Rectangle => "Rectangle",
             Tool::RoundedRect => "Rounded Rectangle",
@@ -98,6 +135,7 @@ impl Tool {
             Tool::Polygon => "Polygon",
             Tool::Star => "Star",
             Tool::Path => "Pen",
+            Tool::Freeform => "Freeform Path",
             Tool::Knife => "Knife",
             Tool::Text => "Text",
             Tool::Slice => "Slice",
@@ -505,12 +543,21 @@ pub struct FireCraft {
     pub show_about_dialog: bool,
     pub show_update_dialog: bool,
     pub pending_close_tab: Option<usize>,
+    /// A tab close waiting on the Save As browser. Cleared if the browser is cancelled so an
+    /// unsaved document is never discarded by accident.
+    pub pending_close_after_save: Option<usize>,
+    /// The quit flow is waiting for one or more Save As choices before it can close the app.
+    pub pending_quit_after_save: bool,
     pub show_quit_confirm: bool,
     pub update_status: String,
     pub update_latest_version: Option<String>,
     pub update_release_url: Option<String>,
     pub find_query: String,
     pub replace_query: String,
+    pub find_replace_mode: FindReplaceMode,
+    pub find_color: Color32,
+    pub replace_color: Color32,
+    pub find_case_sensitive: bool,
     pub saved_commands: Vec<String>,
     pub new_command_name: String,
     pub new_doc_width: f32,
@@ -523,6 +570,9 @@ pub struct FireCraft {
     pub file_dialog_dir: PathBuf,
     pub file_dialog_entries: Vec<PathBuf>,
     pub file_dialog_name: String,
+    pub file_dialog_address: String,
+    pub file_dialog_filter: String,
+    pub file_dialog_type_filter: usize,
     pub clipboard: Option<Obj>,
     pub clipboard_set: Vec<Obj>,
     pub last_effect: Option<LiveEffect>,
@@ -660,6 +710,8 @@ impl FireCraft {
             show_about_dialog: false,
             show_update_dialog: false,
             pending_close_tab: None,
+            pending_close_after_save: None,
+            pending_quit_after_save: false,
             show_quit_confirm: false,
             update_status: format!("Current version: v{}", env!("CARGO_PKG_VERSION")),
             update_latest_version: None,
@@ -669,6 +721,10 @@ impl FireCraft {
             ),
             find_query: String::new(),
             replace_query: String::new(),
+            find_replace_mode: FindReplaceMode::Text,
+            find_color: Color32::from_rgb(232, 163, 61),
+            replace_color: Color32::from_rgb(56, 152, 255),
+            find_case_sensitive: true,
             saved_commands: vec![
                 "Add Drop Shadow Card".to_string(),
                 "Add Picture Frame".to_string(),
@@ -687,6 +743,9 @@ impl FireCraft {
             file_dialog_dir: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
             file_dialog_entries: Vec::new(),
             file_dialog_name: String::new(),
+            file_dialog_address: String::new(),
+            file_dialog_filter: String::new(),
+            file_dialog_type_filter: 0,
             clipboard: None,
             clipboard_set: Vec::new(),
             last_effect: None,
@@ -2183,7 +2242,7 @@ impl FireCraft {
                     }
                 }
             }
-            Tool::Marquee | Tool::Crop => {
+            Tool::Marquee | Tool::OvalMarquee | Tool::Crop => {
                 self.drag = Some(Drag {
                     kind: DragKind::Marquee,
                     start: doc_pos,
@@ -2295,6 +2354,28 @@ impl FireCraft {
                 self.status =
                     "Type text directly on canvas (Esc or click outside to finish)".to_string();
             }
+            Tool::ReplaceColor => {
+                if let Some((layer, index)) = canvas::hit_test(self, raw_doc_pos) {
+                    self.selected_layer = layer;
+                    self.select_single(Some(index));
+                    if let Some(color) = self.doc.page().layers[layer].objects[index].fill {
+                        self.find_color = color;
+                        self.find_replace_mode = FindReplaceMode::FillColor;
+                        self.show_find_replace = true;
+                        self.status = format!(
+                            "Replace Color: {} primed from {} — choose a replacement color",
+                            colors::hex_of(color),
+                            self.doc.page().layers[layer].objects[index].name
+                        );
+                    } else {
+                        self.status =
+                            "This object has no flat fill to replace — use Find & Replace > Any object color for gradients/effects".to_string();
+                    }
+                }
+            }
+            Tool::RedEye => {
+                self.run_red_eye_removal();
+            }
             Tool::Picker => {
                 if let Some((layer, index)) = canvas::hit_test(self, raw_doc_pos) {
                     let color = self.doc.page().layers[layer].objects[index].fill;
@@ -2341,7 +2422,7 @@ impl FireCraft {
                     path: vec![],
                 });
             }
-            Tool::Brush | Tool::Pencil | Tool::Eraser => {
+            Tool::Brush | Tool::Pencil | Tool::Eraser | Tool::Freeform => {
                 self.push_undo("Paint");
                 self.drag = Some(Drag {
                     kind: DragKind::Paint,
@@ -2500,6 +2581,52 @@ impl FireCraft {
         self.doc.page_mut().sync_state();
         self.textures.clear();
         self.status = format!("{} applied", filter_tool.name());
+    }
+
+    /// Real red-eye reduction for the selected bitmap: neutralizes strongly red-dominant pixels
+    /// (the same signature a camera flash leaves on a subject's pupils).
+    pub fn run_red_eye_removal(&mut self) {
+        let Some(index) = self.selected else {
+            self.status = "Red Eye Removal: select a bitmap object first".to_string();
+            return;
+        };
+        let layer = self.selected_layer;
+        let is_bitmap = self
+            .doc
+            .page()
+            .layers
+            .get(layer)
+            .and_then(|l| l.objects.get(index))
+            .is_some_and(|o| matches!(o.kind, Shape::Bitmap { .. }));
+        if !is_bitmap {
+            self.status =
+                "Red Eye Removal works on bitmap objects (flatten or import a photo first)"
+                    .to_string();
+            return;
+        }
+        self.push_undo("Red Eye Removal");
+        let mut corrected = 0usize;
+        if let Some(obj) = self
+            .doc
+            .page_mut()
+            .layers
+            .get_mut(layer)
+            .and_then(|l| l.objects.get_mut(index))
+            && let Shape::Bitmap { pixels, .. } = &mut obj.kind
+        {
+            for px in pixels.as_chunks_mut::<4>().0 {
+                let r = px[0] as u32;
+                let g = px[1] as u32;
+                let b = px[2] as u32;
+                if r > 65 && r > g * 3 / 2 && r > b * 3 / 2 {
+                    px[0] = ((g + b) / 2).min(255) as u8;
+                    corrected += 1;
+                }
+            }
+        }
+        self.textures.clear();
+        self.doc.dirty = true;
+        self.status = format!("Red Eye Removal corrected {corrected} red-dominant pixel(s)");
     }
 
     pub fn on_pointer_drag(&mut self, raw_doc_pos: Vec2, shift: bool) {
@@ -2782,23 +2909,47 @@ impl FireCraft {
                     Vec::new()
                 };
                 let is_box = (hi.x - lo.x) > 4.0 || (hi.y - lo.y) > 4.0;
-                let page = self.doc.page();
-                if let Some(layer) = page.layers.get(self.selected_layer) {
-                    for (index, obj) in layer.objects.iter().enumerate() {
-                        if !obj.visible || obj.locked {
-                            continue;
-                        }
-                        if let Some((a, b)) = obj.bounds()
-                            && b.x >= lo.x
-                            && a.x <= hi.x
-                            && b.y >= lo.y
-                            && a.y <= hi.y
-                        {
-                            if !picked_set.contains(&index) {
-                                picked_set.push(index);
+                let oval = self.tool == Tool::OvalMarquee;
+                if oval && !is_box {
+                    if let Some((layer, index)) = canvas::hit_test(self, raw_doc_pos) {
+                        self.selected_layer = layer;
+                        picked_set.push(index);
+                    }
+                } else {
+                    let center = (lo + hi) * 0.5;
+                    let radius = ((hi - lo) * 0.5).max(Vec2::splat(1.0));
+                    let inside_oval = |p: Vec2| {
+                        let d = (p - center) / radius;
+                        d.x * d.x + d.y * d.y <= 1.0
+                    };
+                    let page = self.doc.page();
+                    if let Some(layer) = page.layers.get(self.selected_layer) {
+                        for (index, obj) in layer.objects.iter().enumerate() {
+                            if !obj.visible || obj.locked {
+                                continue;
                             }
-                            if !is_box {
-                                break;
+                            if let Some((a, b)) = obj.bounds() {
+                                let hit = if oval {
+                                    [
+                                        (a + b) * 0.5,
+                                        a,
+                                        Vec2::new(b.x, a.y),
+                                        b,
+                                        Vec2::new(a.x, b.y),
+                                    ]
+                                    .into_iter()
+                                    .any(inside_oval)
+                                } else {
+                                    b.x >= lo.x && a.x <= hi.x && b.y >= lo.y && a.y <= hi.y
+                                };
+                                if hit {
+                                    if !picked_set.contains(&index) {
+                                        picked_set.push(index);
+                                    }
+                                    if !is_box {
+                                        break;
+                                    }
+                                }
                             }
                         }
                     }
@@ -2806,7 +2957,11 @@ impl FireCraft {
                 self.selected = picked_set.last().copied();
                 self.selected_set = picked_set;
                 self.status = if !self.selected_set.is_empty() {
-                    format!("Selected {} object(s)", self.selected_set.len())
+                    format!(
+                        "{} selected {} object(s)",
+                        self.tool.name(),
+                        self.selected_set.len()
+                    )
                 } else {
                     "Nothing selected".to_string()
                 };
@@ -2884,17 +3039,27 @@ impl FireCraft {
             }
             DragKind::Paint => {
                 if drag.path.len() >= 2 && self.tool != Tool::Eraser {
+                    let (stroke, width) = if self.tool == Tool::Freeform {
+                        (self.stroke, 1.0)
+                    } else {
+                        (self.fill, self.brush_size.max(1.0))
+                    };
                     let mut obj = Obj::new(
                         Shape::Path {
                             points: drag.path,
                             closed: false,
                         },
                         None,
-                        Some(self.fill),
+                        Some(stroke),
                     );
-                    obj.width = self.brush_size.max(1.0);
+                    obj.width = width;
                     let index = self.push_object(obj);
                     self.selected = Some(index);
+                    self.status = if self.tool == Tool::Freeform {
+                        "Freeform vector path created".to_string()
+                    } else {
+                        "Brush stroke added".to_string()
+                    };
                 }
             }
             DragKind::Path if drag.path.len() >= 2 => {
@@ -3006,6 +3171,27 @@ impl FireCraft {
         } else {
             self.ctx.send_viewport_cmd(egui::ViewportCommand::Close);
         }
+    }
+
+    /// One step of the Save All & Quit flow. Returns `Ok(true)` when a Save As browser was opened
+    /// and the caller must wait; `Ok(false)` means every dirty document is saved and the app can
+    /// close. Untitled documents are never silently discarded.
+    pub fn save_all_and_quit_step(&mut self) -> Result<bool, String> {
+        self.sync_active_doc_slot();
+        let untitled = self
+            .open_docs
+            .iter()
+            .position(|d| d.dirty && d.file_path.is_none());
+        if let Some(idx) = untitled {
+            if idx != self.active_doc {
+                self.switch_document_tab(idx);
+            }
+            self.pending_quit_after_save = true;
+            self.begin_file_dialog(FileMode::Save);
+            return Ok(true);
+        }
+        self.save_all_for_quit()?;
+        Ok(false)
     }
 
     pub fn request_close_document_tab(&mut self, idx: usize) {
@@ -4657,34 +4843,6 @@ impl FireCraft {
         }
     }
 
-    pub fn run_find_and_replace(&mut self) {
-        if self.find_query.is_empty() {
-            return;
-        }
-        self.push_undo("Find and Replace");
-        let from = self.find_query.clone();
-        let to = self.replace_query.clone();
-        let mut count = 0usize;
-        for page in &mut self.doc.pages {
-            for layer in &mut page.layers {
-                for obj in &mut layer.objects {
-                    if obj.name.contains(&from) {
-                        obj.name = obj.name.replace(&from, &to);
-                        count += 1;
-                    }
-                    if let Shape::Text { text, .. } = &mut obj.kind
-                        && text.contains(&from)
-                    {
-                        *text = text.replace(&from, &to);
-                        count += 1;
-                    }
-                }
-            }
-            page.sync_state();
-        }
-        self.status = format!("Replaced {count} occurrence(s) of '{from}'");
-    }
-
     pub fn check_spelling(&mut self) {
         let mut text_objects = 0usize;
         for layer in &self.doc.page().layers {
@@ -5081,6 +5239,7 @@ impl FireCraft {
 
     pub fn set_file_dialog_dir(&mut self, dir: PathBuf) {
         self.file_dialog_dir = dir.clone();
+        self.file_dialog_address = dir.display().to_string();
         let mut entries: Vec<PathBuf> = std::fs::read_dir(&dir)
             .map(|rd| {
                 rd.filter_map(|e| e.ok())
@@ -5107,6 +5266,17 @@ impl FireCraft {
         };
         if result.is_ok() {
             self.show_file_dialog = false;
+            if let Some(idx) = self.pending_close_after_save.take() {
+                self.close_document_tab(idx);
+            }
+            if self.pending_quit_after_save {
+                self.pending_quit_after_save = false;
+                match self.save_all_and_quit_step() {
+                    Ok(true) => {}
+                    Ok(false) => self.ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+                    Err(err) => self.status = err,
+                }
+            }
         }
     }
 
@@ -5127,6 +5297,8 @@ impl FireCraft {
                 self.current_path = Some(pb.clone());
                 if !self.recent_files.contains(&pb) {
                     self.recent_files.push(pb);
+                    #[cfg(windows)]
+                    crate::shell_windows::update_jump_list(&self.recent_files);
                 }
                 self.status = format!("Opened {}", path.display());
                 Ok(())
@@ -5262,6 +5434,8 @@ impl FireCraft {
         self.sync_active_doc_slot();
         if !self.recent_files.contains(&pb) {
             self.recent_files.push(pb);
+            #[cfg(windows)]
+            crate::shell_windows::update_jump_list(&self.recent_files);
         }
         self.status = format!("Saved {}", path.display());
         Ok(())
@@ -7068,5 +7242,131 @@ mod tests {
         let snapped = app.snap_pos(Vec2::new(pw * 0.5 + 3.0, ph * 0.5 - 2.0));
         assert!((snapped.x - pw * 0.5).abs() < 1e-3);
         assert!((snapped.y - ph * 0.5).abs() < 1e-3);
+    }
+
+    #[test]
+    fn find_replace_color_slots_and_live_effects() {
+        let mut app = FireCraft::new(None);
+        let from = Color32::from_rgb(20, 40, 60);
+        let to = Color32::from_rgb(200, 120, 40);
+        let mut obj = Obj::new(
+            Shape::Rect {
+                min: Vec2::new(10.0, 10.0),
+                max: Vec2::new(80.0, 80.0),
+                corner_radius: 0.0,
+                filled: true,
+            },
+            Some(from),
+            Some(from),
+        );
+        obj.gradient = Some(GradientFill {
+            start: from,
+            end: from,
+        });
+        obj.effects.push(LiveEffect::DropShadow {
+            distance: 4.0,
+            angle_deg: 45.0,
+            blur: 3.0,
+            color: from,
+            enabled: true,
+        });
+        app.push_object(obj);
+        app.select_single(Some(0));
+        app.find_replace_mode = FindReplaceMode::AnyColor;
+        app.find_color = from;
+        app.replace_color = to;
+        assert_eq!(app.find_replace_match_count(), 1);
+        app.run_find_and_replace();
+        let replaced = app.selected_object().unwrap();
+        assert_eq!(replaced.fill, Some(to));
+        assert_eq!(replaced.stroke, Some(to));
+        let gradient = replaced.gradient.unwrap();
+        assert_eq!(gradient.start, to);
+        assert_eq!(gradient.end, to);
+        match &replaced.effects[0] {
+            LiveEffect::DropShadow { color, .. } => assert_eq!(*color, to),
+            other => panic!("unexpected effect {other:?}"),
+        }
+        assert!(app.doc.dirty);
+    }
+
+    #[test]
+    fn find_replace_text_matches_names_and_hidden_text_objects() {
+        let mut app = FireCraft::new(None);
+        let mut hidden = Obj::new(
+            Shape::Text {
+                at: Vec2::new(20.0, 40.0),
+                text: "brand headline".to_string(),
+                size: 24.0,
+                bold: false,
+                italic: false,
+                font_family: "Sans-Serif".to_string(),
+            },
+            Some(Color32::BLACK),
+            None,
+        );
+        hidden.name = "Brand Layer Asset".to_string();
+        hidden.visible = false;
+        app.push_object(hidden);
+        app.select_single(Some(0));
+        app.find_replace_mode = FindReplaceMode::Text;
+        app.find_query = "brand".to_string();
+        app.replace_query = "Studio".to_string();
+        app.find_case_sensitive = false;
+        assert_eq!(app.find_replace_match_count(), 1);
+        app.run_find_and_replace();
+        let obj = app.selected_object().unwrap();
+        assert_eq!(obj.name, "Studio Layer Asset");
+        if let Shape::Text { text, .. } = &obj.kind {
+            assert_eq!(text, "Studio headline");
+        } else {
+            panic!("expected text object");
+        }
+    }
+
+    #[test]
+    fn join_and_split_paths_preserve_contiguous_geometry() {
+        let mut app = FireCraft::new(None);
+        app.push_object(Obj::new(
+            Shape::Path {
+                points: vec![Vec2::new(0.0, 0.0), Vec2::new(10.0, 0.0)],
+                closed: false,
+            },
+            None,
+            Some(Color32::BLACK),
+        ));
+        app.push_object(Obj::new(
+            Shape::Path {
+                points: vec![Vec2::new(20.0, 0.0), Vec2::new(30.0, 0.0)],
+                closed: false,
+            },
+            None,
+            Some(Color32::BLACK),
+        ));
+        app.select_single(Some(0));
+        app.selected_set = vec![0, 1];
+        app.combine_paths_op("join");
+        assert_eq!(app.doc.total_objects_on_page(), 1);
+        let joined = app.selected_object().unwrap();
+        if let Shape::Path { points, closed } = joined.kind {
+            assert!(!closed);
+            assert_eq!(points.len(), 4);
+            assert!((points[1] - Vec2::new(10.0, 0.0)).length() < 1e-3);
+            assert!((points[2] - Vec2::new(20.0, 0.0)).length() < 1e-3);
+        } else {
+            panic!("expected joined path");
+        }
+
+        app.doc.page_mut().layers[0].objects[0].kind = Shape::Path {
+            points: (0..6).map(|i| Vec2::new(i as f32 * 10.0, 0.0)).collect(),
+            closed: false,
+        };
+        app.select_single(Some(0));
+        app.split_selected_path();
+        assert_eq!(
+            app.doc.total_objects_on_page(),
+            2,
+            "split should create a second contour"
+        );
     }
 }
