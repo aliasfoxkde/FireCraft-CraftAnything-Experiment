@@ -14,9 +14,14 @@ use image::GenericImageView;
 
 use eframe::egui::{self, Color32, Context, TextureHandle, Vec2};
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
+mod files;
 mod find_replace;
+
+pub use files::FileIntent;
+#[cfg(test)]
+pub use files::FileOutcome;
 
 /// What the file dialog is being used for.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -226,12 +231,16 @@ impl PanelId {
 
     pub fn short_tab(self) -> &'static str {
         match self {
+            PanelId::ColorPalette => "Palette",
+            PanelId::ColorMixer => "Mixer",
             PanelId::SpecialChars => "Chars",
-            PanelId::ImageEditing => "Image Edit",
-            PanelId::AutoShapeProps => "Auto Props",
-            PanelId::DocumentLibrary => "Doc Library",
-            PanelId::CommonLibrary => "Common Lib",
+            PanelId::ImageEditing => "Image",
+            PanelId::AutoShapes => "Shapes",
+            PanelId::AutoShapeProps => "Shape Props",
+            PanelId::DocumentLibrary => "Doc Lib",
+            PanelId::CommonLibrary => "Common",
             PanelId::CssProperties => "CSS",
+            PanelId::Behaviors => "Behaviors",
             other => other.title(),
         }
     }
@@ -257,15 +266,7 @@ impl PanelId {
     }
 
     pub fn default_height(self) -> f32 {
-        match self {
-            PanelId::Path | PanelId::Optimize => 220.0,
-            PanelId::Align => 152.0,
-            PanelId::History => 148.0,
-            PanelId::Layers | PanelId::Pages | PanelId::States => 188.0,
-            PanelId::ColorPalette | PanelId::ColorMixer => 186.0,
-            PanelId::Swatches => 134.0,
-            _ => 118.0,
-        }
+        crate::panels::default_panel_height(self)
     }
 }
 
@@ -364,7 +365,6 @@ pub enum DragKind {
     Resize(usize),
     Pan,
     Paint,
-    Path,
     Lasso,
 }
 
@@ -441,6 +441,9 @@ pub struct FireCraft {
     pub doc: Document,
     pub open_docs: Vec<Document>,
     pub active_doc: usize,
+    /// Most-recently-used document indices, newest first. The tab strip uses this to keep the
+    /// newest documents visible and fold the rest into the overflow menu.
+    pub doc_tab_history: Vec<usize>,
     pub theme_mode: ThemeMode,
     pub palette: Palette,
     pub view_mode: CanvasViewMode,
@@ -492,6 +495,12 @@ pub struct FireCraft {
     pub dragging_panel: Option<PanelId>,
     pub dragging_group: Option<u64>,
     pub panel_title_rects: Vec<(u64, egui::Rect)>,
+    /// Open CS6 tool-group flyout: flattened group index and screen anchor.
+    pub tool_flyout: Option<(usize, egui::Pos2)>,
+    /// Nodes placed by the Pen tool before the path is committed.
+    pub pen_nodes: Vec<Vec2>,
+    /// Ask the canvas to take keyboard focus after a tab/view activation.
+    pub focus_canvas: bool,
     pub workspace_preset: &'static str,
     pub anim_playing: bool,
     pub anim_last_tick: f64,
@@ -543,12 +552,18 @@ pub struct FireCraft {
     pub show_about_dialog: bool,
     pub show_update_dialog: bool,
     pub pending_close_tab: Option<usize>,
+    /// Remaining tabs in a multi-tab close, already ordered highest index first so an earlier
+    /// close cannot invalidate the next target.
+    pub pending_close_tabs: Vec<usize>,
     /// A tab close waiting on the Save As browser. Cleared if the browser is cancelled so an
     /// unsaved document is never discarded by accident.
     pub pending_close_after_save: Option<usize>,
     /// The quit flow is waiting for one or more Save As choices before it can close the app.
     pub pending_quit_after_save: bool,
     pub show_quit_confirm: bool,
+    /// The user explicitly discarded unsaved work. The next OS close request must be honored
+    /// instead of being cancelled by the unsaved-work interceptor.
+    pub allow_close: bool,
     pub update_status: String,
     pub update_latest_version: Option<String>,
     pub update_release_url: Option<String>,
@@ -600,6 +615,7 @@ impl FireCraft {
             doc: initial_doc.clone(),
             open_docs: vec![initial_doc],
             active_doc: 0,
+            doc_tab_history: vec![0],
             theme_mode,
             palette,
             view_mode: CanvasViewMode::Original,
@@ -646,12 +662,17 @@ impl FireCraft {
             bottom_height: 142.0,
             full_screen_canvas: false,
             window_fullscreen: false,
-            panel_groups: Self::cs6_dual_column_groups(),
+            // Expanded Mode is CS6's default workspace: one right dock with five
+            // stacked tab-groups, the full main toolbar, and the Properties inspector.
+            panel_groups: Self::default_panel_groups(),
             next_panel_group_id: 100,
             dragging_panel: None,
             dragging_group: None,
             panel_title_rects: Vec::new(),
-            workspace_preset: "CS6 Dual-Column",
+            tool_flyout: None,
+            pen_nodes: Vec::new(),
+            focus_canvas: false,
+            workspace_preset: "Expanded Mode",
             anim_playing: false,
             anim_last_tick: 0.0,
             behaviors: vec![
@@ -710,9 +731,11 @@ impl FireCraft {
             show_about_dialog: false,
             show_update_dialog: false,
             pending_close_tab: None,
+            pending_close_tabs: Vec::new(),
             pending_close_after_save: None,
             pending_quit_after_save: false,
             show_quit_confirm: false,
+            allow_close: false,
             update_status: format!("Current version: v{}", env!("CARGO_PKG_VERSION")),
             update_latest_version: None,
             update_release_url: Some(
@@ -807,12 +830,11 @@ impl FireCraft {
                     PanelId::ColorPalette,
                     PanelId::ColorMixer,
                     PanelId::Swatches,
-                    PanelId::Info,
                 ],
                 active_tab: 1,
                 zone: DockZone::RightOuter,
                 collapsed: false,
-                body_height: 144.0,
+                body_height: 138.0,
                 floating_pos: egui::pos2(740.0, 440.0),
                 floating_width: 286.0,
                 stack_parent: None,
@@ -820,20 +842,33 @@ impl FireCraft {
             PanelGroup {
                 id: 4,
                 tabs: vec![
+                    PanelId::Info,
                     PanelId::SpecialChars,
                     PanelId::ImageEditing,
                     PanelId::AutoShapes,
                     PanelId::AutoShapeProps,
+                ],
+                active_tab: 3,
+                zone: DockZone::RightOuter,
+                collapsed: false,
+                body_height: 104.0,
+                floating_pos: egui::pos2(740.0, 600.0),
+                floating_width: 286.0,
+                stack_parent: None,
+            },
+            PanelGroup {
+                id: 5,
+                tabs: vec![
                     PanelId::DocumentLibrary,
                     PanelId::CommonLibrary,
                     PanelId::CssProperties,
                     PanelId::Url,
                 ],
-                active_tab: 2,
+                active_tab: 0,
                 zone: DockZone::RightOuter,
                 collapsed: false,
-                body_height: 112.0,
-                floating_pos: egui::pos2(740.0, 610.0),
+                body_height: 96.0,
+                floating_pos: egui::pos2(740.0, 720.0),
                 floating_width: 286.0,
                 stack_parent: None,
             },
@@ -2055,6 +2090,17 @@ impl FireCraft {
         self.status = format!("Added Live Filter: {label}");
     }
 
+    pub fn remove_live_effect(&mut self, eff_idx: usize) {
+        self.push_undo("Remove Live Effect");
+        self.with_selection_mut(|obj| {
+            if eff_idx < obj.effects.len() {
+                obj.effects.remove(eff_idx);
+            }
+        });
+        self.textures.clear();
+        self.status = "Removed live effect".to_string();
+    }
+
     pub fn toggle_live_effect(&mut self, eff_idx: usize, enabled: bool) {
         self.with_selection_mut(|obj| {
             if let Some(eff) = obj.effects.get_mut(eff_idx) {
@@ -2074,6 +2120,113 @@ impl FireCraft {
             self.add_live_effect(eff);
         } else {
             self.run_bitmap_filter(Tool::Sharpen);
+        }
+    }
+
+    // ---- Tool state --------------------------------------------------------
+
+    /// Switch tools through one seam so leaving the Pen commits its in-progress contour
+    /// instead of leaving stray preview nodes on the canvas.
+    pub fn set_tool(&mut self, tool: Tool) {
+        if tool != Tool::Path && !self.pen_nodes.is_empty() {
+            self.finish_pen_path(false);
+        }
+        self.tool = tool;
+    }
+
+    /// Add one Pen anchor. Clicking the first anchor closes a path with at least three nodes.
+    pub fn pen_add_node(&mut self, doc_pos: Vec2) {
+        let tol = 8.0 / self.doc.zoom.max(0.1);
+        if self.pen_nodes.len() >= 3 && (self.pen_nodes[0] - doc_pos).length() <= tol {
+            self.finish_pen_path(true);
+            return;
+        }
+        self.pen_nodes.push(doc_pos);
+        self.status = if self.pen_nodes.len() == 1 {
+            "Pen: click to place the next point · double-click or Enter to finish · click the first point to close".to_string()
+        } else {
+            format!(
+                "Pen: {} points · double-click/Enter to finish",
+                self.pen_nodes.len()
+            )
+        };
+    }
+
+    /// Commit the in-progress Pen contour. A closed contour needs three points; an open one
+    /// needs two. Short or empty paths are discarded rather than creating degenerate objects.
+    pub fn finish_pen_path(&mut self, closed: bool) {
+        let closed = closed && self.pen_nodes.len() >= 3;
+        if self.pen_nodes.len() < 2 {
+            self.pen_nodes.clear();
+            return;
+        }
+        self.push_undo("Draw Path");
+        let points = std::mem::take(&mut self.pen_nodes);
+        let obj = Obj::new(
+            Shape::Path { points, closed },
+            if closed { Some(self.fill) } else { None },
+            Some(self.stroke),
+        );
+        let idx = self.push_object(obj);
+        self.select_single(Some(idx));
+        self.status = if closed {
+            "Closed vector path created".to_string()
+        } else {
+            "Open vector path created — use Subselection (A) to edit nodes".to_string()
+        };
+    }
+
+    /// Font families present in the active document, plus the CS6 built-in choices.
+    /// Menus use this instead of a fixed list so imported and edited documents surface
+    /// the fonts they actually contain.
+    pub fn text_font_families(&self) -> Vec<String> {
+        let mut families = Vec::new();
+        for layer in &self.doc.page().layers {
+            for obj in &layer.objects {
+                if let Shape::Text { font_family, .. } = &obj.kind
+                    && !families.iter().any(|f| f == font_family)
+                {
+                    families.push(font_family.clone());
+                }
+            }
+        }
+        for built_in in ["Sans-Serif", "Serif", "Monospace", "Display", "Geometric"] {
+            if !families.iter().any(|f| f == built_in) {
+                families.push(built_in.to_string());
+            }
+        }
+        families
+    }
+
+    /// Text sizes used by the active document, ordered and de-duplicated, followed by
+    /// CS6's common preset ladder. The menu marks the selected text's size.
+    pub fn text_sizes(&self) -> Vec<f32> {
+        let mut sizes = Vec::new();
+        for layer in &self.doc.page().layers {
+            for obj in &layer.objects {
+                if let Shape::Text { size, .. } = &obj.kind
+                    && !sizes.iter().any(|s: &f32| (*s - *size).abs() < 0.01)
+                {
+                    sizes.push(*size);
+                }
+            }
+        }
+        for preset in [12.0, 18.0, 24.0, 36.0, 48.0, 72.0] {
+            if !sizes.iter().any(|s| (*s - preset).abs() < 0.01) {
+                sizes.push(preset);
+            }
+        }
+        sizes.sort_by(|a, b| a.total_cmp(b));
+        sizes
+    }
+
+    /// The currently selected text style, when the selection is a text object.
+    pub fn selected_text_style(&self) -> Option<(String, f32)> {
+        match &self.selected_object()?.kind {
+            Shape::Text {
+                font_family, size, ..
+            } => Some((font_family.clone(), *size)),
+            _ => None,
         }
     }
 
@@ -2316,13 +2469,12 @@ impl FireCraft {
                 });
             }
             Tool::Path => {
-                self.drag = Some(Drag {
-                    kind: DragKind::Path,
-                    start: doc_pos,
-                    current: doc_pos,
-                    orig_bounds: None,
-                    path: vec![doc_pos],
-                });
+                // Pen anchors are click-placed, not a freehand drag. The canvas owns the
+                // click path and calls `pen_add_node`; this branch handles pointer-down from
+                // non-canvas callers (tests and accessibility paths) as a single anchor.
+                if self.pen_nodes.is_empty() {
+                    self.pen_add_node(doc_pos);
+                }
             }
             Tool::Knife => {
                 if self.selected.is_none()
@@ -2824,7 +2976,7 @@ impl FireCraft {
                     self.set_selected_bounds(lo, hi);
                 }
             }
-            DragKind::Paint | DragKind::Path | DragKind::Lasso => {
+            DragKind::Paint | DragKind::Lasso => {
                 drag.current = doc_pos;
                 if (doc_pos - drag.path.last().copied().unwrap_or(doc_pos)).length() > 2.0 {
                     drag.path.push(doc_pos);
@@ -3037,45 +3189,28 @@ impl FireCraft {
                 self.selected = Some(index);
                 self.status = format!("{} created", self.tool.name());
             }
-            DragKind::Paint => {
-                if drag.path.len() >= 2 && self.tool != Tool::Eraser {
-                    let (stroke, width) = if self.tool == Tool::Freeform {
-                        (self.stroke, 1.0)
-                    } else {
-                        (self.fill, self.brush_size.max(1.0))
-                    };
-                    let mut obj = Obj::new(
-                        Shape::Path {
-                            points: drag.path,
-                            closed: false,
-                        },
-                        None,
-                        Some(stroke),
-                    );
-                    obj.width = width;
-                    let index = self.push_object(obj);
-                    self.selected = Some(index);
-                    self.status = if self.tool == Tool::Freeform {
-                        "Freeform vector path created".to_string()
-                    } else {
-                        "Brush stroke added".to_string()
-                    };
-                }
-            }
-            DragKind::Path if drag.path.len() >= 2 => {
-                self.push_undo("Path");
-                let closed = drag.path.len() > 3
-                    && (drag.path[0] - *drag.path.last().unwrap_or(&drag.path[0])).length() < 14.0;
-                let obj = Obj::new(
+            DragKind::Paint if drag.path.len() >= 2 && self.tool != Tool::Eraser => {
+                let (stroke, width) = if self.tool == Tool::Freeform {
+                    (self.stroke, 1.0)
+                } else {
+                    (self.fill, self.brush_size.max(1.0))
+                };
+                let mut obj = Obj::new(
                     Shape::Path {
                         points: drag.path,
-                        closed,
+                        closed: false,
                     },
-                    if closed { Some(self.fill) } else { None },
-                    Some(self.stroke),
+                    None,
+                    Some(stroke),
                 );
-                let idx = self.push_object(obj);
-                self.selected = Some(idx);
+                obj.width = width;
+                let index = self.push_object(obj);
+                self.selected = Some(index);
+                self.status = if self.tool == Tool::Freeform {
+                    "Freeform vector path created".to_string()
+                } else {
+                    "Brush stroke added".to_string()
+                };
             }
             _ => {}
         }
@@ -3107,6 +3242,24 @@ impl FireCraft {
                 *fi = a;
             }
         }
+        for recent in &mut self.doc_tab_history {
+            if *recent == a {
+                *recent = b;
+            } else if *recent == b {
+                *recent = a;
+            }
+        }
+    }
+
+    /// Move a document to the front of the tab MRU list. Missing or stale indices are ignored;
+    /// `active_doc` is always reinserted so an overflow strip can never hide every tab.
+    pub fn touch_document_tab(&mut self, idx: usize) {
+        if idx >= self.open_docs.len() {
+            return;
+        }
+        self.doc_tab_history
+            .retain(|&i| i != idx && i < self.open_docs.len());
+        self.doc_tab_history.insert(0, idx);
     }
 
     pub fn new_document_tab(&mut self, width: f32, height: f32) {
@@ -3115,6 +3268,7 @@ impl FireCraft {
         d.name = format!("Untitled-{}.fw.png", self.open_docs.len() + 1);
         self.open_docs.push(d.clone());
         self.active_doc = self.open_docs.len() - 1;
+        self.touch_document_tab(self.active_doc);
         self.doc = d;
         self.selected = None;
         self.selected_layer = 0;
@@ -3128,6 +3282,7 @@ impl FireCraft {
         if idx < self.open_docs.len() {
             self.sync_active_doc_slot();
             self.active_doc = idx;
+            self.touch_document_tab(idx);
             self.doc = self.open_docs[idx].clone();
             self.current_path = self.doc.file_path.clone();
             self.selected = None;
@@ -3135,6 +3290,9 @@ impl FireCraft {
             self.undo.clear();
             self.redo.clear();
             self.textures.clear();
+            // Return keyboard ownership to the canvas so the next shortcut or view toggle
+            // is not swallowed by the tab strip that was just clicked.
+            self.focus_canvas = true;
             self.status = format!("Switched to {}", self.doc.name);
         }
     }
@@ -3145,91 +3303,6 @@ impl FireCraft {
 
     /// Saves every dirty document that already has a file path. Untitled documents cannot be
     /// saved without asking for a path, so they are reported rather than silently discarded.
-    pub fn save_all_for_quit(&mut self) -> Result<(), String> {
-        self.sync_active_doc_slot();
-        for doc in &mut self.open_docs {
-            if !doc.dirty {
-                continue;
-            }
-            let Some(path) = doc.file_path.clone() else {
-                return Err(format!(
-                    "\"{}\" has no file path yet. Save it before closing.",
-                    doc.name
-                ));
-            };
-            crate::formats::save(doc, &path)?;
-            doc.dirty = false;
-        }
-        self.doc = self.open_docs[self.active_doc.min(self.open_docs.len() - 1)].clone();
-        self.current_path = self.doc.file_path.clone();
-        Ok(())
-    }
-
-    pub fn request_quit(&mut self) {
-        if self.has_unsaved_changes() {
-            self.show_quit_confirm = true;
-        } else {
-            self.ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-        }
-    }
-
-    /// One step of the Save All & Quit flow. Returns `Ok(true)` when a Save As browser was opened
-    /// and the caller must wait; `Ok(false)` means every dirty document is saved and the app can
-    /// close. Untitled documents are never silently discarded.
-    pub fn save_all_and_quit_step(&mut self) -> Result<bool, String> {
-        self.sync_active_doc_slot();
-        let untitled = self
-            .open_docs
-            .iter()
-            .position(|d| d.dirty && d.file_path.is_none());
-        if let Some(idx) = untitled {
-            if idx != self.active_doc {
-                self.switch_document_tab(idx);
-            }
-            self.pending_quit_after_save = true;
-            self.begin_file_dialog(FileMode::Save);
-            return Ok(true);
-        }
-        self.save_all_for_quit()?;
-        Ok(false)
-    }
-
-    pub fn request_close_document_tab(&mut self, idx: usize) {
-        let is_dirty = if idx == self.active_doc {
-            self.doc.dirty
-        } else {
-            self.open_docs.get(idx).is_some_and(|d| d.dirty)
-        };
-        if is_dirty {
-            self.pending_close_tab = Some(idx);
-        } else {
-            self.close_document_tab(idx);
-        }
-    }
-
-    pub fn request_close_active_tab(&mut self) {
-        self.request_close_document_tab(self.active_doc);
-    }
-
-    pub fn close_document_tab(&mut self, idx: usize) {
-        if self.open_docs.len() <= 1 {
-            self.close_document();
-            return;
-        }
-        self.open_docs.remove(idx);
-        self.floating_doc_tabs.retain(|&i| i != idx);
-        for i in &mut self.floating_doc_tabs {
-            if *i > idx {
-                *i -= 1;
-            }
-        }
-        self.active_doc = self.active_doc.min(self.open_docs.len() - 1);
-        self.doc = self.open_docs[self.active_doc].clone();
-        self.selected = None;
-        self.selected_layer = 0;
-        self.textures.clear();
-    }
-
     pub fn new_document(&mut self, width: f32, height: f32) {
         self.new_document_with_options(
             width,
@@ -3256,6 +3329,7 @@ impl FireCraft {
         doc.page_mut().transparent_bg = transparent;
         self.open_docs.push(doc.clone());
         self.active_doc = self.open_docs.len() - 1;
+        self.touch_document_tab(self.active_doc);
         self.doc = doc;
         self.selected = None;
         self.selected_layer = 0;
@@ -3271,6 +3345,7 @@ impl FireCraft {
         self.open_docs = vec![self.doc.clone()];
         self.floating_doc_tabs.clear();
         self.active_doc = 0;
+        self.doc_tab_history = vec![0];
         self.selected = None;
         self.selected_layer = 0;
         self.undo.clear();
@@ -3417,7 +3492,7 @@ impl FireCraft {
         page.sync_state();
         self.doc.width = new_w;
         self.doc.height = new_h;
-        self.tool = Tool::Select;
+        self.set_tool(Tool::Select);
         self.status = format!("Cropped canvas to {new_w:.0} × {new_h:.0} px");
     }
 
@@ -4457,7 +4532,7 @@ impl FireCraft {
                 o.fill = f;
             }
         });
-        self.tool = Tool::Subselect;
+        self.set_tool(Tool::Subselect);
         self.status = "Converted selection to editable Vector Path (Subselect nodes)".to_string();
     }
 
@@ -5259,15 +5334,20 @@ impl FireCraft {
         }
         let path = self.file_dialog_dir.join(self.file_dialog_name.trim());
         let result = match self.file_mode {
-            FileMode::Open => self.open_path(&path),
+            FileMode::Open => self
+                .run_file_intent(FileIntent::Open(path.clone()))
+                .result(),
+            FileMode::Save => self
+                .run_file_intent(FileIntent::SaveAs(path.clone()))
+                .result(),
             FileMode::Import => self.import_path(&path),
-            FileMode::Save => self.save_to(&path),
             FileMode::Export => self.export_to(&path),
         };
         if result.is_ok() {
             self.show_file_dialog = false;
             if let Some(idx) = self.pending_close_after_save.take() {
                 self.close_document_tab(idx);
+                self.continue_pending_tab_closes();
             }
             if self.pending_quit_after_save {
                 self.pending_quit_after_save = false;
@@ -5278,54 +5358,6 @@ impl FireCraft {
                 }
             }
         }
-    }
-
-    pub fn open_path(&mut self, path: &Path) -> Result<(), String> {
-        match crate::formats::open(path) {
-            Ok(mut doc) => {
-                self.sync_active_doc_slot();
-                doc.file_path = Some(path.to_path_buf());
-                self.open_docs.push(doc.clone());
-                self.active_doc = self.open_docs.len() - 1;
-                self.doc = doc;
-                self.selected = None;
-                self.selected_layer = 0;
-                self.undo.clear();
-                self.redo.clear();
-                self.textures.clear();
-                let pb = path.to_path_buf();
-                self.current_path = Some(pb.clone());
-                if !self.recent_files.contains(&pb) {
-                    self.recent_files.push(pb);
-                    #[cfg(windows)]
-                    crate::shell_windows::update_jump_list(&self.recent_files);
-                }
-                self.status = format!("Opened {}", path.display());
-                Ok(())
-            }
-            Err(e) => {
-                self.status = format!("Could not open: {e}");
-                Err(e)
-            }
-        }
-    }
-
-    pub fn import_path(&mut self, path: &Path) -> Result<(), String> {
-        let imported = crate::formats::open(path)?;
-        self.push_undo("Import");
-        for layer in imported.page().layers.clone() {
-            if layer.is_web_layer {
-                continue;
-            }
-            for obj in layer.objects {
-                let idx = self.push_object(obj);
-                self.selected = Some(idx);
-            }
-        }
-        self.textures.clear();
-        self.show_welcome = false;
-        self.status = format!("Imported {}", path.display());
-        Ok(())
     }
 
     pub fn handle_dropped_files(&mut self, ctx: &egui::Context) {
@@ -5409,51 +5441,6 @@ impl FireCraft {
                 }
             }
         }
-    }
-
-    pub fn save_current(&mut self) {
-        match self.current_path.clone() {
-            Some(path) => {
-                if let Err(e) = self.save_to(&path) {
-                    self.status = format!("Save failed: {e}");
-                }
-            }
-            None => self.begin_file_dialog(FileMode::Save),
-        }
-    }
-
-    pub fn save_to(&mut self, path: &Path) -> Result<(), String> {
-        crate::formats::save(&self.doc, path)?;
-        let pb = path.to_path_buf();
-        self.current_path = Some(pb.clone());
-        self.doc.file_path = Some(pb.clone());
-        self.doc.dirty = false;
-        if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-            self.doc.name = name.to_string();
-        }
-        self.sync_active_doc_slot();
-        if !self.recent_files.contains(&pb) {
-            self.recent_files.push(pb);
-            #[cfg(windows)]
-            crate::shell_windows::update_jump_list(&self.recent_files);
-        }
-        self.status = format!("Saved {}", path.display());
-        Ok(())
-    }
-
-    pub fn export_to(&mut self, path: &Path) -> Result<(), String> {
-        let format = crate::formats::Format::from_path(path);
-        if !format.writeable() {
-            let msg = format!(
-                "{} export is not supported yet; choose PNG, JPEG, GIF, WebP, TIFF, BMP, ICO, SVG or HTML.",
-                format.label()
-            );
-            self.status = msg.clone();
-            return Err(msg);
-        }
-        crate::formats::save(&self.doc, path)?;
-        self.status = format!("Exported {}", path.display());
-        Ok(())
     }
 
     // ---- Clipboard & Selection ---------------------------------------------
@@ -6827,6 +6814,214 @@ fn point_in_polygon(pt: Vec2, poly: &[Vec2]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Intent-level test fixture from the architecture review. It absorbs the layer,
+    /// visibility, and selection setup that command tests used to repeat.
+    struct DocumentFixture {
+        app: FireCraft,
+        last: Option<usize>,
+    }
+
+    impl DocumentFixture {
+        fn new() -> Self {
+            Self {
+                app: FireCraft::new(None),
+                last: None,
+            }
+        }
+
+        fn push(mut self, kind: Shape, fill: Option<Color32>) -> Self {
+            let idx = self.app.push_object(Obj::new(kind, fill, None));
+            self.last = Some(idx);
+            self
+        }
+
+        fn rect(self) -> Self {
+            self.push(
+                Shape::Rect {
+                    min: Vec2::new(20.0, 20.0),
+                    max: Vec2::new(120.0, 80.0),
+                    corner_radius: 0.0,
+                    filled: true,
+                },
+                Some(Color32::from_rgb(40, 90, 160)),
+            )
+        }
+
+        fn text(self, value: &str) -> Self {
+            self.push(
+                Shape::Text {
+                    at: Vec2::new(24.0, 100.0),
+                    text: value.to_string(),
+                    size: 24.0,
+                    bold: false,
+                    italic: false,
+                    font_family: "Serif".to_string(),
+                },
+                Some(Color32::BLACK),
+            )
+        }
+
+        fn hidden(mut self) -> Self {
+            if let Some(idx) = self.last {
+                let layer = self.app.selected_layer;
+                if let Some(obj) = self.app.doc.page_mut().layers[layer].objects.get_mut(idx) {
+                    obj.visible = false;
+                }
+            }
+            self
+        }
+
+        fn selected(mut self) -> Self {
+            self.app.select_single(self.last);
+            self
+        }
+
+        fn build(self) -> FireCraft {
+            self.app
+        }
+    }
+
+    #[test]
+    fn expanded_mode_is_the_startup_workspace() {
+        let app = FireCraft::new(None);
+        assert_eq!(app.workspace_preset, "Expanded Mode");
+        assert!(app.show_main_toolbar);
+        assert!(app.show_tools_dock);
+        assert!(app.show_right_dock);
+        assert_eq!(
+            app.panel_groups
+                .iter()
+                .filter(|g| g.zone == DockZone::RightOuter && !g.tabs.is_empty())
+                .count(),
+            5
+        );
+    }
+
+    #[test]
+    fn pen_builds_a_path_from_clicks_and_commits_it() {
+        let mut app = FireCraft::new(None);
+        app.set_tool(Tool::Path);
+        app.pen_add_node(Vec2::new(20.0, 20.0));
+        app.pen_add_node(Vec2::new(120.0, 30.0));
+        app.pen_add_node(Vec2::new(80.0, 100.0));
+        assert_eq!(app.pen_nodes.len(), 3);
+        app.finish_pen_path(true);
+        assert!(app.pen_nodes.is_empty());
+        let obj = app.selected_object().expect("committed path is selected");
+        match obj.kind {
+            Shape::Path { points, closed } => {
+                assert_eq!(points.len(), 3);
+                assert!(closed);
+            }
+            other => panic!("expected path, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn switching_tabs_preserves_view_and_returns_canvas_focus() {
+        let mut app = FireCraft::new(None);
+        app.view_mode = CanvasViewMode::TwoUp;
+        app.new_document_tab(800.0, 600.0);
+        app.switch_document_tab(0);
+        assert_eq!(app.view_mode, CanvasViewMode::TwoUp);
+        assert!(app.focus_canvas);
+    }
+
+    #[test]
+    fn discard_and_quit_arms_the_close_gate() {
+        let mut app = DocumentFixture::new().rect().selected().build();
+        app.doc.dirty = true;
+        app.show_quit_confirm = true;
+        assert!(app.should_intercept_close());
+        app.confirm_discard_and_quit();
+        assert!(!app.show_quit_confirm);
+        assert!(!app.should_intercept_close());
+    }
+
+    #[test]
+    fn closing_an_earlier_tab_keeps_the_active_document() {
+        let mut app = FireCraft::new(None);
+        app.doc.name = "First".to_string();
+        app.doc.dirty = true;
+        app.sync_active_doc_slot();
+        app.new_document_tab(800.0, 600.0);
+        app.doc.name = "Second".to_string();
+        app.doc.dirty = true;
+        app.sync_active_doc_slot();
+        app.request_close_document_tab(0);
+        assert_eq!(app.pending_close_tab, Some(0));
+        app.close_document_tab(0);
+        assert_eq!(app.open_docs.len(), 1);
+        assert_eq!(app.active_doc, 0);
+        assert_eq!(app.doc.name, "Second");
+    }
+
+    #[test]
+    fn tab_history_tracks_recent_switches_and_close_remaps() {
+        let mut app = FireCraft::new(None);
+        app.new_document_tab(800.0, 600.0);
+        app.new_document_tab(800.0, 600.0);
+        app.switch_document_tab(0);
+        app.switch_document_tab(1);
+        assert_eq!(&app.doc_tab_history[..3], &[1, 0, 2]);
+        app.close_document_tab(0);
+        assert_eq!(&app.doc_tab_history[..2], &[0, 1]);
+    }
+
+    #[test]
+    fn bulk_close_stops_for_dirty_tab_and_then_finishes() {
+        let mut app = FireCraft::new(None);
+        app.new_document_tab(800.0, 600.0);
+        app.new_document_tab(800.0, 600.0);
+        app.open_docs[1].dirty = true;
+        app.request_close_document_tabs(vec![0, 1, 2]);
+        assert_eq!(app.open_docs.len(), 2);
+        assert_eq!(app.pending_close_tab, Some(1));
+        assert_eq!(app.pending_close_tabs, vec![0]);
+        app.close_document_tab(1);
+        app.pending_close_tab = None;
+        app.continue_pending_tab_closes();
+        assert_eq!(app.open_docs.len(), 1);
+        assert_eq!(app.active_doc, 0);
+        assert!(!app.doc.dirty);
+    }
+
+    #[test]
+    fn file_intent_saves_and_clears_dirty_state() {
+        let mut app = DocumentFixture::new().rect().selected().build();
+        app.doc.dirty = true;
+        let path = std::env::temp_dir().join("firecraft-file-intent-test.fw.png");
+        let outcome = app.run_file_intent(FileIntent::SaveAs(path.clone()));
+        assert_eq!(outcome, FileOutcome::Saved(path.clone()));
+        assert!(!app.doc.dirty);
+        assert_eq!(app.current_path, Some(path.clone()));
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn text_menu_lists_document_fonts_and_sizes() {
+        let app = DocumentFixture::new()
+            .rect()
+            .text("Dynamic type")
+            .selected()
+            .build();
+        assert!(app.text_font_families().iter().any(|f| f == "Serif"));
+        assert!(app.text_sizes().iter().any(|s| (*s - 24.0).abs() < 0.01));
+        assert_eq!(app.selected_text_style().unwrap().0, "Serif");
+    }
+
+    #[test]
+    fn hidden_fixture_can_be_selected_for_command_tests() {
+        let app = DocumentFixture::new()
+            .rect()
+            .text("Hidden label")
+            .hidden()
+            .selected()
+            .build();
+        let obj = app.selected_object().expect("fixture stays selected");
+        assert!(!obj.visible);
+    }
 
     #[test]
     fn app_workflow_auto_shapes_effects_and_undo() {

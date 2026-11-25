@@ -13,7 +13,11 @@ use crate::constants;
 use crate::doc::{AutoShapeKind, BlendMode, GradientFill, LiveEffect, Obj, Shape};
 use crate::icons;
 
+mod color;
+mod properties;
 mod tools;
+pub use color::*;
+pub use properties::*;
 pub use tools::*;
 
 use eframe::egui::{
@@ -896,7 +900,7 @@ pub fn paths_panel(ui: &mut Ui, app: &mut FireCraft) {
         .clicked()
             && has_sel
         {
-            app.tool = Tool::Marquee;
+            app.set_tool(Tool::Marquee);
             app.status = "Converted path bounds to Marquee selection".to_string();
         }
         if path_icon_btn(
@@ -1096,7 +1100,7 @@ pub fn paths_panel(ui: &mut Ui, app: &mut FireCraft) {
         ] {
             if path_icon_btn(ui, p, icon, has_sel, tip).clicked() && has_sel {
                 app.convert_selected_to_path();
-                app.tool = Tool::Subselect;
+                app.set_tool(Tool::Subselect);
                 app.status = format!("{tip} active");
             }
         }
@@ -1178,297 +1182,6 @@ pub fn swatches_panel(ui: &mut Ui, app: &mut FireCraft) {
 
 /// The Color Palette / Color Mixer panel (`screenshots/Fireworks_Layout_Design.jpg`):
 /// Selector | Mixers | Blender tabs, Stroke/Fill icon+hex rows, HLS/HSV/CMYK/RGB field + sliders.
-pub fn color_panel(ui: &mut Ui, app: &mut FireCraft) {
-    let p = app.palette;
-    ui.spacing_mut().item_spacing = Vec2::new(3.0, 2.0);
-
-    // Top CS6 segmented sub-tabs: Selector | Mixers | Blender
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing = Vec2::new(1.0, 1.0);
-        for (i, label) in ["Selector", "Mixers", "Blender"].iter().enumerate() {
-            if ui
-                .selectable_label(app.color_subtab == i, RichText::new(*label).small())
-                .clicked()
-            {
-                app.color_subtab = i;
-            }
-        }
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if ui
-                .small_button("⇄")
-                .on_hover_text("Swap Fill & Stroke Colors (X)")
-                .clicked()
-            {
-                std::mem::swap(&mut app.fill, &mut app.stroke);
-            }
-            if ui
-                .small_button("⊘")
-                .on_hover_text("Set No Fill on Selection")
-                .clicked()
-            {
-                app.set_selected_fill(None);
-            }
-        });
-    });
-
-    // Stroke & Fill icon + swatch + hex rows matching CS6 Color Palette
-    ui.horizontal(|ui| {
-        // Stroke box
-        let (pen_r, _) = ui.allocate_exact_size(Vec2::new(14.0, 14.0), Sense::hover());
-        icons::draw(ui.painter(), pen_r, icons::Icon::Pencil, p.text_dim, 1.0);
-        let (st_rect, st_resp) = ui.allocate_exact_size(Vec2::new(18.0, 14.0), Sense::click());
-        ui.painter().rect_filled(st_rect, 0.0, app.stroke);
-        ui.painter().rect_stroke(
-            st_rect,
-            0.0,
-            Stroke::new(1.0, p.stroke),
-            egui::StrokeKind::Middle,
-        );
-        if st_resp
-            .on_hover_text("Stroke Color (click to swap with Fill)")
-            .clicked()
-        {
-            std::mem::swap(&mut app.fill, &mut app.stroke);
-        }
-        let mut hex2 = colors::hex_of(app.stroke);
-        if ui
-            .add(
-                TextEdit::singleline(&mut hex2)
-                    .desired_width(68.0)
-                    .font(FontId::monospace(10.5))
-                    .text_color(p.text),
-            )
-            .changed()
-            && let Some(c) = colors::from_hex(&hex2)
-        {
-            app.stroke = c;
-            app.set_selected_stroke(Some(c));
-        }
-
-        ui.add_space(4.0);
-
-        // Fill box
-        let (fill_ic_r, _) = ui.allocate_exact_size(Vec2::new(14.0, 14.0), Sense::hover());
-        icons::draw(ui.painter(), fill_ic_r, icons::Icon::Fill, p.text_dim, 1.0);
-        let (fl_rect, _) = ui.allocate_exact_size(Vec2::new(18.0, 14.0), Sense::click());
-        ui.painter().rect_filled(fl_rect, 0.0, app.fill);
-        ui.painter().rect_stroke(
-            fl_rect,
-            0.0,
-            Stroke::new(1.0, p.accent),
-            egui::StrokeKind::Middle,
-        );
-        let mut hex = colors::hex_of(app.fill);
-        if ui
-            .add(
-                TextEdit::singleline(&mut hex)
-                    .desired_width(68.0)
-                    .font(FontId::monospace(10.5))
-                    .text_color(p.text),
-            )
-            .changed()
-            && let Some(c) = colors::from_hex(&hex)
-        {
-            app.fill = c;
-            app.set_selected_fill(Some(c));
-        }
-    });
-
-    if app.color_subtab == 2 {
-        // Blender tab: live 12-step interpolation ramp between Stroke and Fill
-        ui.label(
-            RichText::new("Blend Ramp (Left-click: Fill, Right-click: Stroke):")
-                .small()
-                .color(p.text_dim),
-        );
-        ui.horizontal(|ui| {
-            ui.spacing_mut().item_spacing = Vec2::new(2.0, 2.0);
-            for step in 0..12 {
-                let t = step as f32 / 11.0;
-                let r = (app.stroke.r() as f32 * (1.0 - t) + app.fill.r() as f32 * t) as u8;
-                let g = (app.stroke.g() as f32 * (1.0 - t) + app.fill.g() as f32 * t) as u8;
-                let b = (app.stroke.b() as f32 * (1.0 - t) + app.fill.b() as f32 * t) as u8;
-                let c = Color32::from_rgb(r, g, b);
-                let (cell, resp) = ui.allocate_exact_size(Vec2::new(20.0, 52.0), Sense::click());
-                ui.painter().rect_filled(cell, 0.0, c);
-                ui.painter().rect_stroke(
-                    cell,
-                    0.0,
-                    Stroke::new(1.0, p.stroke),
-                    egui::StrokeKind::Middle,
-                );
-                if resp.clicked() {
-                    app.fill = c;
-                    app.set_selected_fill(Some(c));
-                }
-                if resp.secondary_clicked() {
-                    app.stroke = c;
-                    app.set_selected_stroke(Some(c));
-                }
-                resp.on_hover_text(colors::hex_of(c));
-            }
-        });
-        return;
-    }
-
-    let spaces = ["HLS", "HSV", "CMYK", "RGB"];
-    ui.horizontal(|ui| {
-        for (i, name) in spaces.iter().enumerate() {
-            let selected = app.color_tab == i;
-            if ui
-                .selectable_label(selected, RichText::new(*name).small())
-                .clicked()
-            {
-                app.color_tab = i;
-            }
-        }
-    });
-
-    ui.horizontal(|ui| {
-        let mut hsv = colors::rgb_to_hsv(app.fill);
-        let (square, sq_resp) =
-            ui.allocate_exact_size(Vec2::new(92.0, 68.0), Sense::click_and_drag());
-        let painter = ui.painter();
-        let steps_x = 24;
-        let steps_y = 18;
-        for iy in 0..steps_y {
-            for ix in 0..steps_x {
-                let s = ix as f32 / (steps_x - 1) as f32;
-                let v = 1.0 - iy as f32 / (steps_y - 1) as f32;
-                let c = colors::hsv_to_rgb(colors::Hsv { h: hsv.h, s, v });
-                let cell = Rect::from_min_size(
-                    pos2(
-                        square.left() + square.width() * ix as f32 / steps_x as f32,
-                        square.top() + square.height() * iy as f32 / steps_y as f32,
-                    ),
-                    Vec2::new(
-                        square.width() / steps_x as f32 + 0.8,
-                        square.height() / steps_y as f32 + 0.8,
-                    ),
-                );
-                painter.rect_filled(cell, 0.0, c);
-            }
-        }
-        painter.rect_stroke(
-            square,
-            0.0,
-            Stroke::new(1.0, p.stroke),
-            egui::StrokeKind::Middle,
-        );
-        // Active SV crosshair ring
-        let cur_pt = pos2(
-            square.left() + hsv.s.clamp(0.0, 1.0) * square.width(),
-            square.top() + (1.0 - hsv.v.clamp(0.0, 1.0)) * square.height(),
-        );
-        painter.circle_stroke(cur_pt, 3.5, Stroke::new(1.2, Color32::WHITE));
-        painter.circle_stroke(cur_pt, 4.5, Stroke::new(1.0, Color32::BLACK));
-
-        if (sq_resp.clicked() || sq_resp.dragged())
-            && let Some(pos) = sq_resp.interact_pointer_pos()
-        {
-            hsv.s = ((pos.x - square.left()) / square.width()).clamp(0.0, 1.0);
-            hsv.v = (1.0 - (pos.y - square.top()) / square.height()).clamp(0.0, 1.0);
-            app.fill = colors::hsv_to_rgb(hsv);
-            app.set_selected_fill(Some(app.fill));
-        }
-
-        let (bar, bar_resp) =
-            ui.allocate_exact_size(Vec2::new(14.0, 68.0), Sense::click_and_drag());
-        let painter = ui.painter();
-        for iy in 0..32 {
-            let h = iy as f32 / 32.0 * 360.0;
-            let c = colors::hsv_to_rgb(colors::Hsv { h, s: 1.0, v: 1.0 });
-            let cell = Rect::from_min_size(
-                pos2(bar.left(), bar.top() + bar.height() * iy as f32 / 32.0),
-                Vec2::new(bar.width(), bar.height() / 32.0 + 0.8),
-            );
-            painter.rect_filled(cell, 0.0, c);
-        }
-        painter.rect_stroke(
-            bar,
-            0.0,
-            Stroke::new(1.0, p.stroke),
-            egui::StrokeKind::Middle,
-        );
-        // Hue indicator tick
-        let hy = bar.top() + (hsv.h / 360.0).clamp(0.0, 1.0) * bar.height();
-        painter.line_segment(
-            [pos2(bar.left(), hy), pos2(bar.right(), hy)],
-            Stroke::new(1.5, Color32::WHITE),
-        );
-        if (bar_resp.clicked() || bar_resp.dragged())
-            && let Some(pos) = bar_resp.interact_pointer_pos()
-        {
-            hsv.h = (((pos.y - bar.top()) / bar.height()).clamp(0.0, 1.0)) * 360.0;
-            app.fill = colors::hsv_to_rgb(hsv);
-            app.set_selected_fill(Some(app.fill));
-        }
-
-        let mut changed = false;
-        ui.vertical(|ui| match app.color_tab {
-            0 => {
-                let mut hls = colors::rgb_to_hls(app.fill);
-                let mut l_pct = hls.l * 100.0;
-                let mut s_pct = hls.s * 100.0;
-                changed |= slider_row(ui, "H", &mut hls.h, 0.0, 360.0, "°");
-                changed |= slider_row(ui, "L", &mut l_pct, 0.0, 100.0, "%");
-                changed |= slider_row(ui, "S", &mut s_pct, 0.0, 100.0, "%");
-                if changed {
-                    hls.l = l_pct / 100.0;
-                    hls.s = s_pct / 100.0;
-                    app.fill = colors::hls_to_rgb(hls);
-                    app.set_selected_fill(Some(app.fill));
-                }
-            }
-            1 => {
-                let mut hsv = colors::rgb_to_hsv(app.fill);
-                let mut s_pct = hsv.s * 100.0;
-                let mut v_pct = hsv.v * 100.0;
-                changed |= slider_row(ui, "H", &mut hsv.h, 0.0, 360.0, "°");
-                changed |= slider_row(ui, "S", &mut s_pct, 0.0, 100.0, "%");
-                changed |= slider_row(ui, "V", &mut v_pct, 0.0, 100.0, "%");
-                if changed {
-                    hsv.s = s_pct / 100.0;
-                    hsv.v = v_pct / 100.0;
-                    app.fill = colors::hsv_to_rgb(hsv);
-                    app.set_selected_fill(Some(app.fill));
-                }
-            }
-            2 => {
-                let mut cmyk = colors::rgb_to_cmyk(app.fill);
-                let mut c_pct = cmyk.c * 100.0;
-                let mut m_pct = cmyk.m * 100.0;
-                let mut y_pct = cmyk.y * 100.0;
-                let mut k_pct = cmyk.k * 100.0;
-                changed |= slider_row(ui, "C", &mut c_pct, 0.0, 100.0, "%");
-                changed |= slider_row(ui, "M", &mut m_pct, 0.0, 100.0, "%");
-                changed |= slider_row(ui, "Y", &mut y_pct, 0.0, 100.0, "%");
-                changed |= slider_row(ui, "K", &mut k_pct, 0.0, 100.0, "%");
-                if changed {
-                    cmyk.c = c_pct / 100.0;
-                    cmyk.m = m_pct / 100.0;
-                    cmyk.y = y_pct / 100.0;
-                    cmyk.k = k_pct / 100.0;
-                    app.fill = colors::cmyk_to_rgb(cmyk);
-                    app.set_selected_fill(Some(app.fill));
-                }
-            }
-            _ => {
-                let mut r = app.fill.r() as f32;
-                let mut g = app.fill.g() as f32;
-                let mut b = app.fill.b() as f32;
-                changed |= slider_row(ui, "R", &mut r, 0.0, 255.0, "");
-                changed |= slider_row(ui, "G", &mut g, 0.0, 255.0, "");
-                changed |= slider_row(ui, "B", &mut b, 0.0, 255.0, "");
-                if changed {
-                    app.fill = Color32::from_rgb(r as u8, g as u8, b as u8);
-                    app.set_selected_fill(Some(app.fill));
-                }
-            }
-        });
-    });
-}
-
 fn slider_row(ui: &mut Ui, label: &str, value: &mut f32, min: f32, max: f32, unit: &str) -> bool {
     ui.style_mut().spacing.slider_width = 58.0;
     ui.horizontal(|ui| {
@@ -2283,7 +1996,7 @@ pub fn library_panel(ui: &mut Ui, app: &mut FireCraft) {
                     (icons::Icon::Dodge, Tool::Dodge, "Dodge / Burn Tool"),
                 ] {
                     if crate::canvas::tool_button(ui, ic, app.tool == tool, tip).clicked() {
-                        app.tool = tool;
+                        app.set_tool(tool);
                     }
                 }
                 if ui
@@ -2446,623 +2159,6 @@ pub fn library_panel(ui: &mut Ui, app: &mut FireCraft) {
                     ui.label(RichText::new(format!("-> {url}")).small());
                 }
             }
-        }
-    }
-}
-
-/// The bottom Properties Inspector (CS6 bottom dock):
-/// When an object is selected: Name, Type, editable X/Y/W/H, Fill, Stroke, Width, Opacity,
-/// Corner Radius / Star Points / Text Font / Slice URL, plus Live Filters (+) stack.
-/// When nothing is selected: Document Canvas Size, Background Color, Resolution, Fit Canvas.
-pub fn properties_panel(ui: &mut Ui, app: &mut FireCraft) {
-    let p = app.palette;
-    if app.selected_set.len() >= 2 {
-        let primary = app.selected_object();
-        ui.horizontal(|ui| {
-            ui.vertical(|ui| {
-                ui.label(
-                    RichText::new(format!("{} Objects Selected", app.selected_set.len()))
-                        .strong()
-                        .color(p.selection),
-                );
-                ui.horizontal(|ui| {
-                    if ui.small_button("Group (Ctrl+G)").clicked() {
-                        app.group_selected();
-                    }
-                    if ui.small_button("Duplicate").clicked() {
-                        app.duplicate_selected();
-                    }
-                    if ui.small_button("Delete").clicked() {
-                        app.delete_selected();
-                    }
-                });
-            });
-            ui.separator();
-            ui.vertical(|ui| {
-                ui.label(RichText::new("Align Selection:").small().color(p.text_dim));
-                ui.horizontal(|ui| {
-                    for (mode, lbl) in [
-                        ("left", "Left"),
-                        ("center_x", "Center H"),
-                        ("right", "Right"),
-                        ("top", "Top"),
-                        ("center_y", "Center V"),
-                        ("bottom", "Bottom"),
-                    ] {
-                        if ui.small_button(lbl).clicked() {
-                            app.align_selected_to_canvas(mode);
-                        }
-                    }
-                });
-            });
-            ui.separator();
-            ui.vertical(|ui| {
-                ui.label(
-                    RichText::new("Selection Appearance:")
-                        .small()
-                        .color(p.text_dim),
-                );
-                ui.horizontal(|ui| {
-                    let mut fill = primary.as_ref().and_then(|o| o.fill).unwrap_or(app.fill);
-                    let mut fc = [
-                        fill.r() as f32 / 255.0,
-                        fill.g() as f32 / 255.0,
-                        fill.b() as f32 / 255.0,
-                    ];
-                    if ui
-                        .color_edit_button_rgb(&mut fc)
-                        .on_hover_text("Fill all selected objects")
-                        .changed()
-                    {
-                        fill = Color32::from_rgb(
-                            (fc[0] * 255.0) as u8,
-                            (fc[1] * 255.0) as u8,
-                            (fc[2] * 255.0) as u8,
-                        );
-                        app.fill = fill;
-                        app.set_selected_fill(Some(fill));
-                    }
-                    let mut stroke = primary
-                        .as_ref()
-                        .and_then(|o| o.stroke)
-                        .unwrap_or(app.stroke);
-                    let mut sc = [
-                        stroke.r() as f32 / 255.0,
-                        stroke.g() as f32 / 255.0,
-                        stroke.b() as f32 / 255.0,
-                    ];
-                    if ui
-                        .color_edit_button_rgb(&mut sc)
-                        .on_hover_text("Stroke all selected objects")
-                        .changed()
-                    {
-                        stroke = Color32::from_rgb(
-                            (sc[0] * 255.0) as u8,
-                            (sc[1] * 255.0) as u8,
-                            (sc[2] * 255.0) as u8,
-                        );
-                        app.stroke = stroke;
-                        app.set_selected_stroke(Some(stroke));
-                    }
-                    let mut opacity = primary.as_ref().map(|o| o.opacity * 100.0).unwrap_or(100.0);
-                    if ui
-                        .add(
-                            egui::DragValue::new(&mut opacity)
-                                .range(0.0..=100.0)
-                                .suffix("%"),
-                        )
-                        .on_hover_text("Opacity for all selected objects")
-                        .changed()
-                    {
-                        app.set_selected_opacity(opacity / 100.0);
-                    }
-                    if ui.small_button("+ Shadow").clicked() {
-                        app.add_live_effect(LiveEffect::DropShadow {
-                            distance: 5.0,
-                            angle_deg: 45.0,
-                            blur: 5.0,
-                            color: Color32::from_black_alpha(150),
-                            enabled: true,
-                        });
-                    }
-                });
-            });
-        });
-        return;
-    }
-    let obj: Option<Obj> = app.selected_object();
-    match obj {
-        Some(obj) => {
-            ui.horizontal(|ui| {
-                // Column 0: CS6 Object Thumbnail Box + Type & Name
-                let (thumb_r, _) = ui.allocate_exact_size(Vec2::new(30.0, 38.0), Sense::hover());
-                ui.painter().rect_filled(thumb_r, 0.0, p.well);
-                ui.painter().rect_stroke(
-                    thumb_r,
-                    0.0,
-                    Stroke::new(1.0, p.stroke),
-                    egui::StrokeKind::Middle,
-                );
-                let thumb_ic = match obj.kind {
-                    Shape::Polygon { .. } => icons::Icon::Star,
-                    Shape::Ellipse { .. } => icons::Icon::Ellipse,
-                    Shape::Line { .. } => icons::Icon::Line,
-                    Shape::Path { .. } => icons::Icon::Pen,
-                    Shape::Text { .. } => icons::Icon::Text,
-                    Shape::Slice { .. } => icons::Icon::Slice,
-                    Shape::Group { .. } => icons::Icon::Group,
-                    _ => icons::Icon::Rectangle,
-                };
-                icons::draw(
-                    ui.painter(),
-                    thumb_r.shrink(3.0),
-                    thumb_ic,
-                    obj.fill.unwrap_or(p.accent),
-                    1.2,
-                );
-
-                ui.vertical(|ui| {
-                    ui.label(
-                        RichText::new(obj.type_label())
-                            .small()
-                            .strong()
-                            .color(p.accent),
-                    );
-                    let mut name = obj.name.clone();
-                    if ui
-                        .add(TextEdit::singleline(&mut name).desired_width(108.0))
-                        .changed()
-                    {
-                        app.set_selected_name(name);
-                    }
-                });
-
-                if let Some((lo, hi)) = obj.bounds() {
-                    let mut x = lo.x;
-                    let mut y = lo.y;
-                    let mut w = (hi.x - lo.x).max(1.0);
-                    let mut h = (hi.y - lo.y).max(1.0);
-                    let mut geom_changed = false;
-                    // CS6 2×2 W/H and X/Y stacked columns
-                    Grid::new("prop_wh_xy_grid")
-                        .num_columns(4)
-                        .spacing([4.0, 2.0])
-                        .show(ui, |ui| {
-                            ui.label(RichText::new("W:").small().color(p.text_dim));
-                            geom_changed |= ui
-                                .add(egui::DragValue::new(&mut w).speed(1.0).range(1.0..=16384.0))
-                                .changed();
-                            ui.label(RichText::new("X:").small().color(p.text_dim));
-                            geom_changed |=
-                                ui.add(egui::DragValue::new(&mut x).speed(1.0)).changed();
-                            ui.end_row();
-
-                            ui.label(RichText::new("H:").small().color(p.text_dim));
-                            geom_changed |= ui
-                                .add(egui::DragValue::new(&mut h).speed(1.0).range(1.0..=16384.0))
-                                .changed();
-                            ui.label(RichText::new("Y:").small().color(p.text_dim));
-                            geom_changed |=
-                                ui.add(egui::DragValue::new(&mut y).speed(1.0)).changed();
-                            ui.end_row();
-                        });
-                    if geom_changed {
-                        app.set_selected_bounds(Vec2::new(x, y), Vec2::new(x + w, y + h));
-                    }
-                }
-
-                ui.separator();
-
-                // Column 2: Fill, Stroke, Stroke Width, Opacity & Shape-specific parameters
-                ui.vertical(|ui| {
-                    ui.horizontal(|ui| {
-                        ui.label(RichText::new("Fill:").small().color(p.text_dim));
-                        let mut has_fill = obj.fill.is_some();
-                        if ui.checkbox(&mut has_fill, "").changed() {
-                            if has_fill {
-                                app.set_selected_fill(Some(app.fill));
-                            } else {
-                                app.set_selected_fill(None);
-                            }
-                        }
-                        let mut fc = obj.fill.unwrap_or(app.fill);
-                        let mut has_fill = obj.fill.is_some();
-                        if cs6_color_button(
-                            ui,
-                            "prop_obj_fill_swatch",
-                            p,
-                            &mut fc,
-                            Some(&mut has_fill),
-                        ) {
-                            if has_fill {
-                                app.fill = fc;
-                                app.set_selected_fill(Some(fc));
-                            } else {
-                                app.set_selected_fill(None);
-                            }
-                        }
-
-                        ui.label(RichText::new("Stroke:").small().color(p.text_dim));
-                        let mut sc = obj.stroke.unwrap_or(app.stroke);
-                        let mut has_stroke = obj.stroke.is_some();
-                        if cs6_color_button(
-                            ui,
-                            "prop_obj_stroke_swatch",
-                            p,
-                            &mut sc,
-                            Some(&mut has_stroke),
-                        ) {
-                            if has_stroke {
-                                app.stroke = sc;
-                                app.set_selected_stroke(Some(sc));
-                            } else {
-                                app.set_selected_stroke(None);
-                            }
-                        }
-                        let mut width = obj.width;
-                        if ui
-                            .add(
-                                egui::DragValue::new(&mut width)
-                                    .speed(0.5)
-                                    .range(0.0..=64.0)
-                                    .suffix(" px"),
-                            )
-                            .on_hover_text("Stroke Width")
-                            .changed()
-                        {
-                            app.set_selected_width(width);
-                        }
-
-                        ui.label(RichText::new("Opacity:").small().color(p.text_dim));
-                        let mut op = obj.opacity * 100.0;
-                        if ui
-                            .add(
-                                egui::DragValue::new(&mut op)
-                                    .speed(1.0)
-                                    .range(0.0..=100.0)
-                                    .suffix("%"),
-                            )
-                            .changed()
-                        {
-                            app.set_selected_opacity(op / 100.0);
-                        }
-                    });
-
-                    // Shape-specific secondary row
-                    ui.horizontal(|ui| match &obj.kind {
-                        Shape::Rect { corner_radius, .. } => {
-                            ui.label(RichText::new("Roundness:").small().color(p.text_dim));
-                            let mut cr = *corner_radius;
-                            if ui
-                                .add(egui::Slider::new(&mut cr, 0.0..=120.0).suffix(" px"))
-                                .changed()
-                            {
-                                app.set_selected_corner_radius(cr);
-                            }
-                        }
-                        Shape::Polygon {
-                            sides, star_inner, ..
-                        } => {
-                            let mut s = *sides;
-                            let mut inner = *star_inner;
-                            ui.label(RichText::new("Sides:").small().color(p.text_dim));
-                            if ui.add(egui::DragValue::new(&mut s).range(3..=36)).changed() {
-                                app.set_selected_polygon_params(s, inner);
-                            }
-                            ui.label(RichText::new("Star Ratio:").small().color(p.text_dim));
-                            if ui.add(egui::Slider::new(&mut inner, 0.15..=1.0)).changed() {
-                                app.set_selected_polygon_params(s, inner);
-                            }
-                        }
-                        Shape::Text {
-                            text,
-                            size,
-                            bold,
-                            italic,
-                            font_family,
-                            ..
-                        } => {
-                            ui.label(RichText::new("Text:").small().color(p.text_dim));
-                            let mut edit = text.clone();
-                            if ui
-                                .add(TextEdit::singleline(&mut edit).desired_width(140.0))
-                                .changed()
-                            {
-                                app.set_selected_text(edit);
-                            }
-                            let mut sz = *size;
-                            if ui
-                                .add(
-                                    egui::DragValue::new(&mut sz)
-                                        .range(6.0..=240.0)
-                                        .suffix(" pt"),
-                                )
-                                .changed()
-                            {
-                                app.set_selected_text_size(sz);
-                            }
-                            let mut family = font_family.clone();
-                            egui::ComboBox::from_id_salt("prop_text_font")
-                                .width(92.0)
-                                .selected_text(family.as_str())
-                                .show_ui(ui, |ui| {
-                                    for fam in
-                                        ["Sans-Serif", "Serif", "Monospace", "Display", "Geometric"]
-                                    {
-                                        if ui.selectable_label(family == fam, fam).clicked() {
-                                            family = fam.to_string();
-                                            app.set_selected_font_family(fam);
-                                        }
-                                    }
-                                });
-                            if ui
-                                .selectable_label(*bold, RichText::new("B").strong())
-                                .clicked()
-                            {
-                                app.toggle_selected_text_bold();
-                            }
-                            if ui
-                                .selectable_label(*italic, RichText::new("I").italics())
-                                .clicked()
-                            {
-                                app.toggle_selected_text_italic();
-                            }
-                        }
-                        Shape::Slice { url, alt, .. } => {
-                            ui.label(RichText::new("Link URL:").small().color(p.text_dim));
-                            let mut u_edit = url.clone();
-                            let mut a_edit = alt.clone();
-                            let mut sl_changed = false;
-                            sl_changed |= ui
-                                .add(TextEdit::singleline(&mut u_edit).desired_width(140.0))
-                                .changed();
-                            ui.label(RichText::new("Alt:").small().color(p.text_dim));
-                            sl_changed |= ui
-                                .add(TextEdit::singleline(&mut a_edit).desired_width(100.0))
-                                .changed();
-                            if sl_changed {
-                                app.set_selected_slice_meta(u_edit, a_edit);
-                            }
-                        }
-                        Shape::Gradient { radial, .. } => {
-                            let mut r = *radial;
-                            if ui.checkbox(&mut r, "Radial Gradient").changed() {
-                                app.set_selected_gradient_radial(r);
-                            }
-                        }
-                        Shape::Group { children } => {
-                            ui.label(
-                                RichText::new(format!("Group ({} members)", children.len()))
-                                    .small()
-                                    .color(p.text_dim),
-                            );
-                            if ui.small_button("Ungroup (Ctrl+Shift+G)").clicked() {
-                                app.ungroup_selected();
-                            }
-                        }
-                        _ => {
-                            ui.label(
-                                RichText::new(format!("Layer: {}", app.selected_layer + 1))
-                                    .small()
-                                    .color(p.text_dim),
-                            );
-                            ui.label(RichText::new("Blend:").small().color(p.text_dim));
-                            egui::ComboBox::from_id_salt("prop_blend_mode")
-                                .width(96.0)
-                                .selected_text(obj.blend_mode.label())
-                                .show_ui(ui, |ui| {
-                                    for mode in BlendMode::ALL {
-                                        if ui
-                                            .selectable_label(obj.blend_mode == mode, mode.label())
-                                            .clicked()
-                                        {
-                                            app.set_selected_blend_mode(mode);
-                                        }
-                                    }
-                                });
-                        }
-                    });
-
-                    // Gradient fill editor (styles with gradient_end create these automatically).
-                    ui.horizontal(|ui| {
-                        if let Some(g) = obj.gradient {
-                            ui.label(RichText::new("Gradient:").small().color(p.text_dim));
-                            let mut start = g.start;
-                            let mut end = g.end;
-                            let mut changed = false;
-                            if cs6_color_button(ui, "prop_grad_start", p, &mut start, None) {
-                                changed = true;
-                            }
-                            ui.label(RichText::new("→").small().color(p.text_dim));
-                            if cs6_color_button(ui, "prop_grad_end", p, &mut end, None) {
-                                changed = true;
-                            }
-                            if changed {
-                                app.set_selected_gradient(Some(GradientFill { start, end }));
-                            }
-                            if ui
-                                .small_button("Remove")
-                                .on_hover_text("Switch back to a flat fill")
-                                .clicked()
-                            {
-                                app.set_selected_gradient(None);
-                            }
-                        } else if ui
-                            .small_button("+ Gradient")
-                            .on_hover_text("Use a linear start→end gradient as this object's fill")
-                            .clicked()
-                        {
-                            let start = obj.fill.unwrap_or(app.fill);
-                            let end = obj.stroke.unwrap_or(app.stroke);
-                            app.set_selected_gradient(Some(GradientFill { start, end }));
-                        }
-                    });
-                });
-
-                ui.separator();
-
-                // Column 3: CS6 Live Filters (+) stack
-                ui.vertical(|ui| {
-                    ui.horizontal(|ui| {
-                        ui.label(RichText::new("Filters:").small().strong());
-                        ui.menu_button("+ Add", |ui| {
-                            if ui.button("Drop Shadow").clicked() {
-                                app.add_live_effect(LiveEffect::DropShadow {
-                                    distance: 5.0,
-                                    angle_deg: 45.0,
-                                    blur: 5.0,
-                                    color: Color32::from_black_alpha(150),
-                                    enabled: true,
-                                });
-                                ui.close();
-                            }
-                            if ui.button("Outer Glow").clicked() {
-                                app.add_live_effect(LiveEffect::Glow {
-                                    radius: 6.0,
-                                    color: Color32::from_rgba_unmultiplied(232, 163, 61, 180),
-                                    inner: false,
-                                    enabled: true,
-                                });
-                                ui.close();
-                            }
-                            if ui.button("Inner Bevel").clicked() {
-                                app.add_live_effect(LiveEffect::Bevel {
-                                    width: 2.0,
-                                    highlight: Color32::from_white_alpha(190),
-                                    shadow: Color32::from_black_alpha(150),
-                                    enabled: true,
-                                });
-                                ui.close();
-                            }
-                            if ui.button("Gaussian Blur").clicked() {
-                                app.add_live_effect(LiveEffect::GaussianBlur {
-                                    radius: 4.0,
-                                    enabled: true,
-                                });
-                                ui.close();
-                            }
-                        });
-                        if !obj.effects.is_empty() && ui.small_button("- Clear").clicked() {
-                            app.clear_live_effects();
-                        }
-                    });
-                    ui.horizontal_wrapped(|ui| {
-                        if obj.effects.is_empty() {
-                            ui.label(
-                                RichText::new("(No live filters applied)")
-                                    .small()
-                                    .color(p.text_dim),
-                            );
-                        } else {
-                            for (ei, eff) in obj.effects.iter().enumerate() {
-                                let mut en = eff.is_enabled();
-                                if ui.checkbox(&mut en, eff.label()).changed() {
-                                    app.toggle_live_effect(ei, en);
-                                }
-                            }
-                        }
-                    });
-                });
-            });
-        }
-        None => {
-            // Document-level Properties Inspector when nothing is selected (exact CS6 layout from screenshot)
-            ui.horizontal(|ui| {
-                let (doc_thumb, _) = ui.allocate_exact_size(Vec2::new(30.0, 38.0), Sense::hover());
-                ui.painter()
-                    .rect_filled(doc_thumb, 0.0, app.doc.page().bg_color);
-                ui.painter().rect_stroke(
-                    doc_thumb,
-                    0.0,
-                    Stroke::new(1.0, p.stroke),
-                    egui::StrokeKind::Middle,
-                );
-                ui.vertical(|ui| {
-                    ui.label(RichText::new("Document").small().strong().color(p.accent));
-                    ui.label(RichText::new(&app.doc.name).small().color(p.text_dim));
-                });
-                ui.separator();
-                ui.vertical(|ui| {
-                    ui.horizontal(|ui| {
-                        ui.label(RichText::new("Canvas:").small().color(p.text_dim));
-                        let mut bg_c = app.doc.page().bg_color;
-                        let mut opaque_bg = !app.doc.page().transparent_bg;
-                        if cs6_color_button(
-                            ui,
-                            "prop_canvas_bg_swatch",
-                            p,
-                            &mut bg_c,
-                            Some(&mut opaque_bg),
-                        ) {
-                            let page = app.doc.page_mut();
-                            page.bg_color = bg_c;
-                            page.transparent_bg = !opaque_bg;
-                        }
-                        if ui.button("Canvas Size…").clicked() {
-                            app.open_canvas_size_dialog();
-                        }
-                        if ui.button("Image Size…").clicked() {
-                            app.open_canvas_size_dialog();
-                        }
-                        if ui.button("Fit Canvas").clicked() {
-                            app.fit_canvas_to_contents();
-                        }
-                        ui.label(RichText::new("Size:").small().color(p.text_dim));
-                        egui::ComboBox::from_id_salt("inspector_res_preset_combo")
-                            .width(150.0)
-                            .selected_text(format!(
-                                "{:.0}×{:.0} px",
-                                app.doc.page().width,
-                                app.doc.page().height
-                            ))
-                            .show_ui(ui, |ui| {
-                                for &(label, w, h) in constants::RESOLUTION_PRESETS {
-                                    let active = (app.doc.page().width - w).abs() < 0.5
-                                        && (app.doc.page().height - h).abs() < 0.5;
-                                    if ui.selectable_label(active, label).clicked() {
-                                        app.resize_canvas(w, h);
-                                    }
-                                }
-                            });
-                        ui.label(RichText::new("DPI:").small().color(p.text_dim));
-                        egui::ComboBox::from_id_salt("inspector_dpi_preset_combo")
-                            .width(78.0)
-                            .selected_text(format!("{} ppi", app.doc.dpi))
-                            .show_ui(ui, |ui| {
-                                for &dpi in constants::DPI_PRESETS {
-                                    if ui
-                                        .selectable_label(app.doc.dpi == dpi, format!("{dpi} ppi"))
-                                        .clicked()
-                                    {
-                                        app.doc.dpi = dpi;
-                                    }
-                                }
-                            });
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label(
-                            RichText::new(format!(
-                                "Dimensions: {:.0}×{:.0} px @ {} dpi · Export: {} · State {} of {}",
-                                app.doc.page().width,
-                                app.doc.page().height,
-                                app.doc.dpi,
-                                app.doc.optimize.format,
-                                app.doc.page().current_state + 1,
-                                app.doc.page().states.len()
-                            ))
-                            .small()
-                            .color(p.text_dim),
-                        );
-                    });
-                });
-                ui.separator();
-                if matches!(app.tool, Tool::Brush | Tool::Pencil | Tool::Eraser) {
-                    ui.horizontal(|ui| {
-                        ui.label(RichText::new("Brush Size:").small().color(p.text_dim));
-                        ui.add(egui::Slider::new(&mut app.brush_size, 1.0..=64.0).suffix(" px"));
-                    });
-                }
-            });
         }
     }
 }
@@ -3414,53 +2510,168 @@ pub fn start_panel(ui: &mut Ui, app: &mut FireCraft) {
 // Dynamic CS6 Panel Group Container & 5 New CS6 Panels
 // ============================================================================
 
+/// One panel registry row: the host chrome needs the tab identity, a default body
+/// height, and a renderer. New panels are added here instead of in a second match.
+pub struct PanelDescriptor {
+    pub id: PanelId,
+    pub default_height: f32,
+    pub render: fn(&mut Ui, &mut FireCraft),
+}
+
+fn pages_tab(ui: &mut Ui, app: &mut FireCraft) {
+    app.layers_tab = 0;
+    pages_panel(ui, app);
+}
+fn states_tab(ui: &mut Ui, app: &mut FireCraft) {
+    app.layers_tab = 1;
+    pages_panel(ui, app);
+}
+fn layers_tab(ui: &mut Ui, app: &mut FireCraft) {
+    app.layers_tab = 2;
+    pages_panel(ui, app);
+}
+fn special_chars_tab(ui: &mut Ui, app: &mut FireCraft) {
+    app.library_tab = 0;
+    library_panel(ui, app);
+}
+fn image_editing_tab(ui: &mut Ui, app: &mut FireCraft) {
+    app.library_tab = 1;
+    library_panel(ui, app);
+}
+fn auto_shapes_tab(ui: &mut Ui, app: &mut FireCraft) {
+    app.library_tab = 2;
+    library_panel(ui, app);
+}
+fn document_library_tab(ui: &mut Ui, app: &mut FireCraft) {
+    app.library_tab = 3;
+    library_panel(ui, app);
+}
+fn css_properties_tab(ui: &mut Ui, app: &mut FireCraft) {
+    app.library_tab = 4;
+    library_panel(ui, app);
+}
+
+static PANELS: &[PanelDescriptor] = &[
+    PanelDescriptor {
+        id: PanelId::Optimize,
+        default_height: 220.0,
+        render: optimize_panel,
+    },
+    PanelDescriptor {
+        id: PanelId::History,
+        default_height: 148.0,
+        render: history_panel,
+    },
+    PanelDescriptor {
+        id: PanelId::Align,
+        default_height: 152.0,
+        render: align_panel,
+    },
+    PanelDescriptor {
+        id: PanelId::Path,
+        default_height: 220.0,
+        render: paths_panel,
+    },
+    PanelDescriptor {
+        id: PanelId::Pages,
+        default_height: 188.0,
+        render: pages_tab,
+    },
+    PanelDescriptor {
+        id: PanelId::States,
+        default_height: 188.0,
+        render: states_tab,
+    },
+    PanelDescriptor {
+        id: PanelId::Layers,
+        default_height: 188.0,
+        render: layers_tab,
+    },
+    PanelDescriptor {
+        id: PanelId::Styles,
+        default_height: 118.0,
+        render: styles_panel,
+    },
+    PanelDescriptor {
+        id: PanelId::ColorPalette,
+        default_height: 186.0,
+        render: color_panel,
+    },
+    PanelDescriptor {
+        id: PanelId::ColorMixer,
+        default_height: 186.0,
+        render: color_mixer_panel,
+    },
+    PanelDescriptor {
+        id: PanelId::Swatches,
+        default_height: 134.0,
+        render: swatches_panel,
+    },
+    PanelDescriptor {
+        id: PanelId::Info,
+        default_height: 118.0,
+        render: info_panel,
+    },
+    PanelDescriptor {
+        id: PanelId::SpecialChars,
+        default_height: 118.0,
+        render: special_chars_tab,
+    },
+    PanelDescriptor {
+        id: PanelId::ImageEditing,
+        default_height: 118.0,
+        render: image_editing_tab,
+    },
+    PanelDescriptor {
+        id: PanelId::AutoShapes,
+        default_height: 118.0,
+        render: auto_shapes_tab,
+    },
+    PanelDescriptor {
+        id: PanelId::AutoShapeProps,
+        default_height: 118.0,
+        render: auto_shape_props_panel,
+    },
+    PanelDescriptor {
+        id: PanelId::DocumentLibrary,
+        default_height: 118.0,
+        render: document_library_tab,
+    },
+    PanelDescriptor {
+        id: PanelId::CommonLibrary,
+        default_height: 118.0,
+        render: common_library_panel,
+    },
+    PanelDescriptor {
+        id: PanelId::CssProperties,
+        default_height: 118.0,
+        render: css_properties_tab,
+    },
+    PanelDescriptor {
+        id: PanelId::Url,
+        default_height: 118.0,
+        render: url_panel,
+    },
+    PanelDescriptor {
+        id: PanelId::Behaviors,
+        default_height: 118.0,
+        render: behaviors_panel,
+    },
+];
+
+pub fn panel_descriptor(id: PanelId) -> Option<&'static PanelDescriptor> {
+    PANELS.iter().find(|panel| panel.id == id)
+}
+
+pub fn default_panel_height(id: PanelId) -> f32 {
+    panel_descriptor(id).map_or(118.0, |panel| panel.default_height)
+}
+
 pub fn render_panel_by_id(ui: &mut Ui, app: &mut FireCraft, id: PanelId) {
-    match id {
-        PanelId::Optimize => optimize_panel(ui, app),
-        PanelId::History => history_panel(ui, app),
-        PanelId::Align => align_panel(ui, app),
-        PanelId::Path => paths_panel(ui, app),
-        PanelId::Pages => {
-            app.layers_tab = 0;
-            pages_panel(ui, app);
-        }
-        PanelId::States => {
-            app.layers_tab = 1;
-            pages_panel(ui, app);
-        }
-        PanelId::Layers => {
-            app.layers_tab = 2;
-            pages_panel(ui, app);
-        }
-        PanelId::Styles => styles_panel(ui, app),
-        PanelId::ColorPalette => color_panel(ui, app),
-        PanelId::ColorMixer => color_mixer_panel(ui, app),
-        PanelId::Swatches => swatches_panel(ui, app),
-        PanelId::Info => info_panel(ui, app),
-        PanelId::SpecialChars => {
-            app.library_tab = 0;
-            library_panel(ui, app);
-        }
-        PanelId::ImageEditing => {
-            app.library_tab = 1;
-            library_panel(ui, app);
-        }
-        PanelId::AutoShapes => {
-            app.library_tab = 2;
-            library_panel(ui, app);
-        }
-        PanelId::AutoShapeProps => auto_shape_props_panel(ui, app),
-        PanelId::DocumentLibrary => {
-            app.library_tab = 3;
-            library_panel(ui, app);
-        }
-        PanelId::CommonLibrary => common_library_panel(ui, app),
-        PanelId::CssProperties => {
-            app.library_tab = 4;
-            library_panel(ui, app);
-        }
-        PanelId::Url => url_panel(ui, app),
-        PanelId::Behaviors => behaviors_panel(ui, app),
+    if let Some(panel) = panel_descriptor(id) {
+        (panel.render)(ui, app);
+    } else {
+        ui.label(RichText::new(format!("No renderer registered for {}", id.title())).small());
     }
 }
 
@@ -4026,6 +3237,21 @@ pub fn behaviors_panel(ui: &mut Ui, app: &mut FireCraft) {
     }
 }
 
+fn tab_click_without_drag(resp: &egui::Response) -> bool {
+    if resp.clicked() {
+        return true;
+    }
+    if !resp.drag_stopped() {
+        return false;
+    }
+    let released = resp.interact_pointer_pos();
+    resp.ctx.input(|i| {
+        i.pointer.press_origin().is_some_and(|origin| {
+            released.is_some_and(|release| (release - origin).length() <= 8.0)
+        })
+    })
+}
+
 pub fn panel_group_widget(ui: &mut Ui, app: &mut FireCraft, group_idx: usize, is_floating: bool) {
     let Some(group) = app.panel_groups.get(group_idx).cloned() else {
         return;
@@ -4294,11 +3520,12 @@ pub fn panel_group_widget(ui: &mut Ui, app: &mut FireCraft, group_idx: usize, is
                     ui.make_persistent_id(("pg_tab", group.id, ti)),
                     Sense::click_and_drag(),
                 );
-                if tab_resp.clicked()
+                if tab_click_without_drag(&tab_resp)
                     && let Some(g) = app.panel_groups.get_mut(group_idx)
                 {
                     g.active_tab = ti;
                     g.collapsed = false;
+                    app.focus_canvas = true;
                 }
                 if tab_resp.drag_started() {
                     app.dragging_panel = Some(tab_id);
@@ -4372,4 +3599,30 @@ pub fn panel_group_widget(ui: &mut Ui, app: &mut FireCraft, group_idx: usize, is
                 }
             }
         });
+}
+
+#[cfg(test)]
+mod registry_tests {
+    use super::*;
+
+    #[test]
+    fn every_panel_id_has_one_registry_entry() {
+        for id in PanelId::ALL {
+            let matches = PANELS.iter().filter(|panel| panel.id == id).count();
+            assert_eq!(
+                matches,
+                1,
+                "{} registry entries for {}",
+                matches,
+                id.title()
+            );
+        }
+        assert_eq!(PANELS.len(), PanelId::ALL.len());
+    }
+
+    #[test]
+    fn registry_height_is_the_public_default() {
+        assert_eq!(default_panel_height(PanelId::Layers), 188.0);
+        assert_eq!(default_panel_height(PanelId::Info), 118.0);
+    }
 }

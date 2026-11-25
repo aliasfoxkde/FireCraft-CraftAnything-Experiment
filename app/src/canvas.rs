@@ -12,6 +12,9 @@ use eframe::egui::{
 pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
     let rect = ui.available_rect_before_wrap();
     let canvas_resp = ui.allocate_rect(rect, Sense::click_and_drag());
+    if std::mem::take(&mut app.focus_canvas) {
+        canvas_resp.request_focus();
+    }
     let painter = ui.painter().clone();
     painter.rect_filled(rect, 0.0, app.palette.canvas_pad);
 
@@ -209,6 +212,8 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
             app.tool == Tool::Hand || middle_down || space_down || app.alt_hand_pan;
         if hand_mode_active {
             ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+        } else if app.tool == Tool::Path {
+            ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
         }
 
         // Direct 2D Hand panning via Middle-Mouse drag, Space+drag, Hand Tool drag, or Alt+Scroll Hand mode
@@ -223,7 +228,17 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
         } else {
             if pressed {
                 app.context_menu_pos = None;
-                app.on_pointer_down(doc_pos, pointer_pos.to_vec2(), alt, ctrl, shift);
+                if app.tool == Tool::Path {
+                    // Pen paths are built from individual clicks. A double-click commits the
+                    // open contour; clicking the first node closes it (handled in pen_add_node).
+                    if canvas_resp.double_clicked() {
+                        app.finish_pen_path(false);
+                    } else {
+                        app.pen_add_node(doc_pos);
+                    }
+                } else {
+                    app.on_pointer_down(doc_pos, pointer_pos.to_vec2(), alt, ctrl, shift);
+                }
             }
             if canvas_resp.double_clicked()
                 && let Some((li, oi)) = hit_test(app, doc_pos)
@@ -237,14 +252,18 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
                 app.inline_text_edit_obj = Some(oi);
             }
             if secondary_clicked || canvas_resp.secondary_clicked() {
-                // CS6 context-menu pick: if right-click hits an unselected object, select it first
-                if let Some((li, oi)) = hit_test(app, doc_pos)
-                    && (app.selected_layer != li || !app.is_selected(oi))
-                {
-                    app.selected_layer = li;
-                    app.select_single(Some(oi));
+                if app.tool == Tool::Path && !app.pen_nodes.is_empty() {
+                    app.finish_pen_path(false);
+                } else {
+                    // CS6 context-menu pick: if right-click hits an unselected object, select it first
+                    if let Some((li, oi)) = hit_test(app, doc_pos)
+                        && (app.selected_layer != li || !app.is_selected(oi))
+                    {
+                        app.selected_layer = li;
+                        app.select_single(Some(oi));
+                    }
+                    app.context_menu_pos = Some(pointer_pos);
                 }
-                app.context_menu_pos = Some(pointer_pos);
             }
             if down && dragged {
                 app.on_pointer_drag(doc_pos, shift);
@@ -476,7 +495,7 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
                     _ => {}
                 }
             }
-            DragKind::Paint | DragKind::Path if drag.path.len() > 1 => {
+            DragKind::Paint if drag.path.len() > 1 => {
                 let pts: Vec<Pos2> = drag
                     .path
                     .iter()
@@ -488,6 +507,35 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
                 ));
             }
             _ => {}
+        }
+    }
+
+    // In-progress Pen contour: placed anchors, rubber-band segment to the pointer, and a
+    // highlighted first anchor that closes the path when clicked.
+    if app.tool == Tool::Path && !app.pen_nodes.is_empty() {
+        let mut pts: Vec<Pos2> = app
+            .pen_nodes
+            .iter()
+            .map(|p| to_screen(origin, zoom, *p))
+            .collect();
+        if let Some(cursor) = app.cursor_doc_pos {
+            pts.push(to_screen(origin, zoom, cursor));
+        }
+        if pts.len() > 1 {
+            painter.add(egui::Shape::line(
+                pts.clone(),
+                Stroke::new(1.2, app.palette.accent),
+            ));
+        }
+        for (i, sp) in pts.iter().enumerate().take(app.pen_nodes.len()) {
+            let r = Rect::from_center_size(*sp, Vec2::splat(if i == 0 { 7.0 } else { 5.0 }));
+            painter.rect_filled(r, 1.0, app.palette.accent);
+            painter.rect_stroke(
+                r,
+                1.0,
+                Stroke::new(1.0, Color32::WHITE),
+                egui::StrokeKind::Middle,
+            );
         }
     }
 
@@ -582,7 +630,7 @@ fn inline_text_editor(ui: &mut egui::Ui, app: &mut FireCraft, origin: Vec2, zoom
         }
         app.doc.page_mut().sync_state();
         app.inline_text_edit_obj = None;
-        app.tool = Tool::Select;
+        app.set_tool(Tool::Select);
     }
 }
 
@@ -795,7 +843,7 @@ fn canvas_context_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
                         ui.separator();
                         if is_path && ctx_menu_row(ui, p, true, "Edit Path Points (Subselect)", "A")
                         {
-                            app.tool = Tool::Subselect;
+                            app.set_tool(Tool::Subselect);
                             close_menu = true;
                         }
                         if ctx_menu_row(ui, p, !is_path, "Convert to Path", "") {

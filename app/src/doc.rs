@@ -81,6 +81,36 @@ impl LiveEffect {
             | LiveEffect::ColorAdjust { enabled, .. } => *enabled = val,
         }
     }
+
+    /// The values the menu and Properties inspector show for this effect. Keeping the
+    /// formatting beside the enum prevents menus from drifting into their own static copy.
+    pub fn summary(&self) -> String {
+        match self {
+            LiveEffect::DropShadow {
+                distance,
+                angle_deg,
+                blur,
+                ..
+            } => format!("{distance:.0}px · {angle_deg:.0}° · blur {blur:.0}"),
+            LiveEffect::InnerShadow { distance, blur, .. } => {
+                format!("{distance:.0}px · blur {blur:.0}")
+            }
+            LiveEffect::Glow { radius, inner, .. } => {
+                format!(
+                    "{} · radius {radius:.0}",
+                    if *inner { "Inner" } else { "Outer" }
+                )
+            }
+            LiveEffect::Bevel { width, .. } => format!("width {width:.0}"),
+            LiveEffect::GaussianBlur { radius, .. } => format!("radius {radius:.1}"),
+            LiveEffect::ColorAdjust {
+                brightness,
+                contrast,
+                saturation,
+                ..
+            } => format!("B {brightness:+.0} · C {contrast:+.0} · S {saturation:+.0}"),
+        }
+    }
 }
 
 /// Auto Shape variants from Fireworks CS6.

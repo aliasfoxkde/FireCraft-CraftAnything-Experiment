@@ -8,12 +8,15 @@ those seams explicit; avoid adding another “misc” module that reaches into a
 
 | Module | Owns | Must not own |
 |--------|------|--------------|
-| `app.rs` | `FireCraft` application state, tool routing, editing commands, document tabs, save/open orchestration | Platform shell code, dialog layout |
+| `app.rs` | `FireCraft` application state, tool routing, editing commands, document tabs, session ownership | Platform shell code, dialog layout |
+| `app/files.rs` | File/session intents (`New`, `Open`, `Save`, `CloseTab`, `Quit`), save/dirty choreography and close gating | Dialog widgets, platform shell code |
 | `app/find_replace.rs` | Match semantics for text and color modes, Find Next selection, replacement side effects | Dialog widgets, layout |
 | `doc.rs` | Serialized `Document`, `Page`, `Layer`, `Obj`, `Shape`, styles, effects, snapshots | UI state, OS paths |
 | `canvas.rs` | Viewport painting, page/god-view rendering, hit testing, canvas context menu | Dialog state, panel tabs |
 | `layout.rs` | Top-level frame, menu/toolbar/status composition, docks, shortcuts, floating canvases | Individual panel bodies, file browser |
-| `panels/mod.rs` | Docked panel bodies and shared panel chrome | Main window layout |
+| `panels/mod.rs` | Panel registry, host chrome, docked panel bodies, tab overflow and drag/resize | Main window layout |
+| `panels/properties.rs` | Properties inspector body | Panel chrome, layout geometry |
+| `panels/color.rs` | Color Mixer body | Panel chrome, document model |
 | `panels/tools.rs` | Complete left tool inventory, section rendering, color/display footer | Tool behavior (that lives in `app.rs`) |
 | `dialogs/mod.rs` | Shared dialog chrome plus application settings/about/quit dialogs | File listing, Find/Replace semantics |
 | `dialogs/file_browser.rs` | File browsing UI, filters, address bar, commit/cancel flow | Save/open serialization |
@@ -44,6 +47,13 @@ editing view only:
 
 Do not make serialization depend on `infinite_canvas`.
 
+### Focus belongs to text edits, not buttons
+
+A clicked tab or toolbar button can hold egui keyboard focus. Shortcut dispatch must therefore gate
+on `ctx.text_edit_focused()`, never `egui_wants_keyboard_input()`; the latter is true for any focused
+widget and silently disables all single-key tool shortcuts after the first click. Requests to focus
+the canvas are best-effort and must not be used as the shortcut gate.
+
 ### Dialogs own layout, app methods own effects
 
 A dialog may mutate simple form fields directly, but multi-step effects (replace all, save all and
@@ -66,16 +76,19 @@ must not depend on the taskbar shell. Non-Windows targets compile unchanged.
 These are ordered by payoff, not by aesthetics:
 
 1. **`app.rs` interaction dispatcher.** Tool routing, editing commands, and document-tab
-   orchestration still share a 7k-line file. Extract `app/tools.rs` (pointer/drag/creation
-   behavior) behind a small `ToolController` interface; keep `FireCraft` as the state owner.
+   orchestration still share a large file. Continue extracting command bodies behind request /
+   outcome seams; `app/files.rs` is the first slice. Keep `FireCraft` as the state owner.
 2. **`layout.rs` chrome composition.** Extract menu bar, document tab strip, and canvas footer
    into `layout/chrome.rs`; keep dock geometry and shortcuts in `layout/mod.rs`.
-3. **Panel registry.** `panels/mod.rs` is a large match over `PanelId`. Introduce a panel
-   descriptor (`title`, `default_height`, `render`) to reduce duplicated tab metadata across
-   `PanelId`, dock groups, and menu commands.
-4. **File-operation adapter.** `formats.rs` currently mixes serialization, dialog-facing format
+3. **Panel registry — started.** `panels/mod.rs` now owns a `PANELS` descriptor registry with
+   titles, default heights, and render entry points; Properties and Color Mixer bodies are split
+   out. Once drag/resize gestures are covered by tests, move the remaining bodies behind the same
+   seam.
+4. **File-operation adapter.** `formats.rs` still mixes serialization, dialog-facing format
    metadata, and recent-file policy. Introduce a small `FileService` interface for open/save/export
    so a headless test can exercise file flows without egui.
+5. **Shell snapshot adapter — deferred.** Only add a `ShellIntegration` seam when a second shell
+   target or recorded shell tests exist; otherwise it adds structure without leverage.
 
 See `docs/adr/` for decisions that should not be re-litigated casually.
 

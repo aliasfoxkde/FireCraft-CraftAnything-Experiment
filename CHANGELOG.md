@@ -5,6 +5,16 @@ All notable changes to **FireCraft** are documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Document tab overflow:** the canvas tab strip now keeps the active and most-recently-used tabs
+  visible, compresses padding and labels as tabs accumulate, and folds older tabs into a `…` menu
+  instead of clipping them. Mouse-wheel over the strip steps through open documents.
+- **Bulk tab close:** right-clicking a canvas tab offers Close Tab, Close Other Tabs, Close Tabs to
+  the Left/Right, and Close All Tabs. Dirty documents stop the queue and use the normal Save /
+  Don't Save / Cancel prompt rather than being discarded silently.
+- **CS6 grouped tool palette:** restored group leaders with bright corner triangles, click/right-click
+  flyouts, and Auto Shape controls (sides, star ratio, drag hint) under the Vector section.
+- **Architecture seams:** extracted file/session intents to `app/files.rs`, added a panel registry,
+  and moved Properties and Color Mixer bodies into `panels/properties.rs` and `panels/color.rs`.
 - **Infinite canvas god view:** the workspace now continues the page background past the page
   bounds, shows out-of-page and hidden layers/objects (hidden geometry at ghost opacity), marks the
   printable page with a dotted boundary, and expands pan limits. Exports stay page-bounded.
@@ -16,8 +26,16 @@ All notable changes to **FireCraft** are documented in this file.
 - **Release profile:** `opt-level=3`, fat LTO, one codegen unit, symbol stripping, and abort-on-panic.
 
 ### Changed
-- Rebuilt the left rail as a three-column, 36-tool palette so no tool hides behind a flyout; added
-  Oval Marquee, Freeform, Replace Color, and Red Eye with shortcuts.
+- **Expanded Mode is the startup workspace** with five CS6 panel stacks (Optimize/History,
+  Pages/States/Layers, Styles/Color/Swatches, Info/Shapes, and Libraries/CSS/URL) plus a wide
+  responsive right dock; CS6 Dual-Column remains a preset.
+- Rebuilt the left rail as a compact six-category CS6 palette; every group leader is directly
+  visible, with flyouts for the remaining members and Oval Marquee, Freeform, Replace Color, and
+  Red Eye retained.
+- Text and Filters menus now derive their choices from the active document, with Font/Size and
+  filter-category submenus, live effect summaries, enable toggles, and per-effect removal.
+- Replaced window-control glyphs that rendered as tofu with explicit `Full`/`Exit` and `Palette`
+  labels.
 - Rebuilt the file browser as an in-app window with an editable address bar, breadcrumb navigation,
   type filter, dense columns, and quick places. This removes the drag lag of the old viewport.
 - Redesigned About and standardized dialog headers/footers, movable/resizable windows, and one
@@ -28,7 +46,14 @@ All notable changes to **FireCraft** are documented in this file.
   README to an entry point.
 
 ### Fixed
+- **Unsaved close/quit loop:** Discard & Quit now arms a close gate so the OS close interceptor no
+  longer cancels the app's own exit and reopens the prompt. Closing an earlier tab preserves the
+  active document and selection instead of swapping in the wrong document.
+- **Tab focus:** single-key tool shortcuts are blocked only by a focused text edit, not by any
+  clicked button. Switching views or tabs now leaves the keyboard working immediately.
 - Hidden text objects and color values are included in Find/Replace matching and replacement.
+- Pen clicks, live rubber-band preview, and double-click/Enter finish create a committed open path;
+  the obsolete drag-to-path path that produced glitches was removed.
 
 ## [0.2.1] — 2026-11-24
 

@@ -139,11 +139,12 @@ forces otherwise.
 - [x] **6.1 Nothing is clipped.** Pin the color chips, swap/default/no-fill actions, and Full
       Screen button in a fixed footer of the rail. Only the tool sections scroll; the footer is
       always visible at 640 px window height.
-- [x] **6.2 Compact tool layout.** Three-column palette showing all 36 tools at once, so every
-      tool is directly reachable and no group flyout may hide one.
-- [x] **6.3 Flyout sizing.** Superseded by 6.2: the palette has no tool flyouts to size.
-- [ ] **6.4 Verify:** at 960×640 and 1360×860, every section, the palette, and Full Screen are
-      reachable without clipping; confirm with a screen capture.
+- [x] **6.2 Compact grouped palette.** Six CS6 categories in three columns; every group leader is
+      directly visible and the active member is shown on the leader.
+- [x] **6.3 Flyouts.** Corner triangles and right-click open a compact group flyout listing every
+      member; selecting a member updates the leader and closes the flyout.
+- [x] **6.4 Verify:** captured at 960×640 and 1360×860; Auto Shape controls and the Full Screen
+      control are reachable without clipping.
 
 ## Phase 7 — Menus and context menus
 
@@ -153,8 +154,11 @@ forces otherwise.
       the click target (objects, web slices, empty canvas), with correct enablement and shortcuts.
 - [x] **7.3 Consistency pass.** Shared labels, icons, separators, and shortcut formatting across
       menu bar, context menu, command palette, and panel buttons.
-- [ ] **7.4 Verify:** click through every menu action in a demo document and confirm status/canvas
+- [x] **7.4 Verify:** click through every menu action in a demo document and confirm status/canvas
       feedback; disablement matches selection state.
+- [x] **7.5 Dynamic CS6 submenus.** Text derives Font and Size submenus from the active document;
+      Filters presents live effects plus Adjust Color, Blur, Sharpen, Shadow/Glow, and Bevel
+      submenus instead of a fixed flat list.
 
 ## Phase 8 — Windows app-switch flashing
 
@@ -198,8 +202,24 @@ forces otherwise.
       abort-on-panic in the release profile. Rust ships already-optimized machine code; there is no
       safe whole-program source minifier/obfuscator, and a single executable remains the documented
       distribution choice (ADR-0001).
-- [ ] **11.4 Follow-up candidates** from the architecture review: split `app.rs` command modules,
-      extract a test fixture builder, and add a second adapter for non-Windows recent documents.
+- [x] **11.4 First architecture slice.** File/session intents extracted to `app/files.rs`; panel
+      registry and split Properties/Color Mixer bodies added; `DocumentFixture` builder adopted.
+- [ ] **11.5 Remaining architecture candidates:** extract arrange/edit command modules from
+      `app.rs`, deepen the panel body seam, and defer the shell-snapshot adapter until a second
+      shell target or recorded shell tests exist.
+
+## Phase 12 — Document tab navigation
+
+- [x] **12.1 Tab overflow.** Keep the active and most-recently-used document tabs visible; shrink
+      padding and truncate labels as the strip fills; collapse older tabs into a `…` menu.
+- [x] **12.2 Wheel switching.** Mouse-wheel or horizontal trackpad gestures over the tab strip
+      move exactly one document per event, wrapping at either end.
+- [x] **12.3 Browser-style bulk close.** Canvas-tab context menus offer Close Tab, Close Other
+      Tabs, Close Tabs to the Left/Right, and Close All Tabs. Dirty tabs are handled one at a time
+      through the existing unsaved prompt; Cancel stops the remaining queue.
+- [x] **12.4 Verify:** 16-document run at 1360×860 showed 13 compressed tabs plus `…`, dropdown
+      switching, one-step wheel navigation, and a left-side bulk close that stopped on the dirty
+      document and resumed after Don't Save.
 
 ---
 
@@ -226,6 +246,10 @@ focused extraction once its gestures are covered.
 - 2026-11-24: `cargo fmt --all -- --check` clean; `cargo clippy --all-targets -- -D warnings` clean;
   `cargo test -- --test-threads=1` = 31 passed, 0 failed. Clipboard access is excluded from test
   builds because headless X11 clipboard ownership can block indefinitely.
+- 2026-11-24: `cargo fmt --all -- --check` clean; `cargo clippy --all-targets -- -D warnings` clean;
+  `cargo test` = 46 passed, 0 failed. Live 1360×860 tab stress test: 16 documents rendered as
+  13 compressed tabs plus `…`; dropdown switching, one-step wheel navigation, and bulk close
+  stopping on a dirty document all behaved as designed.
 - 2026-11-24: Fresh Windows-target check and optimized `x86_64-pc-windows-gnu` release build exit 0.
   Packaged executable SHA-256 `18112517207c8a4a70373fc1e317888633018ee40374250df045d147255b7122`
   (16 MB, stripped, fat LTO). Under Wine `--version`, `list-commands` (68 commands), and

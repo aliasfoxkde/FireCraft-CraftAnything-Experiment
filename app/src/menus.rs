@@ -118,6 +118,20 @@ impl MenuNav {
         self.check_row(ui, palette, &mut val, label, shortcut)
     }
 
+    /// A non-interactive context row. Used for live summaries such as the selected
+    /// font, effect values, and document-derived counts.
+    fn info_row(&self, ui: &mut Ui, palette: crate::theme::Palette, label: &str) {
+        let width = ui.available_width().max(248.0);
+        let (rect, _) = ui.allocate_exact_size(Vec2::new(width, 18.0), Sense::hover());
+        ui.painter().text(
+            pos2(rect.left() + 20.0, rect.center().y),
+            Align2::LEFT_CENTER,
+            label,
+            FontId::proportional(10.0),
+            palette.text_dim.gamma_multiply(0.8),
+        );
+    }
+
     fn check_row(
         &mut self,
         ui: &mut Ui,
@@ -228,6 +242,9 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
         app.active_menu = next_menu;
     }
 
+    // Snapshot before hover-to-switch so clicking a *different* menu while one is open opens
+    // that menu instead of immediately toggling it closed.
+    let initial_open = app.active_menu;
     ui.horizontal(|ui| {
         // 10 Top-Level CS6 Menus with mnemonic underlines and keyboard/mouse focus
         ui.spacing_mut().item_spacing = Vec2::new(2.0, 0.0);
@@ -267,7 +284,7 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
                 );
             }
             if resp.clicked() {
-                if is_open {
+                if is_open && initial_open == Some(i) {
                     app.active_menu = None;
                 } else {
                     app.active_menu = Some(i);
@@ -295,7 +312,7 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
         )
         .clicked()
         {
-            app.tool = Tool::Hand;
+            app.set_tool(Tool::Hand);
         }
         if crate::canvas::tool_button(
             ui,
@@ -305,7 +322,7 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
         )
         .clicked()
         {
-            app.tool = Tool::Zoom;
+            app.set_tool(Tool::Zoom);
         }
 
         egui::ComboBox::from_id_salt("header_zoom_combo")
@@ -385,9 +402,13 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
 
             if ui
                 .add_sized(
-                    [24.0, 20.0],
-                    egui::Button::new(if app.window_fullscreen { "🗗" } else { "⛶" })
-                        .corner_radius(0.0),
+                    [38.0, 20.0],
+                    egui::Button::new(if app.window_fullscreen {
+                        "Exit"
+                    } else {
+                        "Full"
+                    })
+                    .corner_radius(0.0),
                 )
                 .on_hover_text("Toggle App Fullscreen (F11)")
                 .clicked()
@@ -407,8 +428,8 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
             }
             if ui
                 .add_sized(
-                    [92.0, 20.0],
-                    egui::Button::new("Cmd (Ctrl+K)").corner_radius(0.0),
+                    [64.0, 20.0],
+                    egui::Button::new("Palette").corner_radius(0.0),
                 )
                 .on_hover_text("Open Searchable Command Palette (Ctrl+K / Ctrl+P)")
                 .clicked()
@@ -888,17 +909,60 @@ fn modify_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
 
 fn text_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
     let p = app.palette;
-    for fam in ["Sans-Serif", "Serif", "Monospace", "Display", "Geometric"] {
-        if nav.row(ui, p, true, &format!("Font: {fam}"), "") {
-            app.set_selected_font_family(fam);
-        }
-    }
-    ui.separator();
-    for sz in [12.0, 18.0, 24.0, 36.0, 48.0, 72.0] {
-        if nav.row(ui, p, true, &format!("Size: {sz:.0} pt"), "") {
-            app.set_selected_text_size(sz);
-        }
-    }
+    let current = app.selected_text_style();
+    let families = app.text_font_families();
+    let sizes = app.text_sizes();
+    nav.info_row(
+        ui,
+        p,
+        &match &current {
+            Some((family, size)) => format!("Current text: {family} · {size:.0} pt"),
+            None => "Current selection: no text object".to_string(),
+        },
+    );
+    let family_label = match &current {
+        Some((family, _)) => format!("Font: {family}"),
+        None => "Font".to_string(),
+    };
+    ui.menu_button(format!("{family_label}  ▸"), |ui| {
+        ui.set_min_width(210.0);
+        egui::ScrollArea::vertical()
+            .id_salt("text_font_submenu")
+            .max_height(340.0)
+            .show(ui, |ui| {
+                for fam in &families {
+                    let checked = current.as_ref().is_some_and(|(f, _)| f == fam);
+                    if ui.selectable_label(checked, fam).clicked() {
+                        app.set_selected_font_family(fam);
+                        ui.close();
+                    }
+                }
+            });
+    });
+    let size_label = match &current {
+        Some((_, size)) => format!("Size: {size:.0} pt"),
+        None => "Size".to_string(),
+    };
+    ui.menu_button(format!("{size_label}  ▸"), |ui| {
+        ui.set_min_width(120.0);
+        egui::ScrollArea::vertical()
+            .id_salt("text_size_submenu")
+            .max_height(340.0)
+            .show(ui, |ui| {
+                for sz in &sizes {
+                    let checked = current
+                        .as_ref()
+                        .is_some_and(|(_, s)| (*s - *sz).abs() < 0.01);
+                    if ui
+                        .selectable_label(checked, format!("{sz:.0} pt"))
+                        .clicked()
+                    {
+                        app.set_selected_text_size(*sz);
+                        ui.close();
+                    }
+                }
+            });
+    });
     ui.separator();
     if nav.row(ui, p, true, "Bold", "Ctrl+B") {
         app.toggle_selected_text_bold();
@@ -961,75 +1025,149 @@ fn commands_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
 fn filters_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
     let p = app.palette;
     let has_sel = app.selected.is_some() || !app.selected_set.is_empty();
-    if nav.row(ui, p, has_sel, "Repeat Filter", "Ctrl+Alt+Shift+X") {
+    let effects = app
+        .selected_object()
+        .map(|obj| obj.effects)
+        .unwrap_or_default();
+    let repeat_label = app
+        .last_effect
+        .as_ref()
+        .map(|effect| format!("Repeat {}", effect.label()))
+        .unwrap_or_else(|| "Repeat Last Filter".to_string());
+    if nav.row(
+        ui,
+        p,
+        has_sel && app.last_effect.is_some(),
+        &repeat_label,
+        "Ctrl+Alt+Shift+X",
+    ) {
         app.repeat_last_filter();
     }
-    ui.separator();
-    if nav.row(ui, p, has_sel, "Adjust Color ▸ Brightness / Contrast", "") {
-        app.add_live_effect(LiveEffect::ColorAdjust {
-            brightness: 10.0,
-            contrast: 15.0,
-            saturation: 0.0,
-            enabled: true,
-        });
-        app.apply_color_command("brighten");
-    }
-    if nav.row(ui, p, has_sel, "Adjust Color ▸ Invert", "Ctrl+Alt+Shift+I") {
-        app.apply_color_command("invert");
-    }
-    if nav.row(ui, p, has_sel, "Adjust Color ▸ Grayscale", "") {
-        app.apply_color_command("grayscale");
-    }
-    if nav.row(ui, p, has_sel, "Adjust Color ▸ Sepia Tone", "") {
-        app.apply_color_command("sepia");
-    }
-    ui.separator();
-    if nav.row(ui, p, has_sel, "Shadow and Glow ▸ Drop Shadow", "") {
-        app.add_live_effect(LiveEffect::DropShadow {
-            distance: 5.0,
-            angle_deg: 45.0,
-            blur: 5.0,
-            color: Color32::from_black_alpha(150),
-            enabled: true,
-        });
-    }
-    if nav.row(ui, p, has_sel, "Shadow and Glow ▸ Inner Shadow", "") {
-        app.add_live_effect(LiveEffect::InnerShadow {
-            distance: 3.0,
-            blur: 4.0,
-            color: Color32::from_black_alpha(140),
-            enabled: true,
-        });
-    }
-    if nav.row(ui, p, has_sel, "Shadow and Glow ▸ Outer Glow", "") {
-        app.add_live_effect(LiveEffect::Glow {
-            radius: 6.0,
-            color: Color32::from_rgba_unmultiplied(255, 190, 40, 180),
-            inner: false,
-            enabled: true,
-        });
-    }
-    if nav.row(ui, p, has_sel, "Bevel and Emboss ▸ Inner Bevel", "") {
-        app.add_live_effect(LiveEffect::Bevel {
-            width: 2.0,
-            highlight: Color32::from_white_alpha(190),
-            shadow: Color32::from_black_alpha(160),
-            enabled: true,
-        });
+    if !effects.is_empty() {
+        nav.info_row(
+            ui,
+            p,
+            &format!("Live effects on selection ({})", effects.len()),
+        );
+        for (idx, effect) in effects.iter().enumerate() {
+            nav.info_row(
+                ui,
+                p,
+                &format!("  {} — {}", effect.label(), effect.summary()),
+            );
+            let mut enabled = effect.is_enabled();
+            if nav.check_row(
+                ui,
+                p,
+                &mut enabled,
+                &format!("  Enable {}", effect.label()),
+                "",
+            ) {
+                app.toggle_live_effect(idx, enabled);
+            }
+            if nav.row(ui, p, true, &format!("  Remove {}", effect.label()), "") {
+                app.remove_live_effect(idx);
+                break;
+            }
+        }
     }
     ui.separator();
-    if nav.row(ui, p, has_sel, "Blur ▸ Gaussian Blur…", "") {
-        app.add_live_effect(LiveEffect::GaussianBlur {
-            radius: 4.0,
-            enabled: true,
+    nav.info_row(ui, p, "Add live filter (edit values in Properties):");
+    ui.add_enabled_ui(has_sel, |ui| {
+        ui.menu_button("Adjust Color  ▸", |ui| {
+            ui.set_min_width(180.0);
+            if ui.button("Brightness / Contrast").clicked() {
+                app.add_live_effect(LiveEffect::ColorAdjust {
+                    brightness: 10.0,
+                    contrast: 15.0,
+                    saturation: 0.0,
+                    enabled: true,
+                });
+                app.apply_color_command("brighten");
+                ui.close();
+            }
+            if ui
+                .button("Invert")
+                .on_hover_text("Ctrl+Alt+Shift+I")
+                .clicked()
+            {
+                app.apply_color_command("invert");
+                ui.close();
+            }
+            if ui.button("Grayscale").clicked() {
+                app.apply_color_command("grayscale");
+                ui.close();
+            }
+            if ui.button("Sepia Tone").clicked() {
+                app.apply_color_command("sepia");
+                ui.close();
+            }
         });
-    }
-    if nav.row(ui, p, has_sel, "Blur ▸ Box Blur (Bitmap)", "") {
-        app.run_bitmap_filter(Tool::Blur);
-    }
-    if nav.row(ui, p, has_sel, "Sharpen ▸ Unsharp Mask (Bitmap)", "") {
-        app.run_bitmap_filter(Tool::Sharpen);
-    }
+        ui.menu_button("Blur  ▸", |ui| {
+            ui.set_min_width(180.0);
+            if ui.button("Gaussian Blur…").clicked() {
+                app.add_live_effect(LiveEffect::GaussianBlur {
+                    radius: 4.0,
+                    enabled: true,
+                });
+                ui.close();
+            }
+            if ui.button("Box Blur (Bitmap)").clicked() {
+                app.run_bitmap_filter(Tool::Blur);
+                ui.close();
+            }
+        });
+        ui.menu_button("Sharpen  ▸", |ui| {
+            ui.set_min_width(180.0);
+            if ui.button("Unsharp Mask (Bitmap)").clicked() {
+                app.run_bitmap_filter(Tool::Sharpen);
+                ui.close();
+            }
+        });
+        ui.menu_button("Shadow and Glow  ▸", |ui| {
+            ui.set_min_width(180.0);
+            if ui.button("Drop Shadow").clicked() {
+                app.add_live_effect(LiveEffect::DropShadow {
+                    distance: 5.0,
+                    angle_deg: 45.0,
+                    blur: 5.0,
+                    color: Color32::from_black_alpha(150),
+                    enabled: true,
+                });
+                ui.close();
+            }
+            if ui.button("Inner Shadow").clicked() {
+                app.add_live_effect(LiveEffect::InnerShadow {
+                    distance: 3.0,
+                    blur: 4.0,
+                    color: Color32::from_black_alpha(140),
+                    enabled: true,
+                });
+                ui.close();
+            }
+            if ui.button("Outer Glow").clicked() {
+                app.add_live_effect(LiveEffect::Glow {
+                    radius: 6.0,
+                    color: Color32::from_rgba_unmultiplied(255, 190, 40, 180),
+                    inner: false,
+                    enabled: true,
+                });
+                ui.close();
+            }
+        });
+        ui.menu_button("Bevel and Emboss  ▸", |ui| {
+            ui.set_min_width(180.0);
+            if ui.button("Inner Bevel").clicked() {
+                app.add_live_effect(LiveEffect::Bevel {
+                    width: 2.0,
+                    highlight: Color32::from_white_alpha(190),
+                    shadow: Color32::from_black_alpha(160),
+                    enabled: true,
+                });
+                ui.close();
+            }
+        });
+    });
     ui.separator();
     if nav.row(ui, p, has_sel, "Clear All Live Filters", "") {
         app.clear_live_effects();

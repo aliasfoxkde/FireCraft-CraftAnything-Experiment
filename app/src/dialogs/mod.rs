@@ -1133,6 +1133,7 @@ pub fn unsaved_changes_dialog(app: &mut FireCraft) {
                             app.close_document_tab(idx);
                         }
                         app.pending_close_tab = None;
+                        app.continue_pending_tab_closes();
                     } else {
                         // Keep the request alive while the Save As browser is open.
                         app.pending_close_after_save = Some(idx);
@@ -1145,16 +1146,23 @@ pub fn unsaved_changes_dialog(app: &mut FireCraft) {
                     app.close_document_tab(idx);
                     app.pending_close_tab = None;
                     close_now = true;
+                    app.continue_pending_tab_closes();
                 }
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if ui.button("Cancel").clicked() {
                         app.pending_close_tab = None;
+                        app.pending_close_tabs.clear();
                         close_now = true;
                     }
                 });
             });
         });
-    if !open || close_now {
+    if !open {
+        // Dismissing the dialog with its window close button cancels the whole bulk-close queue,
+        // not just the tab currently being asked about.
+        app.pending_close_tab = None;
+        app.pending_close_tabs.clear();
+    } else if close_now {
         app.pending_close_tab = None;
     }
 }
@@ -1229,8 +1237,7 @@ pub fn quit_confirm_dialog(app: &mut FireCraft) {
                     }
                 }
                 if ui.button("Discard & Quit").clicked() {
-                    app.show_quit_confirm = false;
-                    app.pending_quit_after_save = false;
+                    app.confirm_discard_and_quit();
                     close = true;
                 }
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -1242,6 +1249,9 @@ pub fn quit_confirm_dialog(app: &mut FireCraft) {
             });
         });
     if close {
+        // The user already made the close decision; do not let the unsaved-work interceptor
+        // cancel the command on the next frame.
+        app.allow_close = true;
         app.ctx.send_viewport_cmd(egui::ViewportCommand::Close);
     }
     if !open {

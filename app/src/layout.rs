@@ -34,7 +34,7 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
 
     // Intercept the OS close button before eframe tears the window down. CancelClose is issued
     // only while there is unsaved work so a clean session still closes normally.
-    if ui.ctx().input(|i| i.viewport().close_requested()) && app.has_unsaved_changes() {
+    if ui.ctx().input(|i| i.viewport().close_requested()) && app.should_intercept_close() {
         ui.ctx()
             .send_viewport_cmd(egui::ViewportCommand::CancelClose);
         app.show_quit_confirm = true;
@@ -692,7 +692,7 @@ fn main_toolbar(ui: &mut Ui, app: &mut FireCraft) {
             app.begin_file_dialog(FileMode::Open);
         }
         if canvas::tool_button(ui, icons::Icon::Save, false, "Save Document (Ctrl+S)").clicked() {
-            app.save_current();
+            app.run_file_intent(crate::app::FileIntent::SaveCurrent);
         }
         if canvas::tool_button(ui, icons::Icon::Import, false, "Import (Ctrl+R)").clicked() {
             app.begin_file_dialog(FileMode::Import);
@@ -814,6 +814,34 @@ fn main_toolbar(ui: &mut Ui, app: &mut FireCraft) {
     });
 }
 
+/// Treat a pointer release with only a few pixels of movement as a tab click. A plain
+/// `Sense::click_and_drag` response reports `clicked()` only for a perfectly still click,
+/// which made document and panel tabs feel like they lost the click.
+fn tab_click_without_drag(resp: &egui::Response) -> bool {
+    if resp.clicked() {
+        return true;
+    }
+    if !resp.drag_stopped() {
+        return false;
+    }
+    let released = resp.interact_pointer_pos();
+    resp.ctx.input(|i| {
+        i.pointer.press_origin().is_some_and(|origin| {
+            released.is_some_and(|release| (release - origin).length() <= 8.0)
+        })
+    })
+}
+
+fn compact_tab_label(name: &str, max_chars: usize) -> String {
+    let chars: Vec<char> = name.chars().collect();
+    if chars.len() <= max_chars.max(4) {
+        name.to_string()
+    } else {
+        let keep = max_chars.max(4) - 1;
+        format!("{}…", chars[..keep].iter().collect::<String>())
+    }
+}
+
 fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
     let p = app.palette;
     egui::Frame::new()
@@ -824,16 +852,99 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing = Vec2::new(2.0, 0.0);
                 let doc_count = app.open_docs.len();
+                let non_floating: Vec<usize> = (0..doc_count)
+                    .filter(|i| !app.floating_doc_tabs.contains(i))
+                    .collect();
                 let mut switch_to = None;
                 let mut close_idx = None;
+                let mut close_batch: Option<Vec<usize>> = None;
                 let mut float_idx = None;
                 let mut swap_pair: Option<(usize, usize)> = None;
                 let mut dragging_tab: Option<(usize, egui::Rect, egui::Pos2)> = None;
                 let mut tab_rects: Vec<(usize, egui::Rect, String)> = Vec::new();
-                for i in 0..doc_count {
-                    if app.floating_doc_tabs.contains(&i) {
-                        continue;
+
+                // Mouse-wheel over the strip walks the open documents. Reading input here does not
+                // consume it; the canvas only reacts when the pointer is actually over the canvas.
+                let strip_hover = egui::Rect::from_min_size(
+                    ui.cursor().min,
+                    Vec2::new(ui.available_width(), 24.0),
+                );
+                let wheel_delta = if ui.rect_contains_pointer(strip_hover) && non_floating.len() > 1 {
+                    ui.input(|i| {
+                        // `smooth_scroll_delta` decays over several frames, which would step through
+                        // many tabs for one wheel notch. Sum the raw wheel events for this frame so
+                        // one notch = one tab, and accept horizontal trackpad gestures too.
+                        let mut delta = Vec2::ZERO;
+                        for event in &i.raw.events {
+                            if let egui::Event::MouseWheel { delta: wheel, .. } = event {
+                                delta += *wheel;
+                            }
+                        }
+                        if delta.y.abs() >= delta.x.abs() {
+                            delta.y
+                        } else {
+                            delta.x
+                        }
+                    })
+                } else {
+                    0.0
+                };
+                if wheel_delta.abs() > 0.5 {
+                    let pos = non_floating
+                        .iter()
+                        .position(|&i| i == app.active_doc)
+                        .unwrap_or(0);
+                    let step = if wheel_delta > 0.0 { -1 } else { 1 };
+                    let next = (pos as isize + step).rem_euclid(non_floating.len() as isize) as usize;
+                    switch_to = Some(non_floating[next]);
+                }
+
+                // Fit the strip to the available width. When space runs out keep the active tab plus
+                // the most recent others, shrink padding, and fold the remainder into the … menu.
+                let controls_reserve = 26.0
+                    + 26.0
+                    + if app.floating_doc_tabs.is_empty() { 0.0 } else { 82.0 }
+                    + 8.0;
+                let tab_area = (ui.available_width() - controls_reserve).max(64.0);
+                let full_capacity = ((tab_area + 2.0) / 60.0).floor().max(1.0) as usize;
+                let max_tabs = if non_floating.len() > full_capacity {
+                    full_capacity.saturating_sub(1).max(1)
+                } else {
+                    full_capacity
+                };
+                let mut visible_docs: Vec<usize> = Vec::new();
+                if !app.floating_doc_tabs.contains(&app.active_doc)
+                    && app.active_doc < doc_count
+                {
+                    visible_docs.push(app.active_doc);
+                }
+                for &idx in &app.doc_tab_history {
+                    if visible_docs.len() >= max_tabs {
+                        break;
                     }
+                    if idx < doc_count
+                        && !app.floating_doc_tabs.contains(&idx)
+                        && !visible_docs.contains(&idx)
+                    {
+                        visible_docs.push(idx);
+                    }
+                }
+                for &idx in &non_floating {
+                    if visible_docs.len() >= max_tabs {
+                        break;
+                    }
+                    if !visible_docs.contains(&idx) {
+                        visible_docs.push(idx);
+                    }
+                }
+                visible_docs.sort_unstable();
+                let hidden_count = non_floating.len().saturating_sub(visible_docs.len());
+                let overflow_w = if hidden_count > 0 { 26.0 } else { 0.0 };
+                let visible_count = visible_docs.len().max(1);
+                let tab_w = ((tab_area - overflow_w) / visible_count as f32 - 2.0)
+                    .clamp(58.0, 210.0);
+
+                for i in visible_docs {
                     let is_active = i == app.active_doc;
                     let name = if is_active {
                         if app.doc.dirty {
@@ -846,13 +957,15 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                     } else {
                         app.open_docs[i].name.clone()
                     };
-                    let tab_w = (28.0 + name.len() as f32 * 6.2).clamp(112.0, 210.0);
                     let (tab_r, tab_resp) =
                         ui.allocate_exact_size(Vec2::new(tab_w, 21.0), egui::Sense::click_and_drag());
                     tab_rects.push((i, tab_r, name.clone()));
+                    let compact = tab_w < 96.0;
+                    let pad = if compact { 5.0 } else { 8.0 };
+                    let close_size = if compact { 12.0 } else { 14.0 };
                     let close_r = egui::Rect::from_center_size(
-                        egui::pos2(tab_r.right() - 11.0, tab_r.center().y),
-                        Vec2::splat(14.0),
+                        egui::pos2(tab_r.right() - close_size * 0.5 - 3.0, tab_r.center().y),
+                        Vec2::splat(close_size),
                     );
                     let close_resp = ui.interact(
                         close_r,
@@ -892,13 +1005,20 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                             egui::Stroke::new(1.0, p.stroke),
                         );
                     }
-                    painter.text(
-                        egui::pos2(tab_r.left() + 8.0, tab_r.center().y),
-                        egui::Align2::LEFT_CENTER,
-                        &name,
-                        egui::FontId::proportional(11.0),
-                        if is_active { p.text } else { p.text_dim },
-                    );
+                    let label_room = (close_r.left() - tab_r.left() - pad - 4.0).max(24.0);
+                    let label = compact_tab_label(&name, (label_room / 6.0) as usize);
+                    painter
+                        .with_clip_rect(egui::Rect::from_min_max(
+                            egui::pos2(tab_r.left() + pad, tab_r.top()),
+                            egui::pos2(close_r.left() - 3.0, tab_r.bottom()),
+                        ))
+                        .text(
+                            egui::pos2(tab_r.left() + pad, tab_r.center().y),
+                            egui::Align2::LEFT_CENTER,
+                            &label,
+                            egui::FontId::proportional(if compact { 10.5 } else { 11.0 }),
+                            if is_active { p.text } else { p.text_dim },
+                        );
                     if close_resp.hovered() {
                         painter.rect_filled(close_r, 0.0, p.accent.gamma_multiply(0.35));
                     }
@@ -922,11 +1042,14 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                         || tab_resp.middle_clicked()
                     {
                         close_idx = Some(i);
-                    } else if tab_resp.clicked() && !is_active {
+                    } else if tab_click_without_drag(&tab_resp) && !is_active {
                         switch_to = Some(i);
                     }
                     if tab_resp.dragged()
                         && let Some(ptr) = ui.ctx().pointer_interact_pos()
+                        && ui
+                            .input(|i| i.pointer.press_origin())
+                            .is_none_or(|origin| (ptr - origin).length() > 7.0)
                     {
                         ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
                         let pulling_out = ptr.y > tab_r.bottom() + 20.0 || ptr.y < tab_r.top() - 20.0;
@@ -961,6 +1084,57 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                         }
                     }
                     tab_resp.context_menu(|ui| {
+                        if ui.button("Close Tab").clicked() {
+                            close_idx = Some(i);
+                            ui.close();
+                        }
+                        let left: Vec<usize> = non_floating
+                            .iter()
+                            .copied()
+                            .filter(|&j| j < i)
+                            .collect();
+                        let right: Vec<usize> = non_floating
+                            .iter()
+                            .copied()
+                            .filter(|&j| j > i)
+                            .collect();
+                        let others: Vec<usize> = non_floating
+                            .iter()
+                            .copied()
+                            .filter(|&j| j != i)
+                            .collect();
+                        if ui
+                            .add_enabled(!others.is_empty(), egui::Button::new("Close Other Tabs"))
+                            .clicked()
+                        {
+                            close_batch = Some(others);
+                            ui.close();
+                        }
+                        if ui
+                            .add_enabled(!left.is_empty(), egui::Button::new("Close Tabs to the Left"))
+                            .clicked()
+                        {
+                            close_batch = Some(left);
+                            ui.close();
+                        }
+                        if ui
+                            .add_enabled(!right.is_empty(), egui::Button::new("Close Tabs to the Right"))
+                            .clicked()
+                        {
+                            close_batch = Some(right);
+                            ui.close();
+                        }
+                        if ui
+                            .add_enabled(
+                                non_floating.len() > 1,
+                                egui::Button::new("Close All Tabs"),
+                            )
+                            .clicked()
+                        {
+                            close_batch = Some(non_floating.clone());
+                            ui.close();
+                        }
+                        ui.separator();
                         if ui
                             .add_enabled(i > 0, egui::Button::new("Move Tab Left"))
                             .clicked()
@@ -975,16 +1149,51 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                             swap_pair = Some((i, i + 1));
                             ui.close();
                         }
-                        ui.separator();
                         if ui.button("Float in New Window (Multi-Monitor)").clicked() {
                             float_idx = Some(i);
                             ui.close();
                         }
-                        if ui.button("Close Document Tab").clicked() {
-                            close_idx = Some(i);
+                    });
+                }
+                if hidden_count > 0 {
+                    let menu = ui.menu_button("…", |ui| {
+                        ui.set_min_width(220.0);
+                        ui.label(
+                            RichText::new(format!("Open Documents ({doc_count})"))
+                                .small()
+                                .color(p.text_dim),
+                        );
+                        ui.separator();
+                        egui::ScrollArea::vertical()
+                            .max_height(320.0)
+                            .show(ui, |ui| {
+                                for &idx in &non_floating {
+                                    let doc = &app.open_docs[idx];
+                                    let label = format!(
+                                        "{}{}",
+                                        if doc.dirty { "*" } else { "" },
+                                        doc.name
+                                    );
+                                    if ui
+                                        .selectable_label(
+                                            idx == app.active_doc,
+                                            format!("{label}  [{}]", idx + 1),
+                                        )
+                                        .clicked()
+                                    {
+                                        switch_to = Some(idx);
+                                        ui.close();
+                                    }
+                                }
+                            });
+                        ui.separator();
+                        if ui.button("Close All Tabs").clicked() {
+                            close_batch = Some(non_floating.clone());
                             ui.close();
                         }
                     });
+                    menu.response
+                        .on_hover_text(format!("{hidden_count} hidden tab(s) — click to switch"));
                 }
                 if ui
                     .small_button("+")
@@ -1037,7 +1246,9 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                 if let Some(target) = switch_to {
                     app.switch_document_tab(target);
                 }
-                if let Some(ci) = close_idx {
+                if let Some(batch) = close_batch {
+                    app.request_close_document_tabs(batch);
+                } else if let Some(ci) = close_idx {
                     app.request_close_document_tab(ci);
                 }
             });
@@ -1091,6 +1302,8 @@ fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                             );
                             if resp.clicked() {
                                 app.view_mode = mode;
+                                app.focus_canvas = true;
+                                app.status = format!("{} view active", label);
                             }
                         }
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -2000,7 +2213,7 @@ fn right_dock(ui: &mut Ui, app: &mut FireCraft) {
 
 /// Scrolling tool sections plus an always-visible footer pinned to the bottom of the rail.
 fn tools_dock_contents(ui: &mut Ui, app: &mut FireCraft, scroll_id: &str) {
-    let footer_h = if app.tools_collapsed { 118.0 } else { 66.0 };
+    let footer_h = if app.tools_collapsed { 118.0 } else { 54.0 };
     let total_h = ui.available_height();
     let body_h = (total_h - footer_h).max(90.0);
     ui.allocate_ui_with_layout(
@@ -2126,6 +2339,13 @@ enum Shortcut {
 }
 
 fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
+    if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, Key::Escape))
+        && !app.pen_nodes.is_empty()
+    {
+        app.finish_pen_path(false);
+        ui.ctx().request_repaint();
+        return;
+    }
     if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, Key::Escape)) {
         if let Some(fid) = ui.ctx().memory(|m| m.focused()) {
             ui.ctx().memory_mut(|m| m.surrender_focus(fid));
@@ -2165,12 +2385,22 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
             if app.tool != Tool::Select {
                 app.status = "Pointer tool (Esc)".to_string();
             }
-            app.tool = Tool::Select;
+            app.set_tool(Tool::Select);
         }
         ui.ctx().request_repaint();
         return;
     }
-    if !ui.ctx().egui_wants_keyboard_input() {
+    // `egui_wants_keyboard_input` is true for *any* focused widget, including a clicked tab or
+    // toolbar button. Only a text edit should block single-key tool shortcuts; otherwise the
+    // first tab click silently disables the keyboard for the rest of the session.
+    if !ui.ctx().text_edit_focused() {
+        if !app.pen_nodes.is_empty()
+            && ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, Key::Enter))
+        {
+            app.finish_pen_path(false);
+            ui.ctx().request_repaint();
+            return;
+        }
         let tab_toggled = ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, Key::Tab));
         if tab_toggled {
             if let Some(fid) = ui.ctx().memory(|m| m.focused()) {
@@ -2193,7 +2423,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
             return;
         }
     }
-    if ui.ctx().egui_wants_keyboard_input() {
+    if ui.ctx().text_edit_focused() {
         return;
     }
     let (ctrl, shift, alt) = ui.input(|i| (i.modifiers.ctrl, i.modifiers.shift, i.modifiers.alt));
@@ -2436,12 +2666,18 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
         Some(Shortcut::HelpDialog) => app.show_about_dialog = !app.show_about_dialog,
         Some(Shortcut::Undo) => app.undo_action(),
         Some(Shortcut::Redo) => app.redo_action(),
-        Some(Shortcut::Save) => app.save_current(),
+        Some(Shortcut::Save) => {
+            app.run_file_intent(crate::app::FileIntent::SaveCurrent);
+        }
         Some(Shortcut::SaveAs) => app.begin_file_dialog(FileMode::Save),
         Some(Shortcut::New) => app.show_new_dialog = true,
         Some(Shortcut::Open) => app.begin_file_dialog(FileMode::Open),
-        Some(Shortcut::CloseTab) => app.request_close_active_tab(),
-        Some(Shortcut::Quit) => app.request_quit(),
+        Some(Shortcut::CloseTab) => {
+            app.run_file_intent(crate::app::FileIntent::CloseActiveTab);
+        }
+        Some(Shortcut::Quit) => {
+            app.run_file_intent(crate::app::FileIntent::Quit);
+        }
         Some(Shortcut::Import) => app.begin_file_dialog(FileMode::Import),
         Some(Shortcut::Export) => app.begin_file_dialog(FileMode::Export),
         Some(Shortcut::ImagePreview) => {
@@ -2476,7 +2712,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
         Some(Shortcut::ZoomOut) => app.zoom_by(1.0 / constants::ZOOM_STEP),
         Some(Shortcut::ZoomTo(z)) => app.set_zoom(z),
         Some(Shortcut::Tool(t)) => {
-            app.tool = match (t, app.tool) {
+            let next = match (t, app.tool) {
                 (Tool::Rectangle, Tool::Rectangle) => Tool::RoundedRect,
                 (Tool::Rectangle, Tool::RoundedRect) => Tool::Ellipse,
                 (Tool::Rectangle, Tool::Ellipse) => Tool::Polygon,
@@ -2490,6 +2726,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
                 (Tool::Gradient, Tool::Fill) => Tool::Gradient,
                 _ => t,
             };
+            app.set_tool(next);
             app.status = format!("{} selected", app.tool.name());
         }
         Some(Shortcut::SwapColors) => std::mem::swap(&mut app.fill, &mut app.stroke),

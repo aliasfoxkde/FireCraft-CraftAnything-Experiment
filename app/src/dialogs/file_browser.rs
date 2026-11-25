@@ -41,6 +41,7 @@ pub fn file_dialog(app: &mut FireCraft) {
         app.show_file_dialog = false;
         // A cancelled Save As must not leave a tab close or quit waiting forever.
         app.pending_close_after_save = None;
+        app.pending_close_tabs.clear();
         app.pending_quit_after_save = false;
     }
 }
