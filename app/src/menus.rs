@@ -297,10 +297,13 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
         }
 
         ui.separator();
-        if ui
-            .small_button("Br")
-            .on_hover_text("Browse in Bridge / Open File Browser (Ctrl+Alt+O)")
-            .clicked()
+        if crate::canvas::tool_button(
+            ui,
+            crate::icons::Icon::Folder,
+            false,
+            "Browse files - Bridge-style file browser (Ctrl+Alt+O)",
+        )
+        .clicked()
         {
             app.begin_file_dialog(FileMode::Open);
         }
@@ -347,6 +350,9 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
             });
 
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            // Keep the header cluster readable when the window is narrow: explicit spacing so
+            // labels never butt against each other at the 960 px minimum.
+            ui.spacing_mut().item_spacing = Vec2::new(8.0, 4.0);
             egui::ComboBox::from_id_salt("workspace_mode_combo")
                 .width(122.0)
                 .selected_text(if app.full_screen_canvas {

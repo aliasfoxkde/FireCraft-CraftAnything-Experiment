@@ -53,7 +53,11 @@ fn notifications_get_no_reply() {
         r#"{"jsonrpc":"2.0","method":"notifications/cancelled","params":{}}"#,
         r#"{"jsonrpc":"2.0","id":7,"method":"ping"}"#,
     ]);
-    assert_eq!(replies.len(), 1, "notifications must not produce replies: {replies:?}");
+    assert_eq!(
+        replies.len(),
+        1,
+        "notifications must not produce replies: {replies:?}"
+    );
     assert!(replies[0].contains("\"id\":7"));
 }
 
@@ -137,7 +141,11 @@ fn script_tool_runs_each_line_and_reports_the_count() {
     let replies = session(&[
         r#"{"jsonrpc":"2.0","id":11,"method":"tools/call","params":{"name":"firecraft.runScript","arguments":{"script":"document.demoShowcase;edit.undo"}}}"#,
     ]);
-    assert!(replies[0].contains("Executed 2 script command(s)"), "{}", replies[0]);
+    assert!(
+        replies[0].contains("Executed 2 script command(s)"),
+        "{}",
+        replies[0]
+    );
 }
 
 #[test]

@@ -52,15 +52,15 @@ Every task names its proof. A task without proof is not done.
 
 ## Phase 15 — Test foundation (logic)
 
-- [ ] **15.1** Create `app/tests/cli.rs`: every CLI verb, exit codes, stdout shape, missing/invalid input.
-- [ ] **15.2** Create `app/tests/mcp.rs`: initialize, tools/list, tools/call success+error, unknown method, malformed JSON, notifications.
-- [ ] **15.3** Bring `formats.rs` to ≥ 85 %: each export format, corrupt input, unwritable path, layered-PNG version mismatch, HTML/SVG escaping.
-- [ ] **15.4** Add golden-file tests for SVG/HTML/PNG output with a documented normalization step.
-- [ ] **15.5** Property tests for path booleans (area additivity, containment, idempotence) and transforms.
-- [ ] **15.6** Property/round-trip tests for color conversions and gradient math.
-- [ ] **15.7** Error-path matrix for `app/files.rs`: dirty tabs, cancel, missing file, permission denied, save-all-and-quit.
-- [ ] **15.8** Palette/contrast tests in `theme.rs` (feeds the Phase 18 accessibility work).
-- [ ] **15.9** Verify no test touches display, network, OS clipboard or real user directories; add a guard test.
+- [x] **15.1** Create `app/tests/cli.rs`: every CLI verb, exit codes, stdout shape, missing/invalid input.
+- [x] **15.2** Create `app/tests/mcp.rs`: initialize, tools/list, tools/call success+error, unknown method, malformed JSON, notifications.
+- [x] **15.3** Bring `formats.rs` to ≥ 85 %: each export format, corrupt input, unwritable path, layered-PNG version mismatch, HTML/SVG escaping.
+- [x] **15.4** Add golden-file tests for SVG/HTML/PNG output with a documented normalization step.
+- [x] **15.5** Property tests for path booleans (area additivity, containment, idempotence) and transforms.
+- [x] **15.6** Property/round-trip tests for color conversions and gradient math.
+- [x] **15.7** Error-path matrix for `app/files.rs`: dirty tabs, cancel, missing file, permission denied, save-all-and-quit.
+- [x] **15.8** Palette/contrast tests in `theme.rs` (feeds the Phase 18 accessibility work).
+- [x] **15.9** Verify no test touches display, network, OS clipboard or real user directories; add a guard test.
 
 ## Phase 16 — Interaction harness
 

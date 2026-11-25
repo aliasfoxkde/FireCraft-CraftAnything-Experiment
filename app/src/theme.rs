@@ -307,9 +307,15 @@ mod tests {
                 );
             }
             let dim = contrast_ratio(p.text_dim, p.panel);
-            assert!(dim >= 3.0, "{name}: dim text on panel is {dim:.2}:1, below 3:1");
+            assert!(
+                dim >= 3.0,
+                "{name}: dim text on panel is {dim:.2}:1, below 3:1"
+            );
             let accent = contrast_ratio(p.accent_text, p.accent);
-            assert!(accent >= 4.5, "{name}: accent label contrast is {accent:.2}:1");
+            assert!(
+                accent >= 4.5,
+                "{name}: accent label contrast is {accent:.2}:1"
+            );
         }
     }
 }

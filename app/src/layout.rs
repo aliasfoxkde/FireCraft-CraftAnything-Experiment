@@ -1894,9 +1894,18 @@ fn dock_column(ui: &mut Ui, app: &mut FireCraft, zone: crate::app::DockZone) {
             "Collapse Panels Dock to Iconic Strip"
         });
 
+        // Identify the bar: an unlabelled strip above the tabs reads as a rendering bug.
+        painter.text(
+            egui::pos2(chev_r.right() + 6.0, bar_r.center().y),
+            egui::Align2::LEFT_CENTER,
+            "Panels",
+            egui::FontId::proportional(9.5),
+            p.text_dim,
+        );
+
         // Draggable CS6 dotted grip (drag to float panel block or snap to Left/Right; double-click to toggle collapse)
         let grip_r = egui::Rect::from_min_max(
-            egui::pos2(chev_r.right() + 2.0, bar_r.top()),
+            egui::pos2(chev_r.right() + 56.0, bar_r.top()),
             bar_r.right_bottom(),
         );
         let grip_resp = ui.interact(
@@ -2340,8 +2349,10 @@ enum Shortcut {
 }
 
 fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
-    if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, Key::Escape))
-        && !app.pen_nodes.is_empty()
+    // Check the pen state first: `consume_key` removes the event, so consuming it here and then
+    // testing `pen_nodes` would swallow Escape whenever no pen path is being drawn.
+    if !app.pen_nodes.is_empty()
+        && ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, Key::Escape))
     {
         app.finish_pen_path(false);
         ui.ctx().request_repaint();
@@ -2402,18 +2413,20 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
             ui.ctx().request_repaint();
             return;
         }
+        // Shift+Tab must be consumed first: `consume_key(NONE, ..)` matches logically and would
+        // otherwise swallow the shifted chord, making the dock toggle unreachable.
+        let shift_tab = ui.input_mut(|i| i.consume_key(egui::Modifiers::SHIFT, Key::Tab));
+        if shift_tab {
+            app.show_right_dock = !app.show_right_dock;
+            ui.ctx().request_repaint();
+            return;
+        }
         let tab_toggled = ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, Key::Tab));
         if tab_toggled {
             if let Some(fid) = ui.ctx().memory(|m| m.focused()) {
                 ui.ctx().memory_mut(|m| m.surrender_focus(fid));
             }
             app.toggle_full_screen_canvas();
-            ui.ctx().request_repaint();
-            return;
-        }
-        let shift_tab = ui.input_mut(|i| i.consume_key(egui::Modifiers::SHIFT, Key::Tab));
-        if shift_tab {
-            app.show_right_dock = !app.show_right_dock;
             ui.ctx().request_repaint();
             return;
         }

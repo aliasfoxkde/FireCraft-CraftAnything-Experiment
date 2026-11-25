@@ -30,6 +30,9 @@ use eframe::egui::{
 /// double-click-to-collapse
 /// behavior. Returns `true` when the header requested a collapse/expand toggle.
 #[allow(clippy::too_many_arguments)]
+pub mod geometry;
+
+#[allow(clippy::too_many_arguments)] // CS6 panel chrome; splitting would churn every caller
 pub fn panel_collapsible(
     ui: &mut Ui,
     title: &str,
@@ -3574,6 +3577,9 @@ pub fn panel_group_widget(ui: &mut Ui, app: &mut FireCraft, group_idx: usize, is
                             .show(ui, |ui| {
                                 egui::ScrollArea::vertical()
                                     .id_salt(("pg_scroll", group.id, active_panel))
+                                    .scroll_bar_visibility(
+                                        egui::scroll_area::ScrollBarVisibility::AlwaysVisible,
+                                    )
                                     .auto_shrink([false, false])
                                     .max_height((body_h - 12.0).max(40.0))
                                     .show(ui, |ui| {

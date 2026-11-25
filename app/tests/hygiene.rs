@@ -17,7 +17,10 @@ fn src_files() -> Vec<PathBuf> {
         }
     }
     let mut files = Vec::new();
-    walk(&Path::new(env!("CARGO_MANIFEST_DIR")).join("src"), &mut files);
+    walk(
+        &Path::new(env!("CARGO_MANIFEST_DIR")).join("src"),
+        &mut files,
+    );
     files
 }
 
@@ -34,7 +37,11 @@ fn no_placeholders_or_unimplemented_paths() {
             }
         }
     }
-    assert!(offenders.is_empty(), "placeholders found:\n{}", offenders.join("\n"));
+    assert!(
+        offenders.is_empty(),
+        "placeholders found:\n{}",
+        offenders.join("\n")
+    );
 }
 
 #[test]
@@ -47,11 +54,20 @@ fn unsafe_is_confined_to_the_windows_shell_module() {
         let text = std::fs::read_to_string(&file).expect("read source");
         for (line_no, line) in text.lines().enumerate() {
             if line.contains("unsafe ") || line.contains("unsafe{") {
-                offenders.push(format!("{}:{}: {}", file.display(), line_no + 1, line.trim()));
+                offenders.push(format!(
+                    "{}:{}: {}",
+                    file.display(),
+                    line_no + 1,
+                    line.trim()
+                ));
             }
         }
     }
-    assert!(offenders.is_empty(), "unsafe outside shell_windows.rs:\n{}", offenders.join("\n"));
+    assert!(
+        offenders.is_empty(),
+        "unsafe outside shell_windows.rs:\n{}",
+        offenders.join("\n")
+    );
 }
 
 #[test]
@@ -83,9 +99,16 @@ fn tests_do_not_reference_real_user_directories() {
     for file in src_files() {
         let text = std::fs::read_to_string(&file).expect("read source");
         for (line_no, line) in text.lines().enumerate() {
-            if line.contains("dirs::home_dir") || line.contains("\"/home/") || line.contains("\"/Users/")
+            if line.contains("dirs::home_dir")
+                || line.contains("\"/home/")
+                || line.contains("\"/Users/")
             {
-                offenders.push(format!("{}:{}: {}", file.display(), line_no + 1, line.trim()));
+                offenders.push(format!(
+                    "{}:{}: {}",
+                    file.display(),
+                    line_no + 1,
+                    line.trim()
+                ));
             }
         }
     }

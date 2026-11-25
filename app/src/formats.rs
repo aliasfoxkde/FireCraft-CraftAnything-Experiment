@@ -1387,9 +1387,18 @@ mod tests {
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
             std::fs::write(&path, normalized(actual)).unwrap();
         }
-        let expected = std::fs::read_to_string(&path)
-            .unwrap_or_else(|e| panic!("golden {} unreadable ({e}); set UPDATE_GOLDEN=1", path.display()));
-        assert_eq!(normalized(actual), normalized(&expected), "{} drifted", path.display());
+        let expected = std::fs::read_to_string(&path).unwrap_or_else(|e| {
+            panic!(
+                "golden {} unreadable ({e}); set UPDATE_GOLDEN=1",
+                path.display()
+            )
+        });
+        assert_eq!(
+            normalized(actual),
+            normalized(&expected),
+            "{} drifted",
+            path.display()
+        );
     }
 
     #[test]
@@ -1411,9 +1420,15 @@ mod tests {
             std::fs::write(&path, &actual).unwrap();
         }
         let expected = std::fs::read(&path).unwrap_or_else(|e| {
-            panic!("golden {} unreadable ({e}); set UPDATE_GOLDEN=1", path.display())
+            panic!(
+                "golden {} unreadable ({e}); set UPDATE_GOLDEN=1",
+                path.display()
+            )
         });
-        assert_eq!(actual, expected, "PNG encoding drifted; regenerate intentionally");
+        assert_eq!(
+            actual, expected,
+            "PNG encoding drifted; regenerate intentionally"
+        );
         std::fs::remove_dir_all(&dir).ok();
     }
 
@@ -1433,23 +1448,23 @@ mod tests {
         let doc = Document::new(100.0, 100.0);
         let err = save(&doc, Path::new("/tmp/firecraft-x.avif")).unwrap_err();
         assert!(err.contains("cannot write AVIF"), "{err}");
-        assert!(err.contains("PNG"), "the error should name a working format: {err}");
+        assert!(
+            err.contains("PNG"),
+            "the error should name a working format: {err}"
+        );
     }
 
     #[test]
     fn saving_into_a_missing_directory_reports_the_io_error() {
         let doc = Document::new(10.0, 10.0);
-        let err = save(
-            &doc,
-            Path::new("/nonexistent-firecraft-dir/out.png"),
-        )
-        .unwrap_err();
+        let err = save(&doc, Path::new("/nonexistent-firecraft-dir/out.png")).unwrap_err();
         assert!(err.starts_with("Could not write the file:"), "{err}");
     }
 
     #[test]
     fn opening_a_corrupt_png_is_an_error_not_a_panic() {
-        let path = std::env::temp_dir().join(format!("firecraft-corrupt-{}.png", std::process::id()));
+        let path =
+            std::env::temp_dir().join(format!("firecraft-corrupt-{}.png", std::process::id()));
         std::fs::write(&path, b"not a png").unwrap();
         let err = open(&path).unwrap_err();
         assert!(!err.is_empty());
@@ -1475,9 +1490,15 @@ mod tests {
         doc.page_mut().layers[0].objects.push(obj);
 
         let svg = export_svg(&doc);
-        assert!(svg.contains("&lt;b&gt;&amp;"), "svg text is not escaped: {svg:.400}");
+        assert!(
+            svg.contains("&lt;b&gt;&amp;"),
+            "svg text is not escaped: {svg:.400}"
+        );
         let html = export_html(&doc);
-        assert!(html.contains("&lt;b&gt;&amp;"), "html text is not escaped: {html:.400}");
+        assert!(
+            html.contains("&lt;b&gt;&amp;"),
+            "html text is not escaped: {html:.400}"
+        );
     }
 
     #[test]

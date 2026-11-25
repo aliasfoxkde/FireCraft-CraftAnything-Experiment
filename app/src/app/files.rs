@@ -357,7 +357,10 @@ mod tests {
     fn save_current_without_a_path_asks_for_one_instead_of_failing() {
         let mut app = FireCraft::new(None);
         app.doc.dirty = true;
-        assert_eq!(app.run_file_intent(FileIntent::SaveCurrent), FileOutcome::WaitingForPath);
+        assert_eq!(
+            app.run_file_intent(FileIntent::SaveCurrent),
+            FileOutcome::WaitingForPath
+        );
         assert!(app.doc.dirty, "an unsaved document must stay dirty");
     }
 
@@ -406,7 +409,10 @@ mod tests {
     fn closing_a_clean_tab_is_immediate_and_a_dirty_one_asks() {
         let mut app = FireCraft::new(None);
         app.doc.dirty = false;
-        assert_eq!(app.run_file_intent(FileIntent::CloseActiveTab), FileOutcome::Closed);
+        assert_eq!(
+            app.run_file_intent(FileIntent::CloseActiveTab),
+            FileOutcome::Closed
+        );
 
         let mut app = FireCraft::new(None);
         app.doc.dirty = true;
@@ -414,7 +420,10 @@ mod tests {
             app.run_file_intent(FileIntent::CloseActiveTab),
             FileOutcome::WaitingForCloseConfirmation
         );
-        assert!(app.doc.dirty, "a dirty document must not be discarded silently");
+        assert!(
+            app.doc.dirty,
+            "a dirty document must not be discarded silently"
+        );
     }
 
     #[test]
@@ -443,6 +452,10 @@ mod tests {
         let mut app = FireCraft::new(None);
         let err = app.export_to(Path::new("/tmp/out.psd")).unwrap_err();
         assert!(err.contains("PSD"), "{err}");
-        assert!(app.status.contains("PSD"), "status should explain it: {}", app.status);
+        assert!(
+            app.status.contains("PSD"),
+            "status should explain it: {}",
+            app.status
+        );
     }
 }

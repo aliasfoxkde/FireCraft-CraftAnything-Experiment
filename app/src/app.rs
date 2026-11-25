@@ -839,7 +839,7 @@ impl FireCraft {
                 active_tab: 1,
                 zone: DockZone::RightOuter,
                 collapsed: false,
-                body_height: 138.0,
+                body_height: 176.0,
                 floating_pos: egui::pos2(740.0, 440.0),
                 floating_width: 286.0,
                 stack_parent: None,
@@ -1381,11 +1381,7 @@ impl FireCraft {
     /// Magnetically snaps a floating panel window (`group_id`) within 12px of other floating windows
     /// or the canvas/dock edges (`screenshots/Fireworks-All_Window_Panels.jpg`).
     pub fn panel_group_height(group: &PanelGroup) -> f32 {
-        if group.collapsed {
-            24.0
-        } else {
-            (group.body_height + 30.0).clamp(60.0, 480.0)
-        }
+        crate::panels::geometry::group_height(group.collapsed, group.body_height)
     }
 
     /// Stacks `child_id` directly above or below `target_id`. Stacked windows follow their root
@@ -1413,7 +1409,11 @@ impl FireCraft {
             if let Some(child) = self.panel_groups.iter_mut().find(|g| g.id == child_id) {
                 child.stack_parent = Some(target_id);
                 child.zone = DockZone::Floating;
-                child.floating_pos = target_pos + Vec2::new(0.0, target_h + 2.0);
+                child.floating_pos =
+                    crate::panels::geometry::stacked_below(crate::panels::geometry::Slot {
+                        pos: target_pos,
+                        size: Vec2::new(target_width, target_h),
+                    });
                 child.floating_width = target_width;
             }
             self.status = "Stacked panel below target window".to_string();
@@ -1434,7 +1434,8 @@ impl FireCraft {
             }
             if let Some(target) = self.panel_groups.iter_mut().find(|g| g.id == target_id) {
                 target.stack_parent = Some(child_id);
-                target.floating_pos = target_pos + Vec2::new(0.0, child_h + 2.0);
+                target.floating_pos =
+                    crate::panels::geometry::shifted_for_window_above(target_pos, child_h);
                 target.floating_width = target_width;
             }
             self.status = "Stacked panel above target window".to_string();
@@ -1455,64 +1456,31 @@ impl FireCraft {
     pub fn snap_floating_pos(
         &self,
         group_id: u64,
-        mut pos: egui::Pos2,
+        pos: egui::Pos2,
         size: Vec2,
         bounds: egui::Rect,
     ) -> egui::Pos2 {
-        let threshold = 12.0;
-        // Snap to workspace/canvas edges
-        if (pos.x - bounds.left()).abs() < threshold {
-            pos.x = bounds.left() + 2.0;
-        }
-        if ((pos.x + size.x) - bounds.right()).abs() < threshold {
-            pos.x = bounds.right() - size.x - 2.0;
-        }
-        if (pos.y - bounds.top()).abs() < threshold {
-            pos.y = bounds.top() + 2.0;
-        }
-        if ((pos.y + size.y) - bounds.bottom()).abs() < threshold {
-            pos.y = bounds.bottom() - size.y - 2.0;
-        }
-
-        // Snap edge-to-edge and corner-aligned against other floating panel windows
-        for other in &self.panel_groups {
-            if other.id == group_id
-                || other.zone != DockZone::Floating
-                || other.stack_parent.is_some()
-            {
-                continue;
-            }
-            let oh = if other.collapsed {
-                26.0
-            } else {
-                other.body_height + 30.0
-            };
-            let o_rect =
-                egui::Rect::from_min_size(other.floating_pos, Vec2::new(other.floating_width, oh));
-            // Vertical stacking snap (top to other's bottom, or bottom to other's top)
-            if (pos.x - o_rect.left()).abs() < 28.0 {
-                if (pos.y - o_rect.bottom()).abs() < threshold {
-                    pos.y = o_rect.bottom() + 2.0;
-                    pos.x = o_rect.left();
-                } else if ((pos.y + size.y) - o_rect.top()).abs() < threshold {
-                    pos.y = o_rect.top() - size.y - 2.0;
-                    pos.x = o_rect.left();
-                }
-            }
-            // Horizontal column snap (left to other's right, or right to other's left)
-            if (pos.x - o_rect.right()).abs() < threshold {
-                pos.x = o_rect.right() + 3.0;
-                if (pos.y - o_rect.top()).abs() < threshold {
-                    pos.y = o_rect.top();
-                }
-            } else if ((pos.x + size.x) - o_rect.left()).abs() < threshold {
-                pos.x = o_rect.left() - size.x - 3.0;
-                if (pos.y - o_rect.top()).abs() < threshold {
-                    pos.y = o_rect.top();
-                }
-            }
-        }
-        pos
+        let others: Vec<crate::panels::geometry::Slot> = self
+            .panel_groups
+            .iter()
+            .filter(|other| {
+                other.id != group_id
+                    && other.zone == DockZone::Floating
+                    && other.stack_parent.is_none()
+            })
+            .map(|other| crate::panels::geometry::Slot {
+                pos: other.floating_pos,
+                size: Vec2::new(
+                    other.floating_width,
+                    if other.collapsed {
+                        26.0
+                    } else {
+                        other.body_height + 30.0
+                    },
+                ),
+            })
+            .collect();
+        crate::panels::geometry::snap_pos(pos, size, bounds, &others)
     }
 
     pub fn selected_object(&self) -> Option<Obj> {
@@ -6840,7 +6808,8 @@ mod tests {
             let area_a = polygon_area(&a).abs();
             let area_b = polygon_area(&b).abs();
             let union = polygon_area(&polygon_boolean(&a, &b, "union").unwrap()).abs();
-            let inter = polygon_area(&polygon_boolean(&a, &b, "intersect").unwrap_or_default()).abs();
+            let inter =
+                polygon_area(&polygon_boolean(&a, &b, "intersect").unwrap_or_default()).abs();
             let punch = polygon_area(&polygon_boolean(&a, &b, "punch").unwrap_or_default()).abs();
 
             assert!(
@@ -6892,7 +6861,11 @@ mod tests {
             if turn < 3 {
                 let same = (w - before_w).abs() < 0.5 && (h - before_h).abs() < 0.5;
                 let swapped = (w - before_h).abs() < 0.5 && (h - before_w).abs() < 0.5;
-                assert!(same || swapped, "turn {}: {w}x{h} vs {before_w}x{before_h}", turn + 1);
+                assert!(
+                    same || swapped,
+                    "turn {}: {w}x{h} vs {before_w}x{before_h}",
+                    turn + 1
+                );
             } else {
                 assert!(
                     (w - before_w).abs() < 0.5 && (h - before_h).abs() < 0.5,

@@ -76,7 +76,14 @@ fn help_lists_every_cli_verb() {
     assert!(out.status.success());
     let text = stdout(&out);
     for verb in [
-        "info", "export", "convert", "batch", "apply", "list-commands", "mcp", "--version",
+        "info",
+        "export",
+        "convert",
+        "batch",
+        "apply",
+        "list-commands",
+        "mcp",
+        "--version",
     ] {
         assert!(text.contains(verb), "help does not mention {verb}");
     }
@@ -104,7 +111,10 @@ fn info_demo_prints_the_showcase_geometry() {
     let out = run(&["info", "--demo"]);
     assert!(out.status.success(), "stderr: {}", stderr(&out));
     let text = stdout(&out);
-    assert!(text.starts_with('{') && text.trim_end().ends_with('}'), "{text}");
+    assert!(
+        text.starts_with('{') && text.trim_end().ends_with('}'),
+        "{text}"
+    );
     assert!(text.contains("\"width\":1920"), "{text}");
     assert!(text.contains("\"height\":1080"), "{text}");
     assert!(text.contains("\"dpi\":144"), "{text}");
@@ -134,18 +144,30 @@ fn every_export_format_produces_a_real_file() {
     for (ext, magic) in cases {
         let path = dir.join(&format!("showcase.{ext}"));
         let out = run(&["export", "--demo", path.to_str().unwrap()]);
-        assert!(out.status.success(), "{ext} export failed: {}", stderr(&out));
+        assert!(
+            out.status.success(),
+            "{ext} export failed: {}",
+            stderr(&out)
+        );
         assert_magic(&path, magic);
     }
 
     let svg = dir.join("showcase.svg");
-    assert!(run(&["export", "--demo", svg.to_str().unwrap()]).status.success());
+    assert!(
+        run(&["export", "--demo", svg.to_str().unwrap()])
+            .status
+            .success()
+    );
     let svg_text = std::fs::read_to_string(&svg).unwrap();
     assert!(svg_text.contains("<svg"), "{svg_text:.200}");
     assert!(svg_text.contains("viewBox"), "SVG has no viewBox");
 
     let html = dir.join("showcase.html");
-    assert!(run(&["export", "--demo", html.to_str().unwrap()]).status.success());
+    assert!(
+        run(&["export", "--demo", html.to_str().unwrap()])
+            .status
+            .success()
+    );
     let html_text = std::fs::read_to_string(&html).unwrap();
     assert!(html_text.contains("<html"), "{html_text:.200}");
 }
@@ -153,7 +175,11 @@ fn every_export_format_produces_a_real_file() {
 #[test]
 fn unsupported_output_extension_fails() {
     let dir = TempDir::new("bad-ext");
-    let out = run(&["export", "--demo", dir.join("showcase.xyz").to_str().unwrap()]);
+    let out = run(&[
+        "export",
+        "--demo",
+        dir.join("showcase.xyz").to_str().unwrap(),
+    ]);
     assert!(!out.status.success(), "unsupported extension was accepted");
     assert!(!dir.join("showcase.xyz").exists());
 }
@@ -179,7 +205,11 @@ fn apply_unknown_command_fails_and_known_command_succeeds() {
         .and_then(|l| l.split_whitespace().next())
         .expect("catalog is not empty");
     let out = run(&["apply", first]);
-    assert!(out.status.success(), "apply {first} failed: {}", stderr(&out));
+    assert!(
+        out.status.success(),
+        "apply {first} failed: {}",
+        stderr(&out)
+    );
     assert!(!stdout(&out).trim().is_empty());
 
     let saved = dir.join("applied.png");
@@ -192,14 +222,22 @@ fn apply_unknown_command_fails_and_known_command_succeeds() {
 fn convert_png_to_svg_and_back_keeps_a_document() {
     let dir = TempDir::new("convert");
     let png = dir.join("in.png");
-    assert!(run(&["export", "--demo", png.to_str().unwrap()]).status.success());
+    assert!(
+        run(&["export", "--demo", png.to_str().unwrap()])
+            .status
+            .success()
+    );
     let svg = dir.join("out.svg");
     let out = run(&["convert", png.to_str().unwrap(), svg.to_str().unwrap()]);
     assert!(out.status.success(), "convert failed: {}", stderr(&out));
     assert!(std::fs::read_to_string(&svg).unwrap().contains("<svg"));
 
     let info = run(&["info", svg.to_str().unwrap()]);
-    assert!(info.status.success(), "info on converted svg failed: {}", stderr(&info));
+    assert!(
+        info.status.success(),
+        "info on converted svg failed: {}",
+        stderr(&info)
+    );
     assert!(stdout(&info).contains("\"width\""));
 }
 
