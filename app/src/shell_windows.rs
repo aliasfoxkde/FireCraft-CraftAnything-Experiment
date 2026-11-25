@@ -1,3 +1,6 @@
+// The crate denies `unsafe_code`; COM interop is the single reviewed exception (ADR-0002).
+#![allow(unsafe_code)]
+
 //! Windows shell integration: an explicit AppUserModelID plus a taskbar Jump List with recent
 //! documents and common tasks.
 //!

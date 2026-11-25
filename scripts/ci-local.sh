@@ -34,7 +34,7 @@ if [ "$quick" -eq 0 ]; then
     echo "==> skip cargo audit (not installed)"
   fi
   if command -v cargo-llvm-cov >/dev/null; then
-    run cargo llvm-cov --quiet --summary-only
+    run "$root/scripts/coverage.sh"
   else
     echo "==> skip coverage (cargo-llvm-cov not installed)"
   fi

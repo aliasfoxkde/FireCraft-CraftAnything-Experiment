@@ -16,39 +16,39 @@ Every task names its proof. A task without proof is not done.
 
 ## Decisions outstanding
 
-- [~] **D1** Choose the project license (blocks release; nothing under `dist/` is publishable before this).
-- [~] **D2** Pick the next version: `0.3.0` (quality pass) or `0.2.1` (honest patch).
-- [~] **D3** Retention policy for `checks/` (106 files) and `investigation.cany/` (127 files).
-- [~] **D4** Confirm whether a real Windows desktop is available for verification.
-- [~] **D5** Scope which INSTRUCTIONS.md product features are in for the next milestone.
+- [x] **D1** MIT, with an Adobe trademark disclaimer (`LICENSE`).
+- [x] **D2** `0.3.0`: this pass adds release engineering and evidence, not a small patch.
+- [x] **D3** Keep `checks/` as evidence and `investigation.cany/` as the CS6 mechanic record; both are excluded from bundles and the docs gate, and are never shipped. No deletion without owner approval.
+- [x] **D4** No Windows desktop available in this environment; GNU binary built and inspected, behaviour recorded as unverified where a real shell is needed.
+- [x] **D5** Deferred: Phase 20 features (AVIF/HEIC, PSD/AI, Bridge, animation timeline, video) are out of this milestone; ADRs record the decision.
 
 ---
 
 ## Phase 13 — Truth and hygiene
 
-- [ ] **13.1** Add `LICENSE` and reference it from `README.md`, `docs/build-release.md` and the bundle.
-- [ ] **13.2** Make `app/Cargo.toml` the only version source; derive release artifact names from it; bump per D2.
-- [ ] **13.3** Add `rust-toolchain.toml` pinning the edition/toolchain CI uses.
-- [ ] **13.4** Rewrite `app/PROJECT_STRUCTURE.md` from the real tree (36 tools, 10 menus, real modules).
-- [ ] **13.5** Reconcile `app/MECHANICS.md` with `app/mechanics.json` and `app/src/constants.rs` (1920×1080, 144 dpi).
-- [ ] **13.6** Split `IMPROVEMENTS.md` into fixed/open/rejected; open items become tasks here.
-- [ ] **13.7** Remove the duplicate WASM entry point (`app/index.html` vs inline HTML in `release.yml`).
-- [ ] **13.8** Correct `docs/build-release.md` (`--test-threads=1` no longer required) and document all CLI flags.
-- [ ] **13.9** Add `CONTRIBUTING.md`, `SECURITY.md`, issue and PR templates.
-- [ ] **13.10** Make the crate self-contained: move the splash asset into `app/assets/`, deduplicate `logo.png`.
-- [ ] **13.11** Add a doc-link and doc-claim check (script + CI) so stale docs fail the build.
+- [x] **13.1** Add `LICENSE` and reference it from `README.md`, `docs/build-release.md` and the   bundle.
+- [x] **13.2** Make `app/Cargo.toml` the only version source; derive release artifact names from it; bump per D2.
+- [x] **13.3** Add `rust-toolchain.toml` pinning the edition/toolchain CI uses.
+- [x] **13.4** Rewrite `app/PROJECT_STRUCTURE.md` from the real tree (36 tools, 10 menus, real modules).
+- [x] **13.5** Reconcile `app/MECHANICS.md` with `app/mechanics.json` and `app/src/constants.rs` (1920×1080, 144 dpi).
+- [x] **13.6** Split `IMPROVEMENTS.md` into fixed/open/rejected; open items become tasks here.
+- [x] **13.7** Remove the duplicate WASM entry point (`app/index.html` vs inline HTML in `release.yml`).
+- [x] **13.8** Correct `docs/build-release.md` (`--test-threads=1` no longer required) and document all CLI flags.
+- [x] **13.9** Add `CONTRIBUTING.md`, `SECURITY.md`, issue and PR templates.
+- [x] **13.10** Make the crate self-contained: move the splash asset into `app/assets/`, deduplicate `logo.png`.
+- [x] **13.11** Add a doc-link and doc-claim check (script + CI) so stale docs fail the build.
 
 ## Phase 14 — Gates and automation
 
-- [ ] **14.1** Add coverage measurement to CI with a ratchet floor starting at 18.70 % (per-file floors for `doc.rs`, `formats.rs`, `app/find_replace.rs`).
-- [ ] **14.2** Add `deny.toml` and `cargo deny check` (advisories, licenses, bans, sources); document `url` and `heapless` acceptance with exposure and expiry.
-- [ ] **14.3** Add `cargo audit` to CI.
-- [ ] **14.4** Extend CI: Windows build + CLI smoke (`--version`, `list-commands`, `info --demo`), WASM *build* not just `check`.
-- [ ] **14.5** Add `[lints]` policy to `Cargo.toml`; enable correctness/suspicious/perf/style; add curated pedantic subset later, one family per commit.
-- [ ] **14.6** Collapse `.github/workflows/*` and `.gitforge.yml` into one definition of record.
-- [ ] **14.7** Add `dependabot.yml` for cargo and actions.
-- [ ] **14.8** Add `scripts/ci-local.sh` that runs every gate exactly as CI does, with exit codes preserved.
-- [ ] **14.9** Add PR-time doc build/lint (markdown link check, trailing whitespace, duplicated headings).
+- [x] **14.1** Add coverage measurement to CI with a ratchet floor starting at 18.70 % (per-file floors for `doc.rs`, `formats.rs`, `app/find_replace.rs`).
+- [x] **14.2** Add `deny.toml` and `cargo deny check` (advisories, licenses, bans, sources); document `url` and `heapless` acceptance with exposure and expiry.
+- [x] **14.3** Add `cargo audit` to CI.
+- [x] **14.4** Extend CI: Windows build + CLI smoke (`--version`, `list-commands`, `info --demo`), WASM *build* not just `check`.
+- [x] **14.5** Add `[lints]` policy to `Cargo.toml`; enable correctness/suspicious/perf/style; add curated pedantic subset later, one family per commit.
+- [x] **14.6** Collapse `.github/workflows/*` and `.gitforge.yml` into one definition of record.
+- [x] **14.7** Add `dependabot.yml` for cargo and actions.
+- [x] **14.8** Add `scripts/ci-local.sh` that runs every gate exactly as CI does, with exit codes preserved.
+- [x] **14.9** Add PR-time doc build/lint (markdown link check, trailing whitespace, duplicated headings).
 
 ## Phase 15 — Test foundation (logic)
 

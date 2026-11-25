@@ -1,0 +1,46 @@
+# Dependency policy gate: `cargo deny check`.
+#
+# Accepted advisories are listed with an exposure note. Re-review before the expiry date;
+# an expired acceptance should be removed, not extended blindly.
+
+[advisories]
+yanked = "deny"
+# Upstream unmaintained crates in the egui font/DBus stack have no replacement available to us;
+# only flag unmaintained crates that this workspace itself declares.
+unmaintained = "workspace"
+ignore = [
+    # url 2.5.8: stack overflow in Url::origin() on nested blob: URLs, reached through
+    # eframe -> egui-winit -> webbrowser. FireCraft only passes plain http(s) help URLs and never
+    # parses blob: URLs, so the vulnerable path is unreachable. No patched release at 0.3.0.
+    # Re-check: 2027-01-31.
+    "RUSTSEC-2026-0592",
+]
+
+[licenses]
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+    "BSL-1.0",
+    "OFL-1.1",
+    "Ubuntu-font-1.0",
+]
+confidence-threshold = 0.93
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+deny = [
+    # Duplicate graphics stacks would silently double binary size and startup work.
+    { name = "gtk4" },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

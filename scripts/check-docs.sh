@@ -26,6 +26,20 @@ for f in "${docs[@]}"; do
   done < <(grep -noE '\]\([^)]+\)' "$f" 2>/dev/null | sed -E 's/^([0-9]+):\]\((.*)\)$/\1\t\2/' || true)
 done
 
+# Trailing whitespace and duplicated headings inside a file make diffs and anchors unreliable.
+for f in "${docs[@]}"; do
+  if grep -nE ' +$' "$f" >/dev/null 2>&1; then
+    echo "TRAILING WHITESPACE $f"
+    grep -nE ' +$' "$f" | head -3
+    status=1
+  fi
+  dup="$(grep -E '^#{1,6} ' "$f" | sort | uniq -d)"
+  if [ -n "$dup" ]; then
+    echo "DUPLICATE HEADING $f: $dup"
+    status=1
+  fi
+done
+
 # Version literals: releases and workflows must derive the version, never embed one.
 if grep -rnE 'firecraft-v[0-9]+\.[0-9]+\.[0-9]+' .github .gitforge.yml scripts 2>/dev/null; then
   echo "HARDCODED VERSION: derive it from app/Cargo.toml via scripts/version.sh"
