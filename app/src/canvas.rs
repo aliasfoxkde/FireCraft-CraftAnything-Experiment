@@ -9,6 +9,29 @@ use eframe::egui::{
     self, Align2, Color32, FontId, Painter, Pos2, Rect, Sense, Stroke, TextureHandle, Vec2, pos2,
 };
 
+/// Shorten `text` with an ellipsis so it fits `max_w` at `font`. Used for slice URL tabs,
+/// which otherwise paint a 400 px bar across the artwork.
+fn elide_to_width(painter: &egui::Painter, text: &str, font: &FontId, max_w: f32) -> String {
+    let width = |s: &str| {
+        painter
+            .layout_no_wrap(s.to_string(), font.clone(), Color32::WHITE)
+            .size()
+            .x
+    };
+    if width(text) <= max_w {
+        return text.to_string();
+    }
+    let mut chars: Vec<char> = text.chars().collect();
+    while !chars.is_empty() {
+        chars.pop();
+        let candidate = format!("{}…", chars.iter().collect::<String>());
+        if width(&candidate) <= max_w {
+            return candidate;
+        }
+    }
+    "…".to_string()
+}
+
 pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
     let rect = ui.available_rect_before_wrap();
     let canvas_resp = ui.allocate_rect(rect, Sense::click_and_drag());
@@ -19,6 +42,9 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
     painter.rect_filled(rect, 0.0, app.palette.canvas_pad);
 
     app.canvas_size = rect.size();
+    if std::mem::take(&mut app.pending_fit) {
+        app.apply_fit_from_canvas();
+    }
 
     match app.view_mode {
         CanvasViewMode::TwoUp => {
@@ -1756,12 +1782,21 @@ fn draw_obj(
             let b = to_screen(origin, zoom, *max);
             let r = Rect::from_min_max(a.min(b), a.max(b));
             if *radial {
+                // Concentric circles must stay inside the object: without this clip a radial
+                // gradient paints a disc over neighbouring objects and outside page bounds.
+                let radial_painter = painter.with_clip_rect(r.intersect(painter.clip_rect()));
+                // Fill the whole rect with the outer stop first; circles alone leave the
+                // rectangle's corners unpainted and the page shows through them.
+                radial_painter.rect_filled(r, 0.0, to.gamma_multiply(alpha));
                 let steps = 24;
                 let max_rad = r.width().min(r.height()) * 0.5;
                 for i in (0..steps).rev() {
-                    let t = i as f32 / steps as f32;
+                    // t runs 1.0 → 0.0 so the outermost ring is exactly the outer stop and
+                    // blends seamlessly into the rect fill (no visible disc edge).
+                    let t = i as f32 / (steps - 1) as f32;
+                    let radius = max_rad * (i + 1) as f32 / steps as f32;
                     let c = from.lerp_to_gamma(*to, t).gamma_multiply(alpha);
-                    painter.circle_filled(r.center(), max_rad * (t + 1.0 / steps as f32), c);
+                    radial_painter.circle_filled(r.center(), radius, c);
                 }
             } else {
                 let steps = 48.max((r.height() as i32).min(128));
@@ -1819,18 +1854,31 @@ fn draw_obj(
                 };
                 painter.rect_filled(r, 0.0, overlay);
                 painter.rect_stroke(r, 0.0, Stroke::new(1.0, border), egui::StrokeKind::Middle);
+                // CS6 shows the slice URL in a tab *above* the slice. Painting it inside the
+                // rect covered the artwork — a button's own label disappeared under the URL.
                 let label = if url.is_empty() {
                     obj.name.as_str()
                 } else {
                     url.as_str()
                 };
-                painter.text(
-                    pos2(r.left() + 4.0, r.top() + 3.0),
-                    Align2::LEFT_TOP,
-                    label,
-                    FontId::proportional(10.0),
-                    Color32::WHITE,
+                let tab_font = FontId::proportional(10.0);
+                let label = elide_to_width(painter, label, &tab_font, (r.width() - 8.0).max(48.0));
+                let galley = painter.layout_no_wrap(label, tab_font, border);
+                let tab_h = 13.0;
+                // Below the slice, not above it: a slice sitting on a button put the URL tab
+                // on top of the button's own label.
+                let tab = Rect::from_min_size(
+                    pos2(r.left(), r.bottom() + 1.0),
+                    Vec2::new(galley.size().x + 8.0, tab_h),
                 );
+                if painter.clip_rect().intersects(tab) {
+                    painter.rect_filled(tab, 0.0, border);
+                    painter.galley(
+                        pos2(tab.left() + 4.0, tab.center().y - galley.size().y * 0.5),
+                        galley,
+                        Color32::from_rgb(12, 16, 12),
+                    );
+                }
             }
         }
         Shape::SymbolInstance {

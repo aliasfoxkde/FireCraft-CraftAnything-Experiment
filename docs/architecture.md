@@ -21,6 +21,7 @@ those seams explicit; avoid adding another “misc” module that reaches into a
 | `dialogs/mod.rs` | Shared dialog chrome plus application settings/about/quit dialogs | File listing, Find/Replace semantics |
 | `dialogs/file_browser.rs` | File browsing UI, filters, address bar, commit/cancel flow | Save/open serialization |
 | `dialogs/find_replace.rs` | Find/Replace dialog surface and live scope preview | Matching/replacement implementation |
+| `demo.rs` | Showcase geometry: `showcase(width, height) -> Vec<Obj>` and text fitting | Application state, layer routing, egui |
 | `formats.rs` | Raster/SVG/HTML/layered-PNG serialization | Dialog or file-picker UI |
 | `mcp.rs` | JSON-RPC command surface and headless CLI verbs | GUI state transitions beyond the public app commands |
 | `shell_windows.rs` | AppUserModelID and Jump List COM integration | Document logic or UI |

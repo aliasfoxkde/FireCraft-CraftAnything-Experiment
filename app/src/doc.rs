@@ -440,10 +440,16 @@ impl Obj {
                 }
                 Some((lo, hi))
             }
-            Shape::Text { at, text, size, .. } => Some((
-                Vec2::new(at.x, at.y - size * 1.2),
-                Vec2::new(at.x + text_width(text, *size), at.y),
-            )),
+            Shape::Text { at, text, size, .. } => {
+                // Multi-line text occupies one line height per line, and its width comes from
+                // the longest line — counting the newline itself made selection boxes too wide
+                // and made multi-line bodies look like they overflowed their cards.
+                let lines = text.split('\n').count().max(1) as f32;
+                Some((
+                    Vec2::new(at.x, at.y - size * 1.2 * lines),
+                    Vec2::new(at.x + text_width(text, *size), at.y),
+                ))
+            }
             Shape::Gradient { min, max, .. } => Some(((*min).min(*max), (*min).max(*max))),
             Shape::Bitmap { at, size, .. } => Some((*at, *at + *size)),
             Shape::Slice { min, max, .. } => Some(((*min).min(*max), (*min).max(*max))),
@@ -559,7 +565,13 @@ impl Obj {
 
 /// Approximate rendered width of a string at `size` points.
 pub fn text_width(text: &str, size: f32) -> f32 {
-    (0.55 * size * text.chars().count().max(1) as f32).max(size * 0.5)
+    let widest = text
+        .split('\n')
+        .map(|line| line.chars().count())
+        .max()
+        .unwrap_or(1)
+        .max(1);
+    (0.55 * size * widest as f32).max(size * 0.5)
 }
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -1323,6 +1335,34 @@ impl Document {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn multiline_text_bounds_use_the_longest_line() {
+        assert_eq!(
+            text_width("abc\ndef", 20.0),
+            text_width("abc", 20.0),
+            "a newline must not add width"
+        );
+        assert!(text_width("abc\ndef", 20.0) < text_width("abcdef", 20.0));
+        let obj = Obj::new(
+            Shape::Text {
+                at: Vec2::new(10.0, 100.0),
+                text: "one\ntwo\nthree".to_string(),
+                size: 20.0,
+                bold: false,
+                italic: false,
+                font_family: "Sans-Serif".to_string(),
+            },
+            None,
+            None,
+        );
+        let (lo, hi) = obj.bounds().expect("text has bounds");
+        assert_eq!(hi.x - lo.x, text_width("three", 20.0));
+        assert!(
+            (hi.y - lo.y - 20.0 * 1.2 * 3.0).abs() < 0.01,
+            "three lines should be three line heights tall"
+        );
+    }
 
     #[test]
     fn document_creation_and_bounds() {

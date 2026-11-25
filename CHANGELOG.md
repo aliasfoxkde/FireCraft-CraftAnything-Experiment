@@ -5,6 +5,28 @@ All notable changes to **FireCraft** are documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Showcase module:** the demo document is built by `demo::showcase(width, height) -> Vec<Obj>`
+  instead of 280 lines inside the application state. Layout tests assert that objects stay inside
+  the page, text stays inside its card at four page sizes, and the CTA label is centred.
+- **Viewport size flag:** `--size 960x640` (plus `scripts/gui-shot.sh`) for deterministic GUI review
+  captures under Xvfb.
+
+### Fixed (GUI pass)
+- **Radial gradients** are clipped to their object and the rect is filled with the outer stop, so
+  they no longer paint a disc over neighbouring content or leave the page showing through corners.
+- **Slice URL labels** render as a tab below the slice, elided to its width, instead of covering the
+  button label underneath.
+- **First-frame fitting:** the showcase is framed once the live canvas rect exists, so it fits at
+  960x640 instead of keeping the 1360 px zoom and clipping the page.
+- **Multi-line text measurement** uses the longest line for width and the line count for height; the
+  previous code counted newline characters as glyphs and over-reported selection bounds.
+- **Properties inspector** scrolls instead of clipping its second row at the 118 px dock height.
+- **Tool-rail hint** wraps instead of being cut mid-sentence; the Optimize Matte control has its own
+  row instead of covering its label.
+
+### Changed
+- **Showcase opens unselected**, so first launch is not decorated with selection handles over the
+  brand emblem.
 - **Document tab overflow:** the canvas tab strip now keeps the active and most-recently-used tabs
   visible, compresses padding and labels as tabs accumulate, and folds older tabs into a `…` menu
   instead of clipping them. Mouse-wheel over the strip steps through open documents.

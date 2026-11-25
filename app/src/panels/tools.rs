@@ -343,10 +343,13 @@ fn vector_options(ui: &mut Ui, app: &mut FireCraft, compact: bool) {
             )
             .on_hover_text("Star inner radius as a percentage of the outer radius");
         });
-        ui.label(
-            RichText::new("Drag a shape on canvas; the amber diamond adjusts it.")
-                .small()
-                .color(p.text_dim.gamma_multiply(0.8)),
+        ui.add(
+            egui::Label::new(
+                RichText::new("Drag a shape on canvas; the amber diamond adjusts it.")
+                    .small()
+                    .color(p.text_dim.gamma_multiply(0.8)),
+            )
+            .wrap(),
         );
     }
     app.polygon_sides = sides;

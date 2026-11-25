@@ -4,6 +4,7 @@
 use crate::canvas::{self, TextureCache};
 use crate::colors;
 use crate::constants;
+use crate::demo;
 use crate::doc::{
     AnimationState, AutoShapeKind, Document, GradientFill, Layer, LiveEffect, Obj, Page, Shape,
     Snapshot, StylePreset, SymbolDef,
@@ -532,6 +533,9 @@ pub struct FireCraft {
     pub space_mode: String,
     pub alt_hand_pan: bool,
     pub canvas_size: Vec2,
+    /// Set when a view should be fitted once the canvas rect is known. Fitting at load time
+    /// used a stale/zero canvas size, so a demo opened at 960 px kept the 1360 px zoom.
+    pub pending_fit: bool,
     pub cursor_doc_pos: Option<Vec2>,
     pub brush_size: f32,
     pub grid_size: f32,
@@ -705,6 +709,7 @@ impl FireCraft {
             snap_to_objects: true,
             show_guides: true,
             show_slices: true,
+            pending_fit: false,
             infinite_canvas: false,
             onion_skin: false,
             align_to_canvas: false,
@@ -5007,282 +5012,12 @@ impl FireCraft {
     pub fn load_demo_showcase(&mut self) {
         self.push_undo("Load Demo Showcase");
         let (w, h) = (self.doc.page().width, self.doc.page().height);
-        let pad = (w * 0.035).clamp(24.0, 64.0);
-
-        // 1. Deep Studio Gradient Backdrop
-        let mut backdrop = Obj::new(
-            Shape::Gradient {
-                min: Vec2::ZERO,
-                max: Vec2::new(w, h),
-                from: Color32::from_rgb(22, 24, 34),
-                to: Color32::from_rgb(14, 15, 22),
-                radial: true,
-            },
-            None,
-            None,
-        );
-        backdrop.name = "Studio Backdrop".to_string();
-        self.push_object(backdrop);
-
-        // 2. Hero Brand Card
-        let hero_h = (h * 0.40).clamp(200.0, 420.0);
-        let mut hero = Obj::new(
-            Shape::Rect {
-                min: Vec2::new(pad, pad),
-                max: Vec2::new(w - pad, pad + hero_h),
-                corner_radius: 16.0,
-                filled: true,
-            },
-            Some(Color32::from_rgb(30, 34, 48)),
-            Some(Color32::from_rgb(232, 163, 61)),
-        );
-        hero.name = "Hero Brand Card".to_string();
-        hero.width = 2.0;
-        hero.effects.push(LiveEffect::DropShadow {
-            distance: 8.0,
-            angle_deg: 90.0,
-            blur: 14.0,
-            color: Color32::from_black_alpha(150),
-            enabled: true,
-        });
-        self.push_object(hero);
-
-        // 3. Stylized Multi-Layer Vector FireCraft Flame Emblem (left of hero)
-        let fcx = pad + (w * 0.12).clamp(90.0, 210.0);
-        let fcy = pad + hero_h * 0.52;
-        let fs = (hero_h * 0.36).clamp(54.0, 140.0);
-        let mut flame_outer = Obj::new(
-            Shape::Path {
-                points: vec![
-                    Vec2::new(fcx, fcy - fs),
-                    Vec2::new(fcx + fs * 0.42, fcy - fs * 0.35),
-                    Vec2::new(fcx + fs * 0.68, fcy + fs * 0.22),
-                    Vec2::new(fcx + fs * 0.46, fcy + fs * 0.78),
-                    Vec2::new(fcx, fcy + fs * 0.92),
-                    Vec2::new(fcx - fs * 0.48, fcy + fs * 0.78),
-                    Vec2::new(fcx - fs * 0.66, fcy + fs * 0.18),
-                    Vec2::new(fcx - fs * 0.32, fcy - fs * 0.42),
-                ],
-                closed: true,
-            },
-            Some(Color32::from_rgb(230, 74, 38)),
-            Some(Color32::from_rgb(255, 190, 90)),
-        );
-        flame_outer.name = "FireCraft Flame Outer".to_string();
-        flame_outer.width = 2.0;
-        flame_outer.effects.push(LiveEffect::Glow {
-            radius: 14.0,
-            color: Color32::from_rgb(255, 130, 40),
-            inner: false,
-            enabled: true,
-        });
-        self.push_object(flame_outer);
-
-        let mut flame_mid = Obj::new(
-            Shape::Path {
-                points: vec![
-                    Vec2::new(fcx + fs * 0.04, fcy - fs * 0.56),
-                    Vec2::new(fcx + fs * 0.36, fcy + fs * 0.10),
-                    Vec2::new(fcx + fs * 0.28, fcy + fs * 0.64),
-                    Vec2::new(fcx, fcy + fs * 0.76),
-                    Vec2::new(fcx - fs * 0.32, fcy + fs * 0.58),
-                    Vec2::new(fcx - fs * 0.24, fcy + fs * 0.02),
-                ],
-                closed: true,
-            },
-            Some(Color32::from_rgb(245, 158, 42)),
-            None,
-        );
-        flame_mid.name = "FireCraft Flame Mid".to_string();
-        self.push_object(flame_mid);
-
-        let mut flame_core = Obj::new(
-            Shape::Path {
-                points: vec![
-                    Vec2::new(fcx, fcy - fs * 0.12),
-                    Vec2::new(fcx + fs * 0.18, fcy + fs * 0.34),
-                    Vec2::new(fcx, fcy + fs * 0.62),
-                    Vec2::new(fcx - fs * 0.18, fcy + fs * 0.34),
-                ],
-                closed: true,
-            },
-            Some(Color32::from_rgb(255, 232, 110)),
-            None,
-        );
-        flame_core.name = "FireCraft Flame Core".to_string();
-        let last_idx = self.push_object(flame_core);
-
-        // 4. Hero Branding Typography & Tagline
-        let text_x = fcx + fs * 1.05;
-        let mut title = Obj::new(
-            Shape::Text {
-                at: Vec2::new(text_x, pad + hero_h * 0.26),
-                text: "FireCraft Studio".to_string(),
-                size: (hero_h * 0.18).clamp(32.0, 64.0),
-                bold: true,
-                italic: false,
-                font_family: "Sans-Serif".to_string(),
-            },
-            Some(Color32::from_rgb(250, 208, 68)),
-            None,
-        );
-        title.name = "Hero Brand Title".to_string();
-        self.push_object(title);
-
-        let mut subtitle = Obj::new(
-            Shape::Text {
-                at: Vec2::new(text_x, pad + hero_h * 0.50),
-                text: "Open Source Bitmap & Vector Graphics Editor · CS6 Parity + MCP".to_string(),
-                size: (hero_h * 0.068).clamp(16.0, 26.0),
-                bold: false,
-                italic: false,
-                font_family: "Sans-Serif".to_string(),
-            },
-            Some(Color32::from_rgb(198, 206, 224)),
-            None,
-        );
-        subtitle.name = "Hero Subtitle".to_string();
-        self.push_object(subtitle);
-
-        // 5. Rounded CTA Button with Bevel & Web Slice
-        let cta_w = (w * 0.16).clamp(180.0, 300.0);
-        let cta_h = (hero_h * 0.16).clamp(44.0, 64.0);
-        let cta_min = Vec2::new(text_x, pad + hero_h * 0.68);
-        let cta_max = cta_min + Vec2::new(cta_w, cta_h);
-        let mut cta = Obj::new(
-            Shape::Rect {
-                min: cta_min,
-                max: cta_max,
-                corner_radius: 10.0,
-                filled: true,
-            },
-            Some(Color32::from_rgb(232, 163, 61)),
-            Some(Color32::from_rgb(255, 224, 150)),
-        );
-        cta.name = "Primary CTA Button".to_string();
-        cta.effects.push(LiveEffect::Bevel {
-            width: 2.0,
-            highlight: Color32::from_white_alpha(180),
-            shadow: Color32::from_black_alpha(140),
-            enabled: true,
-        });
-        self.push_object(cta);
-
-        let mut cta_lbl = Obj::new(
-            Shape::Text {
-                at: Vec2::new(cta_min.x + 28.0, cta_min.y + cta_h * 0.30),
-                text: "Explore Showcase →".to_string(),
-                size: (cta_h * 0.38).clamp(15.0, 22.0),
-                bold: true,
-                italic: false,
-                font_family: "Sans-Serif".to_string(),
-            },
-            Some(Color32::from_rgb(24, 20, 14)),
-            None,
-        );
-        cta_lbl.name = "CTA Button Label".to_string();
-        self.push_object(cta_lbl);
-
-        // 6. Four Modern Feature Cards across bottom half
-        let cards_top = pad + hero_h + (h * 0.04).clamp(24.0, 48.0);
-        let cards_bottom = (h - pad).max(cards_top + 220.0);
-        let gap = (w * 0.02).clamp(16.0, 36.0);
-        let card_w = ((w - pad * 2.0 - gap * 3.0) / 4.0).max(140.0);
-        let features = [
-            (
-                "Vector + Bitmap",
-                "Boolean paths, dynamic\nAuto Shapes & raster tools",
-                Color32::from_rgb(66, 153, 225),
-            ),
-            (
-                "Live CS6 Filters",
-                "Drop Shadow, Glow, Bevel\n& 21 dockable panels",
-                Color32::from_rgb(237, 137, 54),
-            ),
-            (
-                "Web & Slices",
-                "PNG, WebP, SVG, HTML5\n2-Up & 4-Up optimization",
-                Color32::from_rgb(72, 187, 120),
-            ),
-            (
-                "MCP & Headless CLI",
-                "JSON-RPC 2.0 server,\n60+ commands & scripts",
-                Color32::from_rgb(159, 122, 234),
-            ),
-        ];
-        for (i, (heading, body, accent_col)) in features.iter().enumerate() {
-            let x0 = pad + i as f32 * (card_w + gap);
-            let mut card = Obj::new(
-                Shape::Rect {
-                    min: Vec2::new(x0, cards_top),
-                    max: Vec2::new(x0 + card_w, cards_bottom),
-                    corner_radius: 12.0,
-                    filled: true,
-                },
-                Some(Color32::from_rgb(28, 32, 44)),
-                Some(*accent_col),
-            );
-            card.name = format!("Feature Card: {heading}");
-            card.width = 1.5;
-            card.effects.push(LiveEffect::DropShadow {
-                distance: 6.0,
-                angle_deg: 45.0,
-                blur: 10.0,
-                color: Color32::from_black_alpha(140),
-                enabled: true,
-            });
-            self.push_object(card);
-
-            let mut h_txt = Obj::new(
-                Shape::Text {
-                    at: Vec2::new(x0 + 24.0, cards_top + 36.0),
-                    text: (*heading).to_string(),
-                    size: (card_w * 0.068).clamp(18.0, 28.0),
-                    bold: true,
-                    italic: false,
-                    font_family: "Sans-Serif".to_string(),
-                },
-                Some(*accent_col),
-                None,
-            );
-            h_txt.name = format!("{heading} Title");
-            self.push_object(h_txt);
-
-            let mut b_txt = Obj::new(
-                Shape::Text {
-                    at: Vec2::new(x0 + 24.0, cards_top + 96.0),
-                    text: (*body).to_string(),
-                    size: (card_w * 0.048).clamp(14.0, 20.0),
-                    bold: false,
-                    italic: false,
-                    font_family: "Sans-Serif".to_string(),
-                },
-                Some(Color32::from_rgb(190, 198, 214)),
-                None,
-            );
-            b_txt.name = format!("{heading} Body");
-            self.push_object(b_txt);
+        for obj in demo::showcase(w, h) {
+            self.push_object(obj);
         }
-
-        // 7. Interactive Web Slice on CTA
-        let slice = Obj::new(
-            Shape::Slice {
-                min: cta_min,
-                max: cta_max,
-                url: "https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment"
-                    .to_string(),
-                alt: "Launch FireCraft Studio".to_string(),
-                target: "_blank".to_string(),
-                format: "PNG32".to_string(),
-                is_hotspot: false,
-            },
-            None,
-            None,
-        );
-        self.push_object(slice);
         self.selected_layer = 0;
-        self.select_single(Some(last_idx));
-        self.fit_in_window();
+        self.select_single(None);
+        self.pending_fit = true;
         self.status = "Loaded FireCraft Studio 1920×1080 Brand & Feature Showcase".to_string();
     }
 
@@ -6110,13 +5845,23 @@ impl FireCraft {
     }
 
     pub fn fit_in_window(&mut self) {
+        self.apply_fit();
+        self.status = "Fit in window".to_string();
+    }
+
+    /// Fit the page once the live canvas rect is known (first frame after a demo/open).
+    pub fn apply_fit_from_canvas(&mut self) {
+        self.apply_fit();
+    }
+
+    /// Frame the page in the current canvas rect without touching the status text.
+    fn apply_fit(&mut self) {
         let page = self.doc.page();
         let (pw, ph) = (page.width.max(1.0), page.height.max(1.0));
         let (cw, ch) = (self.canvas_size.x.max(1.0), self.canvas_size.y.max(1.0));
         let zoom = ((cw * 0.90) / pw).min((ch * 0.90) / ph);
         self.set_zoom(zoom);
         self.doc.pan = Vec2::ZERO;
-        self.status = "Fit in window".to_string();
     }
 
     pub fn insert_common_library_item(&mut self, item: &str) {

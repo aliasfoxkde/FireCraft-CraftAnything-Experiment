@@ -2243,6 +2243,7 @@ fn tools_dock_contents(ui: &mut Ui, app: &mut FireCraft, scroll_id: &str) {
 /// The bottom status bar + CS6 animation playback transport controls.
 fn status_bar(ui: &mut Ui, app: &mut FireCraft) {
     ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = 6.0;
         ui.label(RichText::new(app.status.as_str()).small());
         ui.separator();
         ui.label(

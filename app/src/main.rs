@@ -7,6 +7,7 @@ mod app;
 mod canvas;
 mod colors;
 mod constants;
+mod demo;
 mod dialogs;
 mod doc;
 mod formats;
@@ -55,6 +56,7 @@ fn main() {
     let mut initial_path: Option<String> = None;
     let mut new_document = false;
     let mut show_about = false;
+    let mut window_size = (1360.0_f32, 860.0_f32);
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -64,6 +66,14 @@ fn main() {
             }
             "--tab" if i + 1 < args.len() => {
                 initial_top_tab = args[i + 1].parse::<usize>().ok();
+                i += 2;
+            }
+            "--size" if i + 1 < args.len() => {
+                if let Some((w, h)) = args[i + 1].split_once('x')
+                    && let (Ok(w), Ok(h)) = (w.parse::<f32>(), h.parse::<f32>())
+                {
+                    window_size = (w.max(960.0), h.max(640.0));
+                }
                 i += 2;
             }
             "--demo" => {
@@ -96,7 +106,7 @@ fn main() {
     shell_windows::update_jump_list(&[]);
 
     let mut viewport = eframe::egui::ViewportBuilder::default()
-        .with_inner_size([1360.0, 860.0])
+        .with_inner_size([window_size.0, window_size.1])
         .with_min_inner_size([960.0, 640.0])
         .with_title("FireCraft Studio - Open Source bitmap and vector Graphics Editor")
         .with_app_id("firecraft.editor")

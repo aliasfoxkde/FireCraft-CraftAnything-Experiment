@@ -359,8 +359,8 @@ pub fn optimize_panel(ui: &mut Ui, app: &mut FireCraft) {
             ui.end_row();
         });
 
+    ui.checkbox(&mut app.doc.optimize.transparency, "Transparent");
     ui.horizontal(|ui| {
-        ui.checkbox(&mut app.doc.optimize.transparency, "Transparency");
         ui.label(RichText::new("Matte:").small().color(p.text_dim));
         let mut matte = [
             app.doc.optimize.matte.r() as f32 / 255.0,
@@ -3337,6 +3337,7 @@ pub fn panel_group_widget(ui: &mut Ui, app: &mut FireCraft, group_idx: usize, is
                 FontId::proportional(11.0),
                 p.text_dim,
             );
+
             if chev_resp.clicked()
                 && let Some(g) = app.panel_groups.get_mut(group_idx)
             {

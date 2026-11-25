@@ -7,6 +7,14 @@ use super::*;
 /// Corner Radius / Star Points / Text Font / Slice URL, plus Live Filters (+) stack.
 /// When nothing is selected: Document Canvas Size, Background Color, Resolution, Fit Canvas.
 pub fn properties_panel(ui: &mut Ui, app: &mut FireCraft) {
+    // The inspector dock can be as short as 118 px; without a scroll area the second
+    // property row was painted past the panel edge and vanished under the frame.
+    egui::ScrollArea::vertical()
+        .auto_shrink([false, false])
+        .show(ui, |ui| properties_body(ui, app));
+}
+
+fn properties_body(ui: &mut Ui, app: &mut FireCraft) {
     let p = app.palette;
     if app.selected_set.len() >= 2 {
         let primary = app.selected_object();

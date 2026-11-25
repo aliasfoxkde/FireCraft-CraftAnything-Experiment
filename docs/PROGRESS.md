@@ -1,6 +1,35 @@
 # Progress log
 
-Newest first. One entry per work chunk. Record what changed, the gate results, and anything left
+Newest first.
+
+## 2026-11-25 — GUI hill-climb and architecture slice
+
+Four capture-and-fix iterations against real renders (`scripts/gui-shot.sh`, Xvfb + software GL,
+1360×860 and 960×640). Evidence: `checks/gui-pass-2026-11-25/`.
+
+- Fixed, each verified by a fresh screenshot: radial gradient bleed and unpainted corners; slice URL
+  label covering the CTA label; showcase not fitting at 960 px; selection handles on first launch;
+  inspector second row clipped at 118 px; rail hint cut mid-sentence; Matte control overlapping its
+  label; CTA label off-centre.
+- Architecture slice: extracted `demo::showcase(w, h) -> Vec<Obj>` out of `app.rs` (280 lines) and
+  added four layout tests. The tests immediately found a real defect the screenshots could not show:
+  multi-line text bounds counted newline glyphs, so feature bodies measured wider than their cards.
+  `doc::text_width` and `Text` bounds now use the longest line and the line count.
+- Added `--size WxH` (deterministic review at any window size) and one regression test for
+  multi-line text bounds.
+- Architecture review report (skill `improve-codebase-architecture`) written outside the repo:
+  `/tmp/architecture-review-20261125.html`. Top candidate implemented; candidates 2–4 recorded in
+  the report and in `docs/PLAN.md` Phase 17.
+- Gates: `cargo fmt --check` clean, `cargo clippy --all-targets -- -D warnings` clean,
+  `cargo test` = **51 passed** (was 46).
+
+### Unverified
+
+- Interactive states (menus open, tool flyouts, drag/stack gestures) are still not captured; the
+  capture path renders the startup frame and exits.
+- Right-dock empty header strip, Color Mixer clipping and the 960 px top-right cluster remain open
+  and are listed in `docs/TASKS.md`.
+- Windows-only rendering not exercised. One entry per work chunk. Record what changed, the gate results, and anything left
 unverified. Do not restate the plan; link it.
 
 ## 2026-11-25 — Audit and plan baseline

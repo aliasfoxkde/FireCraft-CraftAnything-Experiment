@@ -21,6 +21,7 @@ Use these terms consistently in code, issues, UI copy, and architecture reviews.
 | **Intelligence** | The real OpenAI-compatible assistant panel. It never fabricates responses; missing configuration is shown as setup guidance. |
 | **MCP** | The embedded Model Context Protocol JSON-RPC 2.0 server and its in-app console. |
 | **Jump List** | The Windows taskbar context menu populated with recent documents and tasks (new document, about). |
+| **Showcase** | The demo document built by `demo::showcase`: brand card, flame emblem, primary CTA and four feature cards. Used by `--demo`, the Welcome window and document templates. It is a document, not a dialog. |
 | **Distribution bundle** | The directory/archive shipped to users: executable, README, license, and user docs. It is not a loose pile of build intermediates. |
 
 ## Naming rules

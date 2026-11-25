@@ -114,6 +114,25 @@ Every task names its proof. A task without proof is not done.
 
 ---
 
+## Completed in the 2026-11-25 GUI / architecture pass
+
+- [x] Radial gradient clipping and outer-stop fill (was bleeding outside its object).
+- [x] Slice URL tab moved below the slice and elided; no longer covers a button label.
+- [x] Showcase fits the live canvas rect on first frame at any window size.
+- [x] Multi-line text measurement by longest line and line count (`doc::text_width`, `Text` bounds).
+- [x] `demo::showcase(w, h)` extracted from `app.rs` with four layout tests.
+- [x] Properties inspector scrolls instead of clipping at the 118 px dock height.
+- [x] Tool-rail hint wraps; Optimize Matte control no longer covers its label; CTA label centred.
+- [x] `scripts/gui-shot.sh` + `--size WxH` for deterministic review captures.
+
+## Open GUI defects found by the 2026-11-25 review
+
+- [ ] **G-1** Right dock's first header strip renders as an empty bar (`»` + grip dots) above the tab row.
+- [ ] **G-2** Color Mixer's last control is clipped when its panel group is short.
+- [ ] **G-3** Top-right workspace cluster has no spacing at 960 px.
+- [ ] **G-4** Toolbar Bridge button is a text label (`Br`) among icons.
+- [ ] **G-5** Capture interactive states (menus, flyouts, drag/stack) so the loop can review them.
+
 ## Carried over from ROADMAP.md (unchecked there, tracked here)
 
 These are the items the roadmap still lists as unverified. They close in Phase 16/18 with

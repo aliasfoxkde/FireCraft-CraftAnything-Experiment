@@ -7,11 +7,13 @@ Where things live, not why. For seams, invariants and “must not own” rules r
 ## Entry points
 
 - `src/main.rs` — native and WASM entry points, CLI flag parsing, eframe launch, window icon.
-  Flags: `--demo`, `--new`, `--splash`, `--about`, `--tab <0-3>`, `--screenshot <path>`, plus an
-  optional file path. `list-commands`, `info`, `export`, `convert`, `batch`, `apply` and `mcp`
+  Flags: `--demo`, `--new`, `--splash`, `--about`, `--tab <0-3>`, `--size 1360x860`,
+  `--screenshot <path>`, plus an optional file path. `list-commands`, `info`, `export`, `convert`, `batch`, `apply` and `mcp`
   dispatch through `mcp::try_run_cli` without opening a window.
 - `src/mcp.rs` — CLI verbs, the `COMMAND_CATALOG` (68 commands shared with the command palette),
   and the JSON-RPC 2.0 MCP server (`2025-06-18`).
+- `src/demo.rs` — the **showcase** document (`showcase(width, height) -> Vec<Obj>`) used by
+  `--demo`, the Welcome window and templates; owns page-relative layout and text fitting.
 
 ## Application shell
 
