@@ -28,11 +28,17 @@ via Ghidra Deep mode decompiler and matched in `app/mechanics.json` and `app/src
 
 ## Document & Canvas Defaults
 
+These are the values **FireCraft ships**, and they must match `app/mechanics.json` and
+`app/src/constants.rs`. FireCraft intentionally replaces CS6's legacy 800×600 default with a Full HD
+page and a 144 dpi export default (see `CHANGELOG.md` 0.2.0); the classic 800×600 size remains
+available as a resolution preset.
+
 | Property | Value | Function | Address |
 |----------|-------|----------|---------|
-| Default canvas width | `800` px | FUN_00402050 | 0x402050 |
-| Default canvas height | `600` px | FUN_00402050 | 0x402050 |
+| Default canvas width | `1920` px | FUN_00402050 | 0x402050 |
+| Default canvas height | `1080` px | FUN_00402050 | 0x402050 |
 | Default document size offset | `400` px | FUN_00401cb0 | 0x401cb0 |
+| Default document DPI | `144` dpi | FUN_00402060 | 0x402060 |
 | Zoom min | `0.06` (6%) | FUN_009aa430 | 0x9aa430 |
 | Zoom max | `64.0` (6400%) | FUN_009aa430 | 0x9aa430 |
 | Zoom default | `1.0` (100%) | FUN_009aa430 | 0x9aa430 |
@@ -43,7 +49,7 @@ via Ghidra Deep mode decompiler and matched in `app/mechanics.json` and `app/src
 | Default fill color | `0xFFFFFFFF` | FUN_00401cb0 | 0x401cb0 |
 | Default stroke color | `0xFF000000` | FUN_00401cb0 | 0x401cb0 |
 | Default export format | `PNG32` | FUN_00402060 | 0x402060 |
-| Default export resolution | `72` dpi | FUN_00402060 | 0x402060 |
+| Default export resolution | `144` dpi | FUN_00402060 | 0x402060 |
 | Export PNG quality | `255` | FUN_00402060 | 0x402060 |
 | Swatch count | `252` (21 × 12) | FUN_00b75d00 | 0xb75d00 |
 | Timeline state label | `State N of M` | FUN_006f2ccd0 | 0x6f2ccd0 |

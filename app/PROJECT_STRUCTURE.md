@@ -1,56 +1,68 @@
-# FireCraft Project Structure
+# FireCraft source map
 
-## Source Files
+Where things live, not why. For seams, invariants and “must not own” rules read
+[`docs/architecture.md`](../docs/architecture.md); for vocabulary read
+[`GLOSSARY.md`](../GLOSSARY.md).
 
-### Core Modules
-- `main.rs` — entry point, CLI arg parsing, eframe app launch, screenshot PNG generation
-- `app.rs` — `FireCraft` struct (application state), `Tool` enum (28 tools), `Drag` struct, `FireCraft` impl (state management, undo/redo, pointer handling, `impl eframe::App for FireCraft` with `fn ui` rendering)
-- `canvas.rs` — canvas rendering (`show()`), hit testing (`hit_test()`), texture caching (`TextureCache`)
-- `doc.rs` — `Document` struct, `Obj` (document object), `Shape` enum, `Layer`, `Page`, `Snapshot`
-- `shape.rs` — shape rendering primitives
-- `paths.rs` — path data structures
-- `page.rs` — page management
+## Entry points
 
-### UI/Panel Modules
-- `panels.rs` — panels UI rendering (layers, properties, color, filters)
-- `properties.rs` — properties panel for selected objects (fill, stroke, width, name)
+- `src/main.rs` — native and WASM entry points, CLI flag parsing, eframe launch, window icon.
+  Flags: `--demo`, `--new`, `--splash`, `--about`, `--tab <0-3>`, `--screenshot <path>`, plus an
+  optional file path. `list-commands`, `info`, `export`, `convert`, `batch`, `apply` and `mcp`
+  dispatch through `mcp::try_run_cli` without opening a window.
+- `src/mcp.rs` — CLI verbs, the `COMMAND_CATALOG` (68 commands shared with the command palette),
+  and the JSON-RPC 2.0 MCP server (`2025-06-18`).
 
-### Utilities
-- `colors.rs` — color utilities, swatch grid, hex conversion
-- `constants.rs` — application constants (UNDO_LIMIT, ZOOM_MIN/MAX, DEFAULT_WIDTH/HEIGHT)
-- `theme.rs` — `ThemeMode`, `Palette`, theme resolution
-- `formats.rs` — export format support (PNG, JPEG, SVG, PDF)
-- `icons.rs` — icon definitions
-- `tools.rs` — tool definitions and helpers
-- `history.rs` — undo/redo history
+## Application shell
 
-### External References
-- `logo.png` — application logo (697 KB)
+| File | Contents |
+|------|----------|
+| `src/app.rs` | `FireCraft` state, `Tool` enum (36 tools), panel-group geometry/stacking, selection, undo/redo, pointer and command handlers |
+| `src/app/files.rs` | File/session intents (`New`, `Open`, `Save`, `CloseTab`, `Quit`), dirty-state and close gating |
+| `src/app/find_replace.rs` | Text and color match semantics, Find Next, replacement side effects |
+| `src/layout.rs` | Top-level frame, menu/toolbar/status composition, docks, shortcut dispatch, full screen |
+| `src/menus.rs` | The 10 CS6 menus and their actions |
+| `src/canvas.rs` | Viewport painting, god view, hit testing, canvas context menu |
+| `src/panels/mod.rs` | Panel registry, dock chrome, tab overflow, drag/resize/stack gestures |
+| `src/panels/tools.rs` | Left tool rail: six categories in three columns, flyouts, colour footer |
+| `src/panels/properties.rs` | Properties inspector body |
+| `src/panels/color.rs` | Color Mixer body |
+| `src/dialogs/mod.rs` | Shared dialog chrome, settings, About, command palette, MCP console, splash |
+| `src/dialogs/file_browser.rs` | In-app file browser (address bar, filters, commit/cancel) |
+| `src/dialogs/find_replace.rs` | Find & Replace dialog surface |
 
-## Build
-```bash
-cargo build          # Development build
-cargo run -- --screenshot path.png  # Screenshot mode (generates PNG, exits)
+## Document and platform
+
+| File | Contents |
+|------|----------|
+| `src/doc.rs` | `Document`, `Page`, `Layer`, `Obj`, `Shape`, styles, live effects, states, snapshots |
+| `src/page.rs` | Page naming and slug rules |
+| `src/formats.rs` | Raster/SVG/HTML/layered-PNG serialization, format metadata, recent-file policy |
+| `src/colors.rs` | Colour conversions and swatch grid |
+| `src/theme.rs` | Theme mode (dark/light/system), palettes, egui visuals |
+| `src/icons.rs` | Monochrome icon drawing paths |
+| `src/constants.rs` | Numeric constants with their `Fireworks.exe` function addresses |
+| `src/shell_windows.rs` | Windows-only AppUserModelID and Jump List COM integration |
+
+## Assets
+
+- `src/logo.png` — window icon, embedded at compile time (732 KB).
+- `../screenshots/FireCraft Flame Tech Logo.png` — splash artwork, embedded from outside the crate
+  (see task 13.10 in `docs/TASKS.md`).
+- `index.html` — WASM host page (currently duplicated by `release.yml`).
+- `MECHANICS.md` + `mechanics.json` — extracted CS6 values; must agree with `constants.rs`.
+
+## Build and test
+
+```sh
+cd app
+cargo check
+cargo fmt --all -- --check
+cargo clippy --all-targets -- -D warnings
+cargo test                                  # 46 unit tests
+cargo check --target wasm32-unknown-unknown
+cargo run --release -- --demo
 ```
 
-## Key Architecture
-- `FireCraft::new()` — constructs initial state (dark theme, 800x600 doc, Select tool)
-- `FireCraft::ui()` — renders menu bar, canvas, status bar
-- `canvas::show(ui, app)` — renders workspace background + white canvas + page content
-- `canvas::hit_test(app, pos)` — returns (layer_index, object_index) or None
-- `on_pointer_down(doc_pos, screen_pos, alt, ctrl)` — tool-specific interaction handling
-- Undo/redo via `Snapshot` (deep clone of page state)
-
-## Current UI Layout (in `fn ui`)
-1. Menu bar: File, Edit, View, Modify, Filters
-2. Canvas area: `canvas::show(ui, self)` — fills available space
-3. Status bar: status text, zoom %, canvas dimensions
-
-## Tool enum (28 variants)
-Select, Marquee, Lasso, Wand, Crop, Hand, Zoom, Fit, Brush, Pencil, Eraser, Blur, Sharpen, Dodge, Burn, Line, Rectangle, Ellipse, Polygon, Path, Text, Picker, Fill, Gradient
-
-## Notes for development
-- `app.rs` is the largest file (31KB) — contains state, enums, and UI rendering
-- All egui widgets use `eframe::egui` namespace
-- `self.show_start` — when true, canvas is NOT rendered (show splash/start screen instead)
-- Screenshot path uses `--screenshot <path>` flag — generates gradient PNG and exits 0
+Tests are inline `#[cfg(test)]` modules; there is no `tests/` directory yet. `DocumentFixture` in
+`app.rs` is the intent-level fixture used by command tests.

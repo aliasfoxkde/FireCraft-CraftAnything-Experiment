@@ -1,8 +1,15 @@
 # FireCraft Roadmap — UI/UX Polish & Functional Repair
 
-Status: **active**. This file is the source of truth for the current polish pass. Every item
-lists the outcome and how it will be verified. Items are worked in ID order unless a dependency
-forces otherwise.
+Status: **this polish pass is complete; open work has moved.**
+
+This file is the record of the CS6 polish pass: what was built, and which checks could not be run
+without a Windows desktop. The unchecked `Verify` items below are carried as tasks in
+[`docs/TASKS.md`](docs/TASKS.md) (Phase 16/18) — they close with automated proof, not another manual
+sweep. New work goes to `docs/TASKS.md`; measured state is in [`docs/AUDIT.md`](docs/AUDIT.md) and
+the ordering rationale in [`docs/PLAN.md`](docs/PLAN.md).
+
+Every item lists the outcome and how it will be verified. Items were worked in ID order unless a
+dependency forced otherwise.
 
 ## Guiding constraints
 
@@ -19,6 +26,7 @@ forces otherwise.
 ---
 
 ## Phase 0 — Baseline audit
+
 
 - [x] **0.1** Map layout, panel, style, gradient, filter, path, and floating-window code paths.
 - [x] **0.2** Record known duplication: top toolbar vs. canvas footer vs. status bar resolution/DPI;

@@ -17,7 +17,10 @@ Built in Rust with egui/eframe.
 | Work on Find & Replace colors | [Find & Replace](docs/features/find-replace.md) |
 | Work on the file browser | [File Browser](docs/features/file-browser.md) |
 | See all documentation | [Documentation index](docs/README.md) |
-| Check remaining work | [Roadmap](ROADMAP.md) |
+| Check remaining work | [Tasks](docs/TASKS.md) |
+| See the measured state and gaps | [Audit](docs/AUDIT.md) |
+| Understand the plan and its exit criteria | [Plan](docs/PLAN.md) |
+| Read the completed polish pass | [Roadmap](ROADMAP.md) |
 | Read release notes | [Changelog](CHANGELOG.md) |
 
 ## What is in the box
