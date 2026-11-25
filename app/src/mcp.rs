@@ -495,7 +495,8 @@ pub fn handle_mcp_jsonrpc(app: &mut FireCraft, line: &str) -> Option<String> {
 
     match method.as_str() {
         "initialize" => Some(format!(
-            "{{\"jsonrpc\":\"2.0\",\"id\":{id},\"result\":{{\"protocolVersion\":\"{PROTOCOL_VERSION}\",\"capabilities\":{{\"tools\":{{}},\"resources\":{{}}}},\"serverInfo\":{{\"name\":\"firecraft\",\"version\":\"0.2.5\"}}}}}}"
+            "{{\"jsonrpc\":\"2.0\",\"id\":{id},\"result\":{{\"protocolVersion\":\"{PROTOCOL_VERSION}\",\"capabilities\":{{\"tools\":{{}},\"resources\":{{}}}},\"serverInfo\":{{\"name\":\"firecraft\",\"version\":\"{}\"}}}}}}",
+            env!("CARGO_PKG_VERSION")
         )),
         "ping" => Some(format!(
             "{{\"jsonrpc\":\"2.0\",\"id\":{id},\"result\":{{}}}}"
@@ -669,7 +670,10 @@ pub fn try_run_cli(args: &[String]) -> Option<i32> {
     let sub = args.get(1)?.as_str();
     match sub {
         "--help" | "-h" | "help" => {
-            println!("FireCraft Studio v0.2.5 — Desktop GUI, Headless CLI & MCP Server");
+            println!(
+                "FireCraft Studio v{} — Desktop GUI, Headless CLI & MCP Server",
+                env!("CARGO_PKG_VERSION")
+            );
             println!("Usage:");
             println!("  firecraft [--demo] [--screenshot <out.png>]     Launch Desktop GUI");
             println!(
@@ -764,6 +768,10 @@ pub fn try_run_cli(args: &[String]) -> Option<i32> {
                     }
                     _ => i += 1,
                 }
+            }
+            if !Path::new(dir).is_dir() {
+                eprintln!("firecraft batch: cannot read {dir}: not a directory");
+                return Some(1);
             }
             let _ = std::fs::create_dir_all(&out_dir);
             let entries = match std::fs::read_dir(dir) {

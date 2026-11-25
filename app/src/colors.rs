@@ -250,6 +250,41 @@ mod tests {
     }
 
     #[test]
+    fn every_channel_combination_roundtrips_through_each_model() {
+        // Deterministic sweep: all 8 corner colours plus a stepped lattice.
+        let mut colors = vec![
+            Color32::from_rgb(0, 0, 0),
+            Color32::from_rgb(255, 255, 255),
+            Color32::from_rgb(255, 0, 0),
+            Color32::from_rgb(0, 255, 0),
+            Color32::from_rgb(0, 0, 255),
+        ];
+        for r in (0..=255).step_by(51) {
+            for g in (0..=255).step_by(51) {
+                for b in (0..=255).step_by(51) {
+                    colors.push(Color32::from_rgb(r, g, b));
+                }
+            }
+        }
+        for c in colors {
+            for (name, back) in [
+                ("hsv", hsv_to_rgb(rgb_to_hsv(c))),
+                ("hls", hls_to_rgb(rgb_to_hls(c))),
+                ("cmyk", cmyk_to_rgb(rgb_to_cmyk(c))),
+            ] {
+                let delta = (c.r() as i16 - back.r() as i16)
+                    .abs()
+                    .max((c.g() as i16 - back.g() as i16).abs())
+                    .max((c.b() as i16 - back.b() as i16).abs());
+                assert!(
+                    delta <= 2,
+                    "{name} roundtrip of {c:?} drifted by {delta} ({back:?})"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn swatch_grid_dimensions() {
         let grid = swatch_grid();
         assert_eq!(grid.len(), constants::SWATCH_COUNT);

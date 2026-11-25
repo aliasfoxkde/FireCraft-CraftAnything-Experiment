@@ -6393,23 +6393,28 @@ fn polygon_boolean(a: &[Vec2], b: &[Vec2], op: &str) -> Option<Vec<Vec2>> {
         "punch" => pa.difference(&pb),
         _ => pa.union(&pb),
     };
-    let mut best: Option<(f64, Vec<Vec2>)> = None;
+    // A Path object holds one closed contour. A result with several disconnected regions, or
+    // with holes, cannot be represented without silently discarding geometry, so reject it and
+    // let the caller report the limitation instead of dropping part of the result.
+    let mut contours: Vec<Vec<Vec2>> = Vec::new();
     for polygon in result.0 {
+        if !polygon.interiors().is_empty() {
+            return None;
+        }
         let pts: Vec<Vec2> = polygon
             .exterior()
             .0
             .iter()
             .map(|c| Vec2::new(c.x as f32, c.y as f32))
             .collect();
-        if pts.len() < 3 {
-            continue;
-        }
-        let area = polygon_area(&pts).abs();
-        if best.as_ref().is_none_or(|(best_area, _)| area > *best_area) {
-            best = Some((area, pts));
+        if pts.len() >= 3 && polygon_area(&pts).abs() >= 0.5 {
+            contours.push(pts);
         }
     }
-    best.map(|(_, pts)| pts)
+    match contours.len() {
+        1 => contours.pop(),
+        _ => None,
+    }
 }
 
 fn polygon_area(pts: &[Vec2]) -> f64 {
@@ -6817,6 +6822,84 @@ mod tests {
         assert!((polygon_area(&intersect).abs() - 2_500.0).abs() < 1.0);
         let punch = polygon_boolean(&a, &b, "punch").expect("punch");
         assert!((polygon_area(&punch).abs() - 7_500.0).abs() < 1.0);
+    }
+
+    #[test]
+    fn polygon_boolean_area_identities_hold() {
+        let square = |x: f32, y: f32, size: f32| {
+            vec![
+                Vec2::new(x, y),
+                Vec2::new(x + size, y),
+                Vec2::new(x + size, y + size),
+                Vec2::new(x, y + size),
+            ]
+        };
+        let a = square(0.0, 0.0, 100.0);
+        for offset in [0.0, 25.0, 50.0, 99.0] {
+            let b = square(offset, offset * 0.5, 100.0);
+            let area_a = polygon_area(&a).abs();
+            let area_b = polygon_area(&b).abs();
+            let union = polygon_area(&polygon_boolean(&a, &b, "union").unwrap()).abs();
+            let inter = polygon_area(&polygon_boolean(&a, &b, "intersect").unwrap_or_default()).abs();
+            let punch = polygon_area(&polygon_boolean(&a, &b, "punch").unwrap_or_default()).abs();
+
+            assert!(
+                (union + inter - (area_a + area_b)).abs() < 2.0,
+                "offset {offset}: union {union} + intersect {inter} != {area_a} + {area_b}"
+            );
+            assert!(
+                (punch - (area_a - inter)).abs() < 2.0,
+                "offset {offset}: punch {punch} != area {area_a} - intersect {inter}"
+            );
+            let self_union = polygon_boolean(&a, &a, "union").expect("a union a");
+            assert!((polygon_area(&self_union).abs() - area_a).abs() < 1.0);
+            let self_inter = polygon_boolean(&a, &a, "intersect").expect("a intersect a");
+            assert!((polygon_area(&self_inter).abs() - area_a).abs() < 1.0);
+        }
+
+        // Disjoint and holed results cannot be stored in a single closed path. Reject them rather
+        // than silently keeping only the largest region.
+        let far = square(500.0, 500.0, 100.0);
+        assert!(polygon_boolean(&a, &far, "union").is_none());
+        let island = square(40.0, 40.0, 20.0);
+        assert!(
+            polygon_boolean(&a, &island, "punch").is_none(),
+            "punch that leaves a hole must be reported, not filled"
+        );
+    }
+
+    #[test]
+    fn four_quarter_turns_restore_the_bounds() {
+        let mut app = FireCraft::new(None);
+        app.insert_auto_shape(AutoShapeKind::ChamferRect);
+        app.select_all();
+        let (before_min, before_max) = app
+            .selected_object()
+            .expect("selection")
+            .bounds()
+            .expect("bounds");
+        let before_w = before_max.x - before_min.x;
+        let before_h = before_max.y - before_min.y;
+        for turn in 0..4 {
+            app.rotate_90();
+            let (min, max) = app
+                .selected_object()
+                .expect("selection")
+                .bounds()
+                .expect("bounds");
+            let w = max.x - min.x;
+            let h = max.y - min.y;
+            if turn < 3 {
+                let same = (w - before_w).abs() < 0.5 && (h - before_h).abs() < 0.5;
+                let swapped = (w - before_h).abs() < 0.5 && (h - before_w).abs() < 0.5;
+                assert!(same || swapped, "turn {}: {w}x{h} vs {before_w}x{before_h}", turn + 1);
+            } else {
+                assert!(
+                    (w - before_w).abs() < 0.5 && (h - before_h).abs() < 0.5,
+                    "four quarter turns should restore {before_w}x{before_h}, got {w}x{h}"
+                );
+            }
+        }
     }
 
     #[test]

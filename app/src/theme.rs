@@ -98,7 +98,8 @@ pub const LIGHT: Palette = Palette {
     stroke: Color32::from_rgb(0x9a, 0x9a, 0x9a),
     text: Color32::from_rgb(0x18, 0x18, 0x1a),
     text_dim: Color32::from_rgb(0x50, 0x50, 0x56),
-    accent: Color32::from_rgb(0x33, 0x80, 0xc8),
+    // #2A6FAF keeps white accent labels at ~5.2:1 on the light theme (WCAG AA needs 4.5:1).
+    accent: Color32::from_rgb(0x2a, 0x6f, 0xaf),
     accent_text: Color32::WHITE,
     canvas_pad: Color32::from_rgb(0x99, 0x99, 0x99),
     paper: Color32::WHITE,
@@ -251,4 +252,64 @@ pub fn apply_cs6_style(ctx: &egui::Context, p: &Palette, dark: bool) {
 
 fn egui_stroke(c: Color32) -> eframe::egui::Stroke {
     eframe::egui::Stroke::new(1.0, c)
+}
+
+/// WCAG 2.1 relative luminance of an sRGB colour.
+#[allow(dead_code)] // exercised by the contrast tests and the accessibility audit
+pub fn relative_luminance(c: Color32) -> f32 {
+    fn channel(v: u8) -> f32 {
+        let s = v as f32 / 255.0;
+        if s <= 0.040_45 {
+            s / 12.92
+        } else {
+            ((s + 0.055) / 1.055).powf(2.4)
+        }
+    }
+    0.2126 * channel(c.r()) + 0.7152 * channel(c.g()) + 0.0722 * channel(c.b())
+}
+
+/// WCAG 2.1 contrast ratio between two opaque colours, from 1.0 to 21.0.
+#[allow(dead_code)] // exercised by the contrast tests and the accessibility audit
+pub fn contrast_ratio(a: Color32, b: Color32) -> f32 {
+    let (la, lb) = (relative_luminance(a), relative_luminance(b));
+    let (hi, lo) = if la > lb { (la, lb) } else { (lb, la) };
+    (hi + 0.05) / (lo + 0.05)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn contrast_ratio_endpoints_are_correct() {
+        assert!((contrast_ratio(Color32::WHITE, Color32::BLACK) - 21.0).abs() < 0.01);
+        assert!((contrast_ratio(Color32::WHITE, Color32::WHITE) - 1.0).abs() < 0.001);
+        // Order must not matter.
+        assert_eq!(
+            contrast_ratio(Color32::WHITE, DARK.panel).to_bits(),
+            contrast_ratio(DARK.panel, Color32::WHITE).to_bits()
+        );
+    }
+
+    #[test]
+    fn body_text_meets_wcag_aa_on_panel_and_window_surfaces() {
+        for (name, p) in [("dark", DARK), ("light", LIGHT)] {
+            for (surface, color) in [
+                ("panel", p.panel),
+                ("panel_alt", p.panel_alt),
+                ("well", p.well),
+                ("bg", p.bg),
+            ] {
+                let ratio = contrast_ratio(p.text, color);
+                assert!(
+                    ratio >= 4.5,
+                    "{name}: text on {surface} is {ratio:.2}:1, below WCAG AA 4.5:1"
+                );
+            }
+            let dim = contrast_ratio(p.text_dim, p.panel);
+            assert!(dim >= 3.0, "{name}: dim text on panel is {dim:.2}:1, below 3:1");
+            let accent = contrast_ratio(p.accent_text, p.accent);
+            assert!(accent >= 4.5, "{name}: accent label contrast is {accent:.2}:1");
+        }
+    }
 }

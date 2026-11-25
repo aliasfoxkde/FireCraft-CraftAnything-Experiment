@@ -1073,6 +1073,15 @@ pub fn save(doc: &Document, path: &Path) -> Result<(), String> {
             .map_err(|e| format!("Could not write the file: {e}")),
         _ => {
             let img = rasterize(doc);
+            // ICO entries are limited to 256x256; scale down instead of failing on a normal page.
+            let img = if format == Format::Ico && (img.width() > 256 || img.height() > 256) {
+                let scale = (256.0 / img.width() as f32).min(256.0 / img.height() as f32);
+                let w = ((img.width() as f32 * scale).round() as u32).max(1);
+                let h = ((img.height() as f32 * scale).round() as u32).max(1);
+                image::imageops::resize(&img, w, h, image::imageops::FilterType::Lanczos3)
+            } else {
+                img
+            };
             let dyn_img = image::DynamicImage::ImageRgba8(img);
             let result = match format {
                 Format::Jpeg | Format::Bmp => dyn_img.to_rgb8().save(path),
@@ -1341,6 +1350,135 @@ fn glyph_5x7(ch: char) -> [u8; 7] {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Golden-file comparison. Normalization is limited to line endings and trailing whitespace,
+    /// so real output changes still fail. Regenerate intentionally with `UPDATE_GOLDEN=1 cargo test`.
+    fn normalized(text: &str) -> String {
+        let mut out: String = text
+            .lines()
+            .map(str::trim_end)
+            .collect::<Vec<_>>()
+            .join("\n");
+        out.push('\n');
+        out
+    }
+
+    fn golden_doc() -> Document {
+        let mut doc = Document::new(64.0, 48.0);
+        let rect = Obj::new(
+            Shape::Rect {
+                min: Vec2::new(4.0, 4.0),
+                max: Vec2::new(60.0, 44.0),
+                corner_radius: 3.0,
+                filled: true,
+            },
+            Some(Color32::from_rgb(232, 163, 61)),
+            Some(Color32::from_rgb(20, 20, 20)),
+        );
+        doc.page_mut().layers[0].objects.push(rect);
+        doc
+    }
+
+    fn assert_golden(name: &str, actual: &str) {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/golden")
+            .join(name);
+        if std::env::var_os("UPDATE_GOLDEN").is_some() {
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, normalized(actual)).unwrap();
+        }
+        let expected = std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("golden {} unreadable ({e}); set UPDATE_GOLDEN=1", path.display()));
+        assert_eq!(normalized(actual), normalized(&expected), "{} drifted", path.display());
+    }
+
+    #[test]
+    fn svg_and_html_output_match_their_golden_files() {
+        let doc = golden_doc();
+        assert_golden("simple.svg", &export_svg(&doc));
+        assert_golden("simple.html", &export_html(&doc));
+    }
+
+    #[test]
+    fn png_output_matches_the_golden_file() {
+        let dir = std::env::temp_dir().join(format!("firecraft-golden-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let out = dir.join("simple.png");
+        save(&golden_doc(), &out).expect("save png");
+        let actual = std::fs::read(&out).unwrap();
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden/simple.png");
+        if std::env::var_os("UPDATE_GOLDEN").is_some() {
+            std::fs::write(&path, &actual).unwrap();
+        }
+        let expected = std::fs::read(&path).unwrap_or_else(|e| {
+            panic!("golden {} unreadable ({e}); set UPDATE_GOLDEN=1", path.display())
+        });
+        assert_eq!(actual, expected, "PNG encoding drifted; regenerate intentionally");
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn ico_export_scales_a_full_page_down_to_256() {
+        let doc = Document::new(1920.0, 1080.0);
+        let path = std::env::temp_dir().join(format!("firecraft-ico-{}.ico", std::process::id()));
+        save(&doc, &path).expect("ico export of a full page");
+        let img = image::open(&path).expect("read back the ico");
+        assert_eq!(img.width(), 256, "ico entries cap at 256 px");
+        assert!(img.height() <= 256);
+        std::fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn exporting_an_unwriteable_format_explains_the_choice() {
+        let doc = Document::new(100.0, 100.0);
+        let err = save(&doc, Path::new("/tmp/firecraft-x.avif")).unwrap_err();
+        assert!(err.contains("cannot write AVIF"), "{err}");
+        assert!(err.contains("PNG"), "the error should name a working format: {err}");
+    }
+
+    #[test]
+    fn saving_into_a_missing_directory_reports_the_io_error() {
+        let doc = Document::new(10.0, 10.0);
+        let err = save(
+            &doc,
+            Path::new("/nonexistent-firecraft-dir/out.png"),
+        )
+        .unwrap_err();
+        assert!(err.starts_with("Could not write the file:"), "{err}");
+    }
+
+    #[test]
+    fn opening_a_corrupt_png_is_an_error_not_a_panic() {
+        let path = std::env::temp_dir().join(format!("firecraft-corrupt-{}.png", std::process::id()));
+        std::fs::write(&path, b"not a png").unwrap();
+        let err = open(&path).unwrap_err();
+        assert!(!err.is_empty());
+        std::fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn svg_and_html_escape_user_text() {
+        let mut doc = Document::new(120.0, 80.0);
+        let mut obj = Obj::new(
+            Shape::Text {
+                at: Vec2::new(8.0, 8.0),
+                text: "<b>& \"quoted\"</b>".to_string(),
+                size: 12.0,
+                bold: false,
+                italic: false,
+                font_family: "Inter".to_string(),
+            },
+            Some(Color32::WHITE),
+            None,
+        );
+        obj.name = "A & B <strip>".to_string();
+        doc.page_mut().layers[0].objects.push(obj);
+
+        let svg = export_svg(&doc);
+        assert!(svg.contains("&lt;b&gt;&amp;"), "svg text is not escaped: {svg:.400}");
+        let html = export_html(&doc);
+        assert!(html.contains("&lt;b&gt;&amp;"), "html text is not escaped: {html:.400}");
+    }
 
     #[test]
     fn svg_roundtrip_and_css_export() {

@@ -344,3 +344,105 @@ impl FireCraft {
         self.focus_canvas = true;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn temp(name: &str) -> PathBuf {
+        std::env::temp_dir().join(format!("firecraft-files-{}-{name}", std::process::id()))
+    }
+
+    #[test]
+    fn save_current_without_a_path_asks_for_one_instead_of_failing() {
+        let mut app = FireCraft::new(None);
+        app.doc.dirty = true;
+        assert_eq!(app.run_file_intent(FileIntent::SaveCurrent), FileOutcome::WaitingForPath);
+        assert!(app.doc.dirty, "an unsaved document must stay dirty");
+    }
+
+    #[test]
+    fn save_as_writes_the_file_and_clears_dirty() {
+        let mut app = FireCraft::new(None);
+        let path = temp("saved.png");
+        app.doc.dirty = true;
+        let outcome = app.run_file_intent(FileIntent::SaveAs(path.clone()));
+        assert_eq!(outcome, FileOutcome::Saved(path.clone()));
+        assert!(!app.doc.dirty);
+        assert_eq!(app.current_path.as_deref(), Some(path.as_path()));
+        assert!(app.recent_files.contains(&path));
+        let bytes = std::fs::read(&path).unwrap();
+        assert!(bytes.starts_with(b"\x89PNG"));
+        std::fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn saving_into_a_missing_directory_fails_and_keeps_dirty_state() {
+        let mut app = FireCraft::new(None);
+        app.doc.dirty = true;
+        let outcome = app.run_file_intent(FileIntent::SaveAs(PathBuf::from(
+            "/nonexistent-firecraft-dir/out.png",
+        )));
+        match outcome {
+            FileOutcome::Failed(err) => assert!(err.contains("Could not write")),
+            other => panic!("expected failure, got {other:?}"),
+        }
+        assert!(app.doc.dirty);
+        assert!(app.current_path.is_none());
+    }
+
+    #[test]
+    fn opening_a_missing_file_reports_failure() {
+        let mut app = FireCraft::new(None);
+        let before = app.doc.total_objects_on_page();
+        match app.run_file_intent(FileIntent::Open(temp("absent.png"))) {
+            FileOutcome::Failed(err) => assert!(!err.is_empty()),
+            other => panic!("expected failure, got {other:?}"),
+        }
+        assert_eq!(app.doc.total_objects_on_page(), before);
+    }
+
+    #[test]
+    fn closing_a_clean_tab_is_immediate_and_a_dirty_one_asks() {
+        let mut app = FireCraft::new(None);
+        app.doc.dirty = false;
+        assert_eq!(app.run_file_intent(FileIntent::CloseActiveTab), FileOutcome::Closed);
+
+        let mut app = FireCraft::new(None);
+        app.doc.dirty = true;
+        assert_eq!(
+            app.run_file_intent(FileIntent::CloseActiveTab),
+            FileOutcome::WaitingForCloseConfirmation
+        );
+        assert!(app.doc.dirty, "a dirty document must not be discarded silently");
+    }
+
+    #[test]
+    fn quit_with_unsaved_changes_asks_first() {
+        let mut app = FireCraft::new(None);
+        app.doc.dirty = true;
+        assert_eq!(
+            app.run_file_intent(FileIntent::Quit),
+            FileOutcome::WaitingForQuitConfirmation
+        );
+        assert!(app.show_quit_confirm);
+        assert!(!app.allow_close);
+    }
+
+    #[test]
+    fn save_all_for_quit_refuses_an_untitled_document() {
+        let mut app = FireCraft::new(None);
+        app.doc.dirty = true;
+        assert!(app.doc.file_path.is_none());
+        let err = app.save_all_for_quit().unwrap_err();
+        assert!(err.contains("has no file path yet"), "{err}");
+    }
+
+    #[test]
+    fn export_rejects_an_unwriteable_format_without_touching_the_status() {
+        let mut app = FireCraft::new(None);
+        let err = app.export_to(Path::new("/tmp/out.psd")).unwrap_err();
+        assert!(err.contains("PSD"), "{err}");
+        assert!(app.status.contains("PSD"), "status should explain it: {}", app.status);
+    }
+}
