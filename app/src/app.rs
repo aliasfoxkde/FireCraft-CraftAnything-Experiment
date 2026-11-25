@@ -1576,7 +1576,7 @@ impl FireCraft {
     }
 
     pub fn load_logo(ctx: &Context) -> Option<egui::TextureHandle> {
-        let bytes = include_bytes!("logo.png");
+        let bytes = include_bytes!("../assets/logo.png");
         if let Ok(img) = image::load_from_memory(bytes) {
             let w = img.width() as usize;
             let h = img.height() as usize;

@@ -692,7 +692,10 @@ pub fn try_run_cli(args: &[String]) -> Option<i32> {
             Some(0)
         }
         "--version" | "-V" | "version" => {
-            println!("firecraft 0.2.5 (CS6 Parity + MCP + CLI)");
+            println!(
+                "firecraft {} (CS6 Parity + MCP + CLI)",
+                env!("CARGO_PKG_VERSION")
+            );
             Some(0)
         }
         "list-commands" => {

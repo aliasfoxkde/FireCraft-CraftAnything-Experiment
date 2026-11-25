@@ -7,11 +7,24 @@ cd app
 cargo check
 cargo fmt --all -- --check
 cargo clippy --all-targets -- -D warnings
-cargo test -- --test-threads=1
+cargo test
 ```
 
-Use `--test-threads=1` because the editor tests construct a `FireCraft` context and some
-clipboard/platform interactions are deliberately excluded from test builds.
+The full gate set — the same one CI runs — is one command from the repository root:
+
+```sh
+./scripts/ci-local.sh          # all gates
+./scripts/ci-local.sh --quick  # fmt, clippy, tests, docs only
+```
+
+`ci-local.sh` is the definition of record; `.github/workflows/ci.yml` and `.gitforge.yml` only
+invoke it. Tests may run in parallel; `--test-threads=1` is no longer required (it is still
+accepted).
+
+## Toolchain
+
+`rust-toolchain.toml` pins the compiler (`1.100.0`), `rustfmt`, `clippy` and the
+`wasm32-unknown-unknown` target, so a local run and CI use the same toolchain.
 
 ## Release profile
 
@@ -40,41 +53,74 @@ compiler already emits optimized machine code, and stripped symbols remove the u
 not add a JavaScript-style obfuscator; it would break backtraces without protecting anything
 meaningful.
 
-## Windows cross-build
+## Version
+
+`app/Cargo.toml` is the only version source. `scripts/version.sh` prints it; bundle names,
+`--version`, the About window and CI artifact names all derive from it. The release job refuses to
+publish a tag that does not match `Cargo.toml`.
+
+## Windows cross-build (Linux)
 
 ```sh
 rustup target add x86_64-pc-windows-gnu
 cd app
 cargo build --release --target x86_64-pc-windows-gnu
+cd ..
+./scripts/package-windows.sh
 ```
 
-The GNU cross-build is convenient on Linux. CI/release builds should use the MSVC target for the
-most natural Windows runtime.
+The GNU cross-build is a developer convenience. CI and releases build the MSVC target on
+`windows-latest`.
 
 ## Distribution layout
 
-Keep build intermediates out of git. Assemble a user-facing bundle:
+`scripts/package-windows.sh [exe]` assembles the bundle deterministically from a clean tree:
 
 ```text
 dist/windows/
   firecraft.exe
+  firecraft.exe.sha256
+  VERSION
+  BUILD-INFO.txt
   README.md
   LICENSE
+  CHANGELOG.md
+  GLOSSARY.md
+  MECHANICS.md
   docs/
-    README.md
-    build-release.md
-    features/...
 ```
 
-Create the zip from that directory, not from `target/`. Verify the archive and record SHA-256
-checksums for both the executable and the archive. A single executable is intentional: a creative
-desktop app should not require users to install a private DLL/runtime directory. If the codebase
-later grows into multiple binaries, split the Rust crate into a library plus thin `bin/` entry
-points before shipping extra executables, and keep shared assets in a resource directory.
+It writes `app/dist/firecraft-v<version>-windows-x86_64.zip` plus a `.sha256` file for the archive.
+Internal planning documents (`AUDIT`, `PLAN`, `TASKS`, `PROGRESS`) are excluded. A single
+executable is intentional: a creative desktop app should not require users to install a private
+DLL/runtime directory.
+
+## Command-line surface
+
+| Flag / verb | Meaning |
+|-------------|---------|
+| `--version` | Print the version and exit. |
+| `--help` | Print CLI help and exit. |
+| `list-commands` | Print the command catalog (shared with the in-app palette). |
+| `info <file>` \| `info --demo` | Print document metadata as JSON. |
+| `export <file> --format png\|jpg\|svg\|html\|webp …` | Export a document. |
+| `convert <in> <out>` | Convert between supported formats. |
+| `batch <dir> --format … --out <dir>` | Convert a directory. |
+| `apply <file> <command>` | Run one catalog command against a document. |
+| `mcp [--demo]` | Serve MCP JSON-RPC 2.0 over stdio. |
+| `--demo` | Open the showcase document. |
+| `--new` | Start with an empty document. |
+| `--splash` | Show the splash sequence. |
+| `--about` | Open the About window. |
+| `--tab <0-3>` | Select the top-level tab (Original, Preview, 2-Up, 4-Up). |
+| `--size <WxH>` | Initial window size; clamped to the 960×640 minimum. |
+| `--screenshot <path>` | Render one frame, save a PNG and exit (review capture). |
+| `<path>` | Open a document at startup. |
 
 ## Smoke tests
 
-On Linux with Wine:
+`cargo test` covers the CLI verbs. To smoke-test a real binary, including the Windows one under
+Wine:
 
 ```sh
 WINEARCH=win64 WINEPREFIX=/tmp/firecraft-wine \
@@ -84,4 +130,4 @@ wine app/target/.../firecraft.exe info --demo
 ```
 
 GUI smoke tests may need a software OpenGL backend under Xvfb. Taskbar Jump List behavior requires
-a real Windows Explorer shell and should be reported as unverified when it cannot be exercised.
+a real Windows Explorer shell and is reported as unverified when it cannot be exercised.

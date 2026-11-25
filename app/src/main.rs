@@ -23,7 +23,7 @@ mod theme;
 
 #[cfg(not(target_arch = "wasm32"))]
 fn load_window_icon() -> Option<eframe::egui::IconData> {
-    let bytes = include_bytes!("logo.png");
+    let bytes = include_bytes!("../assets/logo.png");
     let img = image::load_from_memory(bytes).ok()?.into_rgba8();
     let (width, height) = img.dimensions();
     Some(eframe::egui::IconData {

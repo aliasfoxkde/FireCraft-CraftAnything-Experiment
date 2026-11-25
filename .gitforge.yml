@@ -1,34 +1,20 @@
+# Definition of record: scripts/ci-local.sh (also invoked by .github/workflows/ci.yml).
+# This mirror exists only so the Forge runner executes the same script.
 name: FireCraft Studio CI
 
 stages:
-  - check
-  - test
-  - build
+  - gates
 
-jobs:
-  fmt:
-    stage: check
-    image: rust:1.99-bookworm
-    script:
-      - cd app && cargo fmt --all -- --check
+image: rust:1.100-bookworm
 
-  clippy:
-    stage: check
-    image: rust:1.99-bookworm
-    script:
-      - apt-get update -qq && apt-get install -y -qq libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev
-      - cd app && cargo clippy --all-targets -- -D warnings
+before_script:
+  - apt-get update -qq && apt-get install -y -qq libxcb-render0-dev libxcb-shape0-dev \
+      libxcb-xfixes0-dev libxkbcommon-dev libssl-dev
+  - rustup component add rustfmt clippy
+  - rustup target add wasm32-unknown-unknown
 
-  test:
-    stage: test
-    image: rust:1.99-bookworm
-    script:
-      - apt-get update -qq && apt-get install -y -qq libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev
-      - cd app && cargo test
-
-  wasm:
-    stage: build
-    image: rust:1.99-bookworm
-    script:
-      - rustup target add wasm32-unknown-unknown
-      - cd app && cargo build --release --target wasm32-unknown-unknown
+gates:
+  stage: gates
+  script:
+    - ./scripts/ci-local.sh --quick
+    - cd app && cargo build --release --target wasm32-unknown-unknown

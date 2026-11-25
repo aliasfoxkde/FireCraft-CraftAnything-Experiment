@@ -4,7 +4,39 @@ All notable changes to **FireCraft** are documented in this file.
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-11-25
+
+Quality, evidence and release-engineering pass. No intentional behavior changes to editing tools.
+
 ### Added
+- **LICENSE** (MIT), with an Adobe trademark disclaimer; referenced from the README and included in
+  the Windows bundle.
+- **`rust-toolchain.toml`** pinning Rust 1.100.0, rustfmt, clippy and the WASM target.
+- **`scripts/package-windows.sh`** for deterministic bundle assembly (exe, docs, license,
+  `BUILD-INFO.txt`, SHA-256 for executable and archive).
+- **`scripts/check-docs.sh`** link/claim gate and **`scripts/ci-local.sh`** as the single CI
+  definition of record, also used by the Forge mirror.
+- **Integration tests** for the CLI, MCP server, formats error paths, theme contrast and file
+  intents; property tests for color conversion and polygon booleans.
+- **Panel geometry module** (`app/src/panels/geometry.rs`) with unit tests for dock/snap/stack and
+  inspector clamping math.
+- **CONTRIBUTING.md**, **SECURITY.md**, issue/PR templates and a Dependabot configuration.
+
+### Changed
+- **Single version source:** `app/Cargo.toml` is now the only version; `--version`, bundles, the
+  About window and CI artifact names derive from it. `--version` no longer prints a fixed string.
+- **Self-contained crate:** `logo.png` moved to `app/assets/logo.png` and the splash artwork to
+  `app/assets/splash.png`; the build no longer reads `../screenshots/`.
+- **One WASM host page:** `app/index.html` is the only source and CI copies it into `dist/wasm`.
+- **CI:** adds coverage, `cargo audit`/`cargo deny`, WASM build, Windows build and CLI smoke tests.
+
+### Fixed
+- `--version` reported `0.2.5` while the crate said `0.2.0`.
+- `app/PROJECT_STRUCTURE.md` described files and counts that no longer exist.
+
+## [Unreleased — pre-0.3.0]
+
+### Added (pre-0.3.0 polish)
 - **Showcase module:** the demo document is built by `demo::showcase(width, height) -> Vec<Obj>`
   instead of 280 lines inside the application state. Layout tests assert that objects stay inside
   the page, text stays inside its card at four page sizes, and the CTA label is centred.

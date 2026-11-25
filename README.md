@@ -45,7 +45,7 @@ Built in Rust with egui/eframe.
 
 ```sh
 cd app
-cargo test -- --test-threads=1
+cargo test
 cargo clippy --all-targets -- -D warnings
 cargo run --release -- --demo
 ```
@@ -70,6 +70,11 @@ firecraft batch ./assets --format webp --out ./dist
 firecraft list-commands
 firecraft mcp --demo
 ```
+
+## License
+
+FireCraft is released under the [MIT License](LICENSE). It is a clean-room project and is not
+affiliated with Adobe; see the trademark note at the end of the license.
 
 ## Repository conventions
 

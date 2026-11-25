@@ -6,8 +6,6 @@
     <meta name="description" content="FireCraft Studio — Adobe Fireworks CS6 parity vector, bitmap, and web graphics editor running in the browser via WebAssembly."/>
     <title>FireCraft Studio — Adobe Fireworks CS6 Edition</title>
     <link rel="icon" href="favicon.png" type="image/png">
-    <link data-trunk rel="copy-file" href="favicon.png">
-    <link data-trunk rel="rust" data-bin="firecraft" data-wasm-opt="z"/>
     <style>
         html, body {
             margin: 0;
@@ -35,5 +33,9 @@
         It requires WebAssembly and WebGL2 in your browser.
     </span>
 </canvas>
+<script type="module">
+    import init from './firecraft.js';
+    init('./firecraft_bg.wasm');
+</script>
 </body>
 </html>

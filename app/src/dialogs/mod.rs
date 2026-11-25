@@ -1470,7 +1470,7 @@ pub fn startup_splash(ui: &mut egui::Ui, app: &mut FireCraft) -> bool {
     let tex = ctx
         .data_mut(|d| d.get_temp::<egui::TextureHandle>(tex_id))
         .unwrap_or_else(|| {
-            let bytes = include_bytes!("../../../screenshots/FireCraft Flame Tech Logo.png");
+            let bytes = include_bytes!("../../assets/splash.png");
             let img = image::load_from_memory(bytes).expect("valid splash logo");
             let size = [img.width() as usize, img.height() as usize];
             let rgba = img.to_rgba8();

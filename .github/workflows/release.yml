@@ -23,27 +23,25 @@ jobs:
         working-directory: app
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.100.0
         with:
           components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: app
       - name: Run Clippy & Unit Tests
         run: |
           cargo clippy --all-targets -- -D warnings
           cargo test
       - name: Build Windows Release Binary
         run: cargo build --release
-      - name: Package Windows Release Zip
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path dist/windows | Out-Null
-          Copy-Item target/release/firecraft.exe dist/windows/firecraft.exe
-          Copy-Item ../README.md dist/windows/README.md
-          Copy-Item MECHANICS.md dist/windows/MECHANICS.md
-          Compress-Archive -Path dist/windows/* -DestinationPath dist/firecraft-v0.2.0-windows-x86_64.zip -Force
+      - name: Package Windows bundle
+        shell: bash
+        run: cd .. && ./scripts/package-windows.sh "app/target/release/firecraft.exe"
       - uses: actions/upload-artifact@v4
         with:
           name: firecraft-windows-x86_64
-          path: app/dist/firecraft-v0.2.0-windows-x86_64.zip
+          path: app/dist/firecraft-v*-windows-x86_64.zip*
 
   build-wasm:
     name: Build WebAssembly (WASM)
@@ -53,56 +51,27 @@ jobs:
         working-directory: app
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.100.0
         with:
           targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: app
       - name: Install wasm-bindgen-cli
         run: cargo install wasm-bindgen-cli --locked
       - name: Build WASM Release
         run: |
+          version="$(../scripts/version.sh)"
           cargo build --release --target wasm32-unknown-unknown
           mkdir -p dist/wasm
-          wasm-bindgen --out-dir dist/wasm --target web --no-typescript target/wasm32-unknown-unknown/release/firecraft.wasm
-          cp favicon.png dist/wasm/favicon.png
-          cat <<'EOF' > dist/wasm/index.html
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-              <meta charset="utf-8"/>
-              <meta name="viewport" content="width=device-width, initial-scale=1"/>
-              <meta name="description" content="FireCraft Studio — Adobe Fireworks CS6 parity vector, bitmap, and web graphics editor running in the browser via WebAssembly."/>
-              <title>FireCraft Studio — Adobe Fireworks CS6 Edition</title>
-              <link rel="icon" href="favicon.png" type="image/png">
-              <style>
-                  html, body {
-                      margin: 0;
-                      padding: 0;
-                      width: 100%;
-                      height: 100%;
-                      overflow: hidden;
-                      background: #282828;
-                  }
-                  #firecraft-canvas {
-                      width: 100%;
-                      height: 100%;
-                      display: block;
-                  }
-              </style>
-          </head>
-          <body>
-          <canvas id="firecraft-canvas" aria-label="FireCraft Studio editor canvas"></canvas>
-          <script type="module">
-              import init from './firecraft.js';
-              init('./firecraft_bg.wasm');
-          </script>
-          </body>
-          </html>
-          EOF
-          cd dist/wasm && zip -qr ../firecraft-v0.2.0-wasm32-web.zip .
+          wasm-bindgen --out-dir dist/wasm --target web --no-typescript \
+            target/wasm32-unknown-unknown/release/firecraft.wasm
+          cp favicon.png index.html dist/wasm/
+          cd dist/wasm && zip -qr "../firecraft-v${version}-wasm32-web.zip" .
       - uses: actions/upload-artifact@v4
         with:
           name: firecraft-wasm32-web
-          path: app/dist/firecraft-v0.2.0-wasm32-web.zip
+          path: app/dist/firecraft-v*-wasm32-web.zip
       - uses: actions/upload-pages-artifact@v3
         with:
           path: app/dist/wasm
@@ -121,10 +90,19 @@ jobs:
         run: |
           cd artifacts
           sha256sum *.zip > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Verify checksums
+        run: cd artifacts && sha256sum -c SHA256SUMS.txt
+      - name: Check tag matches Cargo version
+        run: |
+          version="$(scripts/version.sh)"
+          test "$GITHUB_REF_NAME" = "v$version" || {
+            echo "tag $GITHUB_REF_NAME does not match app/Cargo.toml v$version"; exit 1; }
       - name: Publish Release Assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
         run: |
           gh release upload "$TAG" artifacts/*.zip artifacts/SHA256SUMS.txt --clobber || \
-          gh release create "$TAG" artifacts/*.zip artifacts/SHA256SUMS.txt --title "FireCraft Studio $TAG" --generate-notes
+          gh release create "$TAG" artifacts/*.zip artifacts/SHA256SUMS.txt \
+            --title "FireCraft Studio $TAG" --generate-notes
