@@ -66,7 +66,7 @@ Every task names its proof. A task without proof is not done.
 
 - [x] **16.1** Spike `egui_kittest` against egui 0.37: boot the real frame headless, render at 1360×860 and 960×640.
 - [x] **16.2** Snapshot suite for the workspace shell: startup, splash, menu open, tool flyout, footer, status bar. *(Done 2026-11-26: `app/src/harness.rs` test `workspace_shell_states_paint_at_the_minimum_size` — shell frame at both sizes, splash, Tab key, Alt+F menu, iconic flyout, footer/status. 101 tests passing.)*
-- [ ] **16.3** Snapshot suite for panels: collapse/expand, collapsed bottom dock, tab overflow, iconic mode, inspector resize clamp.
+- [x] **16.3** Snapshot suite for panels: collapse/expand, collapsed bottom dock, tab overflow, iconic mode, inspector resize clamp. *(Done 2026-11-26: `app/src/harness.rs` test `panel_states_paint_collapse_tab_overflow_iconic_and_inspector_clamp` — collapse/expand paint delta, last-tab overflow, iconic strip vs flyout, bottom clamp at 5000/0, collapsed-bottom delta. 102 tests passing.)*
 - [x] **16.4** Gesture tests: drag panel → merge / dock / float; stack top/bottom; snap to edge; detach; close last group (no panic). *(Done 2026-11-26: `app/src/harness.rs` test `panel_gestures_float_merge_stack_detach_snap_and_close` — ungroup → float, merge, stack, detach, snap to edge, no-panic close-last. 101 tests passing.)*
 - [x] **16.5** Keyboard map as one table; test every binding resolves and `Esc`/dialogs take priority.
 - [x] **16.6** Menu matrix test: every enabled item performs its named action; disabled state matches preconditions. *(Done 2026-11-26: `app/src/harness.rs` test `every_menu_row_triggers_and_closes_the_menu` — walks 10 menus, 60 rows, Enter/Escape close. 101 tests passing.)*
@@ -138,9 +138,9 @@ Every task names its proof. A task without proof is not done.
 These are the items the roadmap still lists as unverified. They close in Phase 16/18 with
 automated proof, not another manual pass.
 
-- [ ] ROADMAP 2.6 — drag/merge/dock/float/snap, no orphan groups, no panic on last group.
-- [ ] ROADMAP 3.3 — Intelligence unconfigured / invalid-key / success paths.
+- [x] ROADMAP 2.6 — drag/merge/dock/float/snap, no orphan groups, no panic on last group. *(Done 2026-11-26: closed by `panel_gestures_float_merge_stack_detach_snap_and_close` in harness.rs.)*
+- [x] ROADMAP 3.3 — Intelligence unconfigured / invalid-key / success paths. *(Done 2026-11-25: closed by the 18.4 seven-test suite; live endpoint needs real credentials, recorded in 18.4.)*
 - [x] ROADMAP 4.5 — built-in styles on single and multi-selection; every filter toggled and cleared. *(Done 2026-11-26: harness tests `styles_and_live_filters_apply_to_single_and_multi_selection` and `every_live_filter_kind_adds_toggles_and_clears_on_selection`.)*
-- [ ] ROADMAP 8.3 — Windows app-switch flash and full-screen toggling.
-- [ ] ROADMAP 9.4 — taskbar Jump List entries on a real Windows shell.
-- [ ] ROADMAP 11.5 — remaining architecture candidates.
+- [~] ROADMAP 8.3 — Windows app-switch flash and full-screen toggling. *(Blocked: no Windows host in this environment, per D4; full-screen toggle itself is code-verified in harness tests.)*
+- [~] ROADMAP 9.4 — taskbar Jump List entries on a real Windows shell. *(Blocked: no Windows host in this environment, per D4; `shell_windows.rs` code paths exist and are logged-and-ignored on failure.)*
+- [x] ROADMAP 11.5 — remaining architecture candidates. *(Dispositioned 2026-11-25 via 18.5: Phase 17 extractions landed; remaining candidates deferred in the architecture review report.)*

@@ -117,8 +117,13 @@ Worked the open task list end to end; decisions D1–D5 recorded.
   (demo objects carry baseline live effects). Filters — all five LiveEffect
   kinds added, toggled off/on, one removed, all cleared, repeat-last re-adds,
   every step asserted across the whole multi-selection.
-- Gates: `cargo test --bin firecraft` 104 passed; fmt clean; clippy
-  `-D warnings` result recorded in this entry's commit message.
+- Task-list reconciliation: 16.3 marked done (test landed with the 16.8/G-5
+  batch), ROADMAP 2.6 closed by the 16.4 gesture test, 3.3 by the 18.4
+  Intelligence tests, 11.5 by the 18.5 disposition. ROADMAP 8.3/9.4 moved to
+  `[~]` blocked — no Windows host in this environment (decision D4); the
+  full-screen toggle itself is code-verified in harness tests.
+- Gates: `cargo test --bin firecraft` 104 passed; fmt and clippy
+  `-D warnings` clean.
 
 ## 2026-11-26 — Panel suite, screenshot loop, interactive-state capture (16.3/16.8/G-5)
 
