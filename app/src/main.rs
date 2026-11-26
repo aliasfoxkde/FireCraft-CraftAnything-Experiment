@@ -126,7 +126,16 @@ fn main() {
     let native_options = eframe::NativeOptions {
         viewport,
         centered: true,
-        persist_window: true,
+        // Screenshot mode must not read persisted window state: a stored
+        // inner_size overrides --size and every captured layout would be the
+        // last interactive window size. (persist_window alone only stops
+        // saving, not loading.) 18.3.
+        persistence_path: screenshot_path
+            .as_ref()
+            .map(|_| std::env::temp_dir().join("firecraft-screenshot-persistence-unused")),
+        // A persisted size would override --size in screenshot mode, making
+        // every captured layout the last interactive window size.
+        persist_window: screenshot_path.is_none(),
         ..Default::default()
     };
 

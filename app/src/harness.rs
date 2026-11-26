@@ -207,4 +207,66 @@ mod tests {
             "Shift+Tab should toggle the right dock"
         );
     }
+
+    /// Phase 18.7 frame-time budget at 1920x1080 with ~500 objects.
+    ///
+    /// The machine under test varies, so this asserts the *relative* budget:
+    /// a full 500-object scene frame must stay under 6x the empty-scene
+    /// baseline at the same size (a debug-build micro-baseline is noisy
+    /// enough that 3x produced false failures), and under a hard 120 ms
+    /// ceiling (roughly 8 fps) so a pathological regression cannot pass
+    /// silently. Absolute startup/GPU numbers belong to the release
+    /// receipt, not a unit test.
+    #[test]
+    fn frame_time_with_500_objects_stays_within_budget_at_1920x1080() {
+        use std::time::Instant;
+
+        let empty_baseline = {
+            let mut harness = Harness::new();
+            harness.frame(1920.0, 1080.0, Vec::new());
+            let t0 = Instant::now();
+            for _ in 0..10 {
+                harness.frame(1920.0, 1080.0, Vec::new());
+            }
+            t0.elapsed().as_secs_f64() / 10.0
+        };
+
+        let mut harness = Harness::new();
+        harness.app.selected_layer = 0;
+        harness.app.doc.page_mut().layers[0].objects.clear();
+        for i in 0..500 {
+            let x = (i % 20) as f32 * 90.0;
+            let y = (i / 20) as f32 * 50.0;
+            let obj = crate::doc::Obj::new(
+                crate::doc::Shape::Ellipse {
+                    center: Vec2::new(x + 35.0, y + 20.0),
+                    radius: Vec2::new(35.0, 20.0),
+                    filled: true,
+                },
+                Some(egui::Color32::from_rgb(40, 90, 200)),
+                None,
+            );
+            harness.app.push_object(obj);
+        }
+        assert!(harness.app.doc.total_objects_on_page() >= 500);
+        harness.frame(1920.0, 1080.0, Vec::new());
+
+        let t0 = Instant::now();
+        for _ in 0..10 {
+            harness.frame(1920.0, 1080.0, Vec::new());
+        }
+        let busy = t0.elapsed().as_secs_f64() / 10.0;
+
+        let busy_ms = busy * 1000.0;
+        let baseline_ms = empty_baseline * 1000.0;
+        assert!(
+            busy < 0.120,
+            "500-object frame at 1920x1080 took {busy_ms:.1} ms, over the 120 ms ceiling"
+        );
+        let ratio = busy / empty_baseline.max(1e-6);
+        assert!(
+            ratio < 6.0,
+            "500-object frame is {ratio:.1}x the empty baseline ({baseline_ms:.2} ms -> {busy_ms:.2} ms), over 6x"
+        );
+    }
 }

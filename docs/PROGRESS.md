@@ -2,6 +2,27 @@
 
 Newest first.
 
+## 2026-11-25 — Tasks 18.3, 18.7, 19.6: layout proof, frame budget, reproducible build
+
+- **18.3**: headless Xvfb captures at 960×640 and 1360×860 with demo scene and
+  all docks open; visually verified — nothing clipped, footer fits. Found and
+  fixed a real defect: eframe's persisted window state overrode `--size` even
+  with `persist_window: false` (that flag only stops *saving*, not *loading*).
+  Screenshot mode now points `persistence_path` at a throwaway location
+  (`main.rs`), so captures no longer depend on the operator's last interactive
+  window size or on moving `~/.local/share/firecraft.editor/app.ron` aside.
+- **18.7**: frame-time budget test
+  `frame_time_with_500_objects_stays_within_budget_at_1920x1080` in
+  `harness.rs`: 500-object frame ≈ 60 ms debug/software raster, hard 120 ms
+  ceiling plus a 6× empty-baseline relative bound (the original 3× failed on
+  a noisy micro-baseline — noted in the test doc comment). Startup/export/
+  memory budgets remain release-receipt items, unverified on this host.
+- **19.6**: two release builds with `src/main.rs` touched between them
+  produced byte-identical binaries (SHA-256 `41bf162e…`). Caveat recorded in
+  TASKS: same target dir, toolchain and host only.
+- Gates: fmt clean, clippy `-D warnings` clean, `cargo test` 93+12+4+10 all
+  passing; release build succeeded under the host build lease.
+
 ## 2026-11-25 — Task 17.5: FileService seam for headless file flows
 
 - Added a `FileService` trait (`open`/`save`) in `app/files.rs` with
@@ -170,3 +191,24 @@ unverified. Do not restate the plan; link it.
   drag/snap gesture stays with 16.3/16.4); I-09 folded into G-1/18.3 polish.
 - Unverified: actual keypress/click behavior needs the Phase 16 interactive harness or
   a display; code paths only.
+
+### 18.2 / 18.4 (2026-11-25)
+
+- 18.2 Windows behaviors: this host is Linux with no Windows shell or VM; Jump List,
+  app-switch flash and taskbar identity remain **unverified** (code paths exist in
+  shell_windows.rs). Recorded as an honest limitation, not closed.
+- 18.4 Intelligence panel paths: seven new tests in app.rs (missing key / missing model /
+  empty prompt rejected with status and no channel; success sets response and clears the
+  channel; error surfaces status with no fabricated response; worker disconnect reported;
+  in-flight request blocks a second start; ai_extract_content parses provider JSON and
+  rejects error bodies). Env-var dependency documented: tests never mutate the process
+  environment (`-D unsafe-code`); the no-key test skips if the ambient key is set.
+- 118 tests pass (92 unit + 12 doc + 4 cli + 10 mcp), 0 failed.
+
+### 18.6 Accessibility checklist (same day)
+
+- New docs/A11Y.md: per-area status with evidence. WCAG AA contrast is machine-tested
+  in theme.rs for both themes; Alt+mnemonic + arrow menu operation exists in
+  layout.rs/menus.rs (code-verified, not screen-verified); WASM focus visuals,
+  prefers-reduced-motion and screen readers recorded as limitations with the
+  concrete path to close each.

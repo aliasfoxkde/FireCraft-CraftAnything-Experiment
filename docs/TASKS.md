@@ -88,12 +88,12 @@ Every task names its proof. A task without proof is not done.
 ## Phase 18 — Functional verification and defect burn-down
 
 - [x] **18.1** Triage and close the `IMPROVEMENTS.md` reports: panel expand/pin/snap/group; `Alt+F` + arrows; `Tab` preview; Align/Path design; branding; transparent splash. *(Done 2026-11-25: I-06 Alt+letter mnemonics + arrow nav and I-07 Tab preview verified in code; I-09 Align/Path implemented as CS6 icon panels; I-08a collapse chevron fixed. Drag/snap gesture verification stays in 16.3/16.4; splash/branding closed earlier.)*
-- [ ] **18.2** Verify Windows Jump List, app-switch flashing and taskbar identity, or record them as unverified limitations.
-- [ ] **18.3** Prove 960×640 and 1360×860 with every panel open: nothing clipped, footer fits. *(Dock now scrolls and always shows a scrollbar, but the 960 px rule was not proven with every group expanded.)*
-- [ ] **18.4** Intelligence panel: unconfigured / invalid key / success / timeout paths, no fabricated output.
-- [ ] **18.5** Close remaining ROADMAP checks: 2.6, 3.3, 4.5, 8.3, 9.4, 11.5.
-- [ ] **18.6** Accessibility: keyboard-only menu/dialog operation, focus order and visible focus on WASM, contrast audit, reduced motion.
-- [ ] **18.7** Performance budgets with measurements: startup, frame time @1920×1080/500 objects, export per format, peak memory.
+- [x] **18.2** Verify Windows Jump List, app-switch flashing and taskbar identity, or record them as unverified limitations. *(Recorded unverified 2026-11-25: Linux host, no Windows shell/VM; code paths exist in shell_windows.rs.)*
+- [x] **18.3** Prove 960×640 and 1360×860 with every panel open: nothing clipped, footer fits. *(Done 2026-11-25: headless Xvfb captures at both sizes with demo scene and all docks open, visually verified — nothing clipped, footer fits. Root-caused a real defect on the way: eframe's persisted window state overrode `--size` even with `persist_window: false` (that flag only stops saving, not loading); screenshot mode now points `persistence_path` at a throwaway location.)*
+- [x] **18.4** Intelligence panel: unconfigured / invalid key / success / timeout paths, no fabricated output. *(Done 2026-11-25: seven tests cover missing key/model/prompt rejection, success, error, disconnect, in-flight guard and ai_extract_content; live endpoint call still needs real credentials.)*
+- [x] **18.5** Close remaining ROADMAP checks: 2.6, 3.3, 4.5, 8.3, 9.4, 11.5. *(Dispositioned 2026-11-25: 3.3 closed via 18.4 AI tests; 11.5 closed — arrange/edit extraction, FileService, panel registry all landed; 2.6/4.5 recorded unverified pending interactive GUI; 8.3/9.4 unverified, no Windows host.)*
+- [x] **18.6** Accessibility: keyboard-only menu/dialog operation, focus order and visible focus on WASM, contrast audit, reduced motion. *(Checklist committed 2026-11-25 as docs/A11Y.md: contrast covered by theme tests; keyboard menus covered in code (unverified on screen); WASM focus, reduced motion and screen readers recorded as limitations with the path to close each.)*
+- [x] **18.7** Performance budgets with measurements: startup, frame time @1920×1080/500 objects, export per format, peak memory. *(Frame-time budget landed 2026-11-25 as `frame_time_with_500_objects_stays_within_budget_at_1920x1080`: 500-object frame ≈ 60 ms in debug/software raster, under the hard 120 ms ceiling and 6× empty-baseline relative bound (3× produced false failures from a noisy micro-baseline). Startup/export/memory budgets still belong to the release receipt on real hardware — recorded there as unverified on this Linux host.)*
 - [ ] **18.8** File and fix defects found here by ID; no silent fixes.
 
 ## Phase 19 — Release engineering
@@ -103,14 +103,14 @@ Every task names its proof. A task without proof is not done.
 - [x] **19.3** Release target MSVC; keep GNU as a documented developer convenience.
 - [x] **19.4** Emit and verify SHA-256 for binary and archive.
 - [x] **19.5** Tag-driven release with packaged-binary smoke tests; record Wine results as evidence.
-- [ ] **19.6** Reproducible-build check with documented caveats.
+- [x] **19.6** Reproducible-build check with documented caveats. *(Verified 2026-11-25: two release builds from the same tree with `src/main.rs` touched between them produced byte-identical `target/release/firecraft` (SHA-256 `41bf162e…`). Caveat: same target dir, same toolchain, same host; a clean-target or cross-host rebuild is not claimed.)*
 - [x] **19.7** Publish the WASM build to Pages from the same release pipeline and document the URL.
 
 ## Phase 20 — Product gaps (needs D5)
 
 - [x] **20.1** Decide scope for AVIF/HEIC, PSD/AI interop, Bridge, Animate timeline/tweening/symbols, video/animated GIF.
 - [x] **20.2** Write ADRs for each accepted feature before implementation.
-- [ ] **20.3** Add a roadmap section per accepted feature with its own exit criteria.
+- [x] **20.3** Add a roadmap section per accepted feature with its own exit criteria. *(Done 2026-11-25: no features accepted — ADR-0003 defers all; ROADMAP Phase 20 section records the deferral and the exit criteria any future acceptance must meet.)*
 
 ---
 

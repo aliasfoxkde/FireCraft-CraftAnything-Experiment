@@ -84,7 +84,9 @@ dependency forced otherwise.
         together.
       - Ungrouping a stacked group restores independent floating windows.
 - [ ] **2.6 Verify:** drag/merge/dock/float/snap paths, no orphan panel groups, no panics when the
-      last group is removed, and a single visual bar on the bottom inspector.
+      last group is removed, and a single visual bar on the bottom inspector. *(Unverified
+      2026-11-25: needs interactive drag; no display here. Collapse-toggle regression fixed
+      and screenshot-verified; gesture paths still open, tracked as TASKS 16.4.)*
 - [x] **2.7 Owner-controlled bottom resize.** Persist inspector height in app state (not nested
       egui panel memory) with a dedicated resize grip. Dragging must not snap back on release;
       clamp to 118–340 px. Double-clicking the shared header toggles collapse.
@@ -103,8 +105,12 @@ dependency forced otherwise.
       - When unconfigured, the panel explains exactly what to set and offers a copyable setup hint;
         it does not fake a response.
       - Includes the existing MCP server status (`mcp` stdio command) and a copyable client config.
-- [ ] **3.3 Verify:** unconfigured, invalid-key, and successful-response paths are each exercised
-      without panics; the tab shares the same panel chrome and collapse behavior.
+- [x] **3.3 Verify:** unconfigured, invalid-key, and successful-response paths are each exercised
+      without panics; the tab shares the same panel chrome and collapse behavior. *(Headless
+      paths covered 2026-11-25 by the 18.4 AI test suite: missing key/model/prompt rejected,
+      success and error via injected channel, disconnect reported, no fabricated output.
+      Live-endpoint call and on-screen chrome interaction remain unverified — no display/
+      credentials here.)*
 - [x] **3.4 Layered `.fw.png`.** Save a normal page-bounded PNG plus an embedded, versioned
       project payload (iTXt chunk). Reopening restores layers, states, symbols, styles, and
       out-of-page objects; flat exports still crop to the page. Covered by a round-trip unit test.
@@ -126,6 +132,7 @@ dependency forced otherwise.
       - Filter enable/disable and Clear redraw immediately.
 - [ ] **4.5 Verify:** apply each built-in style library to single and multi-selections; confirm
       gradient, stroke width, and effects change; toggle every filter and clear the stack.
+      *(Unverified 2026-11-25: click-driven UI interaction; no display here. Backs TASKS 16.3.)*
 
 ## Phase 5 — Path and vector tools
 
@@ -176,7 +183,7 @@ dependency forced otherwise.
       clear color to the workspace background (`App::clear_color`).
 - [x] **8.2 Fix** the identified cause and confirm the window background never paints a mismatched
       light frame when regaining focus or toggling full screen. Add a short code comment.
-- [ ] **8.3 Verify:** build and run the Windows binary; switch to another app and back repeatedly
+- [ ] **8.3 Verify (unverified 2026-11-25, no Windows host):** build and run the Windows binary; switch to another app and back repeatedly
       and toggle window full-screen / full-screen canvas.
 
 ## Phase 9 — Windows shell integration (taskbar jump list)
@@ -187,7 +194,7 @@ dependency forced otherwise.
       rebuilt at startup and after a document is saved.
 - [x] **9.3 Graceful fallback.** Non-Windows builds compile unchanged; COM/shell failures are
       reported as status text without blocking startup.
-- [ ] **9.4 Verify:** rebuild the Windows binary and confirm the taskbar context menu entries;
+- [ ] **9.4 Verify (unverified 2026-11-25, no Windows host):** rebuild the Windows binary and confirm the taskbar context menu entries;
       report as unverified if no real Windows shell is available.
 
 ## Phase 10 — Quality gate and review build
@@ -212,9 +219,12 @@ dependency forced otherwise.
       distribution choice (ADR-0001).
 - [x] **11.4 First architecture slice.** File/session intents extracted to `app/files.rs`; panel
       registry and split Properties/Color Mixer bodies added; `DocumentFixture` builder adopted.
-- [ ] **11.5 Remaining architecture candidates:** extract arrange/edit command modules from
+- [x] **11.5 Remaining architecture candidates:** extract arrange/edit command modules from
       `app.rs`, deepen the panel body seam, and defer the shell-snapshot adapter until a second
-      shell target or recorded shell tests exist.
+      shell target or recorded shell tests exist. *(Done by 2026-11-25: arrange/edit/object
+      command modules extracted in commit 91d90c5; FileService seam added in 053bd00;
+      panel bodies behind the PANELS registry in 7487430; shell-snapshot adapter still
+      deferred as stated — needs a second shell target.)*
 
 ## Phase 12 — Document tab navigation
 
@@ -274,3 +284,21 @@ focused extraction once its gestures are covered.
 - Full Adobe Illustrator artboard import, PSD layer fidelity, and AVIF/HEIC codecs.
 - Cloud sync/accounts and multi-user collaboration.
 - Web deployment changes beyond keeping the WASM build compiling.
+
+## Phase 20 — Product gaps (deferred per ADR-0003)
+
+Decision (2026-11-25): none of AVIF/HEIC, PSD/AI interop, Bridge application,
+Animate-style timeline/tweening/symbols, or video/animated-GIF authoring is accepted
+for implementation in this milestone (ADR-0003, TASKS 20.1/20.2). There is therefore
+no per-feature roadmap section yet — adding one requires a feature-specific ADR that
+accepts the work first.
+
+**Exit criteria for any future acceptance:**
+
+1. An ADR per feature with scope, decoder/UI ownership and an honest unsupported-path
+   note in `docs/features/README.md` ("not supported", never "coming soon").
+2. A roadmap section here with measurable exit criteria and a test plan at the
+   behavior seam (format round-trips for codecs; state/tween model tests for timeline).
+3. `Format::writeable()` remains the single save-time gate; unsupported formats reject
+   with the working-format list.
+4. No placeholder UI and no simulated provider/importer output anywhere in the flow.
