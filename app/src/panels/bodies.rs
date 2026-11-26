@@ -1,6 +1,7 @@
 //! Panel render bodies. Each public function renders one registered panel; the
 //! `PANELS` descriptor table in `panels/mod.rs` is the only caller that matters.
 
+use super::tabs::pages_panel;
 use super::*;
 
 /// Optimize panel (CS6 top-right tab 0): export format, palette, quality, dither, matte, size estimate.

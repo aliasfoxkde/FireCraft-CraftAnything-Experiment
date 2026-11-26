@@ -46,6 +46,26 @@ impl FileOutcome {
     }
 }
 
+/// The document I/O boundary. The real implementation delegates to `formats`
+/// (disk-backed); tests can substitute a fake to drive open/save/export flows
+/// without touching the filesystem or egui.
+pub trait FileService: std::fmt::Debug {
+    fn open(&self, path: &Path) -> Result<Document, String>;
+    fn save(&self, doc: &Document, path: &Path) -> Result<(), String>;
+}
+
+#[derive(Debug, Default)]
+pub struct FormatFileService;
+
+impl FileService for FormatFileService {
+    fn open(&self, path: &Path) -> Result<Document, String> {
+        crate::formats::open(path)
+    }
+    fn save(&self, doc: &Document, path: &Path) -> Result<(), String> {
+        crate::formats::save(doc, path)
+    }
+}
+
 impl FireCraft {
     pub fn run_file_intent(&mut self, intent: FileIntent) -> FileOutcome {
         match intent {
@@ -100,7 +120,7 @@ impl FireCraft {
     }
 
     pub fn save_to(&mut self, path: &Path) -> Result<(), String> {
-        crate::formats::save(&self.doc, path)?;
+        self.file_io.save(&self.doc, path)?;
         let pb = path.to_path_buf();
         self.current_path = Some(pb.clone());
         self.doc.file_path = Some(pb.clone());
@@ -128,13 +148,13 @@ impl FireCraft {
             self.status = msg.clone();
             return Err(msg);
         }
-        crate::formats::save(&self.doc, path)?;
+        self.file_io.save(&self.doc, path)?;
         self.status = format!("Exported {}", path.display());
         Ok(())
     }
 
     pub fn open_path(&mut self, path: &Path) -> Result<(), String> {
-        match crate::formats::open(path) {
+        match self.file_io.open(path) {
             Ok(mut doc) => {
                 self.sync_active_doc_slot();
                 doc.file_path = Some(path.to_path_buf());
@@ -166,7 +186,7 @@ impl FireCraft {
     }
 
     pub fn import_path(&mut self, path: &Path) -> Result<(), String> {
-        let imported = crate::formats::open(path)?;
+        let imported = self.file_io.open(path)?;
         self.push_undo("Import");
         for layer in imported.page().layers.clone() {
             if layer.is_web_layer {
@@ -197,7 +217,7 @@ impl FireCraft {
                     doc.name
                 ));
             };
-            crate::formats::save(doc, &path)?;
+            self.file_io.save(doc, &path)?;
             doc.dirty = false;
         }
         self.doc = self.open_docs[self.active_doc.min(self.open_docs.len() - 1)].clone();
@@ -351,6 +371,88 @@ mod tests {
 
     fn temp(name: &str) -> PathBuf {
         std::env::temp_dir().join(format!("firecraft-files-{}-{name}", std::process::id()))
+    }
+
+    /// In-memory `FileService` so open/save flows run without disk or egui.
+    #[derive(Debug)]
+    struct FakeFiles {
+        docs: std::cell::RefCell<std::collections::HashMap<PathBuf, Document>>,
+        saved: std::cell::RefCell<Vec<PathBuf>>,
+    }
+
+    impl FakeFiles {
+        fn empty() -> Self {
+            Self {
+                docs: std::cell::RefCell::new(std::collections::HashMap::new()),
+                saved: std::cell::RefCell::new(Vec::new()),
+            }
+        }
+    }
+
+    impl FileService for FakeFiles {
+        fn open(&self, path: &Path) -> Result<Document, String> {
+            self.docs
+                .borrow()
+                .get(path)
+                .cloned()
+                .ok_or_else(|| format!("no such file: {}", path.display()))
+        }
+        fn save(&self, doc: &Document, path: &Path) -> Result<(), String> {
+            self.docs
+                .borrow_mut()
+                .insert(path.to_path_buf(), doc.clone());
+            self.saved.borrow_mut().push(path.to_path_buf());
+            Ok(())
+        }
+    }
+
+    /// Rc wrapper so the test keeps a handle to the fake behind the box.
+    #[derive(Debug)]
+    struct FakeHandle(std::rc::Rc<FakeFiles>);
+
+    impl FileService for FakeHandle {
+        fn open(&self, path: &Path) -> Result<Document, String> {
+            self.0.open(path)
+        }
+        fn save(&self, doc: &Document, path: &Path) -> Result<(), String> {
+            self.0.save(doc, path)
+        }
+    }
+
+    #[test]
+    fn open_and_save_flows_run_through_an_injected_file_service() {
+        let mut app = FireCraft::new(None);
+        let fake = std::rc::Rc::new(FakeFiles::empty());
+        let stored = Document::new(64.0, 64.0);
+        let path = PathBuf::from("/fake/scene.fire");
+        fake.docs.borrow_mut().insert(path.clone(), stored);
+        app.file_io = Box::new(FakeHandle(fake.clone()));
+
+        assert_eq!(
+            app.run_file_intent(FileIntent::Open(path.clone())),
+            FileOutcome::Opened
+        );
+        assert_eq!(app.doc.width, 64.0);
+        assert_eq!(app.current_path.as_deref(), Some(path.as_path()));
+
+        app.doc.dirty = true;
+        assert_eq!(
+            app.run_file_intent(FileIntent::SaveCurrent),
+            FileOutcome::Saved(path.clone())
+        );
+        assert!(!app.doc.dirty);
+        assert_eq!(fake.saved.borrow().as_slice(), &[path]);
+    }
+
+    #[test]
+    fn a_failing_file_service_surfaces_errors_without_touching_disk() {
+        let mut app = FireCraft::new(None);
+        app.file_io = Box::new(FakeFiles::empty());
+        match app.run_file_intent(FileIntent::Open(PathBuf::from("/fake/absent.fire"))) {
+            FileOutcome::Failed(err) => assert!(err.contains("no such file")),
+            other => panic!("expected failure, got {other:?}"),
+        }
+        assert!(!app.doc.dirty);
     }
 
     #[test]

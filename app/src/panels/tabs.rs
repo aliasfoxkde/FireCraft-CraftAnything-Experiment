@@ -1,5 +1,6 @@
 //! Pages / States / Layers and related tab bodies (CS6 right-dock groups 2-4).
 
+use super::bodies::small_icon_cell;
 use super::*;
 
 /// Pages, States (Animation frames), and Hierarchical Layers + Objects panel (`screenshots/Fireworks-All_Window_Panels.jpg`).

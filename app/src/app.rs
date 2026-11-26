@@ -442,6 +442,8 @@ pub enum ToolsDockMode {
 
 pub struct FireCraft {
     pub ctx: Context,
+    /// Document I/O boundary; defaults to `FormatFileService` (real disk I/O).
+    pub file_io: Box<dyn files::FileService>,
     pub doc: Document,
     pub open_docs: Vec<Document>,
     pub active_doc: usize,
@@ -619,6 +621,7 @@ impl FireCraft {
         initial_doc.zoom = 0.50; // Fit 1920x1080 comfortably in the initial viewport
         let mut app = Self {
             ctx: Context::default(),
+            file_io: Box::new(files::FormatFileService),
             doc: initial_doc.clone(),
             open_docs: vec![initial_doc],
             active_doc: 0,

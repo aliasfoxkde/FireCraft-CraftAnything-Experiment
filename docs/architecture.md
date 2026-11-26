@@ -85,9 +85,11 @@ These are ordered by payoff, not by aesthetics:
    titles, default heights, and render entry points; Properties and Color Mixer bodies are split
    out. Once drag/resize gestures are covered by tests, move the remaining bodies behind the same
    seam.
-4. **File-operation adapter.** `formats.rs` still mixes serialization, dialog-facing format
-   metadata, and recent-file policy. Introduce a small `FileService` interface for open/save/export
-   so a headless test can exercise file flows without egui.
+4. **File-operation adapter — done.** `app/files.rs` defines a `FileService` trait
+   (`open`/`save`) with `FormatFileService` as the disk-backed default; open, save, export,
+   import and save-all route through it, so headless tests inject a fake service instead of
+   touching the filesystem. Format metadata and recent-file policy still live in `formats.rs`
+   and `app/files.rs` respectively.
 5. **Shell snapshot adapter — deferred.** Only add a `ShellIntegration` seam when a second shell
    target or recorded shell tests exist; otherwise it adds structure without leverage.
 

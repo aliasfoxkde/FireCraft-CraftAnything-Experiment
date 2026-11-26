@@ -2,6 +2,23 @@
 
 Newest first.
 
+## 2026-11-25 — Task 17.5: FileService seam for headless file flows
+
+- Added a `FileService` trait (`open`/`save`) in `app/files.rs` with
+  `FormatFileService` as the disk-backed default, stored as
+  `FireCraft.file_io`. Open, save, export, import and save-all-for-quit now
+  route through the seam instead of calling `formats` directly, so headless
+  tests inject a fake service and never touch the filesystem or egui. Two new
+  tests: injected open/save round-trip (`Rc` handle asserts the saved path)
+  and failing-service error surfacing. 10/10 files tests, 110 total pass.
+- Repaired a pre-existing clippy break left by 17.3: the glob re-exports in
+  `panels/mod.rs` (`use bodies::*`, `pub use tabs::*`, `use tabs::*`) had
+  become dead/unresolvable under `-D warnings`. Replaced with explicit
+  re-exports (`pub use bodies::{intelligence_panel, start_panel}` plus a
+  named import list) and explicit helper imports in `color.rs`/`tabs.rs`.
+- Gates: fmt clean, clippy `-D warnings` clean, `cargo test` 110 passed /
+  0 failed, wasm32 check exits 0, module-size budget under the hard cap.
+
 ## 2026-11-25 — Task 17.3: panel bodies behind the PANELS registry
 
 - Extracted the remaining panel render bodies from `panels/mod.rs` (3635 ->

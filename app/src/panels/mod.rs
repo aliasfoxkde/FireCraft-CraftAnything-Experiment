@@ -15,10 +15,12 @@ use crate::icons;
 
 mod bodies;
 mod tabs;
-pub use bodies::*;
-use bodies::*;
-pub use tabs::*;
-use tabs::*;
+use bodies::{
+    align_panel, auto_shapes_tab, css_properties_tab, document_library_tab, history_panel,
+    image_editing_tab, info_panel, layers_tab, optimize_panel, pages_tab, paths_panel,
+    special_chars_tab, states_tab, styles_panel, swatches_panel,
+};
+pub use bodies::{intelligence_panel, start_panel};
 mod color;
 mod properties;
 mod tools;

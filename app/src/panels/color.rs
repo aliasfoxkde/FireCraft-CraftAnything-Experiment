@@ -1,5 +1,6 @@
 //! Color Mixer panel body.
 
+use super::bodies::slider_row;
 use super::*;
 
 pub fn color_panel(ui: &mut Ui, app: &mut FireCraft) {
