@@ -2,6 +2,35 @@
 
 Newest first.
 
+## 2026-11-25 — 0.3.0 quality and release pass
+
+Worked the open task list end to end; decisions D1–D5 recorded.
+
+- **Truth and hygiene:** MIT `LICENSE`; `app/Cargo.toml` is the only version source (0.3.0) and
+  `--version`/help/MCP no longer hardcode a version; `rust-toolchain.toml`; crate self-contained
+  (`assets/logo.png`, `assets/splash.png`); one WASM host page; `PROJECT_STRUCTURE.md`,
+  `build-release.md` and `IMPROVEMENTS.md` rewritten; `scripts/check-docs.sh` gates links, claims,
+  trailing whitespace and duplicate headings.
+- **Gates:** `deny.toml` (advisory acceptance for `url 2.5.8` with exposure note), `cargo audit`,
+  coverage ratchet (`scripts/coverage.sh`, floor 18.70), `[lints]` policy, module-size budget,
+  `scripts/ci-local.sh` as the definition of record, Windows build + CLI smoke job, WASM build job,
+  Dependabot, issue/PR templates.
+- **Tests:** 108 total (was 51). New integration suites `tests/cli.rs` (12), `tests/mcp.rs` (10),
+  `tests/hygiene.rs` (4); formats error paths, golden SVG/HTML/PNG files, theme WCAG contrast,
+  color round-trip sweep, file-intent matrix, polygon-boolean area identities, quarter-turn bounds.
+- **Bugs found and fixed by those tests:** ICO export failed for any page above 256 px; `batch`
+  created a missing input directory and reported success; `Escape` was consumed by the pen-path
+  check even with no pen path, so it never closed menus/dialogs; `Shift+Tab` could never reach the
+  dock toggle because the unmodified `Tab` check consumed it first; light-theme accent contrast was
+  4.15:1 (now 5.2:1); polygon booleans silently dropped every result region except the largest.
+- **Architecture:** `panels/geometry.rs` (pure snap/stack/height math, 7 tests) with `app.rs`
+  delegating; `harness.rs` boots the real frame headless at 1360×860 and 960×640 and drives keys.
+- **GUI:** dock header now reads "Panels", Mixer group tall enough for its controls, scrollbars
+  always visible on panel bodies, Bridge `Br` text replaced by a folder icon, header cluster spacing
+  fixed at 960 px. Evidence: `checks/gui-pass-2026-11-25/g5-*.png`.
+- **Release:** `scripts/package-windows.sh` builds `dist/windows/` + versioned zip + SHA-256;
+  tag/version mismatch fails the release job; Wine smoke-tested the GNU binary.
+
 ## 2026-11-25 — GUI hill-climb and architecture slice
 
 Four capture-and-fix iterations against real renders (`scripts/gui-shot.sh`, Xvfb + software GL,

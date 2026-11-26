@@ -1,0 +1,6 @@
+# Files above the 2,000-line hard budget. Each needs a splitting plan; see docs/TASKS.md 17.1-17.3.
+app/src/app.rs
+app/src/canvas.rs
+app/src/layout.rs
+app/src/menus.rs
+app/src/panels/mod.rs

@@ -28,15 +28,19 @@ done
 
 # Trailing whitespace and duplicated headings inside a file make diffs and anchors unreliable.
 for f in "${docs[@]}"; do
-  if grep -nE ' +$' "$f" >/dev/null 2>&1; then
+  # INSTRUCTIONS.md is an external brief; its trailing spaces are preserved on purpose.
+  if [ "$f" != "INSTRUCTIONS.md" ] && grep -nE ' +$' "$f" >/dev/null 2>&1; then
     echo "TRAILING WHITESPACE $f"
     grep -nE ' +$' "$f" | head -3
     status=1
   fi
-  dup="$(grep -E '^#{1,6} ' "$f" | sort | uniq -d)"
-  if [ -n "$dup" ]; then
-    echo "DUPLICATE HEADING $f: $dup"
-    status=1
+  # A changelog and a dated progress log repeat section names per entry, by design.
+  if [ "$f" != "CHANGELOG.md" ] && [ "$f" != "docs/PROGRESS.md" ]; then
+    dup="$(grep -E '^#{1,6} ' "$f" | sort | uniq -d || true)"
+    if [ -n "$dup" ]; then
+      echo "DUPLICATE HEADING $f: $dup"
+      status=1
+    fi
   fi
 done
 

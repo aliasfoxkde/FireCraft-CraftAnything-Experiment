@@ -64,32 +64,32 @@ Every task names its proof. A task without proof is not done.
 
 ## Phase 16 — Interaction harness
 
-- [ ] **16.1** Spike `egui_kittest` against egui 0.37: boot the real frame headless, render at 1360×860 and 960×640.
+- [x] **16.1** Spike `egui_kittest` against egui 0.37: boot the real frame headless, render at 1360×860 and 960×640.
 - [ ] **16.2** Snapshot suite for the workspace shell: startup, splash, menu open, tool flyout, footer, status bar.
 - [ ] **16.3** Snapshot suite for panels: collapse/expand, collapsed bottom dock, tab overflow, iconic mode, inspector resize clamp.
 - [ ] **16.4** Gesture tests: drag panel → merge / dock / float; stack top/bottom; snap to edge; detach; close last group (no panic).
-- [ ] **16.5** Keyboard map as one table; test every binding resolves and `Esc`/dialogs take priority.
+- [x] **16.5** Keyboard map as one table; test every binding resolves and `Esc`/dialogs take priority.
 - [ ] **16.6** Menu matrix test: every enabled item performs its named action; disabled state matches preconditions.
 - [ ] **16.7** File browser + find/replace + settings dialog interaction tests (address bar, filters, cancel, scope preview).
 - [ ] **16.8** Port the manual `checks/` screenshot loop into the automated suite; keep `checks/` for evidence only.
-- [ ] **16.9** Run the suite under Xvfb with a fixed software GL backend and document the invocation.
+- [x] **16.9** Run the suite under Xvfb with a fixed software GL backend and document the invocation.
 
 ## Phase 17 — Architecture deepening
 
 - [ ] **17.1** Extract arrange/edit/object command bodies from `app.rs` into `app/{arrange,edit,object}.rs` behind request/outcome seams.
 - [ ] **17.2** Extract `layout/chrome.rs` (menu bar, document tab strip, canvas footer).
 - [ ] **17.3** Move remaining panel bodies behind the `PANELS` registry.
-- [ ] **17.4** Isolate panel drag/resize/stack geometry into a pure, egui-free module.
+- [x] **17.4** Isolate panel drag/resize/stack geometry into a pure, egui-free module.
 - [ ] **17.5** Introduce the `FileService` seam for open/save/export so flows run headless.
-- [ ] **17.6** Enforce a module size budget in CI (warn > 1,200 lines, fail > 2,000 with allowlist).
-- [ ] **17.7** Retire `panels::panel`/dock duplication noted in ROADMAP technical debt.
-- [ ] **17.8** Update `docs/architecture.md` and add ADRs for any seam that changes.
+- [x] **17.6** Enforce a module size budget in CI (warn > 1,200 lines, fail > 2,000 with allowlist).
+- [x] **17.7** Retire `panels::panel`/dock duplication noted in ROADMAP technical debt.
+- [x] **17.8** Update `docs/architecture.md` and add ADRs for any seam that changes.
 
 ## Phase 18 — Functional verification and defect burn-down
 
 - [ ] **18.1** Triage and close the `IMPROVEMENTS.md` reports: panel expand/pin/snap/group; `Alt+F` + arrows; `Tab` preview; Align/Path design; branding; transparent splash.
 - [ ] **18.2** Verify Windows Jump List, app-switch flashing and taskbar identity, or record them as unverified limitations.
-- [ ] **18.3** Prove 960×640 and 1360×860 with every panel open: nothing clipped, footer fits.
+- [ ] **18.3** Prove 960×640 and 1360×860 with every panel open: nothing clipped, footer fits. *(Dock now scrolls and always shows a scrollbar, but the 960 px rule was not proven with every group expanded.)*
 - [ ] **18.4** Intelligence panel: unconfigured / invalid key / success / timeout paths, no fabricated output.
 - [ ] **18.5** Close remaining ROADMAP checks: 2.6, 3.3, 4.5, 8.3, 9.4, 11.5.
 - [ ] **18.6** Accessibility: keyboard-only menu/dialog operation, focus order and visible focus on WASM, contrast audit, reduced motion.
@@ -98,18 +98,18 @@ Every task names its proof. A task without proof is not done.
 
 ## Phase 19 — Release engineering
 
-- [ ] **19.1** Script deterministic bundle assembly (exe, README, LICENSE, docs, GLOSSARY, CHANGELOG) from a clean tree.
-- [ ] **19.2** Version-stamp artifacts, changelog section and release notes from `Cargo.toml`.
-- [ ] **19.3** Release target MSVC; keep GNU as a documented developer convenience.
-- [ ] **19.4** Emit and verify SHA-256 for binary and archive.
-- [ ] **19.5** Tag-driven release with packaged-binary smoke tests; record Wine results as evidence.
+- [x] **19.1** Script deterministic bundle assembly (exe, README, LICENSE, docs, GLOSSARY, CHANGELOG) from a clean tree.
+- [x] **19.2** Version-stamp artifacts, changelog section and release notes from `Cargo.toml`.
+- [x] **19.3** Release target MSVC; keep GNU as a documented developer convenience.
+- [x] **19.4** Emit and verify SHA-256 for binary and archive.
+- [x] **19.5** Tag-driven release with packaged-binary smoke tests; record Wine results as evidence.
 - [ ] **19.6** Reproducible-build check with documented caveats.
-- [ ] **19.7** Publish the WASM build to Pages from the same release pipeline and document the URL.
+- [x] **19.7** Publish the WASM build to Pages from the same release pipeline and document the URL.
 
 ## Phase 20 — Product gaps (needs D5)
 
-- [~] **20.1** Decide scope for AVIF/HEIC, PSD/AI interop, Bridge, Animate timeline/tweening/symbols, video/animated GIF.
-- [ ] **20.2** Write ADRs for each accepted feature before implementation.
+- [x] **20.1** Decide scope for AVIF/HEIC, PSD/AI interop, Bridge, Animate timeline/tweening/symbols, video/animated GIF.
+- [x] **20.2** Write ADRs for each accepted feature before implementation.
 - [ ] **20.3** Add a roadmap section per accepted feature with its own exit criteria.
 
 ---
@@ -127,11 +127,11 @@ Every task names its proof. A task without proof is not done.
 
 ## Open GUI defects found by the 2026-11-25 review
 
-- [ ] **G-1** Right dock's first header strip renders as an empty bar (`»` + grip dots) above the tab row.
-- [ ] **G-2** Color Mixer's last control is clipped when its panel group is short.
-- [ ] **G-3** Top-right workspace cluster has no spacing at 960 px.
-- [ ] **G-4** Toolbar Bridge button is a text label (`Br`) among icons.
-- [ ] **G-5** Capture interactive states (menus, flyouts, drag/stack) so the loop can review them.
+- [x] **G-1** Right dock's first header strip renders as an empty bar (`»` + grip dots) above the tab row.
+- [x] **G-2** Color Mixer's last control is clipped when its panel group is short.
+- [x] **G-3** Top-right workspace cluster has no spacing at 960 px.
+- [x] **G-4** Toolbar Bridge button is a text label (`Br`) among icons.
+- [ ] **G-5** Capture interactive states (menus, flyouts, drag/stack) so the loop can review them. *(Interactive state is now asserted by `harness.rs`; pixel capture of open menus still needs a `--screenshot-menu` flag.)*
 
 ## Carried over from ROADMAP.md (unchecked there, tracked here)
 

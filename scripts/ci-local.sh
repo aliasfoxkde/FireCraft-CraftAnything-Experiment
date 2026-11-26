@@ -20,6 +20,7 @@ run cargo fmt --all -- --check
 run cargo clippy --all-targets --quiet -- -D warnings
 run cargo test --quiet
 ( cd "$root" && run ./scripts/check-docs.sh )
+( cd "$root" && run ./scripts/module-size.sh )
 
 if [ "$quick" -eq 0 ]; then
   run cargo check --quiet --target wasm32-unknown-unknown

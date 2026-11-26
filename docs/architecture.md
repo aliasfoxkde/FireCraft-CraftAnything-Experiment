@@ -93,6 +93,18 @@ These are ordered by payoff, not by aesthetics:
 
 See `docs/adr/` for decisions that should not be re-litigated casually.
 
+## Deepened seams (0.3.0)
+
+- **`panels/geometry.rs`** — panel group heights, magnetic snapping and stack placement as pure
+  functions over `egui::Rect`/`Pos2` (no `&mut` state). `app.rs` builds the neighbour slots and
+  delegates; the rules are unit-tested without a window.
+- **`harness.rs`** — a headless frame harness built on `egui::Context::run_ui`. It boots the real
+  `layout::show` at 1360×860 and 960×640, feeds key events and inspects `FireCraft` state, so
+  keyboard and layout regressions no longer need a display or a human. Test-only (`cfg(test)`).
+- **Test topology** — logic tests stay inline; cross-module and process-level tests live in
+  `app/tests/` (`cli`, `mcp`, `hygiene`). Golden files in `app/tests/golden/` are regenerated only
+  with `UPDATE_GOLDEN=1`.
+
 ## Build topology
 
 The application is a single portable executable by design on Windows. Dynamic libraries would

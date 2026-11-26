@@ -11,7 +11,7 @@ floor="$(cat "$floor_file" 2>/dev/null || echo 18.70)"
 out="$(cargo llvm-cov --summary-only -- --test-threads=1 2>&1)"
 echo "$out" | tail -20
 
-lines="$(echo "$out" | sed -n 's/^ *TOTAL *[0-9.]*% *[0-9]* *[0-9.]*% *[0-9]* *[0-9.]*% *[0-9]* *\([0-9.]*\)%.*/\1/p' | tail -1)"
+lines="$(echo "$out" | awk '/^ *TOTAL / { gsub("%", "", $10); print $10; exit }')"
 if [ -z "$lines" ]; then
   echo "coverage: could not parse the line total" >&2
   exit 1
