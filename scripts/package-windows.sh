@@ -38,7 +38,18 @@ printf '%s\n' "$version" > "$out/VERSION"
 
 ( cd "$out" && sha256sum firecraft.exe > firecraft.exe.sha256 )
 rm -f "$zip"
-( cd "$out" && zip -qr "$zip" . )
+if command -v zip >/dev/null 2>&1; then
+  ( cd "$out" && zip -qr "$zip" . )
+elif command -v powershell.exe >/dev/null 2>&1 && command -v cygpath >/dev/null 2>&1; then
+  # GitHub's Windows runner includes PowerShell but not the Unix `zip` utility.
+  # shellcheck disable=SC2016
+  FC_ZIP_SOURCE="$(cygpath -w "$out")" FC_ZIP_DESTINATION="$(cygpath -w "$zip")" powershell.exe \
+    -NoProfile -NonInteractive -Command \
+    '$ErrorActionPreference = "Stop"; Compress-Archive -Path (Join-Path -Path $env:FC_ZIP_SOURCE -ChildPath "*") -DestinationPath $env:FC_ZIP_DESTINATION -Force'
+else
+  echo "archive creation requires zip, or PowerShell with cygpath on Windows" >&2
+  exit 1
+fi
 ( cd "$root/app/dist" && sha256sum "$(basename "$zip")" > "$(basename "$zip").sha256" )
 echo "packaged $zip"
 cat "$root/app/dist/$(basename "$zip").sha256"

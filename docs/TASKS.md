@@ -150,7 +150,7 @@ automated proof, not another manual pass.
 - [x] **21.1** Fix Properties collapse chevron being shadowed by the header's full-width double-click target; verify collapse and expand by one click at the live widget bounds. *(Regression test: `collapse_chevrons_work_with_a_single_click`.)*
 - [x] **21.2** Replace application UI icon glyphs with Phosphor and retain attribution/license; preserve specialized path/align drawings where needed.
 - [x] **21.3** Refresh application mark, favicon, and Windows icon assets; package third-party notices with Windows distribution.
-- [ ] **21.4** Build and smoke the updated Windows review package; record source SHA, archive SHA-256, executable version output, and actual Windows 11 feedback separately.
+- [x] **21.4** Build and smoke the updated Windows review package; record source SHA, archive SHA-256, executable version output, and actual Windows 11 feedback separately. *(Built from source `8b0084e4e8fd89619ef4b6e3dca894d6a91f5583`; executable SHA-256 `f922ebfb38951b2667bf0184ce305828f71f4671bf716670bb0137bdfcca7799`; ZIP SHA-256 `43cf928016f5763bbb02c172bd393798de86053cf800809854fe74a5b4960bff`; Wine `--version` = 0.3.0, 68 command rows, demo info JSON valid. Native Win11 user review remains open in 29.6.)*
 - [ ] **21.5** Verify menu/tool/panel visuals against supplied CS6 references at small and normal windows; capture interactive states and record differences.
 - [ ] **21.6** Resolve remaining splash, canvas focus, clipboard, and file-dialog defects with targeted reproduction tests.
 
