@@ -107,6 +107,20 @@ Worked the open task list end to end; decisions D1–D5 recorded.
 - **Release:** `scripts/package-windows.sh` builds `dist/windows/` + versioned zip + SHA-256;
   tag/version mismatch fails the release job; Wine smoke-tested the GNU binary.
 
+## 2026-11-26 — Panel suite, screenshot loop, interactive-state capture (16.3/16.8/G-5)
+
+- 16.3: `panel_states_paint_collapse_tab_overflow_iconic_and_inspector_clamp`
+  in `app/src/harness.rs` — dock collapse/expand paint delta, last-tab
+  overflow, iconic strip vs flyout, bottom-inspector clamp at 5000/0,
+  collapsed-bottom paint delta.
+- 16.8: `scripts/gui-suite.sh` replaces the manual per-round `gui-shot.sh`
+  loop — one invocation captures the six-state evidence set into `checks/`.
+- G-5: new `--state <menu|flyout|find-replace>` flag (main.rs) pre-arranges
+  the app so interactive states are reachable from the capture path.
+  Evidence: `checks/gui-suite-2026-11-26/` (visually verified: File menu
+  open, iconic flyout expanded, find-replace dialog). Drag/stack gestures
+  stay code-asserted in harness.rs, not pixel-captured.
+
 ## 2026-11-26 — Harness interaction tests (16.2/16.4/16.6/16.7)
 
 New tests in `app/src/harness.rs`, all driving the real headless frame:

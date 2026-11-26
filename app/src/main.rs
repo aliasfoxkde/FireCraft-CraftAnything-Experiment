@@ -58,6 +58,7 @@ fn main() {
     let mut initial_path: Option<String> = None;
     let mut new_document = false;
     let mut show_about = false;
+    let mut interactive_state: Option<String> = None;
     let mut window_size = (1360.0_f32, 860.0_f32);
     let mut i = 1;
     while i < args.len() {
@@ -93,6 +94,10 @@ fn main() {
             "--about" => {
                 show_about = true;
                 i += 1;
+            }
+            "--state" if i + 1 < args.len() => {
+                interactive_state = Some(args[i + 1].clone());
+                i += 2;
             }
             arg if !arg.starts_with('-') && initial_path.is_none() => {
                 initial_path = Some(arg.to_string());
@@ -163,6 +168,30 @@ fn main() {
                 fc.show_welcome = false;
             }
             fc.show_about_dialog = show_about;
+            match interactive_state.as_deref() {
+                // G-5 interactive states for scripted capture: an open menu,
+                // the iconic flyout, the find-and-replace dialog.
+                Some("menu") => {
+                    fc.show_welcome = false;
+                    fc.active_menu = Some(0);
+                }
+                Some("flyout") => {
+                    fc.show_welcome = false;
+                    fc.apply_workspace_preset("Iconic Mode");
+                    if let Some(&pid) = fc.panel_groups[0].tabs.first() {
+                        fc.iconic_flyout_panel = Some(pid);
+                    }
+                }
+                Some("find-replace") => {
+                    fc.show_welcome = false;
+                    fc.show_find_replace = true;
+                }
+                other => {
+                    if let Some(s) = other {
+                        fc.status = format!("Unknown --state '{s}' (menu|flyout|find-replace)");
+                    }
+                }
+            }
             Ok(Box::new(fc))
         }),
     )

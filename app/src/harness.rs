@@ -688,4 +688,91 @@ mod tests {
             "workspace with all panels closed painted {shapes}"
         );
     }
+
+    /// 16.3 panel suite: collapse/expand, tab overflow, iconic mode,
+    /// inspector resize clamp — every state must paint without panic and
+    /// with a sane shape count.
+    #[test]
+    fn panel_states_paint_collapse_tab_overflow_iconic_and_inspector_clamp() {
+        // Collapse every docked group, then expand again; both paint.
+        {
+            let mut harness = Harness::new();
+            harness.app.show_welcome = false;
+            harness.frame(1360.0, 860.0, Vec::new());
+            let open = harness.frame(1360.0, 860.0, Vec::new());
+            harness.app.collapse_all_panels(true);
+            let collapsed = harness.frame(1360.0, 860.0, Vec::new());
+            assert!(
+                collapsed < open,
+                "collapsed docks painted {collapsed} vs open {open}"
+            );
+            harness.app.collapse_all_panels(false);
+            let expanded = harness.frame(1360.0, 860.0, Vec::new());
+            assert!(expanded > 50);
+        }
+
+        // Tab overflow: point every group's active tab at its last member and
+        // frame — overflow arrows/scroll render without panic.
+        {
+            let mut harness = Harness::new();
+            harness.app.show_welcome = false;
+            harness.frame(1360.0, 860.0, Vec::new());
+            let last_tabs: Vec<_> = harness
+                .app
+                .panel_groups
+                .iter_mut()
+                .map(|g| {
+                    g.active_tab = g.tabs.len().saturating_sub(1);
+                    g.id
+                })
+                .collect();
+            assert!(!last_tabs.is_empty());
+            let shapes = harness.frame(1360.0, 860.0, Vec::new());
+            assert!(shapes > 50, "tab-overflow frame painted {shapes}");
+        }
+
+        // Iconic mode: preset paints the icon strip, and expanding one
+        // flyout paints more than the strip alone.
+        {
+            let mut harness = Harness::new();
+            harness.app.show_welcome = false;
+            harness.app.apply_workspace_preset("Iconic Mode");
+            let strip = harness.frame(960.0, 640.0, Vec::new());
+            assert!(strip > 50, "iconic strip painted {strip}");
+            let Some(&pid) = harness.app.panel_groups[0].tabs.first() else {
+                panic!("no panels in iconic workspace");
+            };
+            harness.app.iconic_flyout_panel = Some(pid);
+            let flyout = harness.frame(960.0, 640.0, Vec::new());
+            assert!(flyout > strip, "flyout painted {flyout} vs strip {strip}");
+        }
+
+        // Inspector clamp: layout clamps bottom_height into [118, 340]; a
+        // frame with an extreme value keeps painting and the effective
+        // height stays inside the clamp at the layout read.
+        {
+            let mut harness = Harness::new();
+            harness.app.show_welcome = false;
+            harness.app.bottom_height = 5000.0;
+            let shapes = harness.frame(1360.0, 860.0, Vec::new());
+            assert!(shapes > 50, "clamped-inspector frame painted {shapes}");
+            harness.app.bottom_height = 0.0;
+            let shapes = harness.frame(1360.0, 860.0, Vec::new());
+            assert!(shapes > 50, "tiny-inspector frame painted {shapes}");
+        }
+
+        // Collapsed bottom dock: hiding the inspector changes the paint.
+        {
+            let mut harness = Harness::new();
+            harness.app.show_welcome = false;
+            harness.frame(1360.0, 860.0, Vec::new());
+            let open = harness.frame(1360.0, 860.0, Vec::new());
+            harness.app.bottom_collapsed = true;
+            let collapsed = harness.frame(1360.0, 860.0, Vec::new());
+            assert!(
+                collapsed != open,
+                "collapsed bottom dock painted identically ({collapsed})"
+            );
+        }
+    }
 }

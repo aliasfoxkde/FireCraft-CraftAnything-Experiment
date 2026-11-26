@@ -71,7 +71,7 @@ Every task names its proof. A task without proof is not done.
 - [x] **16.5** Keyboard map as one table; test every binding resolves and `Esc`/dialogs take priority.
 - [x] **16.6** Menu matrix test: every enabled item performs its named action; disabled state matches preconditions. *(Done 2026-11-26: `app/src/harness.rs` test `every_menu_row_triggers_and_closes_the_menu` — walks 10 menus, 60 rows, Enter/Escape close. 101 tests passing.)*
 - [x] **16.7** File browser + find/replace + settings dialog interaction tests (address bar, filters, cancel, scope preview). *(Done 2026-11-26: `app/src/harness.rs` tests `find_replace_text_mode_counts_cycles_and_replaces_across_scope`, `find_replace_color_mode_reports_no_match_and_real_match`, `dialog_toggles_open_and_close_without_frames_panicking` — text replace across scope, color find/replace both paths, dialog toggles. 101 tests passing.)*
-- [ ] **16.8** Port the manual `checks/` screenshot loop into the automated suite; keep `checks/` for evidence only.
+- [x] **16.8** Port the manual `checks/` screenshot loop into the automated suite; keep `checks/` for evidence only. *(Done 2026-11-26: `scripts/gui-suite.sh` captures the six-state set (home, splash, menu, flyout, find-replace, about) in one invocation; new `--state <menu|flyout|find-replace>` flag reaches interactive states from the capture path. Evidence: `checks/gui-suite-2026-11-26/`.)*
 - [x] **16.9** Run the suite under Xvfb with a fixed software GL backend and document the invocation.
 
 ## Phase 17 — Architecture deepening
@@ -131,7 +131,7 @@ Every task names its proof. A task without proof is not done.
 - [x] **G-2** Color Mixer's last control is clipped when its panel group is short.
 - [x] **G-3** Top-right workspace cluster has no spacing at 960 px.
 - [x] **G-4** Toolbar Bridge button is a text label (`Br`) among icons.
-- [ ] **G-5** Capture interactive states (menus, flyouts, drag/stack) so the loop can review them. *(Interactive state is now asserted by `harness.rs`; pixel capture of open menus still needs a `--screenshot-menu` flag.)*
+- [x] **G-5** Capture interactive states (menus, flyouts, drag/stack) so the loop can review them. *(Done 2026-11-26: `--state <menu|flyout|find-replace>` flag + `scripts/gui-suite.sh`; pixel evidence in `checks/gui-suite-2026-11-26/` — File menu open, iconic flyout expanded, find-replace dialog. Drag/stack states remain gesture-code-asserted in `harness.rs`, not pixel-captured.)*
 
 ## Carried over from ROADMAP.md (unchecked there, tracked here)
 
