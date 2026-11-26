@@ -2,6 +2,16 @@
 
 Newest first.
 
+## 2026-11-25 — Task 17.2: extract layout/chrome.rs
+
+- Extracted the document tab strip and canvas footer bar (with their helpers
+  `tab_click_without_drag`, `compact_tab_label`, `footer_icon_button`) plus the
+  bottom properties dock body from `layout.rs` into `layout/chrome.rs` (815
+  lines) behind `pub(super)` visibility. `layout.rs` is 2850 -> 2041 lines.
+  Pure code motion; fmt, clippy `-D warnings`, tests and wasm check pass.
+
+Newest first.
+
 ## 2026-11-25 — Task 17.1: extract command modules from app.rs
 
 - Extracted `app/src/app/edit.rs` (undo/redo, delete/duplicate/group, clipboard,
