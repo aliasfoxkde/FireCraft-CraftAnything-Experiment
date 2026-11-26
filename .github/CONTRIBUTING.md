@@ -2,9 +2,9 @@
 
 ## Before you start
 
-- Read [CLAUDE.md](CLAUDE.md) for the agent/human working contract, [docs/architecture.md](docs/architecture.md)
-  for seams and [GLOSSARY.md](GLOSSARY.md) for vocabulary.
-- Open items are in [docs/TASKS.md](docs/TASKS.md). Tasks without proof are not done.
+- Read [CLAUDE.md](../CLAUDE.md) for the agent/human working contract, [docs/architecture.md](../docs/architecture.md)
+  for seams and [GLOSSARY.md](../docs/GLOSSARY.md) for vocabulary.
+- Open items are in [docs/TASKS.md](../docs/TASKS.md). Tasks without proof are not done.
 
 ## Workflow
 
@@ -18,7 +18,7 @@
 
    The quick subset (`--quick`) is fmt, clippy, tests and the docs check.
 4. Add a test at the seam you changed. If the behavior cannot be tested, say why in the PR.
-5. Update affected docs and add a line to [docs/PROGRESS.md](docs/PROGRESS.md) when the change is
+5. Update affected docs and add a line to [docs/PROGRESS.md](../docs/PROGRESS.md) when the change is
    substantial.
 6. Commit with a conventional message, e.g. `fix(canvas): clip radial gradients to the object`.
 
@@ -34,4 +34,4 @@
 ## Documentation
 
 `./scripts/check-docs.sh` fails on broken relative links and hardcoded version literals. Update the
-docs index ([docs/README.md](docs/README.md)) when you add a document.
+docs index ([docs/README.md](../docs/README.md)) when you add a document.

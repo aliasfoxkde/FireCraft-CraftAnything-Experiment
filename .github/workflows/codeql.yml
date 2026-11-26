@@ -1,0 +1,40 @@
+---
+name: CodeQL
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '23 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze Rust
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Check out repository
+        # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Initialize CodeQL
+        # v4
+        uses: >-
+          github/codeql-action/init@915412ff23e8b7659517e607487dbeae018f2934
+        with:
+          languages: rust
+          build-mode: none
+
+      - name: Run CodeQL analysis
+        # v4
+        uses: >-
+          github/codeql-action/analyze@915412ff23e8b7659517e607487dbeae018f2934
+        with:
+          category: /language:rust

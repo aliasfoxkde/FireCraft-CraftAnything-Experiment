@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and usage help
+    url: https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/discussions
+    about: Ask usage questions and discuss ideas with the community.
+  - name: Tutorials and project guides
+    url: https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/wiki
+    about: Browse getting-started help, tutorials, and feature documentation.
+  - name: Security policy
+    url: https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/security/policy
+    about: Read how to report a vulnerability privately; do not post it as a public issue.
+  - name: Releases and downloads
+    url: https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases
+    about: Find published binaries, checksums, release notes, and supported versions.

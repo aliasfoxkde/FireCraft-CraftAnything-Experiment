@@ -2223,3 +2223,382 @@ pub fn tool_button(
 }
 
 pub type TextureCache = std::collections::HashMap<(usize, usize), TextureHandle>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::doc::{Document, Layer, Page};
+
+    fn app_with_objects(objects: Vec<Obj>) -> FireCraft {
+        let mut app = FireCraft::new(None);
+        let mut page = Page::new("Hit testing", 200.0, 200.0);
+        page.layers = vec![Layer::new("Artwork"), Layer::web_layer()];
+        page.layers[0].objects = objects;
+        app.doc = Document::new(200.0, 200.0);
+        app.doc.pages = vec![page];
+        app.selected_layer = 0;
+        app
+    }
+
+    fn rect(x0: f32, y0: f32, x1: f32, y1: f32) -> Obj {
+        Obj::new(
+            Shape::Rect {
+                min: Vec2::new(x0, y0),
+                max: Vec2::new(x1, y1),
+                corner_radius: 0.0,
+                filled: true,
+            },
+            Some(Color32::WHITE),
+            None,
+        )
+    }
+
+    #[test]
+    fn coordinate_conversion_and_resize_handle_order_are_stable() {
+        assert_eq!(
+            to_screen(Vec2::new(10.0, 20.0), 2.0, Vec2::new(3.0, 4.0)),
+            pos2(16.0, 28.0)
+        );
+        let handles = selection_handles(Rect::from_min_max(pos2(0.0, 0.0), pos2(20.0, 10.0)));
+        assert_eq!(
+            handles,
+            [
+                pos2(0.0, 0.0),
+                pos2(10.0, 0.0),
+                pos2(20.0, 0.0),
+                pos2(20.0, 5.0),
+                pos2(20.0, 10.0),
+                pos2(10.0, 10.0),
+                pos2(0.0, 10.0),
+                pos2(0.0, 5.0),
+            ]
+        );
+    }
+
+    #[test]
+    fn auto_shape_handles_are_specific_to_rectangles_and_polygons() {
+        let rectangle = rect(10.0, 20.0, 110.0, 80.0);
+        let (kind, point) = auto_handle_for(&rectangle).unwrap();
+        assert_eq!(kind, 0);
+        assert_eq!(point, Vec2::new(20.0, 30.0));
+
+        let star = Obj::new(
+            Shape::Polygon {
+                center: Vec2::new(50.0, 50.0),
+                radius: 20.0,
+                sides: 5,
+                star_inner: 0.5,
+                angle_rad: 0.0,
+            },
+            None,
+            None,
+        );
+        let (kind, point) = auto_handle_for(&star).unwrap();
+        assert_eq!(kind, 1);
+        assert!((point - Vec2::new(50.0, 50.0) - Vec2::new(0.5, 0.0) * 20.0).length() > 0.0);
+        assert_eq!(
+            auto_handle_for(&Obj::new(
+                Shape::Line {
+                    a: Vec2::ZERO,
+                    b: Vec2::splat(1.0),
+                },
+                None,
+                None
+            )),
+            None
+        );
+    }
+
+    #[test]
+    fn hit_testing_obeys_topmost_order_visibility_locks_and_web_layer_toggle() {
+        let mut back = rect(0.0, 0.0, 50.0, 50.0);
+        back.name = "back".into();
+        let mut top = rect(10.0, 10.0, 40.0, 40.0);
+        top.name = "top".into();
+        let mut app = app_with_objects(vec![back, top]);
+        assert_eq!(hit_test(&app, Vec2::new(20.0, 20.0)), Some((0, 1)));
+        app.doc.page_mut().layers[0].objects[1].visible = false;
+        assert_eq!(hit_test(&app, Vec2::new(20.0, 20.0)), Some((0, 0)));
+        app.doc.page_mut().layers[0].objects[0].locked = true;
+        assert_eq!(hit_test(&app, Vec2::new(20.0, 20.0)), None);
+
+        let mut web = rect(0.0, 0.0, 50.0, 50.0);
+        web.visible = true;
+        app.doc.page_mut().layers[1].objects.push(web);
+        app.show_slices = false;
+        assert_eq!(hit_test(&app, Vec2::new(20.0, 20.0)), None);
+        app.show_slices = true;
+        assert_eq!(hit_test(&app, Vec2::new(20.0, 20.0)), Some((1, 0)));
+        app.doc.page_mut().layers[1].locked = true;
+        assert_eq!(hit_test(&app, Vec2::new(20.0, 20.0)), None);
+    }
+
+    #[test]
+    fn hit_testing_covers_shape_geometry_and_nested_groups() {
+        let cases = [
+            (
+                Shape::Ellipse {
+                    center: Vec2::new(20.0, 20.0),
+                    radius: Vec2::splat(10.0),
+                    filled: true,
+                },
+                Vec2::new(20.0, 20.0),
+            ),
+            (
+                Shape::Polygon {
+                    center: Vec2::new(20.0, 20.0),
+                    radius: 10.0,
+                    sides: 5,
+                    star_inner: 1.0,
+                    angle_rad: 0.0,
+                },
+                Vec2::new(20.0, 20.0),
+            ),
+            (
+                Shape::Line {
+                    a: Vec2::new(0.0, 20.0),
+                    b: Vec2::new(40.0, 20.0),
+                },
+                Vec2::new(20.0, 24.0),
+            ),
+            (
+                Shape::Path {
+                    points: vec![Vec2::new(0.0, 20.0), Vec2::new(40.0, 20.0)],
+                    closed: false,
+                },
+                Vec2::new(20.0, 24.0),
+            ),
+            (
+                Shape::Text {
+                    at: Vec2::new(10.0, 30.0),
+                    text: "abc".into(),
+                    size: 12.0,
+                    bold: false,
+                    italic: false,
+                    font_family: "sans-serif".into(),
+                },
+                Vec2::new(11.0, 25.0),
+            ),
+            (
+                Shape::Bitmap {
+                    at: Vec2::new(10.0, 10.0),
+                    pixels: vec![],
+                    size: Vec2::splat(20.0),
+                },
+                Vec2::new(15.0, 15.0),
+            ),
+            (
+                Shape::SymbolInstance {
+                    symbol_id: 0,
+                    at: Vec2::new(10.0, 10.0),
+                    scale: Vec2::splat(0.5),
+                },
+                Vec2::new(20.0, 20.0),
+            ),
+            (
+                Shape::Gradient {
+                    min: Vec2::new(10.0, 10.0),
+                    max: Vec2::new(30.0, 30.0),
+                    from: Color32::BLACK,
+                    to: Color32::WHITE,
+                    radial: false,
+                },
+                Vec2::new(20.0, 20.0),
+            ),
+            (
+                Shape::Slice {
+                    min: Vec2::new(10.0, 10.0),
+                    max: Vec2::new(30.0, 30.0),
+                    url: String::new(),
+                    alt: String::new(),
+                    target: String::new(),
+                    format: String::new(),
+                    is_hotspot: false,
+                },
+                Vec2::new(20.0, 20.0),
+            ),
+            (
+                Shape::Group {
+                    children: vec![rect(10.0, 10.0, 30.0, 30.0)],
+                },
+                Vec2::new(20.0, 20.0),
+            ),
+        ];
+        for (shape, point) in cases {
+            let app = app_with_objects(vec![Obj::new(shape, None, None)]);
+            assert_eq!(hit_test(&app, point), Some((0, 0)));
+            assert_eq!(hit_test(&app, Vec2::new(190.0, 190.0)), None);
+        }
+
+        let closed_path = Obj::new(
+            Shape::Path {
+                points: vec![
+                    Vec2::new(10.0, 10.0),
+                    Vec2::new(30.0, 30.0),
+                    Vec2::new(10.0, 30.0),
+                ],
+                closed: true,
+            },
+            None,
+            None,
+        );
+        let app = app_with_objects(vec![closed_path]);
+        assert_eq!(hit_test(&app, Vec2::new(15.0, 25.0)), Some((0, 0)));
+    }
+
+    #[test]
+    fn selected_object_resize_and_auto_shape_handles_use_zoom_adjusted_tolerance() {
+        let mut app = app_with_objects(vec![rect(10.0, 10.0, 50.0, 50.0)]);
+        app.selected = Some(0);
+        app.doc.zoom = 1.0;
+        assert_eq!(hit_test_handle(&app, Vec2::new(10.0, 10.0)), Some(0));
+        assert_eq!(hit_test_handle(&app, Vec2::new(100.0, 100.0)), None);
+        assert_eq!(hit_test_auto_handle(&app, Vec2::new(20.0, 20.0)), Some(0));
+        assert_eq!(hit_test_auto_handle(&app, Vec2::new(100.0, 100.0)), None);
+        app.selected = None;
+        assert_eq!(hit_test_handle(&app, Vec2::new(10.0, 10.0)), None);
+        assert_eq!(hit_test_auto_handle(&app, Vec2::new(20.0, 20.0)), None);
+    }
+
+    #[test]
+    fn hit_test_handles_degenerate_and_reversed_geometry_boundaries() {
+        let shapes = [
+            (
+                Shape::Rect {
+                    min: Vec2::new(30.0, 30.0),
+                    max: Vec2::new(10.0, 10.0),
+                    corner_radius: 0.0,
+                    filled: true,
+                },
+                Vec2::new(20.0, 20.0),
+            ),
+            (
+                Shape::Ellipse {
+                    center: Vec2::new(20.0, 20.0),
+                    radius: Vec2::ZERO,
+                    filled: true,
+                },
+                Vec2::new(20.0, 20.0),
+            ),
+            (
+                Shape::Line {
+                    a: Vec2::new(20.0, 20.0),
+                    b: Vec2::new(20.0, 20.0),
+                },
+                Vec2::new(24.0, 20.0),
+            ),
+            (
+                Shape::Path {
+                    points: vec![
+                        Vec2::new(20.0, 20.0),
+                        Vec2::new(20.0, 20.0),
+                        Vec2::new(40.0, 20.0),
+                    ],
+                    closed: false,
+                },
+                Vec2::new(30.0, 20.0),
+            ),
+        ];
+        for (shape, point) in shapes {
+            let app = app_with_objects(vec![Obj::new(shape, None, None)]);
+            assert_eq!(hit_test(&app, point), Some((0, 0)));
+        }
+
+        let app = app_with_objects(vec![Obj::new(
+            Shape::Path {
+                points: vec![Vec2::ZERO],
+                closed: false,
+            },
+            None,
+            None,
+        )]);
+        assert_eq!(hit_test(&app, Vec2::ZERO), None);
+    }
+
+    #[test]
+    fn canvas_paint_primitives_cover_grid_guides_rulers_and_gradient_edges() {
+        let ctx = egui::Context::default();
+        let mut app = FireCraft::new(None);
+        app.doc.page_mut().guides_h = vec![10.0, 1_000.0];
+        app.doc.page_mut().guides_v = vec![20.0, -1_000.0];
+        let input = egui::RawInput {
+            screen_rect: Some(Rect::from_min_size(Pos2::ZERO, Vec2::new(320.0, 240.0))),
+            ..Default::default()
+        };
+        let mut output = ctx.run_ui(input, |ui| {
+            let rect = ui.max_rect();
+            let painter = ui.painter().clone();
+            draw_checkerboard(&painter, rect);
+            draw_grid(&painter, rect, Vec2::ZERO, 1.0, 20.0, Color32::GRAY);
+            // A sub-8px screen grid is intentionally suppressed.
+            draw_grid(&painter, rect, Vec2::ZERO, 0.1, 20.0, Color32::GRAY);
+            draw_guides(&painter, rect, Vec2::ZERO, 1.0, &app);
+            draw_rulers(
+                &painter,
+                rect,
+                Vec2::ZERO,
+                1.0,
+                app.palette,
+                crate::app::RulerUnit::Pixels,
+                96.0,
+            );
+            draw_dotted_rect(
+                &painter,
+                Rect::from_min_max(pos2(20.0, 20.0), pos2(80.0, 80.0)),
+                Stroke::new(1.0, Color32::WHITE),
+                5.0,
+                3.0,
+            );
+            let gradient = GradientFill {
+                start: Color32::BLACK,
+                end: Color32::WHITE,
+            };
+            paint_gradient(
+                &painter,
+                Rect::from_min_max(pos2(100.0, 20.0), pos2(150.0, 80.0)),
+                gradient,
+                0.8,
+                |p, color| {
+                    p.rect_filled(
+                        Rect::from_min_max(pos2(100.0, 20.0), pos2(150.0, 80.0)),
+                        0.0,
+                        color,
+                    );
+                },
+            );
+            // Very short gradients take the single-stop path rather than generating bands.
+            paint_gradient(
+                &painter,
+                Rect::from_min_max(pos2(160.0, 20.0), pos2(180.0, 20.2)),
+                gradient,
+                1.0,
+                |p, color| {
+                    p.rect_filled(
+                        Rect::from_min_size(pos2(160.0, 20.0), Vec2::new(20.0, 1.0)),
+                        0.0,
+                        color,
+                    );
+                },
+            );
+            fill_polygon(
+                &painter,
+                &[pos2(200.0, 20.0), pos2(240.0, 20.0), pos2(220.0, 60.0)],
+                1.0,
+                pos2(220.0, 40.0),
+                Color32::RED,
+            );
+            fill_polygon(
+                &painter,
+                &[pos2(250.0, 20.0), pos2(290.0, 20.0), pos2(270.0, 60.0)],
+                0.5,
+                pos2(270.0, 40.0),
+                Color32::BLUE,
+            );
+        });
+        assert!(
+            output.shapes.len() > 100,
+            "expected overlays and gradient bands to paint"
+        );
+        output.textures_delta.clear();
+    }
+}

@@ -1,0 +1,36 @@
+app-id: io.github.aliasfoxkde.FireCraft
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+command: firecraft
+finish-args:
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --device=dri
+  - --socket=pulseaudio
+  - --filesystem=home
+  - --share=network
+modules:
+  - name: firecraft
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 firecraft /app/bin/firecraft
+      - install -Dm644 io.github.aliasfoxkde.FireCraft.desktop /app/share/applications/io.github.aliasfoxkde.FireCraft.desktop
+      - install -Dm644 logo.png /app/share/icons/hicolor/512x512/apps/io.github.aliasfoxkde.FireCraft.png
+      - install -Dm644 io.github.aliasfoxkde.FireCraft.metainfo.xml /app/share/metainfo/io.github.aliasfoxkde.FireCraft.metainfo.xml
+      - install -Dm644 LICENSE /app/share/licenses/io.github.aliasfoxkde.FireCraft/LICENSE
+      - install -Dm644 THIRD-PARTY-NOTICES.md /app/share/doc/io.github.aliasfoxkde.FireCraft/THIRD-PARTY-NOTICES.md
+    sources:
+      - type: file
+        path: firecraft
+      - type: file
+        path: io.github.aliasfoxkde.FireCraft.desktop
+      - type: file
+        path: io.github.aliasfoxkde.FireCraft.metainfo.xml
+      - type: file
+        path: logo.png
+      - type: file
+        path: LICENSE
+      - type: file
+        path: THIRD-PARTY-NOTICES.md

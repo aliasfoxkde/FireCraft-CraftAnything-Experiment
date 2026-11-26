@@ -221,6 +221,13 @@ mod tests {
     }
 
     #[test]
+    fn hex_parser_rejects_bad_digits_in_every_channel() {
+        for text in ["g00", "0g0", "00g", "gg0000", "00gg00", "0000gg"] {
+            assert_eq!(from_hex(text), None, "accepted invalid color {text}");
+        }
+    }
+
+    #[test]
     fn hsv_hls_cmyk_roundtrip() {
         for &c in &[
             Color32::from_rgb(255, 0, 0),

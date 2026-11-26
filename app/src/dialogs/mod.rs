@@ -1588,3 +1588,95 @@ pub fn welcome_overlay(app: &mut FireCraft) {
             });
         });
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn press_key(app: &mut FireCraft, key: egui::Key) {
+        let input = egui::RawInput {
+            screen_rect: Some(egui::Rect::from_min_size(
+                egui::Pos2::ZERO,
+                Vec2::new(1200.0, 800.0),
+            )),
+            time: Some(3.0),
+            events: vec![egui::Event::Key {
+                key,
+                physical_key: None,
+                pressed: true,
+                repeat: false,
+                modifiers: egui::Modifiers::NONE,
+            }],
+            ..Default::default()
+        };
+        let ctx = app.ctx.clone();
+        let mut output = ctx.run_ui(input, |_| match key {
+            egui::Key::Escape if app.show_html_setup_dialog => html_setup_dialog(app),
+            egui::Key::Escape if app.show_page_setup_dialog => page_setup_dialog(app),
+            _ => command_palette_dialog(app),
+        });
+        output.textures_delta.clear();
+    }
+
+    #[test]
+    fn escape_closes_html_setup_without_changing_export_preferences() {
+        let mut app = FireCraft::new(None);
+        let original = app.html_setup.clone();
+        app.show_html_setup_dialog = true;
+
+        press_key(&mut app, egui::Key::Escape);
+
+        assert!(!app.show_html_setup_dialog);
+        assert_eq!(app.html_setup.style, original.style);
+        assert_eq!(app.html_setup.extension, original.extension);
+        assert_eq!(app.html_setup.include_slices, original.include_slices);
+        assert_eq!(app.html_setup.center_in_browser, original.center_in_browser);
+        assert_eq!(
+            app.html_setup.include_viewport_meta,
+            original.include_viewport_meta
+        );
+        assert_eq!(app.html_setup.export_doc_bg, original.export_doc_bg);
+    }
+
+    #[test]
+    fn escape_closes_page_setup_without_changing_print_preferences() {
+        let mut app = FireCraft::new(None);
+        let original = app.page_setup.clone();
+        app.show_page_setup_dialog = true;
+
+        press_key(&mut app, egui::Key::Escape);
+
+        assert!(!app.show_page_setup_dialog);
+        assert_eq!(app.page_setup.paper, original.paper);
+        assert_eq!(app.page_setup.landscape, original.landscape);
+        assert_eq!(app.page_setup.margin_in, original.margin_in);
+        assert_eq!(app.page_setup.fit_to_page, original.fit_to_page);
+        assert_eq!(app.page_setup.scale_pct, original.scale_pct);
+        assert_eq!(
+            app.page_setup.print_guides_slices,
+            original.print_guides_slices
+        );
+    }
+
+    #[test]
+    fn command_palette_escape_closes_without_running_an_action() {
+        let mut app = FireCraft::new(None);
+        app.show_command_palette = true;
+
+        press_key(&mut app, egui::Key::Escape);
+
+        assert!(!app.show_command_palette);
+        assert!(!app.show_find_replace);
+    }
+
+    #[test]
+    fn command_palette_enter_runs_the_initial_find_action() {
+        let mut app = FireCraft::new(None);
+        app.show_command_palette = true;
+
+        press_key(&mut app, egui::Key::Enter);
+
+        assert!(!app.show_command_palette);
+        assert!(app.show_find_replace);
+    }
+}

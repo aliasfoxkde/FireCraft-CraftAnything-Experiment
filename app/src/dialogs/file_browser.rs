@@ -542,3 +542,193 @@ fn relative_modified(time: std::time::SystemTime) -> String {
         format!("{}d ago", hours / 24)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::formats::Format;
+    use std::path::Path;
+
+    fn app() -> FireCraft {
+        FireCraft::new(None)
+    }
+
+    fn temporary_browser_folder() -> std::path::PathBuf {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static NEXT: AtomicUsize = AtomicUsize::new(0);
+        let dir = std::env::temp_dir().join(format!(
+            "firecraft-file-browser-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir_all(dir.join("folder")).unwrap();
+        for name in [
+            "art.fw.png",
+            "photo.jpg",
+            "vector.svg",
+            "bridge.psd",
+            "notes.txt",
+        ] {
+            std::fs::write(dir.join(name), b"file browser fixture").unwrap();
+        }
+        dir
+    }
+
+    fn render_body(app: &mut FireCraft) -> usize {
+        let ctx = app.ctx.clone();
+        let input = egui::RawInput {
+            screen_rect: Some(egui::Rect::from_min_size(
+                egui::Pos2::ZERO,
+                egui::Vec2::new(1100.0, 760.0),
+            )),
+            ..Default::default()
+        };
+        let mut close_now = false;
+        let mut output = ctx.run_ui(input, |ui| file_dialog_body(ui, app, &mut close_now));
+        output.textures_delta.clear();
+        output.shapes.len()
+    }
+
+    #[test]
+    fn dialog_body_renders_real_entries_for_read_and_save_modes() {
+        let dir = temporary_browser_folder();
+        let mut app = app();
+        app.set_file_dialog_dir(dir.clone());
+
+        for mode in [
+            FileMode::Open,
+            FileMode::Import,
+            FileMode::Save,
+            FileMode::Export,
+        ] {
+            app.file_mode = mode;
+            app.file_dialog_name = if matches!(mode, FileMode::Save | FileMode::Export) {
+                "image.jpg".into()
+            } else {
+                String::new()
+            };
+            app.file_dialog_type_filter = 0;
+            app.file_dialog_filter.clear();
+            assert!(
+                render_body(&mut app) > 20,
+                "{mode:?} dialog should paint its controls"
+            );
+        }
+
+        // Search and type filtering are applied to the listing while preserving directory rows.
+        app.file_mode = FileMode::Open;
+        app.file_dialog_filter = "photo".into();
+        app.file_dialog_type_filter = 3;
+        assert!(render_body(&mut app) > 20);
+        app.file_dialog_filter.clear();
+        for filter in 0..=5 {
+            app.file_dialog_type_filter = filter;
+            assert!(render_body(&mut app) > 20);
+        }
+
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn escape_closes_file_dialog_and_clears_pending_close_state() {
+        let mut app = app();
+        app.show_file_dialog = true;
+        app.pending_close_after_save = Some(0);
+        app.pending_close_tabs.push(1);
+        app.pending_quit_after_save = true;
+        let input = egui::RawInput {
+            screen_rect: Some(egui::Rect::from_min_size(
+                egui::Pos2::ZERO,
+                egui::Vec2::new(1000.0, 700.0),
+            )),
+            events: vec![egui::Event::Key {
+                key: egui::Key::Escape,
+                physical_key: None,
+                pressed: true,
+                repeat: false,
+                modifiers: egui::Modifiers::NONE,
+            }],
+            ..Default::default()
+        };
+        let ctx = app.ctx.clone();
+        let mut output = ctx.run_ui(input, |_| file_dialog(&mut app));
+        output.textures_delta.clear();
+        assert!(!app.show_file_dialog);
+        assert_eq!(app.pending_close_after_save, None);
+        assert!(app.pending_close_tabs.is_empty());
+        assert!(!app.pending_quit_after_save);
+    }
+
+    #[test]
+    fn save_type_selection_replaces_the_extension_and_handles_empty_names() {
+        let mut app = app();
+        app.file_dialog_name = "poster.jpeg".into();
+        set_file_extension(&mut app, Format::Png);
+        assert_eq!(app.file_dialog_name, "poster.png");
+
+        app.file_dialog_name.clear();
+        set_file_extension(&mut app, Format::Svg);
+        assert_eq!(app.file_dialog_name, "untitled.svg");
+
+        assert_eq!(save_formats().len(), 9);
+        assert!(save_formats().contains(&Format::WebP));
+        assert!(save_formats().contains(&Format::Ico));
+    }
+
+    #[test]
+    fn open_type_filters_cover_layered_raster_vector_bridge_and_all_files() {
+        let mut app = app();
+        let cases = [
+            (0, "art.fw.png", "png", true),
+            (0, "photo.JPEG", "jpeg", true),
+            (0, "design.ai", "ai", true),
+            (0, "notes.txt", "txt", false),
+            (1, "art.fw.png", "png", true),
+            (1, "art.png", "png", false),
+            (2, "photo.tiff", "tiff", true),
+            (2, "design.svg", "svg", false),
+            (3, "design.svg", "svg", true),
+            (3, "design.SVG", "svg", true),
+            (4, "design.psb", "psb", true),
+            (4, "design.psd", "psd", true),
+            (4, "design.ai", "ai", true),
+            (4, "design.png", "png", false),
+            (5, "notes.txt", "txt", true),
+            (99, "notes.txt", "txt", true),
+        ];
+
+        for (filter, filename, ext, expected) in cases {
+            app.file_dialog_type_filter = filter;
+            assert_eq!(
+                file_passes_filter(&app, Path::new(filename), ext),
+                expected,
+                "filter {filter} for {filename}"
+            );
+        }
+    }
+
+    #[test]
+    fn file_size_labels_use_kilobyte_megabyte_and_gigabyte_units() {
+        assert_eq!(human_file_size(0), "1 KB");
+        assert_eq!(human_file_size(1024), "1 KB");
+        assert_eq!(human_file_size(1024 * 1024), "1.0 MB");
+        assert_eq!(human_file_size(1024_u64.pow(3)), "1.0 GB");
+        assert_eq!(human_file_size(1536), "1 KB");
+    }
+
+    #[test]
+    fn modified_time_labels_cover_recent_old_and_future_files() {
+        use std::time::{Duration, SystemTime};
+        let now = SystemTime::now();
+        assert_eq!(relative_modified(now), "Just now");
+        assert_eq!(
+            relative_modified(now - Duration::from_secs(2 * 3600)),
+            "2h ago"
+        );
+        assert_eq!(
+            relative_modified(now - Duration::from_secs(3 * 24 * 3600)),
+            "3d ago"
+        );
+        assert_eq!(relative_modified(now + Duration::from_secs(60)), "");
+    }
+}

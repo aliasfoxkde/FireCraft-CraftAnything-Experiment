@@ -4,9 +4,9 @@ Status: **this polish pass is complete; open work has moved.**
 
 This file is the record of the CS6 polish pass: what was built, and which checks could not be run
 without a Windows desktop. The unchecked `Verify` items below are carried as tasks in
-[`docs/TASKS.md`](docs/TASKS.md) (Phase 16/18) — they close with automated proof, not another manual
-sweep. New work goes to `docs/TASKS.md`; measured state is in [`docs/AUDIT.md`](docs/AUDIT.md) and
-the ordering rationale in [`docs/PLAN.md`](docs/PLAN.md).
+[`TASKS.md`](TASKS.md) (Phase 16/18) — they close with automated proof, not another manual
+sweep. New work goes to `TASKS.md`; measured state is in [`AUDIT.md`](AUDIT.md) and
+the ordering rationale in [`PLAN.md`](PLAN.md).
 
 Every item lists the outcome and how it will be verified. Items were worked in ID order unless a
 dependency forced otherwise.
@@ -204,7 +204,7 @@ dependency forced otherwise.
 - [x] **10.2** Targeted regression checks for text/color replace, hidden-object replace, and path
       join/split; broader style/filter/panel checks remain part of manual review.
 - [x] **10.3** Rebuild `x86_64-pc-windows-gnu` release, smoke-test CLI under Wine, repackage
-      `app/dist/firecraft-windows-x86_64-review.zip`, and update `CHANGELOG.md`.
+      `app/dist/firecraft-windows-x86_64-review.zip`, and update `.github/CHANGELOG.md`.
 - [x] **10.4** Report limitations explicitly (GUI visual checks that require a real Windows desktop).
 
 ## Phase 11 — Architecture, maintainability, and release size
@@ -212,7 +212,7 @@ dependency forced otherwise.
 - [x] **11.1 Split monoliths.** Find/Replace moved to `app/find_replace.rs`; the file browser and
       Find/Replace dialog UI moved to `dialogs/`; the tool palette moved to `panels/tools.rs`.
 - [x] **11.2 Document the architecture.** `docs/README.md` is a navigation index into architecture,
-      build/release, feature references, ADRs, and `GLOSSARY.md`; README is a short entry point.
+      build/release, feature references, ADRs, and `docs/GLOSSARY.md`; README is a short entry point.
 - [x] **11.3 Release optimization.** Fat LTO, one codegen unit, `opt-level=3`, symbol stripping, and
       abort-on-panic in the release profile. Rust ships already-optimized machine code; there is no
       safe whole-program source minifier/obfuscator, and a single executable remains the documented

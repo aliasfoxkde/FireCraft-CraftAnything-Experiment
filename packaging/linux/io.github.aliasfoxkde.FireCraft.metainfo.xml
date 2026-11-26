@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.aliasfoxkde.FireCraft</id>
+  <name>FireCraft</name>
+  <summary>Open Source Raster and Vector Graphics Editor</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <description>
+    <p>FireCraft is a local-first raster and vector graphics editor inspired by the
+    web graphics workflow of Adobe Fireworks. It combines drawing, image editing,
+    layers, pages, states, effects, and asset export in one application.</p>
+  </description>
+  <launchable type="desktop-id">io.github.aliasfoxkde.FireCraft.desktop</launchable>
+  <url type="homepage">https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment</url>
+  <url type="bugtracker">https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/issues</url>
+  <developer id="io.github.aliasfoxkde">
+    <name>FireCraft contributors</name>
+  </developer>
+  <content_rating type="oars-1.1" />
+</component>

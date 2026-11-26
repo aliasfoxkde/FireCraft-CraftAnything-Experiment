@@ -2,6 +2,18 @@
 
 Newest first.
 
+### 2026-11-26 — hosted gate follow-up and extension roadmap
+
+- Audited the latest hosted experiment-repo run. Coverage workflow passed 180 tests (154 unit, 12 CLI, 4 hygiene, 10 MCP) and produced Cobertura at 68.24% lines (16,978/24,880); no branch counters were emitted. This does not meet the requested 99% target.
+- Hosted Windows release build, CLI smoke, ZIP packaging, and the WASM release build passed on source `4bd1242`. Neither result proves Windows 11 interactive acceptance or a production deploy.
+- Strict Clippy found a duplicated generic bound and two test modules above production items. Corrected those source issues, and made GitHub Code Quality upload failure non-blocking after its endpoint returned HTTP 404; the Cobertura artifact remains the required coverage receipt.
+- Added Phase 31 to the task ledger for the extension API, local manager, public catalog, community submission, safe one-click installation, and author/user documentation. Historical desk research and the canonical informational Extensions page are complete; operational marketplace features remain future work.
+- Current source-level formatting, workflow lint (with the documented actionlint permission-scope exception), and whitespace checks pass. Full CI still requires the module-size fix and final package/CodeQL results; release and deploy remain gated.
+- Follow-up run `45870025403` confirmed strict Clippy, the 180 tests, formatting, docs validation, and WASM build pass. It found two file-size gate failures (`icons.rs` 2,193 lines and `panels/bodies.rs` 2,028 lines); moved only their test modules into adjacent files. Local `module-size.sh` now passes. The new extraction is pushed for another hosted check; Windows and CodeQL were still running.
+- Follow-up coverage run `45870025885` reports 68.24% lines (16,979/24,881) and its GitHub Code Quality upload step succeeds. Cobertura has no branch counters, so branch coverage remains unmeasured.
+- Full corrected run `45871239608` now passes Linux quality gates, all 180 tests, docs, module-size, Windows CLI/ZIP packaging, and WASM builds. CodeQL was still in progress at the last check. Its CI coverage ratchet measured 67.61% lines / 69.71% functions / 69.82% regions; its separate Cobertura artifact measured 68.05% lines and has no branch counters. Raised `coverage-floor.txt` from 44.40% to 67.61%; this exact new floor needs one hosted confirmation run.
+
+
 ## 2026-11-25 — Tasks 18.3, 18.7, 19.6: layout proof, frame budget, reproducible build
 
 - **18.3**: headless Xvfb captures at 960×640 and 1360×860 with demo scene and
@@ -266,3 +278,18 @@ unverified. Do not restate the plan; link it.
   layout.rs/menus.rs (code-verified, not screen-verified); WASM focus visuals,
   prefers-reduced-motion and screen readers recorded as limitations with the
   concrete path to close each.
+### 2026-11-26 — Documentation and GitHub community organization
+
+- Moved the generated changelog and GitHub community health documents to `.github/`; moved the
+  product brief, glossary, improvement history, and completed UI roadmap into `docs/`.
+- Kept the existing root `AGENTS.md` and linked it from README/docs navigation rather than creating
+  a duplicate. Updated the package assembly scripts so release archives still contain user-facing
+  `CHANGELOG.md` and `GLOSSARY.md` files at their established package paths.
+- Added GitHub issue-routing links, a Contributor Covenant Code of Conduct, and CODEOWNERS. Existing
+  bug, feature, and pull-request templates remain the supported submission forms.
+- Updated cross-document links and the documentation checker for the new file locations.
+- Verification: `./scripts/ci-local.sh --quick`, `./scripts/check-docs.sh`, `git diff --check`, and
+  `bash -n` on the three packaging scripts passed. Before this update, PR #7's current head had
+  passing hosted gates, coverage, Windows build/CLI smoke, WASM, and CodeQL; the pushed doc change
+  will produce a fresh receipt for the new head. `actionlint` still reports the known
+  `code-quality: write` permission scope in the coverage workflow, which GitHub currently accepts.

@@ -1,7 +1,7 @@
 # Plan — from "compiles and looks right" to "proven and shippable"
 
-Inputs: [AUDIT.md](AUDIT.md) (measured baseline, findings F-01…F-18), [ROADMAP.md](../ROADMAP.md)
-(completed polish pass and its open manual checks), [../IMPROVEMENTS.md](../IMPROVEMENTS.md)
+Inputs: [AUDIT.md](AUDIT.md) (measured baseline, findings F-01…F-18), [ROADMAP.md](ROADMAP.md)
+(completed polish pass and its open manual checks), [IMPROVEMENTS.md](IMPROVEMENTS.md)
 (untriaged user reports), [architecture.md](architecture.md) (seams), [adr/](adr/) (decisions).
 
 The plan continues the roadmap's numbering at **Phase 13** so IDs stay unique. Work items live in

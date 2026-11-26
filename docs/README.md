@@ -8,29 +8,44 @@ is the map for deeper material.
 | Goal | Read |
 |------|------|
 | See what is measured right now | [Audit](AUDIT.md) |
+| Read the 2026-11-26 repository audit | [Audit snapshot](AUDIT-2026-11-26.md) |
+| Review code quality and verification gaps | [Quality gap analysis](research/quality-gap-analysis.md) |
+| Review scanner findings and triage | [Pattern scan triage](research/pattern-scan-triage.md) |
+| Investigate immediate GitHub Actions failures | [GitHub Actions triage](research/github-actions-triage.md) |
 | Know what to work on next | [Tasks](TASKS.md) |
 | Understand the phased plan and its exit criteria | [Plan](PLAN.md) |
+| Read the public product roadmap, current vs planned | [Product Roadmap](PRODUCT_ROADMAP.md) |
+| Review reference projects and feature research | [Reference project study](research/reference-projects.md) |
+| Review Fireworks extensions and the community marketplace plan | [Fireworks extensions research](research/fireworks-extensions.md) |
+| Review CI/CD patterns and adoption steps | [CI/CD patterns](research/ci-cd-patterns.md) |
+| See requested Codex skill installations | [Agent skill installation record](research/agent-skills-installation.md) |
+| Read the repository working agreement | [AGENTS.md](../AGENTS.md) · [Contributor guide](../.github/CONTRIBUTING.md) |
 | See what changed and when | [Progress log](PROGRESS.md) |
 | Build, test, or package a release | [Build & Release](build-release.md) |
 | Understand the module layout and design seams | [Architecture](architecture.md) |
+| Read the dated architecture review and extraction recommendations | [Architecture review](architecture-review-2026-11-26.md) |
 | Work on the infinite / god-view canvas | [Infinite Canvas](features/infinite-canvas.md) |
 | Work on Find & Replace (including colors) | [Find & Replace](features/find-replace.md) |
 | Work on Open / Save / Export | [File Browser](features/file-browser.md) |
 | See the full feature inventory | [Feature Surface](features/README.md) |
 | Learn to use FireCraft (tutorials, keybindings) | [Tutorials](tutorials/README.md) |
 | Accessibility checklist and limitations | [A11Y](A11Y.md) |
-| Read the completed polish pass and manual backlog | [Roadmap](../ROADMAP.md) |
-| See changes by release | [Changelog](../CHANGELOG.md) |
+| Read the completed UI polish history | [Polish history](ROADMAP.md) |
+| See changes by release | [Changelog](../.github/CHANGELOG.md) |
+| Read the vocabulary and original product brief | [Glossary](GLOSSARY.md) · [Instructions](INSTRUCTIONS.md) |
+| Review completed and planned improvements | [Improvements](IMPROVEMENTS.md) · [Roadmap](ROADMAP.md) |
+| Contribute or report a security issue | [Contributing](../.github/CONTRIBUTING.md) · [Security](../.github/SECURITY.md) · [Code of Conduct](../.github/CODE_OF_CONDUCT.md) |
 
 ## Conventions
 
-- **Domain terms** are defined in [GLOSSARY.md](../GLOSSARY.md). Use those names in code, UI copy,
+- **Domain terms** are defined in [GLOSSARY.md](GLOSSARY.md). Use those names in code, UI copy,
   issues, and docs.
 - **Architecture decisions** live in [docs/adr/](adr/). Do not silently reverse an ADR; add a new
   one that explains the change.
 - **Feature notes** describe behavior and invariants, not implementation diaries.
-- **`docs/TASKS.md` is the single active checklist.** `ROADMAP.md` keeps the completed polish pass
-  and the manual verification backlog; do not start a third list in a feature doc.
+- **`docs/TASKS.md` is the single active checklist.** `PRODUCT_ROADMAP.md` is public-facing scope
+  and exit criteria; `ROADMAP.md` keeps completed polish history and its remaining manual notes.
+  Do not start another checklist in a feature or research document.
 
 ## Documentation rules
 

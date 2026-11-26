@@ -1,7 +1,7 @@
 # Tasks — active work list
 
 Single source of truth for **open** work. Plan and rationale: [PLAN.md](PLAN.md). Measured baseline:
-[AUDIT.md](AUDIT.md). Completed polish pass and its history: [../ROADMAP.md](../ROADMAP.md).
+[AUDIT.md](AUDIT.md). Completed polish pass and its history: [ROADMAP.md](ROADMAP.md).
 Dated log of what actually changed: [PROGRESS.md](PROGRESS.md).
 
 Legend: `[ ]` todo · `[~]` blocked (needs a decision or external access) · `[x]` done.
@@ -144,3 +144,116 @@ automated proof, not another manual pass.
 - [~] ROADMAP 8.3 — Windows app-switch flash and full-screen toggling. *(Blocked: no Windows host in this environment, per D4; full-screen toggle itself is code-verified in harness tests.)*
 - [~] ROADMAP 9.4 — taskbar Jump List entries on a real Windows shell. *(Blocked: no Windows host in this environment, per D4; `shell_windows.rs` code paths exist and are logged-and-ignored on failure.)*
 - [x] ROADMAP 11.5 — remaining architecture candidates. *(Dispositioned 2026-11-25 via 18.5: Phase 17 extractions landed; remaining candidates deferred in the architecture review report.)*
+
+## Phase 21 — UI interaction, iconography, and review build (2026-11-26)
+
+- [x] **21.1** Fix Properties collapse chevron being shadowed by the header's full-width double-click target; verify collapse and expand by one click at the live widget bounds. *(Regression test: `collapse_chevrons_work_with_a_single_click`.)*
+- [x] **21.2** Replace application UI icon glyphs with Phosphor and retain attribution/license; preserve specialized path/align drawings where needed.
+- [x] **21.3** Refresh application mark, favicon, and Windows icon assets; package third-party notices with Windows distribution.
+- [x] **21.4** Build and smoke the updated Windows review package; record source SHA, archive SHA-256, executable version output, and actual Windows 11 feedback separately. *(Built from source `8b0084e4e8fd89619ef4b6e3dca894d6a91f5583`; executable SHA-256 `f922ebfb38951b2667bf0184ce305828f71f4671bf716670bb0137bdfcca7799`; ZIP SHA-256 `43cf928016f5763bbb02c172bd393798de86053cf800809854fe74a5b4960bff`; Wine `--version` = 0.3.0, 68 command rows, demo info JSON valid. Native Win11 user review remains open in 29.6.)*
+- [ ] **21.5** Verify menu/tool/panel visuals against supplied CS6 references at small and normal windows; capture interactive states and record differences.
+- [ ] **21.6** Resolve remaining splash, canvas focus, clipboard, and file-dialog defects with targeted reproduction tests.
+
+## Phase 22 — Baseline audit and documentation system
+
+- [x] **22.1** Add [`PRODUCT_ROADMAP.md`](PRODUCT_ROADMAP.md) with implemented foundations, sequenced future scope, exit criteria, and user-request traceability.
+- [x] **22.2** Add [`AGENTS.md`](../AGENTS.md) as a provider-neutral repository guide aligned with `CLAUDE.md`.
+- [x] **22.3** Research sibling FireCraft and requested reference projects; document transferable practices and licensing/compatibility limits in [`research/reference-projects.md`](research/reference-projects.md).
+- [x] **22.4** Compare current GitHub Actions and sibling CI/release controls in [`research/ci-cd-patterns.md`](research/ci-cd-patterns.md).
+- [x] **22.5** Preserve the architecture review and top seam recommendations in [`architecture-review-2026-11-26.md`](architecture-review-2026-11-26.md); top seam is pointer gesture routing in `app.rs`.
+- [x] **22.6** Add a dated audit snapshot with actual Aegis/test/lint/coverage/E2E/GitForge/GitHub results and explicit limits. *(Evidence: [`AUDIT-2026-11-26.md`](AUDIT-2026-11-26.md); distinguishes reruns from earlier coverage and remote-run evidence.)*
+- [ ] **22.7** Reconcile all current open PRs, branches, issues, workflow runs, and stale docs; no issue/PR is closed or merged without evidence.
+- [ ] **22.8** Publish local tutorial documents to the GitHub Wiki and verify the Help/README links point to the canonical version.
+- [ ] **22.9** Measure code coverage using the pinned project toolchain; track the user's aspirational 99% target separately for Rust line/function coverage, testable behavior, documentation links/claims, and accessibility criteria. Define denominators and exclusions before setting CI ratchets; do not claim 99% until each result is reproducible.
+
+## Phase 23 — Reliability, feedback, and updates
+
+- [ ] **23.1** Specify autosave and recovery state machine, 15-minute default, retention, location, migration, and failure behaviors; add ADR.
+- [ ] **23.2** Implement atomic recovery generations and startup recovery chooser with failure-injection tests.
+- [ ] **23.3** Define and test clipboard type coverage, cross-document paste, cross-application import/export, and unsupported-format feedback.
+- [ ] **23.4** Add user-reviewed in-app bug/feature/change submission using issue templates; attach no document or diagnostics by default.
+- [ ] **23.5** Design update discovery, signed/hash-verified platform downloads, changelog view, update notification, and rollback behavior; no silent install.
+- [ ] **23.6** Improve file dialogs with format filters, extension choices, path validation, overwrite review, drag/drop, and keyboard access.
+
+## Phase 24 — Help, search, and accessible workflow
+
+- [ ] **24.1** Add Help screens for keybindings, formats, tools, panels, tutorials, troubleshooting, accessibility, and changelog.
+- [ ] **24.2** Expand palette search to commands, tools, panels, documents, layers, pages, states, styles, and help; add aliases, fuzzy search, and ranking tests.
+- [ ] **24.3** Benchmark catalogue search at realistic scale before exploring opt-in semantic search; preserve offline/private baseline search.
+- [ ] **24.4** Conduct CS6 menu and options census; document available/partial/unavailable semantics and remove misleading inert controls.
+- [ ] **24.5** Audit pop-out canvases, keyboard focus transfer, Tab mode switching, drag/drop, workspace persistence, and per-platform behavior.
+- [ ] **24.6** Complete criterion-level WCAG 2.1 AA/AAA assessment, remediation backlog, reduced-motion behavior, and real screen-reader/manual checks. No blanket conformance claim without evidence.
+
+## Phase 25 — Extension API and Extension Library
+
+- [x] **25.0** Research historical Fireworks extension categories, author workflows, source mirrors, licensing, and modern marketplace safeguards in [`research/fireworks-extensions.md`](research/fireworks-extensions.md); no legacy code/assets copied.
+- [ ] **25.1** Inventory current scripting/MCP/command surfaces and select a stable shared extension command API; record an ADR.
+- [ ] **25.2** Define versioned extension manifest, supported extension kinds, dependency rules, signature/provenance, license, API compatibility, and migration policy.
+- [ ] **25.3** Threat-model extension capabilities and choose a restricted runtime or explicit permission boundary before allowing third-party code.
+- [ ] **25.4** Implement local install/enable/disable/update/uninstall, safe mode, error logs, version pinning, and rollback with malformed/malicious package tests.
+- [ ] **25.5** Create an author SDK, examples, API documentation, validation CLI, and compatibility test harness.
+- [ ] **25.6** Build a searchable community catalog with source/license/permissions/compatibility/changelog display and maintainer verification.
+- [ ] **25.7** Implement staged one-click install; show permissions before enabling, require renewed consent for permission escalation, and never auto-enable downloaded code.
+- [ ] **25.8** Add submission, CI validation, review/takedown, vulnerability reporting, ownership transfer, and immutable versioned artifact policies.
+- [ ] **25.9** Define two public trust tiers: FireCraft-maintained official extensions and reviewed community submissions. Document the criteria, owner approval, compatibility/support commitment, provenance/signing, tests, licensing, and release-note process required before a community extension can be promoted into an official release.
+- [ ] **25.10** Publish the extension catalog with a clear contribution guide and submission form; show review status and never imply an unreviewed community extension is officially supported.
+
+## Phase 26 — Brushes, touch, and mobile exploration
+
+- [ ] **26.1** Specify brush model, resource format, pressure/tilt semantics, smoothing, and versioned persistence.
+- [ ] **26.2** Implement/test deterministic stroke sampling, undoable raster/vector strokes, and performance budgets.
+- [ ] **26.3** Add stylus pressure/tilt mapping, device profile settings, coalescing, and native-device verification.
+- [ ] **26.4** Add attributed brush import/export packs and resource manager.
+- [ ] **26.5** Prototype touch-first navigation/tool gestures and responsive mobile layout; do not claim mobile support until on-device workflow is verified.
+
+## Phase 27 — Photo, HDR, animation, video, and CorridorKey
+
+- [ ] **27.1** Define non-destructive adjustment graph and color-management model; record an ADR and representative image corpus.
+- [ ] **27.2** Prototype optional RAW workflow with explicit decoder/license review and non-destructive round-trip expectations.
+- [ ] **27.3** Define HDR/scene-linear and OpenEXR semantics; test unclamped data and metadata preservation.
+- [ ] **27.4** Stabilize frame/timeline model and animation export timing, playback, onion-skin, and undo behavior.
+- [ ] **27.5** Design video track/media model, codec boundary, streaming, cancellation, proxy, memory, and benchmark contracts.
+- [ ] **27.6** Assess CorridorKey2.0 license, model weights, upstream runtime/hardware, dependency notices, and process isolation before integration.
+- [ ] **27.7** Prototype optional user-invoked CorridorKey job adapter for still/frame sequences; validate inputs/outputs and report unavailable GPU/runtime clearly.
+- [ ] **27.8** Gate full clip/video integration on usable native-hardware evidence, permissions, color/matte quality tests, and maintainer decision.
+
+## Phase 28 — Repository, CI, release, and deployment
+
+- [ ] **28.1** Repair GitHub Actions failures and establish a passing required-check baseline on the exact target revision.
+- [ ] **28.2** Validate FireCraft CI through local GitForge only after fleet freshness, runner activity, and semantic check results are confirmed.
+- [ ] **28.3** Create a safe issue/PR/branch disposition ledger; test branch candidates and dependency updates before merging; remove stale branches only after ownership and remote-use review.
+- [ ] **28.4** Decide and execute experiment-to-root-repository consolidation with explicit source-of-truth, history/PR/issue mapping, and rollback plan.
+- [ ] **28.5** Define target support matrix and build/install/open/edit/save/reopen/export/update/uninstall receipt per supported platform.
+- [ ] **28.6** Add release manifest, checksums, license notices, SBOM/provenance, signing policy, and fail-closed artifact validation.
+- [ ] **28.7** Deploy marketing site and WASM app from the canonical source; verify previews, cache behavior, source SHA, download hashes, and rollback.
+- [ ] **28.8** Track coverage per language/module and documentation link/claim checks; set and raise measured ratchets without conflating coverage with quality.
+- [ ] **28.9** Restore GitHub Actions and GitForge gate health; capture runner/job-step evidence for the current 6 Dependabot PRs before disposition.
+- [ ] **28.10** Publish to Cloudflare only from the canonical, validated WASM/site artifact and retain source-SHA deployment evidence.
+- [ ] **28.11** Build the public marketing site from the canonical repository and add a dedicated Extensions page describing the API roadmap, public catalog, official/community trust tiers, permission/review policy, and submission route; validate mobile, keyboard, contrast, and source-SHA deployment.
+- [x] **28.12** Organize project documentation: move community health files and changelog under `.github/`, consolidate product/reference docs under `docs/`, link the existing `AGENTS.md`, add GitHub issue routing and Code of Conduct, and update packaging paths and relative links.
+
+## Phase 29 — v0.3.0 public multi-platform release
+
+- [ ] **29.1** Build and package Windows x64, macOS universal (arm64 + x86_64), Linux x86_64 tar.gz/DEB/AppImage/Flatpak, and WebAssembly ZIP from the same matching `v0.3.0` tag.
+- [ ] **29.2** Smoke-test each package, validate package inventories and executable versions, and create a source-SHA artifact manifest plus SHA-256 checksums.
+- [ ] **29.3** Run release workflow on public GitHub-hosted runners; resolve startup or build failures and require every platform job to pass.
+- [ ] **29.4** Publish the GitHub Release and deploy the exact WASM build only after the aggregate release gate passes.
+- [ ] **29.5** Record macOS Developer ID signing/notarization status; publish as unsigned only with an explicit artifact note if credentials are unavailable.
+- [ ] **29.6** Collect Windows 11, macOS, and Linux native-user review; distinguish build/smoke evidence from user acceptance/certification.
+
+## Phase 30 — Remaining explicitly requested product scope
+
+- [ ] **30.1** Create and publish a user-facing sample-design page with a complete editable example, annotated layers/styles, source file, export, and tutorial/Help/README entry.
+- [ ] **30.2** Write a terminal-in-app threat model and ADR covering process launch, command consent, working-directory scope, environment/secret exposure, output handling, cancellation, and platform parity; implementation is gated on safe process boundaries.
+- [ ] **30.3** Specify expanded Intelligence capabilities (skills, memories, scheduled jobs) with explicit opt-in, storage/retention, provenance, permission review, audit log, cancellation, and no fabricated outputs; add an ADR and staged acceptance criteria before implementation.
+- [ ] **30.4** Define independent, reproducible progress targets toward the requested 99% quality goal: Rust line/function/branch coverage where supported, behavioral test coverage by user flow, documentation link/claim coverage, and accessibility criteria. Keep dated baselines, generated-code exclusions, and ratchet increments in CI; coverage alone is not quality or conformance.
+
+## Phase 31 — FireCraft extension ecosystem
+
+- [x] **31.1** Review the historical Fireworks extension catalogs, authoring articles, command libraries, and source mirrors; record workflow patterns, limitations, licensing guardrails, and links in [`research/fireworks-extensions.md`](research/fireworks-extensions.md). *(Desk research complete; no legacy code or assets reused.)*
+- [x] **31.2** Add a public-facing Extensions information page and link it from the canonical marketing site; state plainly that the page is informational and the catalog/install service is not operational. *(Implemented in sibling `/nas/Temp/repos/FireCraft`; deployment remains gated under 28.10.)*
+- [ ] **31.3** Define the versioned FireCraft extension API, package manifest, compatibility contract, capability model, author SDK, validation harness, and migration/deprecation policy.
+- [ ] **31.4** Implement the local extension manager: per-user staged install, explicit enable, disable/uninstall, offline packages, hash/provenance checks, permission review, safe mode, immutable version history, update, and rollback.
+- [ ] **31.5** Build the public catalog and community submission workflow with identity/ownership, license and policy review, automated validation, moderation, security reports, takedown/advisory process, and official promotion criteria.
+- [ ] **31.6** Add one-click in-app discovery/install/update only after package validation and capability consent pass; test interrupted installs, tampering, API mismatch, permission escalation, rollback, and no-network/offline operation.
+- [ ] **31.7** Publish extension author and user tutorials, API reference, trust-tier policy, privacy/data behavior, support matrix, changelog, and an extension security response process.

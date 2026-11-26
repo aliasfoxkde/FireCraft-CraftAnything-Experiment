@@ -115,7 +115,7 @@ fn main() {
     let mut viewport = eframe::egui::ViewportBuilder::default()
         .with_inner_size([window_size.0, window_size.1])
         .with_min_inner_size([960.0, 640.0])
-        .with_title("FireCraft Studio - Open Source bitmap and vector Graphics Editor")
+        .with_title("FireCraft - Open Source Raster and Vector Graphics Editor")
         .with_app_id("firecraft.editor")
         .with_visible(true)
         .with_active(screenshot_path.is_none());
@@ -148,7 +148,8 @@ fn main() {
     eframe::run_native(
         "FireCraft",
         native_options,
-        Box::new(move |_cc| {
+        Box::new(move |cc| {
+            icons::install_phosphor_font(&cc.egui_ctx);
             let mut fc = app::FireCraft::new(path_for_closure.clone());
             if load_demo {
                 fc.load_demo_showcase();
@@ -219,7 +220,10 @@ fn main() {
             .start(
                 canvas,
                 web_options,
-                Box::new(|_cc| Ok(Box::new(app::FireCraft::new(None)))),
+                Box::new(|cc| {
+                    icons::install_phosphor_font(&cc.egui_ctx);
+                    Ok(Box::new(app::FireCraft::new(None)))
+                }),
             )
             .await;
     });

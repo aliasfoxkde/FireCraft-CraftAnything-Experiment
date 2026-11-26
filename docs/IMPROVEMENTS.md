@@ -1,7 +1,7 @@
 # Improvements — triaged
 
 Raw user reports and design notes, now split by status. Open items have IDs and live in
-[docs/TASKS.md](docs/TASKS.md); this file keeps the original wording as evidence.
+[TASKS.md](TASKS.md); this file keeps the original wording as evidence.
 
 ## Fixed
 

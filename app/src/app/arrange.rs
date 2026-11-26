@@ -665,3 +665,191 @@ impl FireCraft {
 
     // ---- View & Theme ------------------------------------------------------
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn rect(app: &mut FireCraft, lo: Vec2, hi: Vec2) -> usize {
+        app.push_object(Obj::new(
+            Shape::Rect {
+                min: lo,
+                max: hi,
+                corner_radius: 0.0,
+                filled: true,
+            },
+            Some(Color32::WHITE),
+            None,
+        ))
+    }
+
+    fn bounds(app: &FireCraft, index: usize) -> (Vec2, Vec2) {
+        app.doc.page().layers[app.selected_layer].objects[index]
+            .bounds()
+            .expect("test rectangle has bounds")
+    }
+
+    fn close(actual: f32, expected: f32) {
+        assert!((actual - expected).abs() < 0.001, "{actual} != {expected}");
+    }
+
+    #[test]
+    fn align_multiple_objects_uses_selection_bounds_and_undo_restores_positions() {
+        let mut app = FireCraft::new(None);
+        let first = rect(&mut app, Vec2::new(20.0, 30.0), Vec2::new(60.0, 50.0));
+        let second = rect(&mut app, Vec2::new(120.0, 90.0), Vec2::new(180.0, 120.0));
+        app.selected_set = vec![first, second];
+        app.align_to_canvas = false;
+
+        app.align_selected_to_canvas("right");
+
+        close(bounds(&app, first).0.x, 140.0);
+        close(bounds(&app, second).0.x, 120.0);
+        assert_eq!(
+            app.status,
+            "Aligned 2 object(s) (right, Relative to Object)"
+        );
+        app.undo_action();
+        close(bounds(&app, first).0.x, 20.0);
+        close(bounds(&app, second).0.x, 120.0);
+    }
+
+    #[test]
+    fn single_object_alignment_is_relative_to_canvas_and_empty_selection_is_noop() {
+        let mut app = FireCraft::new(None);
+        app.align_selected_to_canvas("left");
+        assert!(app.undo.is_empty());
+        let index = rect(&mut app, Vec2::new(25.0, 30.0), Vec2::new(75.0, 55.0));
+        app.select_single(Some(index));
+
+        app.align_selected_to_canvas("center_x");
+
+        close(bounds(&app, index).0.x, (app.doc.page().width - 50.0) / 2.0);
+        assert!(app.status.contains("Relative to Canvas"));
+    }
+
+    #[test]
+    fn distribute_sorts_by_axis_and_single_selection_falls_back_to_alignment() {
+        let mut app = FireCraft::new(None);
+        let a = rect(&mut app, Vec2::new(200.0, 10.0), Vec2::new(220.0, 30.0));
+        let b = rect(&mut app, Vec2::new(20.0, 10.0), Vec2::new(40.0, 30.0));
+        let c = rect(&mut app, Vec2::new(100.0, 10.0), Vec2::new(120.0, 30.0));
+        app.selected_set = vec![a, b, c];
+        app.align_to_canvas = false;
+
+        app.distribute_selected("center_h");
+
+        close(bounds(&app, b).0.x, 20.0);
+        close(bounds(&app, c).0.x, 110.0);
+        close(bounds(&app, a).0.x, 200.0);
+        app.select_single(Some(c));
+        app.distribute_selected("right");
+        close(bounds(&app, c).0.x, app.doc.page().width - 20.0);
+    }
+
+    #[test]
+    fn match_size_uses_largest_selected_object_and_preserves_unmatched_dimension() {
+        let mut app = FireCraft::new(None);
+        let a = rect(&mut app, Vec2::new(10.0, 15.0), Vec2::new(30.0, 45.0));
+        let b = rect(&mut app, Vec2::new(80.0, 60.0), Vec2::new(130.0, 75.0));
+        app.selected_set = vec![a, b];
+        app.align_to_canvas = false;
+
+        app.match_canvas_dimension(true, false);
+
+        let (lo, hi) = bounds(&app, a);
+        close(hi.x - lo.x, 50.0);
+        close(hi.y - lo.y, 30.0);
+        assert!(app.status.contains("Largest Object"));
+    }
+
+    #[test]
+    fn fixed_spacing_repositions_objects_in_order_without_changing_sizes() {
+        let mut app = FireCraft::new(None);
+        let a = rect(&mut app, Vec2::new(100.0, 20.0), Vec2::new(120.0, 40.0));
+        let b = rect(&mut app, Vec2::new(10.0, 30.0), Vec2::new(20.0, 40.0));
+        app.selected_set = vec![a, b];
+        app.space_mode = "15 px".to_string();
+
+        app.space_selected(true);
+
+        close(bounds(&app, b).0.x, 10.0);
+        close(bounds(&app, a).0.x, 35.0);
+        close(bounds(&app, a).1.x - bounds(&app, a).0.x, 20.0);
+        assert!(app.status.contains("horizontally"));
+    }
+
+    #[test]
+    fn reorder_commands_respect_stack_boundaries_and_update_selection() {
+        let mut app = FireCraft::new(None);
+        let a = rect(&mut app, Vec2::ZERO, Vec2::splat(10.0));
+        let b = rect(&mut app, Vec2::splat(20.0), Vec2::splat(30.0));
+        app.select_single(Some(a));
+        app.reorder_selected_step(false);
+        assert!(app.undo.is_empty());
+        app.reorder_selected_step(true);
+        assert_eq!(app.selected, Some(1));
+        assert_eq!(
+            app.doc.page().layers[app.selected_layer].objects[1].name,
+            "Rectangle"
+        );
+        app.undo_action();
+        assert_eq!(app.doc.page().layers[app.selected_layer].objects.len(), 2);
+        app.select_single(Some(b));
+        app.reorder_selected(true);
+        assert_eq!(app.selected, Some(1));
+        app.reorder_selected(false);
+        assert_eq!(app.selected, Some(0));
+    }
+
+    #[test]
+    fn scale_rotate_and_flip_keep_expected_geometry_and_report_actions() {
+        let mut app = FireCraft::new(None);
+        let index = rect(&mut app, Vec2::new(10.0, 20.0), Vec2::new(30.0, 60.0));
+        app.select_single(Some(index));
+        app.scale_selected(2.0);
+        let (lo, hi) = bounds(&app, index);
+        close(hi.x - lo.x, 40.0);
+        close(hi.y - lo.y, 80.0);
+        app.rotate_ccw_90();
+        let (lo, hi) = bounds(&app, index);
+        close(hi.x - lo.x, 80.0);
+        close(hi.y - lo.y, 40.0);
+        app.flip_horizontal();
+        assert_eq!(app.status, "Flipped horizontally");
+        app.rotate_90();
+        assert_eq!(app.status, "Rotated 90°");
+    }
+
+    #[test]
+    fn flipping_bitmap_mirrors_pixel_rows_and_columns() {
+        let mut app = FireCraft::new(None);
+        let index = app.push_object(Obj::new(
+            Shape::Bitmap {
+                at: Vec2::new(4.0, 8.0),
+                size: Vec2::new(2.0, 2.0),
+                pixels: vec![1, 0, 0, 255, 2, 0, 0, 255, 3, 0, 0, 255, 4, 0, 0, 255],
+            },
+            None,
+            None,
+        ));
+        app.select_single(Some(index));
+
+        app.flip_horizontal();
+
+        let Shape::Bitmap { pixels, .. } =
+            &app.doc.page().layers[app.selected_layer].objects[index].kind
+        else {
+            panic!("bitmap shape should remain a bitmap");
+        };
+        assert_eq!(&pixels[..4], &[2, 0, 0, 255]);
+        assert_eq!(&pixels[8..12], &[4, 0, 0, 255]);
+        app.flip_vertical();
+        let Shape::Bitmap { pixels, .. } =
+            &app.doc.page().layers[app.selected_layer].objects[index].kind
+        else {
+            panic!("bitmap shape should remain a bitmap");
+        };
+        assert_eq!(&pixels[..4], &[4, 0, 0, 255]);
+    }
+}

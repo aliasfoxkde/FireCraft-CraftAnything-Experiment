@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=FireCraft
+Comment=Open Source Raster and Vector Graphics Editor
+Exec=firecraft %F
+Icon=io.github.aliasfoxkde.FireCraft
+Terminal=false
+Categories=Graphics;2DGraphics;RasterGraphics;VectorGraphics;
+StartupNotify=true
+MimeType=image/png;image/jpeg;image/svg+xml;image/webp;image/gif;image/bmp;image/tiff;

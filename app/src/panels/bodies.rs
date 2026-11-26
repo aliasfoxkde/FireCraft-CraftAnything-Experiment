@@ -1911,3 +1911,8 @@ pub(super) fn css_properties_tab(ui: &mut Ui, app: &mut FireCraft) {
     app.library_tab = 4;
     library_panel(ui, app);
 }
+
+#[cfg(test)]
+mod body_render_tests {
+    include!("bodies/tests.rs");
+}

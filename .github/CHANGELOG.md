@@ -4,7 +4,7 @@ All notable changes to **FireCraft** are documented in this file.
 
 ## [Unreleased]
 
-## [0.3.0] — 2026-11-25
+## [0.3.0] — 2026-11-26
 
 Quality, evidence and release-engineering pass. No intentional behavior changes to editing tools.
 
@@ -20,7 +20,7 @@ Quality, evidence and release-engineering pass. No intentional behavior changes 
   intents; property tests for color conversion and polygon booleans.
 - **Panel geometry module** (`app/src/panels/geometry.rs`) with unit tests for dock/snap/stack and
   inspector clamping math.
-- **CONTRIBUTING.md**, **SECURITY.md**, issue/PR templates and a Dependabot configuration.
+- **.github/CONTRIBUTING.md**, **.github/SECURITY.md**, issue/PR templates and a Dependabot configuration.
 
 ### Changed
 - **Single version source:** `app/Cargo.toml` is now the only version; `--version`, bundles, the
@@ -33,6 +33,12 @@ Quality, evidence and release-engineering pass. No intentional behavior changes 
 ### Fixed
 - `--version` reported `0.2.5` while the crate said `0.2.0`.
 - `app/PROJECT_STRUCTURE.md` described files and counts that no longer exist.
+- **Properties collapse:** the chevron now receives its first click; its full-width header double-click target no longer shadows the control.
+- **Panels dock:** the dock-wide collapse/expand control is a single state-aware toggle in the header and is covered by click-level tests.
+
+### Changed
+- **Icon system:** application UI icons use the embedded Phosphor icon font; the refreshed FireCraft mark, favicon and Windows icon are included with their third-party notices.
+- **Project guidance:** README and docs index link a public product roadmap, reference research, CI/CD comparison, and provider-neutral `AGENTS.md`.
 
 ## [Unreleased — pre-0.3.0]
 

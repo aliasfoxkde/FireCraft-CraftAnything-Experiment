@@ -626,3 +626,238 @@ fn properties_body(ui: &mut Ui, app: &mut FireCraft) {
         }
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::expect_used, clippy::unwrap_used, clippy::panic)]
+mod tests {
+    use super::*;
+    use eframe::egui::{Event, Modifiers, Pos2, RawInput, Rect};
+
+    const WIDTH: f32 = 1600.0;
+    const HEIGHT: f32 = 640.0;
+
+    fn input(events: Vec<Event>) -> RawInput {
+        RawInput {
+            screen_rect: Some(Rect::from_min_size(Pos2::ZERO, Vec2::new(WIDTH, HEIGHT))),
+            events,
+            time: Some(3.0),
+            ..Default::default()
+        }
+    }
+
+    fn frame(
+        ctx: &egui::Context,
+        app: &mut FireCraft,
+        events: Vec<Event>,
+    ) -> Vec<egui::epaint::ClippedShape> {
+        let mut output = ctx.run_ui(input(events), |ui| properties_panel(ui, app));
+        output.textures_delta.clear();
+        output.shapes
+    }
+
+    fn text_center(shape: &egui::Shape, text: &str) -> Option<Pos2> {
+        match shape {
+            egui::Shape::Text(glyphs) if glyphs.galley.job.text == text => {
+                Some(glyphs.visual_bounding_rect().center())
+            }
+            egui::Shape::Vec(shapes) => shapes.iter().find_map(|shape| text_center(shape, text)),
+            _ => None,
+        }
+    }
+
+    fn click_text(ctx: &egui::Context, app: &mut FireCraft, text: &str) {
+        let shapes = frame(ctx, app, Vec::new());
+        let pos = shapes
+            .iter()
+            .find_map(|clipped| text_center(&clipped.shape, text))
+            .unwrap_or_else(|| panic!("could not find {text:?} in the properties panel"));
+        frame(ctx, app, vec![Event::PointerMoved(pos)]);
+        frame(
+            ctx,
+            app,
+            vec![Event::PointerButton {
+                pos,
+                button: egui::PointerButton::Primary,
+                pressed: true,
+                modifiers: Modifiers::NONE,
+            }],
+        );
+        frame(
+            ctx,
+            app,
+            vec![
+                Event::PointerMoved(pos),
+                Event::PointerButton {
+                    pos,
+                    button: egui::PointerButton::Primary,
+                    pressed: false,
+                    modifiers: Modifiers::NONE,
+                },
+            ],
+        );
+    }
+
+    fn app_with_object(kind: Shape) -> FireCraft {
+        let mut app = FireCraft::new(None);
+        app.doc.page_mut().layers[0].objects.push(Obj::new(
+            kind,
+            Some(Color32::LIGHT_BLUE),
+            Some(Color32::BLACK),
+        ));
+        app.select_single(Some(0));
+        app
+    }
+
+    fn rectangle() -> Shape {
+        Shape::Rect {
+            min: Vec2::new(20.0, 30.0),
+            max: Vec2::new(140.0, 110.0),
+            corner_radius: 12.0,
+            filled: true,
+        }
+    }
+
+    #[test]
+    fn document_inspector_paints_brush_settings_and_opens_canvas_size_dialog() {
+        let mut app = FireCraft::new(None);
+        let ctx = egui::Context::default();
+        crate::icons::install_phosphor_font(&ctx);
+
+        for tool in [Tool::Brush, Tool::Pencil, Tool::Eraser] {
+            app.tool = tool;
+            assert!(!frame(&ctx, &mut app, Vec::new()).is_empty());
+        }
+
+        click_text(&ctx, &mut app, "Canvas Size…");
+        assert!(app.show_canvas_size_dialog);
+    }
+
+    #[test]
+    fn selected_shape_variants_paint_their_specific_property_rows() {
+        let examples = [
+            rectangle(),
+            Shape::Ellipse {
+                center: Vec2::new(70.0, 60.0),
+                radius: Vec2::new(50.0, 30.0),
+                filled: true,
+            },
+            Shape::Line {
+                a: Vec2::new(15.0, 20.0),
+                b: Vec2::new(120.0, 90.0),
+            },
+            Shape::Polygon {
+                center: Vec2::new(70.0, 60.0),
+                radius: 50.0,
+                sides: 5,
+                star_inner: 0.45,
+                angle_rad: 0.0,
+            },
+            Shape::Path {
+                points: vec![Vec2::new(10.0, 10.0), Vec2::new(80.0, 50.0)],
+                closed: false,
+            },
+            Shape::Text {
+                at: Vec2::new(20.0, 40.0),
+                text: "Inspector sample".to_owned(),
+                size: 22.0,
+                bold: true,
+                italic: false,
+                font_family: "Sans-Serif".to_owned(),
+            },
+            Shape::Slice {
+                min: Vec2::new(10.0, 20.0),
+                max: Vec2::new(120.0, 90.0),
+                url: "https://example.test".to_owned(),
+                alt: "Example slice".to_owned(),
+                target: "_blank".to_owned(),
+                format: "png".to_owned(),
+                is_hotspot: false,
+            },
+            Shape::Gradient {
+                min: Vec2::new(10.0, 10.0),
+                max: Vec2::new(120.0, 90.0),
+                from: Color32::WHITE,
+                to: Color32::BLACK,
+                radial: true,
+            },
+            Shape::Group {
+                children: vec![Obj::new(rectangle(), Some(Color32::WHITE), None)],
+            },
+            Shape::Bitmap {
+                at: Vec2::new(10.0, 20.0),
+                pixels: vec![255, 0, 0, 255],
+                size: Vec2::new(1.0, 1.0),
+            },
+            Shape::SymbolInstance {
+                symbol_id: 0,
+                at: Vec2::new(10.0, 20.0),
+                scale: Vec2::splat(1.0),
+            },
+        ];
+
+        for kind in examples {
+            let mut app = app_with_object(kind);
+            let ctx = egui::Context::default();
+            crate::icons::install_phosphor_font(&ctx);
+            let shapes = frame(&ctx, &mut app, Vec::new());
+            assert!(
+                shapes.len() > 20,
+                "selected {:?} painted too little",
+                app.selected_object().unwrap().kind
+            );
+        }
+    }
+
+    #[test]
+    fn gradient_and_live_filter_controls_update_the_selected_object() {
+        let mut app = app_with_object(rectangle());
+        let ctx = egui::Context::default();
+        crate::icons::install_phosphor_font(&ctx);
+
+        click_text(&ctx, &mut app, "+ Gradient");
+        assert!(app.selected_object().unwrap().gradient.is_some());
+
+        click_text(&ctx, &mut app, "+ Add");
+        click_text(&ctx, &mut app, "Gaussian Blur");
+        let selected = app.selected_object().unwrap();
+        assert!(matches!(
+            selected.effects.as_slice(),
+            [LiveEffect::GaussianBlur { enabled: true, .. }]
+        ));
+
+        click_text(&ctx, &mut app, "Gaussian Blur");
+        let selected = app.selected_object().unwrap();
+        assert!(matches!(
+            selected.effects.as_slice(),
+            [LiveEffect::GaussianBlur { enabled: false, .. }]
+        ));
+
+        click_text(&ctx, &mut app, "- Clear");
+        assert!(app.selected_object().unwrap().effects.is_empty());
+    }
+
+    #[test]
+    fn multi_selection_group_button_creates_one_group_and_changes_inspector_mode() {
+        let mut app = app_with_object(rectangle());
+        app.doc.page_mut().layers[0].objects.push(Obj::new(
+            rectangle(),
+            Some(Color32::LIGHT_BLUE),
+            None,
+        ));
+        app.selected = Some(1);
+        app.selected_set = vec![0, 1];
+        let ctx = egui::Context::default();
+        crate::icons::install_phosphor_font(&ctx);
+
+        let selected = frame(&ctx, &mut app, Vec::new());
+        assert!(!selected.is_empty());
+        click_text(&ctx, &mut app, "Group (Ctrl+G)");
+
+        let objects = &app.doc.page().layers[0].objects;
+        assert_eq!(objects.len(), 1);
+        assert!(matches!(&objects[0].kind, Shape::Group { children } if children.len() == 2));
+        assert_eq!(app.selected_set.len(), 1);
+        let after_group = frame(&ctx, &mut app, Vec::new());
+        assert!(!after_group.is_empty());
+    }
+}
