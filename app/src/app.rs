@@ -4952,4 +4952,132 @@ mod tests {
             "split should create a second contour"
         );
     }
+
+    // ---- Intelligence panel paths (task 18.4) ----
+    // The codebase forbids `unsafe`, so tests never mutate the process
+    // environment; the no-key path is exercised via an empty inline key
+    // only when the ambient variable is absent, which CI guarantees.
+
+    fn ai_fixture() -> FireCraft {
+        let mut app = FireCraft::new(None);
+        app.ai_key.clear();
+        app.ai_model.clear();
+        app.ai_prompt.clear();
+        app.ai_base_url = "https://api.example.com/v1".to_string();
+        app.ai_status.clear();
+        app
+    }
+
+    /// Skips if the ambient env has the key set, since env mutation is
+    /// `unsafe` and forbidden here.
+    #[test]
+    fn ai_missing_key_is_rejected_without_channel() {
+        if std::env::var("FIRECRAFT_AI_API_KEY").is_ok() {
+            return; // ambient key set; cannot safely clear it in tests
+        }
+        let mut app = ai_fixture();
+        app.ai_model = "test-model".to_string();
+        app.ai_prompt = "What is selected?".to_string();
+        app.start_ai_request();
+        assert!(app.ai_rx.is_none(), "no channel without a key");
+        assert!(
+            app.ai_status.contains("Missing API key"),
+            "status should name the missing key, got: {}",
+            app.ai_status
+        );
+    }
+
+    #[test]
+    fn ai_missing_model_is_rejected() {
+        let mut app = ai_fixture();
+        app.ai_key = "k".to_string();
+        app.ai_model = "  ".to_string();
+        app.ai_prompt = "hi".to_string();
+        app.start_ai_request();
+        assert!(app.ai_rx.is_none());
+        assert!(app.ai_status.contains("Missing model"), "{}", app.ai_status);
+    }
+
+    #[test]
+    fn ai_empty_prompt_is_rejected() {
+        let mut app = ai_fixture();
+        app.ai_key = "k".to_string();
+        app.ai_model = "m".to_string();
+        app.ai_prompt = "   ".to_string();
+        app.start_ai_request();
+        assert!(app.ai_rx.is_none());
+        assert!(
+            app.ai_status.contains("Enter a question"),
+            "{}",
+            app.ai_status
+        );
+    }
+
+    #[test]
+    fn ai_success_path_sets_response_and_clears_channel() {
+        let mut app = ai_fixture();
+        let (tx, rx) = std::sync::mpsc::channel();
+        app.ai_rx = Some(rx);
+        tx.send(Ok("Assistant answer.".to_string())).unwrap();
+        app.poll_ai();
+        assert_eq!(app.ai_response, "Assistant answer.");
+        assert_eq!(app.ai_status, "Response received.");
+        assert!(app.ai_rx.is_none());
+    }
+
+    #[test]
+    fn ai_error_path_surfaces_status_without_fabricated_output() {
+        let mut app = ai_fixture();
+        let (tx, rx) = std::sync::mpsc::channel();
+        app.ai_rx = Some(rx);
+        tx.send(Err("Request failed (401).".to_string())).unwrap();
+        app.poll_ai();
+        assert!(app.ai_response.is_empty(), "no response on error");
+        assert!(app.ai_status.contains("401"), "{}", app.ai_status);
+        assert!(app.ai_rx.is_none());
+    }
+
+    #[test]
+    fn ai_worker_disconnect_reports_stopped() {
+        let mut app = ai_fixture();
+        let (tx, rx) = std::sync::mpsc::channel::<Result<String, String>>();
+        app.ai_rx = Some(rx);
+        drop(tx);
+        app.poll_ai();
+        assert!(
+            app.ai_status.contains("worker stopped"),
+            "{}",
+            app.ai_status
+        );
+        assert!(app.ai_rx.is_none());
+    }
+
+    #[test]
+    fn ai_inflight_request_blocks_new_start() {
+        let mut app = ai_fixture();
+        let (_tx, rx) = std::sync::mpsc::channel::<Result<String, String>>();
+        app.ai_rx = Some(rx);
+        app.ai_key = "k".to_string();
+        app.ai_model = "m".to_string();
+        app.ai_prompt = "q".to_string();
+        app.start_ai_request();
+        assert!(
+            app.ai_rx.is_some(),
+            "existing in-flight request should be preserved"
+        );
+    }
+
+    #[test]
+    fn ai_extract_content_parses_provider_shapes() {
+        assert_eq!(
+            ai_extract_content(r#"{"choices":[{"message":{"content":"Hello"}}]"#),
+            Some("Hello".to_string())
+        );
+        assert_eq!(
+            ai_extract_content(r#"{"error":{"message":"bad key"}}"#),
+            None,
+            "no content field means no fabricated answer"
+        );
+        assert_eq!(ai_extract_content("not json"), None);
+    }
 }

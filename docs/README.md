@@ -18,6 +18,7 @@ is the map for deeper material.
 | Work on Open / Save / Export | [File Browser](features/file-browser.md) |
 | See the full feature inventory | [Feature Surface](features/README.md) |
 | Learn to use FireCraft (tutorials, keybindings) | [Tutorials](tutorials/README.md) |
+| Accessibility checklist and limitations | [A11Y](A11Y.md) |
 | Read the completed polish pass and manual backlog | [Roadmap](../ROADMAP.md) |
 | See changes by release | [Changelog](../CHANGELOG.md) |
 
