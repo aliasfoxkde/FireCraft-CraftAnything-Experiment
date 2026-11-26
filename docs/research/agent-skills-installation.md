@@ -1,7 +1,7 @@
 # Agent skill installation record
 
-**Installed:** 2026-11-26  
-**Target:** `/home/mkinney/.codex/skills/` and Codex's local plugin cache  
+**Installed:** 2026-11-26
+**Target:** `/home/mkinney/.codex/skills/` and Codex's local plugin cache
 **Purpose:** record the requested upstreams, immutable source revisions, overlap handling, and declared runtime requirements. This is a user-level tool setup record; the skills are not bundled with FireCraft.
 
 ## Installations

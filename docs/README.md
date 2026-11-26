@@ -16,6 +16,7 @@ is the map for deeper material.
 | Understand the phased plan and its exit criteria | [Plan](PLAN.md) |
 | Read the public product roadmap, current vs planned | [Product Roadmap](PRODUCT_ROADMAP.md) |
 | Review reference projects and feature research | [Reference project study](research/reference-projects.md) |
+| Review Fireworks extensions and the community marketplace plan | [Fireworks extensions research](research/fireworks-extensions.md) |
 | Review CI/CD patterns and adoption steps | [CI/CD patterns](research/ci-cd-patterns.md) |
 | See requested Codex skill installations | [Agent skill installation record](research/agent-skills-installation.md) |
 | See what changed and when | [Progress log](PROGRESS.md) |

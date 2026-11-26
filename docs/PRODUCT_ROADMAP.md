@@ -1,10 +1,10 @@
 # FireCraft product roadmap
 
-**Product:** FireCraft — Open Source Raster and Vector Graphics Editor  
-**Audience:** users, contributors, maintainers, extension authors  
-**Status date:** 2026-11-26  
-**Status:** living plan; this document describes current foundations and proposed work, not a promise of delivery dates.  
-**Execution record:** [`TASKS.md`](TASKS.md) is the only active checkbox ledger.  
+**Product:** FireCraft — Open Source Raster and Vector Graphics Editor
+**Audience:** users, contributors, maintainers, extension authors
+**Status date:** 2026-11-26
+**Status:** living plan; this document describes current foundations and proposed work, not a promise of delivery dates.
+**Execution record:** [`TASKS.md`](TASKS.md) is the only active checkbox ledger.
 **Architecture and quality:** [`architecture.md`](architecture.md), [`PLAN.md`](PLAN.md), and [`AUDIT.md`](AUDIT.md).
 
 ## How to read this roadmap
@@ -107,6 +107,7 @@ The current code is an active experiment repository. This roadmap does not imply
 4. Provide a contributor submission flow, automated package validation, API compatibility tests, license checks, accessibility and privacy checks, and human review for catalog publication.
 5. Never auto-enable newly downloaded code. Updates may be notified or downloaded, but permission changes require renewed consent; allow pinning and rollback.
 6. Measure adoption and failures only through opt-in, privacy-respecting mechanisms; catalog operation must not require account telemetry for local use.
+7. Keep **FireCraft official** extensions (maintained, supported, and eligible for bundling after release review) distinct from **community** extensions (author-maintained, independently versioned, reviewed for catalog policy and compatibility, but not bundled by default). Promotion to official status requires explicit maintainer approval, provenance and license checks, API compatibility and security tests, support ownership, and a release note.
 
 **Exit:** threat model and ADR accepted; API contract tests pass; safe mode and rollback tested; malicious/incompatible package tests pass; catalog validation is reproducible; one-click flow displays source, license, compatibility, permissions, and rollback before install.
 
@@ -155,13 +156,14 @@ The current code is an active experiment repository. This roadmap does not imply
 **Goal:** make the project approachable and keep releases trustworthy.
 
 1. Maintain a public roadmap, completed feature list, tutorials, keybinding guide, format compatibility matrix, contributor guide, and changelog as dedicated documents linked from README and in-app Help.
-2. Establish issue templates and in-app feedback links; review submissions and publish decisions in the repository issue tracker.
-3. Reconcile experiment and main FireCraft repositories through an explicit migration plan: source-of-truth decision, history/branch mapping, duplicate issue and PR mapping, remote settings, release tags, and rollback path.
-4. Repair GitHub Actions and local GitForge CI drift; use one source SHA and record build/test/artifact identities. Require semantic application smoke tests, not health checks alone.
-5. Build target-native packages and validate install, launch, edit, save, reopen, export, update, and uninstall on supported operating systems. Cross-compilation alone is not platform certification.
-6. Publish release artifacts with manifest, SHA-256, license/notices, SBOM, provenance/attestation where supported, and clear release notes.
-7. Deploy the marketing site and updated WebAssembly app from the canonical repository using preview deployments and a verified production artifact; confirm domain, cache, rollback, and download checksums.
-8. Maintain security, accessibility, dependency, fuzz, and documentation link checks without weakening gates to force green status.
+2. Add a dedicated FireCraft marketing-site page for extensions. Explain official and community status, compatibility, permissions, review process, support expectations, licensing, and a clear submit-extension path; link to the public catalog when it is operational.
+3. Establish issue templates and in-app feedback links; review submissions and publish decisions in the repository issue tracker.
+4. Reconcile experiment and main FireCraft repositories through an explicit migration plan: source-of-truth decision, history/branch mapping, duplicate issue and PR mapping, remote settings, release tags, and rollback path.
+5. Repair GitHub Actions and local GitForge CI drift; use one source SHA and record build/test/artifact identities. Require semantic application smoke tests, not health checks alone.
+6. Build target-native packages and validate install, launch, edit, save, reopen, export, update, and uninstall on supported operating systems. Cross-compilation alone is not platform certification.
+7. Publish release artifacts with manifest, SHA-256, license/notices, SBOM, provenance/attestation where supported, and clear release notes.
+8. Deploy the marketing site and updated WebAssembly app from the canonical repository using preview deployments and a verified production artifact; confirm domain, cache, rollback, and download checksums.
+9. Maintain security, accessibility, dependency, fuzz, and documentation link checks without weakening gates to force green status.
 
 **Exit:** repository ownership and release source are explicit; required workflows pass on the exact tag SHA; platform receipts are recorded; site deployment can be traced to source and rolled back.
 
@@ -176,7 +178,7 @@ The current code is an active experiment repository. This roadmap does not imply
 
 ## Reference projects and research
 
-The research notes record the source links, observations, licensing caveats, and transfer recommendations: [`research/reference-projects.md`](research/reference-projects.md). CI/release comparison is in [`research/ci-cd-patterns.md`](research/ci-cd-patterns.md). The separate root FireCraft repository is a sibling project and must not be conflated with this experiment repository.
+The research notes record the source links, observations, licensing caveats, and transfer recommendations: [`research/reference-projects.md`](research/reference-projects.md). Fireworks extension categories, historical API constraints, and marketplace submission/promotion requirements are detailed in [`research/fireworks-extensions.md`](research/fireworks-extensions.md). CI/release comparison is in [`research/ci-cd-patterns.md`](research/ci-cd-patterns.md). The separate root FireCraft repository is a sibling project and must not be conflated with this experiment repository.
 
 | Reference | Roadmap use |
 |---|---|

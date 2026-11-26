@@ -1,7 +1,7 @@
 # GitHub Actions immediate-failure triage
 
-**Inspected:** 2026-11-26 (GitHub API queried at 15:56 UTC)  
-**Repository:** [`aliasfoxkde/FireCraft-CraftAnything-Experiment`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment)  
+**Inspected:** 2026-11-26 (GitHub API queried at 15:56 UTC)
+**Repository:** [`aliasfoxkde/FireCraft-CraftAnything-Experiment`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment)
 **Branch / revision:** `main` / `dab457c233779a97d9b5b80f85642d16ed6dc663`
 
 ## Findings
@@ -34,3 +34,7 @@ The latest runs listed during inspection were the paired CI and Build, Release &
 4. **Retry only after finding and addressing a concrete setting or service issue, or after GitHub confirms recovery.** Then verify the normal CI gates pass on the target revision before attempting a release workflow. Do not infer readiness from a queued job or from the repository being public alone.
 
 No workflow, repository setting, run, or release was changed as part of this investigation.
+
+## Follow-up run on the release-preparation PR
+
+After opening PR [#7](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/7), run [45856428176](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/45856428176) did obtain GitHub-hosted runners. Its WASM job passed. The quality job ran tests successfully (105 unit, 12 CLI, 4 hygiene, 10 MCP) and then failed at `scripts/check-docs.sh`, which found trailing Markdown hard-break spaces in seven newly tracked docs. These were removed in the working tree; the local docs gate now passes over 49 tracked documents. The Windows release-smoke job was still running when this follow-up was recorded. The next PR-head CI run is required to validate the whitespace fix and the complete job matrix.

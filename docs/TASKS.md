@@ -186,6 +186,7 @@ automated proof, not another manual pass.
 
 ## Phase 25 — Extension API and Extension Library
 
+- [x] **25.0** Research historical Fireworks extension categories, author workflows, source mirrors, licensing, and modern marketplace safeguards in [`research/fireworks-extensions.md`](research/fireworks-extensions.md); no legacy code/assets copied.
 - [ ] **25.1** Inventory current scripting/MCP/command surfaces and select a stable shared extension command API; record an ADR.
 - [ ] **25.2** Define versioned extension manifest, supported extension kinds, dependency rules, signature/provenance, license, API compatibility, and migration policy.
 - [ ] **25.3** Threat-model extension capabilities and choose a restricted runtime or explicit permission boundary before allowing third-party code.
@@ -194,6 +195,8 @@ automated proof, not another manual pass.
 - [ ] **25.6** Build a searchable community catalog with source/license/permissions/compatibility/changelog display and maintainer verification.
 - [ ] **25.7** Implement staged one-click install; show permissions before enabling, require renewed consent for permission escalation, and never auto-enable downloaded code.
 - [ ] **25.8** Add submission, CI validation, review/takedown, vulnerability reporting, ownership transfer, and immutable versioned artifact policies.
+- [ ] **25.9** Define two public trust tiers: FireCraft-maintained official extensions and reviewed community submissions. Document the criteria, owner approval, compatibility/support commitment, provenance/signing, tests, licensing, and release-note process required before a community extension can be promoted into an official release.
+- [ ] **25.10** Publish the extension catalog with a clear contribution guide and submission form; show review status and never imply an unreviewed community extension is officially supported.
 
 ## Phase 26 — Brushes, touch, and mobile exploration
 
@@ -226,6 +229,7 @@ automated proof, not another manual pass.
 - [ ] **28.8** Track coverage per language/module and documentation link/claim checks; set and raise measured ratchets without conflating coverage with quality.
 - [ ] **28.9** Restore GitHub Actions and GitForge gate health; capture runner/job-step evidence for the current 6 Dependabot PRs before disposition.
 - [ ] **28.10** Publish to Cloudflare only from the canonical, validated WASM/site artifact and retain source-SHA deployment evidence.
+- [ ] **28.11** Build the public marketing site from the canonical repository and add a dedicated Extensions page describing the API roadmap, public catalog, official/community trust tiers, permission/review policy, and submission route; validate mobile, keyboard, contrast, and source-SHA deployment.
 
 ## Phase 29 — v0.3.0 public multi-platform release
 

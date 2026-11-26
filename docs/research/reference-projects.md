@@ -1,6 +1,6 @@
 # Reference project study: Fireworks revival and adjacent tools
 
-**Reviewed:** 2026-11-26  
+**Reviewed:** 2026-11-26
 **Purpose:** record transferable product and engineering ideas for FireCraft's roadmap. This is a desk study of public repository/docs plus a local inspection of `/nas/Temp/repos/FireCraft` at commit `72318ae7`. It is not a code audit of every upstream project or a license/legal opinion.
 
 ## How to use this study

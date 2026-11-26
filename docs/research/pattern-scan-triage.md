@@ -1,8 +1,8 @@
 # Atheon pattern scan triage
 
-**Date:** 2026-11-26  
-**Scope:** `app/src`  
-**Input:** `/tmp/firecraft-atheon-scan.json` (Atheon-Enhanced pattern scan)  
+**Date:** 2026-11-26
+**Scope:** `app/src`
+**Input:** `/tmp/firecraft-atheon-scan.json` (Atheon-Enhanced pattern scan)
 **Disposition:** Initial manual triage of every distinct critical/high rule, using the scan's reported matches and representative source context. This is not a clean bill of health or a substitute for a dedicated security review.
 
 ## Summary

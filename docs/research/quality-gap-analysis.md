@@ -1,7 +1,7 @@
 # Code quality and verification gap analysis
 
-**Snapshot date:** 2026-11-26  
-**Repository:** FireCraft-CraftAnything-Experiment  
+**Snapshot date:** 2026-11-26
+**Repository:** FireCraft-CraftAnything-Experiment
 **Scope:** Read-only review of source structure, existing tests, documentation and the dated audit evidence. No build or test command was run for this report. The verification figures below are from [`AUDIT-2026-11-26.md`](../AUDIT-2026-11-26.md), not newly measured here.
 
 ## Executive assessment

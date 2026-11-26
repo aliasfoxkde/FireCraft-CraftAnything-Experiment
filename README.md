@@ -19,6 +19,7 @@ graphics, animation states, live effects, MCP automation, and a portable desktop
 | See all documentation | [Documentation index](docs/README.md) |
 | Check remaining work | [Tasks](docs/TASKS.md) |
 | See the public product roadmap | [Product Roadmap](docs/PRODUCT_ROADMAP.md) |
+| Explore extension ecosystem research and marketplace plan | [Fireworks Extensions Research](docs/research/fireworks-extensions.md) |
 | See the measured state and gaps | [Audit](docs/AUDIT.md) |
 | Read the current full audit snapshot | [2026-11-26 Audit](docs/AUDIT-2026-11-26.md) |
 | Understand the plan and its exit criteria | [Plan](docs/PLAN.md) |
