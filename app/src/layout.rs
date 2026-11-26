@@ -1094,10 +1094,54 @@ fn dock_column(ui: &mut Ui, app: &mut FireCraft, zone: crate::app::DockZone) {
             p.text_dim,
         );
 
+        // Expand/collapse-all toggles live in the header bar (right-aligned) rather than
+        // their own row, so the dock does not lose vertical space to chrome.
+        let btn_w = 18.0;
+        let expand_r = egui::Rect::from_min_max(
+            egui::pos2(bar_r.right() - btn_w - 2.0, bar_r.top() + 1.0),
+            egui::pos2(bar_r.right() - 2.0, bar_r.bottom() - 1.0),
+        );
+        let collapse_r = egui::Rect::from_min_max(
+            egui::pos2(expand_r.left() - btn_w - 2.0, bar_r.top() + 1.0),
+            egui::pos2(expand_r.left() - 2.0, bar_r.bottom() - 1.0),
+        );
+        for (r, id, glyph, tip, expand) in [
+            (
+                expand_r,
+                "right_dock_expand_all",
+                "▸",
+                "Expand all panels in dock",
+                true,
+            ),
+            (
+                collapse_r,
+                "right_dock_collapse_all",
+                "▾",
+                "Collapse all panels in dock",
+                false,
+            ),
+        ] {
+            let resp = ui.interact(r, ui.make_persistent_id(id), egui::Sense::click());
+            if resp.hovered() {
+                painter.rect_filled(r, 0.0, p.well);
+            }
+            painter.text(
+                r.center(),
+                egui::Align2::CENTER_CENTER,
+                glyph,
+                egui::FontId::proportional(9.5),
+                if resp.hovered() { p.accent } else { p.text_dim },
+            );
+            if resp.clicked() {
+                app.collapse_all_panels(expand);
+            }
+            resp.on_hover_text(tip);
+        }
+
         // Draggable CS6 dotted grip (drag to float panel block or snap to Left/Right; double-click to toggle collapse)
         let grip_r = egui::Rect::from_min_max(
             egui::pos2(chev_r.right() + 56.0, bar_r.top()),
-            bar_r.right_bottom(),
+            egui::pos2(collapse_r.left() - 2.0, bar_r.bottom()),
         );
         let grip_resp = ui.interact(
             grip_r,
@@ -1164,7 +1208,7 @@ fn dock_column(ui: &mut Ui, app: &mut FireCraft, zone: crate::app::DockZone) {
             "Drag to move/float Panels Dock or snap to Left/Right edge · Double-click to collapse/expand",
         );
     }
-    if !collapsed_iconic {
+    if !collapsed_iconic && !is_right_outer {
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing = Vec2::new(4.0, 0.0);
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -1413,7 +1457,7 @@ fn right_dock(ui: &mut Ui, app: &mut FireCraft) {
 
 /// Scrolling tool sections plus an always-visible footer pinned to the bottom of the rail.
 fn tools_dock_contents(ui: &mut Ui, app: &mut FireCraft, scroll_id: &str) {
-    let footer_h = if app.tools_collapsed { 118.0 } else { 54.0 };
+    let footer_h = 30.0;
     let total_h = ui.available_height();
     let body_h = (total_h - footer_h).max(90.0);
     ui.allocate_ui_with_layout(

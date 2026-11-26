@@ -1081,24 +1081,28 @@ pub fn panel_group_widget(ui: &mut Ui, app: &mut FireCraft, group_idx: usize, is
                 ui.ctx().set_cursor_icon(egui::CursorIcon::Grab);
             }
 
-            // Left collapse chevron
+            // Left collapse chevron. The header allocated click_and_drag first, so a
+            // plain `ui.interact` here would be shadowed; test the header response's
+            // click position against the chevron rect instead.
             let chev_r = Rect::from_min_size(header_rect.min, Vec2::new(18.0, header_h));
-            let chev_resp = ui.interact(
-                chev_r,
-                ui.make_persistent_id(("pg_chev", group.id)),
-                Sense::click(),
-            );
+            let chev_clicked = header_resp
+                .interact_pointer_pos()
+                .is_some_and(|pos| chev_r.contains(pos));
+            let chev_hover = header_resp.hovered()
+                && ui.input(|i| {
+                    i.pointer
+                        .hover_pos()
+                        .is_some_and(|pos| chev_r.contains(pos))
+                });
             ui.painter().text(
                 chev_r.center(),
                 Align2::CENTER_CENTER,
                 if group.collapsed { "▸" } else { "▾" },
                 FontId::proportional(11.0),
-                p.text_dim,
+                if chev_hover { p.accent } else { p.text_dim },
             );
 
-            if chev_resp.clicked()
-                && let Some(g) = app.panel_groups.get_mut(group_idx)
-            {
+            if chev_clicked && let Some(g) = app.panel_groups.get_mut(group_idx) {
                 g.collapsed = !g.collapsed;
             }
 

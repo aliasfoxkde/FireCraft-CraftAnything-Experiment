@@ -142,3 +142,20 @@ unverified. Do not restate the plan; link it.
 - All GUI behavior: no display available in this environment. Panel drag/stack/snap, menu
   click-through, 960×640 layout and the Intelligence endpoint still need Phase 16's harness.
 - Windows-only behavior (Jump List, app-switch flash) — no Windows shell here.
+
+## 2026-11-25 — UI rework per owner feedback + tutorials
+
+- Tools palette: CS6-style two-column icon grid with tinted category bands, compact
+  fill/stroke swatch footer (overlapped chips, swap/default/no-fill/full-screen buttons);
+  removed meta counts footer. `panels/tools.rs`.
+- Properties/panel-group collapse: chevron click now works on first click — the header's
+  `Sense::click_and_drag` was shadowing the chevron `ui.interact`; detection moved to
+  header `interact_pointer_pos()` against the chevron rect. `panels/mod.rs`.
+- Right dock: expand/collapse-all now two 18 px toggle buttons inside the dock header bar;
+  removed the separate full-width button row. `layout.rs`.
+- New `docs/tutorials/` (getting-started, keybindings, drawing-and-editing,
+  pages-and-states, optimize-and-export) linked from `docs/README.md`. Publishing to the
+  GitHub Wiki awaits owner approval.
+- Gates: fmt clean; clippy -D warnings exit 0; test suite 110 passed / 0 failed;
+  wasm check exit 0. Screenshot /tmp/fc-final.png verified under Xvfb. Interactions
+  (click collapse, flyouts) remain unverified — screenshot only.

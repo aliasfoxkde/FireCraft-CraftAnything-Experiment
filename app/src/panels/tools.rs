@@ -358,55 +358,43 @@ fn vector_options(ui: &mut Ui, app: &mut FireCraft, compact: bool) {
 
 pub fn tools_panel_body(ui: &mut Ui, app: &mut FireCraft) {
     let p = app.palette;
-    // At a 960x640 window the dock body is under ~500 px. Tighten rows and drop the
-    // explanatory footer so all six categories, including View, stay visible without
-    // scrolling or clipping.
     let compact = ui.available_height() < 500.0;
-    let mut flat_index = 0usize;
+    let columns = if ui.available_width() < 48.0 { 1 } else { 2 };
     let mut open_flyout: Option<(usize, egui::Pos2)> = None;
-    let mut group_count = 0usize;
-    let mut tool_count = 0usize;
+    let mut flat_index = 0usize;
 
     for section in SECTIONS {
-        ui.add_space(if compact { 1.0 } else { 4.0 });
-        let head_h = if compact { 12.0 } else { 16.0 };
-        let (head, _) =
-            ui.allocate_exact_size(Vec2::new(ui.available_width(), head_h), Sense::hover());
-        ui.painter().rect_filled(head, 0.0, p.panel_alt);
-        ui.painter().rect_filled(
-            Rect::from_min_size(head.left_top(), Vec2::new(2.0, head.height())),
-            0.0,
-            p.accent,
+        // CS6 separates categories with a subtle tinted band and a hairline, not a
+        // full-width titled header.
+        ui.add_space(if compact { 2.0 } else { 4.0 });
+        let band_h = if compact { 3.0 } else { 5.0 };
+        let (band, _) =
+            ui.allocate_exact_size(Vec2::new(ui.available_width(), band_h), Sense::hover());
+        ui.painter()
+            .rect_filled(band, 0.0, p.panel_alt.gamma_multiply(0.6));
+        ui.painter().line_segment(
+            [
+                pos2(band.left(), band.bottom()),
+                pos2(band.right(), band.bottom()),
+            ],
+            Stroke::new(1.0, p.stroke.gamma_multiply(0.35)),
         );
-        ui.painter().text(
-            pos2(head.left() + 6.0, head.center().y),
-            Align2::LEFT_CENTER,
-            section.name,
-            FontId::proportional(9.5),
-            p.text_dim,
-        );
-        let members = section
-            .groups
-            .iter()
-            .map(|g| g.members.len())
-            .sum::<usize>();
-        ui.painter().text(
-            pos2(head.right() - 4.0, head.center().y),
-            Align2::RIGHT_CENTER,
-            format!("{}·{}", section.groups.len(), members),
-            FontId::proportional(8.0),
-            p.text_dim.gamma_multiply(0.7),
-        );
-        ui.add_space(if compact { 1.0 } else { 2.0 });
 
-        for row in section.groups.chunks(3) {
+        let mut cells: Vec<Option<&ToolGroup>> = section.groups.iter().map(Some).collect();
+        // Fill the grid row-major so the reading order matches CS6's left-to-right flow.
+        let rows = cells.len().div_ceil(columns);
+        for _ in cells.len()..rows * columns {
+            cells.push(None);
+        }
+        for row in cells.chunks(columns) {
             ui.horizontal(|ui| {
-                ui.spacing_mut().item_spacing = Vec2::new(3.0, 3.0);
+                ui.spacing_mut().item_spacing = Vec2::new(2.0, 2.0);
                 for group in row {
+                    let Some(group) = group else {
+                        continue;
+                    };
                     let group_index = flat_index;
                     flat_index += 1;
-                    group_count += 1;
-                    tool_count += group.members.len();
                     let shown = group.displayed(app.tool);
                     let active = group.contains(app.tool);
                     let flyout = group.members.len() > 1;
@@ -455,17 +443,6 @@ pub fn tools_panel_body(ui: &mut Ui, app: &mut FireCraft) {
         app.tool_flyout = Some(open);
     }
     tool_group_flyout(ui, app, opened_now);
-
-    if !compact {
-        ui.add_space(4.0);
-        ui.label(
-            RichText::new(format!(
-                "{group_count} tool groups · {tool_count} tools · corner triangle opens a group"
-            ))
-            .small()
-            .color(p.text_dim.gamma_multiply(0.75)),
-        );
-    }
 }
 
 /// The open group flyout. It is anchored beside the tool strip and lists every member with
@@ -528,82 +505,10 @@ fn tool_group_flyout(ui: &mut Ui, app: &mut FireCraft, opened_now: bool) {
     }
 }
 
-/// Pinned footer of the tool rail: color chips, swap/default/no-fill, and Full Screen. It sits
-/// outside the scrolling tool list so it can never be clipped at the bottom of the window.
+/// CS6's pinned color well: a fill-over-stroke swatch pair with swap/default/no-fill and
+/// full-screen mini controls beside it. One row, icon-sized, so the rail never loses space.
 pub fn tools_panel_footer(ui: &mut Ui, app: &mut FireCraft) {
     let p = app.palette;
-    if app.tools_collapsed {
-        // Single-column variant so the palette and Full Screen stay reachable when the rail is
-        // collapsed to one icon column.
-        ui.vertical_centered(|ui| {
-            let mut stroke_rgb = [
-                app.stroke.r() as f32 / 255.0,
-                app.stroke.g() as f32 / 255.0,
-                app.stroke.b() as f32 / 255.0,
-            ];
-            if ui
-                .color_edit_button_rgb(&mut stroke_rgb)
-                .on_hover_text("Stroke Color")
-                .changed()
-            {
-                let c = Color32::from_rgb(
-                    (stroke_rgb[0] * 255.0) as u8,
-                    (stroke_rgb[1] * 255.0) as u8,
-                    (stroke_rgb[2] * 255.0) as u8,
-                );
-                app.stroke = c;
-                app.set_selected_stroke(Some(c));
-            }
-            let mut fill_rgb = [
-                app.fill.r() as f32 / 255.0,
-                app.fill.g() as f32 / 255.0,
-                app.fill.b() as f32 / 255.0,
-            ];
-            if ui
-                .color_edit_button_rgb(&mut fill_rgb)
-                .on_hover_text("Fill Color")
-                .changed()
-            {
-                let c = Color32::from_rgb(
-                    (fill_rgb[0] * 255.0) as u8,
-                    (fill_rgb[1] * 255.0) as u8,
-                    (fill_rgb[2] * 255.0) as u8,
-                );
-                app.fill = c;
-                app.set_selected_fill(Some(c));
-            }
-            if ui
-                .small_button("⇄")
-                .on_hover_text("Swap Fill & Stroke (X)")
-                .clicked()
-            {
-                std::mem::swap(&mut app.fill, &mut app.stroke);
-            }
-            if ui
-                .small_button("▣")
-                .on_hover_text("Default Colors (D)")
-                .clicked()
-            {
-                app.fill = Color32::WHITE;
-                app.stroke = Color32::BLACK;
-            }
-            if ui
-                .small_button("⊘")
-                .on_hover_text("No Fill on Selection")
-                .clicked()
-            {
-                app.set_selected_fill(None);
-            }
-            if ui
-                .small_button("F")
-                .on_hover_text("Full-Screen Canvas (Tab / F4)")
-                .clicked()
-            {
-                app.toggle_full_screen_canvas();
-            }
-        });
-        return;
-    }
     ui.painter().line_segment(
         [
             ui.available_rect_before_wrap().left_bottom(),
@@ -611,81 +516,70 @@ pub fn tools_panel_footer(ui: &mut Ui, app: &mut FireCraft) {
         ],
         Stroke::new(1.0, p.stroke),
     );
-    ui.vertical_centered(|ui| {
-        ui.horizontal(|ui| {
-            let mut stroke_rgb = [
-                app.stroke.r() as f32 / 255.0,
-                app.stroke.g() as f32 / 255.0,
-                app.stroke.b() as f32 / 255.0,
-            ];
-            if ui
-                .color_edit_button_rgb(&mut stroke_rgb)
-                .on_hover_text("Stroke Color")
-                .changed()
-            {
-                let c = Color32::from_rgb(
-                    (stroke_rgb[0] * 255.0) as u8,
-                    (stroke_rgb[1] * 255.0) as u8,
-                    (stroke_rgb[2] * 255.0) as u8,
-                );
-                app.stroke = c;
-                app.set_selected_stroke(Some(c));
+    let chip = 16.0f32;
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = Vec2::new(3.0, 1.0);
+        // Overlapping fill-over-stroke pair like CS6's color well.
+        let (fill_rect, fill_resp) = ui.allocate_exact_size(Vec2::splat(chip), Sense::click());
+        let stroke_rect = Rect::from_min_size(
+            pos2(fill_rect.right() - 6.0, fill_rect.bottom() - 6.0),
+            Vec2::splat(chip),
+        );
+        let stroke_resp = ui
+            .allocate_rect(stroke_rect, Sense::click())
+            .on_hover_text("Stroke Color — click to edit");
+        let painter = ui.painter();
+        painter.rect_stroke(
+            fill_rect,
+            1.0,
+            Stroke::new(1.0, p.stroke),
+            egui::StrokeKind::Inside,
+        );
+        painter.rect_filled(fill_rect.shrink(2.5), 0.0, app.fill);
+        painter.rect_stroke(
+            stroke_rect,
+            1.0,
+            Stroke::new(1.0, p.stroke),
+            egui::StrokeKind::Inside,
+        );
+        painter.rect_filled(stroke_rect.shrink(2.5), 0.0, app.stroke);
+        if fill_resp.clicked() {
+            app.begin_fill_edit();
+        }
+        if stroke_resp.clicked() {
+            app.begin_stroke_edit();
+        }
+        fill_resp.on_hover_text("Fill Color — click to edit");
+        stroke_resp.on_hover_text("Stroke Color — click to edit");
+
+        for (label, tip, action) in [
+            ("⇄", "Swap Fill & Stroke (X)", 0u8),
+            ("▣", "Default Colors (D)", 1),
+            ("⊘", "No Fill on Selection", 2),
+            ("⛶", "Full-Screen Canvas (Tab / F4)", 3),
+        ] {
+            if ui.small_button(label).on_hover_text(tip).clicked() {
+                match action {
+                    0 => std::mem::swap(&mut app.fill, &mut app.stroke),
+                    1 => {
+                        app.fill = Color32::WHITE;
+                        app.stroke = Color32::BLACK;
+                    }
+                    2 => app.set_selected_fill(None),
+                    _ => app.toggle_full_screen_canvas(),
+                }
             }
-            let mut fill_rgb = [
-                app.fill.r() as f32 / 255.0,
-                app.fill.g() as f32 / 255.0,
-                app.fill.b() as f32 / 255.0,
-            ];
-            if ui
-                .color_edit_button_rgb(&mut fill_rgb)
-                .on_hover_text("Fill Color")
-                .changed()
-            {
-                let c = Color32::from_rgb(
-                    (fill_rgb[0] * 255.0) as u8,
-                    (fill_rgb[1] * 255.0) as u8,
-                    (fill_rgb[2] * 255.0) as u8,
-                );
-                app.fill = c;
-                app.set_selected_fill(Some(c));
-            }
-        });
-        ui.horizontal(|ui| {
-            if ui
-                .small_button("⇄")
-                .on_hover_text("Swap Fill & Stroke Colors (X)")
-                .clicked()
-            {
-                std::mem::swap(&mut app.fill, &mut app.stroke);
-            }
-            if ui
-                .small_button("▣")
-                .on_hover_text("Default Stroke & Fill Colors (D)")
-                .clicked()
-            {
-                app.fill = Color32::WHITE;
-                app.stroke = Color32::BLACK;
-            }
-            if ui
-                .small_button("⊘")
-                .on_hover_text("Set No Fill on Selection")
-                .clicked()
-            {
-                app.set_selected_fill(None);
-            }
-        });
-        if ui
-            .small_button(if app.full_screen_canvas {
-                "Exit Full"
-            } else {
-                "Full Screen"
-            })
-            .on_hover_text("Full-Screen Canvas / Hide Panels (Tab or F4)")
-            .clicked()
-        {
-            app.toggle_full_screen_canvas();
         }
     });
+}
+
+impl FireCraft {
+    fn begin_fill_edit(&mut self) {
+        self.set_selected_fill(Some(self.fill));
+    }
+    fn begin_stroke_edit(&mut self) {
+        self.set_selected_stroke(Some(self.stroke));
+    }
 }
 
 #[cfg(test)]

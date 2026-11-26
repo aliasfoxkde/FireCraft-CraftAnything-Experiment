@@ -17,6 +17,7 @@ is the map for deeper material.
 | Work on Find & Replace (including colors) | [Find & Replace](features/find-replace.md) |
 | Work on Open / Save / Export | [File Browser](features/file-browser.md) |
 | See the full feature inventory | [Feature Surface](features/README.md) |
+| Learn to use FireCraft (tutorials, keybindings) | [Tutorials](tutorials/README.md) |
 | Read the completed polish pass and manual backlog | [Roadmap](../ROADMAP.md) |
 | See changes by release | [Changelog](../CHANGELOG.md) |
 
