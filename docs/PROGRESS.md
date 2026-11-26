@@ -8,7 +8,9 @@ Newest first.
 - Hosted Windows release build, CLI smoke, ZIP packaging, and the WASM release build passed on source `4bd1242`. Neither result proves Windows 11 interactive acceptance or a production deploy.
 - Strict Clippy found a duplicated generic bound and two test modules above production items. Corrected those source issues, and made GitHub Code Quality upload failure non-blocking after its endpoint returned HTTP 404; the Cobertura artifact remains the required coverage receipt.
 - Added Phase 31 to the task ledger for the extension API, local manager, public catalog, community submission, safe one-click installation, and author/user documentation. Historical desk research and the canonical informational Extensions page are complete; operational marketplace features remain future work.
-- Current source-level formatting, workflow lint (with the documented actionlint permission-scope exception), and whitespace checks pass. Full Rust checks and the updated workflow need a new hosted receipt after push; release and deploy remain gated.
+- Current source-level formatting, workflow lint (with the documented actionlint permission-scope exception), and whitespace checks pass. Full CI still requires the module-size fix and final package/CodeQL results; release and deploy remain gated.
+- Follow-up run `45870025403` confirmed strict Clippy, the 180 tests, formatting, docs validation, and WASM build pass. It found two file-size gate failures (`icons.rs` 2,193 lines and `panels/bodies.rs` 2,028 lines); moved only their test modules into adjacent files. Local `module-size.sh` now passes. The new extraction is pushed for another hosted check; Windows and CodeQL were still running.
+- Follow-up coverage run `45870025885` reports 68.24% lines (16,979/24,881) and its GitHub Code Quality upload step succeeds. Cobertura has no branch counters, so branch coverage remains unmeasured.
 
 
 ## 2026-11-25 — Tasks 18.3, 18.7, 19.6: layout proof, frame budget, reproducible build
