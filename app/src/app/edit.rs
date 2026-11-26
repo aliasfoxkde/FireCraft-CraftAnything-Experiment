@@ -698,3 +698,168 @@ impl FireCraft {
         self.status = "Pasted Fill, Stroke, Opacity & Live Filters".to_string();
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::expect_used, clippy::panic, clippy::unwrap_used)]
+mod tests {
+    use super::*;
+
+    fn rect(x: f32) -> Obj {
+        Obj::new(
+            Shape::Rect {
+                min: Vec2::new(x, 10.0),
+                max: Vec2::new(x + 20.0, 30.0),
+                corner_radius: 0.0,
+                filled: true,
+            },
+            Some(Color32::WHITE),
+            None,
+        )
+    }
+
+    fn app_with_rects(count: usize) -> FireCraft {
+        let mut app = FireCraft::new(None);
+        for index in 0..count {
+            app.push_object(rect(index as f32 * 30.0));
+        }
+        app
+    }
+
+    #[test]
+    fn undo_and_redo_restore_objects_and_repair_out_of_range_selection() {
+        let mut app = app_with_rects(2);
+        app.selected = Some(9);
+        app.selected_set = vec![0, 8];
+        app.push_undo("snapshot");
+        app.doc.page_mut().layers[0].objects.clear();
+        app.doc.page_mut().sync_state();
+        app.selected = Some(7);
+        app.selected_set = vec![5];
+
+        app.undo_action();
+        assert_eq!(app.doc.page().layers[0].objects.len(), 2);
+        assert_eq!(app.selected, Some(1));
+        assert_eq!(app.selected_set, vec![1]);
+        assert_eq!(app.status, "Undo: snapshot");
+
+        app.redo_action();
+        assert!(app.doc.page().layers[0].objects.is_empty());
+        assert_eq!(app.selected, None);
+        assert!(app.selected_set.is_empty());
+        assert_eq!(app.status, "Redo: snapshot");
+
+        app.push_undo("new edit");
+        assert!(app.redo.is_empty());
+    }
+
+    #[test]
+    fn delete_handles_primary_and_extra_layers_and_empty_selection() {
+        let mut app = app_with_rects(1);
+        app.add_layer();
+        app.doc.page_mut().layers[1].objects.push(rect(80.0));
+        app.selected_layer = 0;
+        app.selected = Some(0);
+        app.selected_set = vec![0, 0, 99];
+        app.selected_extra_layers = vec![(1, 0), (1, 0), (99, 0)];
+
+        app.delete_selected();
+        assert!(app.doc.page().layers[0].objects.is_empty());
+        assert!(app.doc.page().layers[1].objects.is_empty());
+        assert_eq!(app.status, "Deleted 2 object(s)");
+        assert!(app.selected.is_none());
+        assert!(app.selected_set.is_empty());
+
+        let undo_count = app.undo.len();
+        app.delete_selected();
+        assert_eq!(app.undo.len(), undo_count, "empty delete is a no-op");
+    }
+
+    #[test]
+    fn group_and_ungroup_round_trip_multiple_objects() {
+        let mut app = app_with_rects(3);
+        app.selected = Some(0);
+        app.selected_set = vec![0, 2];
+
+        app.group_selected();
+        assert_eq!(app.doc.page().layers[0].objects.len(), 2);
+        let group_index = app.selected.expect("group is selected");
+        let Shape::Group { children } = &app.doc.page().layers[0].objects[group_index].kind else {
+            panic!("the selected object is a group");
+        };
+        assert_eq!(children.len(), 2);
+        assert_eq!(app.status, "Grouped 2 objects");
+
+        app.ungroup_selected();
+        assert_eq!(app.doc.page().layers[0].objects.len(), 3);
+        assert_eq!(app.selected_set.len(), 2);
+        assert_eq!(app.status, "Ungrouped into 2 objects");
+
+        app.ungroup_selected();
+        assert_eq!(app.status, "Selected object is not a Group");
+    }
+
+    #[test]
+    fn paste_text_uses_cursor_and_empty_clipboard_reports_status() {
+        let mut app = app_with_rects(0);
+        app.cursor_doc_pos = Some(Vec2::new(35.0, 45.0));
+        app.paste_with_text(Some("  pasted words  "));
+
+        let object = &app.doc.page().layers[0].objects[0];
+        let Shape::Text { at, text, .. } = &object.kind else {
+            panic!("external clipboard text becomes a text object");
+        };
+        assert_eq!(*at, Vec2::new(35.0, 45.0));
+        assert_eq!(text, "pasted words");
+        assert_eq!(object.name, "Pasted Text");
+        assert_eq!(
+            app.status,
+            "Pasted text from system clipboard as Text object"
+        );
+
+        let mut empty = FireCraft::new(None);
+        empty.paste_with_text(None);
+        assert_eq!(
+            empty.status,
+            "Clipboard is empty — select an object and press Ctrl+C (or copy an image/text) first"
+        );
+    }
+
+    #[test]
+    fn clone_nudge_spelling_and_copy_cover_selection_edges() {
+        let mut app = app_with_rects(1);
+        app.copy_selected();
+        assert_eq!(
+            app.status,
+            "Select one or more objects first to Copy (Ctrl+C)"
+        );
+        app.clone_selected();
+        assert_eq!(app.doc.page().layers[0].objects.len(), 1);
+
+        app.select_single(Some(0));
+        app.clone_selected();
+        assert_eq!(app.doc.page().layers[0].objects.len(), 2);
+        assert_eq!(app.selected, Some(1));
+        assert_eq!(app.status, "Cloned object in place");
+
+        let before = app.doc.page().layers[0].objects[1]
+            .bounds()
+            .expect("the cloned rectangle has bounds");
+        app.selected_set = vec![0, 1, 90];
+        app.nudge_selected(Vec2::new(3.0, -2.0));
+        let after = app.doc.page().layers[0].objects[1]
+            .bounds()
+            .expect("the nudged rectangle has bounds");
+        assert_eq!(after.0, before.0 + Vec2::new(3.0, -2.0));
+
+        app.check_spelling();
+        assert_eq!(
+            app.status,
+            "Spelling check complete: 0 text object(s) verified"
+        );
+        app.selected = None;
+        app.selected_set.clear();
+        let undo_count = app.undo.len();
+        app.nudge_selected(Vec2::splat(1.0));
+        assert_eq!(app.undo.len(), undo_count, "empty nudge is a no-op");
+    }
+}

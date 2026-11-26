@@ -1,20 +1,27 @@
-# Definition of record: scripts/ci-local.sh (also invoked by .github/workflows/ci.yml).
-# This mirror exists only so the Forge runner executes the same script.
+---
+# GitForge CI definition. Keep the commands aligned with scripts/ci-local.sh
+# and .github/workflows/ci.yml. GitForge uses its own versioned schema rather
+# than the GitHub/GitLab stages syntax.
 name: FireCraft Studio CI
-
-stages:
-  - gates
-
-image: rust:1.100-bookworm
-
-before_script:
-  - apt-get update -qq && apt-get install -y -qq libxcb-render0-dev libxcb-shape0-dev \
-      libxcb-xfixes0-dev libxkbcommon-dev libssl-dev
-  - rustup component add rustfmt clippy
-  - rustup target add wasm32-unknown-unknown
-
-gates:
-  stage: gates
-  script:
-    - ./scripts/ci-local.sh --quick
-    - cd app && cargo build --release --target wasm32-unknown-unknown
+version: "1.0"
+trigger_on:
+  - push
+  - pull_request
+environment: {}
+jobs:
+  - name: gates
+    image: rust:1.100-bookworm
+    timeout: 90m
+    steps:
+      - name: Install system dependencies and Rust targets
+        run: |
+          set -e
+          apt-get update -qq
+          apt-get install -y -qq libxcb-render0-dev libxcb-shape0-dev \
+            libxcb-xfixes0-dev libxkbcommon-dev libssl-dev
+          rustup component add rustfmt clippy
+          rustup target add wasm32-unknown-unknown
+      - name: Run local CI gates
+        run: ./scripts/ci-local.sh --quick
+      - name: Build the WebAssembly release
+        run: cd app && cargo build --release --target wasm32-unknown-unknown

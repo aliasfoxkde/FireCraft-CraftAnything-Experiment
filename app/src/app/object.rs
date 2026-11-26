@@ -1012,6 +1012,231 @@ impl FireCraft {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn rect(app: &mut FireCraft, lo: Vec2, hi: Vec2) -> usize {
+        app.push_object(Obj::new(
+            Shape::Rect {
+                min: lo,
+                max: hi,
+                corner_radius: 0.0,
+                filled: true,
+            },
+            Some(Color32::from_rgb(60, 120, 180)),
+            Some(Color32::BLACK),
+        ))
+    }
+
+    #[test]
+    fn convert_ellipse_line_and_gradient_to_editable_contours() {
+        let mut app = FireCraft::new(None);
+        app.push_object(Obj::new(
+            Shape::Ellipse {
+                center: Vec2::new(40.0, 50.0),
+                radius: Vec2::new(20.0, 10.0),
+                filled: true,
+            },
+            Some(Color32::RED),
+            None,
+        ));
+        app.select_single(Some(0));
+        app.convert_selected_to_path();
+        assert!(matches!(
+            &app.selected_object().unwrap().kind,
+            Shape::Path { points, closed: true } if points.len() == 16
+        ));
+
+        app.push_object(Obj::new(
+            Shape::Line {
+                a: Vec2::new(3.0, 7.0),
+                b: Vec2::new(13.0, 17.0),
+            },
+            None,
+            Some(Color32::BLACK),
+        ));
+        app.select_single(Some(1));
+        app.convert_selected_to_path();
+        assert!(matches!(
+            &app.selected_object().unwrap().kind,
+            Shape::Path { points, closed: false } if points == &[Vec2::new(3.0, 7.0), Vec2::new(13.0, 17.0)]
+        ));
+
+        let from = Color32::from_rgb(12, 34, 56);
+        app.push_object(Obj::new(
+            Shape::Gradient {
+                min: Vec2::new(5.0, 9.0),
+                max: Vec2::new(25.0, 39.0),
+                from,
+                to: Color32::WHITE,
+                radial: false,
+            },
+            None,
+            None,
+        ));
+        app.select_single(Some(2));
+        app.convert_selected_to_path();
+        let converted = app.selected_object().unwrap();
+        assert_eq!(converted.fill, Some(from));
+        assert!(matches!(converted.kind, Shape::Path { closed: true, .. }));
+    }
+
+    #[test]
+    fn path_edits_preserve_endpoints_and_snap_fractional_nodes() {
+        let mut app = FireCraft::new(None);
+        let points: Vec<Vec2> = (0..7)
+            .map(|i| Vec2::new(i as f32 + 0.2, (i * 2) as f32 + 0.7))
+            .collect();
+        app.push_object(Obj::new(
+            Shape::Path {
+                points: points.clone(),
+                closed: true,
+            },
+            None,
+            None,
+        ));
+        app.select_single(Some(0));
+
+        app.simplify_selected_path();
+        let Shape::Path {
+            points: simplified,
+            closed,
+        } = &app.selected_object().unwrap().kind
+        else {
+            panic!("simplifying a path must keep it a path");
+        };
+        assert!(*closed);
+        assert_eq!(simplified.len(), 4);
+        assert_eq!(simplified.first(), points.first());
+        assert_eq!(simplified.last(), points.last());
+
+        app.add_points_to_selected_path();
+        assert!(matches!(
+            &app.selected_object().unwrap().kind,
+            Shape::Path { points, closed: true } if points.len() == 8
+        ));
+        app.delete_point_from_selected_path();
+        assert!(matches!(
+            &app.selected_object().unwrap().kind,
+            Shape::Path { points, .. } if points.len() == 7
+        ));
+        app.snap_selected_to_pixel();
+        let Shape::Path { points, .. } = &app.selected_object().unwrap().kind else {
+            panic!("snapping must keep the path type");
+        };
+        assert!(
+            points
+                .iter()
+                .all(|point| point.x.fract() == 0.0 && point.y.fract() == 0.0)
+        );
+    }
+
+    #[test]
+    fn delete_point_keeps_minimum_triangle_and_join_closes_single_selection() {
+        let mut app = FireCraft::new(None);
+        app.push_object(Obj::new(
+            Shape::Path {
+                points: vec![Vec2::ZERO, Vec2::new(10.0, 0.0), Vec2::new(10.0, 10.0)],
+                closed: false,
+            },
+            None,
+            None,
+        ));
+        app.select_single(Some(0));
+        app.delete_point_from_selected_path();
+        assert!(matches!(
+            &app.selected_object().unwrap().kind,
+            Shape::Path { points, closed: false } if points.len() == 3
+        ));
+        app.combine_paths_op("join");
+        assert!(matches!(
+            &app.selected_object().unwrap().kind,
+            Shape::Path { closed: true, .. }
+        ));
+        assert_eq!(app.status, "Closed path endpoints (Join)");
+    }
+
+    #[test]
+    fn bitmap_color_filters_transform_channels_and_preserve_alpha() {
+        let mut app = FireCraft::new(None);
+        let alpha = 91;
+        let index = app.push_object(Obj::new(
+            Shape::Bitmap {
+                at: Vec2::ZERO,
+                size: Vec2::new(1.0, 1.0),
+                pixels: vec![10, 100, 200, alpha],
+            },
+            None,
+            None,
+        ));
+        app.select_single(Some(index));
+
+        for command in [
+            "brighten",
+            "darken",
+            "contrast",
+            "invert",
+            "grayscale",
+            "sepia",
+        ] {
+            app.apply_color_command(command);
+            let Shape::Bitmap { pixels, .. } = &app.selected_object().unwrap().kind else {
+                panic!("color filters must keep bitmap data");
+            };
+            assert_eq!(pixels[3], alpha, "{command} changed pixel alpha");
+            assert_eq!(app.status, format!("Applied color filter: {command}"));
+        }
+    }
+
+    #[test]
+    fn symbol_conversion_and_placement_keep_definition_and_instance_linked() {
+        let mut app = FireCraft::new(None);
+        rect(&mut app, Vec2::new(12.0, 20.0), Vec2::new(52.0, 60.0));
+        app.select_single(Some(0));
+        let symbol_id = app.doc.symbols.len();
+        app.convert_selection_to_symbol();
+
+        assert_eq!(app.doc.symbols.len(), symbol_id + 1);
+        assert_eq!(app.doc.symbols[symbol_id].id, symbol_id);
+        assert_eq!(app.doc.symbols[symbol_id].objects.len(), 1);
+        assert_eq!(app.doc.symbols[symbol_id].name, "Rectangle Symbol");
+        assert!(matches!(
+            app.selected_object().unwrap().kind,
+            Shape::SymbolInstance { symbol_id: id, .. } if id == symbol_id
+        ));
+
+        app.place_symbol_instance(symbol_id);
+        assert!(matches!(
+            app.selected_object().unwrap().kind,
+            Shape::SymbolInstance { symbol_id: id, .. } if id == symbol_id
+        ));
+        assert!(
+            app.status
+                .contains(&format!("Placed Symbol #{}", symbol_id + 1))
+        );
+    }
+
+    #[test]
+    fn tween_without_selection_is_a_noop_and_selected_tween_adds_three_states() {
+        let mut app = FireCraft::new(None);
+        app.tween_selected_across_states();
+        assert_eq!(app.doc.page().states.len(), 1);
+        assert!(app.status.contains("Select an object"));
+
+        let index = rect(&mut app, Vec2::new(10.0, 20.0), Vec2::new(30.0, 40.0));
+        app.select_single(Some(index));
+        app.tween_selected_across_states();
+        let page = app.doc.page();
+        assert_eq!(page.states.len(), 4);
+        for (step, state) in page.states.iter().skip(1).enumerate() {
+            let obj = &state.layers[0].objects[1];
+            assert!((obj.bounds().unwrap().0.x - (10.0 + (step + 1) as f32 * 36.0)).abs() < 0.001);
+            assert!((obj.opacity - (1.0 - (step + 1) as f32 * 0.18)).abs() < 0.001);
+        }
+    }
+}
+
 /// Polygon boolean operations backed by `geo`. `join` is handled separately because it is an
 /// endpoint operation, not an area operation.
 pub(super) fn polygon_boolean(a: &[Vec2], b: &[Vec2], op: &str) -> Option<Vec<Vec2>> {
