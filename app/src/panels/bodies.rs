@@ -1913,5 +1913,6 @@ pub(super) fn css_properties_tab(ui: &mut Ui, app: &mut FireCraft) {
 }
 
 #[cfg(test)]
-#[path = "bodies/tests.rs"]
-mod body_render_tests;
+mod body_render_tests {
+    include!("bodies/tests.rs");
+}

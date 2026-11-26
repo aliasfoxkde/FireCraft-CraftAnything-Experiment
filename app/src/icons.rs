@@ -1980,5 +1980,6 @@ pub fn draw_path(painter: &Painter, rect: Rect, icon: PathIcon, color: Color32) 
 }
 
 #[cfg(test)]
-#[path = "icons/tests.rs"]
-mod tests;
+mod tests {
+    include!("icons/tests.rs");
+}
