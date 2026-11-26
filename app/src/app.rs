@@ -494,6 +494,10 @@ pub struct FireCraft {
     pub show_bottom_inspector: bool,
     pub bottom_collapsed: bool,
     pub bottom_height: f32,
+    #[cfg(test)]
+    pub properties_collapse_rect: Option<egui::Rect>,
+    #[cfg(test)]
+    pub panels_toggle_rect: Option<egui::Rect>,
     pub full_screen_canvas: bool,
     pub window_fullscreen: bool,
     pub panel_groups: Vec<PanelGroup>,
@@ -670,6 +674,10 @@ impl FireCraft {
             show_bottom_inspector: true,
             bottom_collapsed: false,
             bottom_height: 142.0,
+            #[cfg(test)]
+            properties_collapse_rect: None,
+            #[cfg(test)]
+            panels_toggle_rect: None,
             full_screen_canvas: false,
             window_fullscreen: false,
             // Expanded Mode is CS6's default workspace: one right dock with five
@@ -1382,6 +1390,13 @@ impl FireCraft {
         } else {
             "Expanded all panel groups".to_string()
         };
+    }
+
+    /// Collapse every panel group when at least one is open; expand all when
+    /// the dock is fully collapsed. Used by the dock's single toggle control.
+    pub fn toggle_all_panels(&mut self) {
+        let collapse = self.panel_groups.iter().any(|group| !group.collapsed);
+        self.collapse_all_panels(collapse);
     }
 
     /// Magnetically snaps a floating panel window (`group_id`) within 12px of other floating windows

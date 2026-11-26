@@ -8,13 +8,6 @@ yanked = "deny"
 # Upstream unmaintained crates in the egui font/DBus stack have no replacement available to us;
 # only flag unmaintained crates that this workspace itself declares.
 unmaintained = "workspace"
-ignore = [
-    # url 2.5.8: stack overflow in Url::origin() on nested blob: URLs, reached through
-    # eframe -> egui-winit -> webbrowser. FireCraft only passes plain http(s) help URLs and never
-    # parses blob: URLs, so the vulnerable path is unreachable. No patched release at 0.3.0.
-    # Re-check: 2027-01-31.
-    "RUSTSEC-2026-0592",
-]
 
 [licenses]
 allow = [

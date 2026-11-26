@@ -545,7 +545,7 @@ pub(super) fn bottom_properties_dock(ui: &mut Ui, app: &mut FireCraft) {
         grip_resp.on_hover_text("Drag to resize the Properties inspector");
     }
 
-    let toggle = panels::panel_collapsible(
+    let (toggle, _collapse_rect) = panels::panel_collapsible(
         ui,
         "Properties",
         TABS,
@@ -586,6 +586,10 @@ pub(super) fn bottom_properties_dock(ui: &mut Ui, app: &mut FireCraft) {
             }
         },
     );
+    #[cfg(test)]
+    {
+        app.properties_collapse_rect = Some(_collapse_rect);
+    }
     if toggle {
         app.bottom_collapsed = !app.bottom_collapsed;
     }

@@ -50,7 +50,7 @@ pub fn panel_collapsible(
     body_height: Option<f32>,
     collapsed: bool,
     body: impl FnOnce(&mut Ui),
-) -> bool {
+) -> (bool, Rect) {
     panel_impl(
         ui,
         title,
@@ -73,8 +73,9 @@ fn panel_impl(
     body_height: Option<f32>,
     collapsed: Option<bool>,
     body: impl FnOnce(&mut Ui),
-) -> bool {
+) -> (bool, Rect) {
     let mut toggle_requested = false;
+    let mut collapse_rect = Rect::NOTHING;
     Frame::new()
         .fill(palette.panel)
         .stroke(Stroke::new(1.0, palette.stroke))
@@ -82,6 +83,18 @@ fn panel_impl(
         .show(ui, |ui| {
             let (bar, _) =
                 ui.allocate_exact_size(Vec2::new(ui.available_width(), 20.0), Sense::hover());
+            // Register the background double-click target before its controls. Egui resolves
+            // overlapping widgets by layer/order; registering this full-width target after the
+            // chevron made the chevron paint and hover but never receive a single click.
+            let bar_resp = if collapsed.is_some() {
+                Some(ui.interact(
+                    bar,
+                    ui.make_persistent_id(("panel-double-click", title)),
+                    Sense::click(),
+                ))
+            } else {
+                None
+            };
             let painter = ui.painter();
             painter.rect_filled(bar, 0.0, palette.panel_alt);
             // Bottom border of the tab strip
@@ -110,6 +123,7 @@ fn panel_impl(
                 // direction language (open points right, collapsed points down).
                 let chev_r =
                     Rect::from_min_size(pos2(bar.left() + 3.0, bar.top() + 3.0), Vec2::splat(14.0));
+                collapse_rect = chev_r;
                 let chev_resp = ui.interact(
                     chev_r,
                     ui.make_persistent_id(("panel-collapse-btn", title)),
@@ -261,15 +275,10 @@ fn panel_impl(
                 *tab_index = (*tab_index + 1) % tabs.len();
             }
 
-            if collapsed.is_some() {
-                let bar_resp = ui.interact(
-                    bar,
-                    ui.make_persistent_id(("panel-double-click", title)),
-                    Sense::click(),
-                );
-                if bar_resp.double_clicked() {
-                    toggle_requested = true;
-                }
+            if let Some(bar_resp) = bar_resp
+                && bar_resp.double_clicked()
+            {
+                toggle_requested = true;
             }
             if collapsed == Some(true) {
                 return;
@@ -294,7 +303,7 @@ fn panel_impl(
                 body(ui);
             }
         });
-    toggle_requested
+    (toggle_requested, collapse_rect)
 }
 
 // ============================================================================

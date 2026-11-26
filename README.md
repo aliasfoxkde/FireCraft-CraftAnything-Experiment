@@ -1,8 +1,8 @@
 # FireCraft
 
-**A clean-room, modern reimagining of Adobe Fireworks CS6** — hybrid vector and bitmap editing,
-web graphics, animation states, live effects, MCP automation, and a portable desktop workflow.
-Built in Rust with egui/eframe.
+**FireCraft - Open Source Raster and Vector Graphics Editor.** A clean-room, modern reimagining of
+Adobe Fireworks CS6, built in Rust with egui/eframe. It combines raster and vector editing, web
+graphics, animation states, live effects, MCP automation, and a portable desktop workflow.
 
 > FireCraft is not affiliated with Adobe. It contains no Adobe code.
 
@@ -18,9 +18,11 @@ Built in Rust with egui/eframe.
 | Work on the file browser | [File Browser](docs/features/file-browser.md) |
 | See all documentation | [Documentation index](docs/README.md) |
 | Check remaining work | [Tasks](docs/TASKS.md) |
+| See the public product roadmap | [Product Roadmap](docs/PRODUCT_ROADMAP.md) |
 | See the measured state and gaps | [Audit](docs/AUDIT.md) |
+| Read the current full audit snapshot | [2026-11-26 Audit](docs/AUDIT-2026-11-26.md) |
 | Understand the plan and its exit criteria | [Plan](docs/PLAN.md) |
-| Read the completed polish pass | [Roadmap](ROADMAP.md) |
+| Read the completed UI polish history | [Polish history](ROADMAP.md) |
 | Read release notes | [Changelog](CHANGELOG.md) |
 
 ## What is in the box
@@ -80,5 +82,7 @@ affiliated with Adobe; see the trademark note at the end of the license.
 
 - Domain vocabulary: [GLOSSARY.md](GLOSSARY.md)
 - Architecture decisions: [docs/adr/](docs/adr/)
+- Reference research: [docs/research/](docs/research/)
+- Agent guidance: [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md)
 - Do not commit build artifacts.
 - Keep modules and docs focused; split by user goal before a file becomes a monolith.

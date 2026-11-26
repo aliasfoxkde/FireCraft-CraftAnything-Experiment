@@ -13,6 +13,7 @@ pub struct Harness {
 impl Harness {
     pub fn new() -> Self {
         let ctx = egui::Context::default();
+        crate::icons::install_phosphor_font(&ctx);
         ctx.set_pixels_per_point(1.0);
         let mut app = FireCraft::new(None);
         app.load_demo_showcase();
@@ -42,6 +43,33 @@ impl Harness {
         output.textures_delta.clear();
         self.frames += 1;
         output.shapes.len()
+    }
+
+    fn click(&mut self, width: f32, height: f32, pos: Pos2) {
+        self.frame(width, height, vec![egui::Event::PointerMoved(pos)]);
+        self.frame(
+            width,
+            height,
+            vec![egui::Event::PointerButton {
+                pos,
+                button: egui::PointerButton::Primary,
+                pressed: true,
+                modifiers: Modifiers::NONE,
+            }],
+        );
+        self.frame(
+            width,
+            height,
+            vec![
+                egui::Event::PointerMoved(pos),
+                egui::Event::PointerButton {
+                    pos,
+                    button: egui::PointerButton::Primary,
+                    pressed: false,
+                    modifiers: Modifiers::NONE,
+                },
+            ],
+        );
     }
 }
 
@@ -774,6 +802,62 @@ mod tests {
                 "collapsed bottom dock painted identically ({collapsed})"
             );
         }
+    }
+
+    #[test]
+    fn collapse_chevrons_work_with_a_single_click() {
+        let mut harness = Harness::new();
+        harness.app.show_welcome = false;
+        harness.frame(1360.0, 860.0, Vec::new());
+
+        // Click the actual painted chevron bounds, so this guards input routing as well as state.
+        let properties_toggle = harness
+            .app
+            .properties_collapse_rect
+            .expect("Properties collapse control was not laid out");
+        harness.click(1360.0, 860.0, properties_toggle.center());
+        assert!(
+            harness.app.bottom_collapsed,
+            "Properties chevron did not collapse at {:?}",
+            properties_toggle
+        );
+        harness.frame(1360.0, 860.0, Vec::new());
+        let properties_toggle = harness
+            .app
+            .properties_collapse_rect
+            .expect("Properties expand control was not laid out");
+        harness.click(1360.0, 860.0, properties_toggle.center());
+        assert!(
+            !harness.app.bottom_collapsed,
+            "Properties chevron did not expand"
+        );
+
+        // The dock-wide toggle is a single control in the Panels header: one
+        // click collapses every group, and the next click expands them all.
+        harness.frame(1360.0, 860.0, Vec::new());
+        let panels_toggle = harness
+            .app
+            .panels_toggle_rect
+            .expect("Panels dock toggle was not laid out");
+        harness.click(1360.0, 860.0, panels_toggle.center());
+        assert!(
+            harness.app.panel_groups.iter().all(|group| group.collapsed),
+            "Panels toggle did not collapse every group"
+        );
+        harness.frame(1360.0, 860.0, Vec::new());
+        let panels_toggle = harness
+            .app
+            .panels_toggle_rect
+            .expect("Panels dock toggle was not laid out");
+        harness.click(1360.0, 860.0, panels_toggle.center());
+        assert!(
+            harness
+                .app
+                .panel_groups
+                .iter()
+                .all(|group| !group.collapsed),
+            "Panels toggle did not expand every group"
+        );
     }
 
     // ---- 18.8 / ROADMAP 4.5: built-in styles and live filters on single and

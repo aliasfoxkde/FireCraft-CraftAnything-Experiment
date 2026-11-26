@@ -22,6 +22,7 @@ cp "$root/README.md" "$out/README.md"
 cp "$root/LICENSE" "$out/LICENSE"
 cp "$root/CHANGELOG.md" "$out/CHANGELOG.md"
 cp "$root/GLOSSARY.md" "$out/GLOSSARY.md"
+cp "$root/THIRD-PARTY-NOTICES.md" "$out/THIRD-PARTY-NOTICES.md"
 cp "$root/app/MECHANICS.md" "$out/MECHANICS.md"
 cp -R "$root/docs/." "$out/docs/"
 # Internal planning documents are not part of the user-facing bundle.

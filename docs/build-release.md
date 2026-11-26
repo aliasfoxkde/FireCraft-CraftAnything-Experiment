@@ -95,6 +95,26 @@ Internal planning documents (`AUDIT`, `PLAN`, `TASKS`, `PROGRESS`) are excluded.
 executable is intentional: a creative desktop app should not require users to install a private
 DLL/runtime directory.
 
+## Multi-platform release artifacts
+
+The tag workflow builds Windows x86_64 (MSVC), universal macOS (arm64 + x86_64), Linux x86_64,
+and a WebAssembly web bundle from the same version-matched tag. Linux packaging is handled by
+`scripts/package-linux.sh` and currently produces a portable tarball, AppImage, DEB, and Flatpak.
+The DEB declares `libc6 >= 2.35` (the Ubuntu 22.04 runner baseline); older distributions are not
+claimed as supported without native install/launch testing. The Flatpak currently requests
+home-directory and network access because file access uses direct paths and the optional
+Intelligence feature can contact its configured provider. Review these permissions before
+installation and expect the sandbox to be broader than a portal-based package.
+
+`scripts/package-macos.sh` produces a universal `.app`, ZIP, and DMG. Packages remain unsigned and
+unnotarized until Developer ID credentials and notarization are configured; macOS may block them
+under the default Gatekeeper policy. The package includes a distribution note and SHA-256 values.
+This limitation is not equivalent to native macOS runtime acceptance.
+
+The WASM ZIP is built from the same tag and the workflow deploys that directory to GitHub Pages.
+Cloudflare marketing-site deployment is a separate task and is not implied by the Pages deploy.
+Artifact hashes and source-SHA metadata are verified before the GitHub Release is published.
+
 ## Command-line surface
 
 | Flag / verb | Meaning |

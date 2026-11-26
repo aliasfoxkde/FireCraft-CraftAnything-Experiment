@@ -1094,54 +1094,49 @@ fn dock_column(ui: &mut Ui, app: &mut FireCraft, zone: crate::app::DockZone) {
             p.text_dim,
         );
 
-        // Expand/collapse-all toggles live in the header bar (right-aligned) rather than
-        // their own row, so the dock does not lose vertical space to chrome.
+        // One state-aware toggle replaces separate expand and collapse buttons.
         let btn_w = 18.0;
-        let expand_r = egui::Rect::from_min_max(
+        let toggle_r = egui::Rect::from_min_max(
             egui::pos2(bar_r.right() - btn_w - 2.0, bar_r.top() + 1.0),
             egui::pos2(bar_r.right() - 2.0, bar_r.bottom() - 1.0),
         );
-        let collapse_r = egui::Rect::from_min_max(
-            egui::pos2(expand_r.left() - btn_w - 2.0, bar_r.top() + 1.0),
-            egui::pos2(expand_r.left() - 2.0, bar_r.bottom() - 1.0),
-        );
-        for (r, id, glyph, tip, expand) in [
-            (
-                expand_r,
-                "right_dock_expand_all",
-                "▸",
-                "Expand all panels in dock",
-                true,
-            ),
-            (
-                collapse_r,
-                "right_dock_collapse_all",
-                "▾",
-                "Collapse all panels in dock",
-                false,
-            ),
-        ] {
-            let resp = ui.interact(r, ui.make_persistent_id(id), egui::Sense::click());
-            if resp.hovered() {
-                painter.rect_filled(r, 0.0, p.well);
-            }
-            painter.text(
-                r.center(),
-                egui::Align2::CENTER_CENTER,
-                glyph,
-                egui::FontId::proportional(9.5),
-                if resp.hovered() { p.accent } else { p.text_dim },
-            );
-            if resp.clicked() {
-                app.collapse_all_panels(expand);
-            }
-            resp.on_hover_text(tip);
+        #[cfg(test)]
+        {
+            app.panels_toggle_rect = Some(toggle_r);
         }
+        let all_collapsed = app.panel_groups.iter().all(|group| group.collapsed);
+        let toggle_resp = ui.interact(
+            toggle_r,
+            ui.make_persistent_id("right_dock_toggle_all"),
+            egui::Sense::click(),
+        );
+        if toggle_resp.hovered() {
+            painter.rect_filled(toggle_r, 0.0, p.well);
+        }
+        painter.text(
+            toggle_r.center(),
+            egui::Align2::CENTER_CENTER,
+            if all_collapsed { "▸" } else { "▾" },
+            egui::FontId::proportional(9.5),
+            if toggle_resp.hovered() {
+                p.accent
+            } else {
+                p.text_dim
+            },
+        );
+        if toggle_resp.clicked() {
+            app.toggle_all_panels();
+        }
+        toggle_resp.on_hover_text(if all_collapsed {
+            "Expand all panels"
+        } else {
+            "Collapse all panels"
+        });
 
         // Draggable CS6 dotted grip (drag to float panel block or snap to Left/Right; double-click to toggle collapse)
         let grip_r = egui::Rect::from_min_max(
             egui::pos2(chev_r.right() + 56.0, bar_r.top()),
-            egui::pos2(collapse_r.left() - 2.0, bar_r.bottom()),
+            egui::pos2(toggle_r.left() - 2.0, bar_r.bottom()),
         );
         let grip_resp = ui.interact(
             grip_r,

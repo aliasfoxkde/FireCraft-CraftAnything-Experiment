@@ -2,6 +2,24 @@
 
 use eframe::egui::{self, Color32, Painter, Pos2, Rect, Stroke, Vec2, pos2};
 
+mod phosphor;
+
+const PHOSPHOR_FONT_FAMILY: &str = "FireCraft Phosphor";
+
+/// Register the bundled Phosphor icon font with egui for native and WASM UIs.
+pub fn install_phosphor_font(ctx: &egui::Context) {
+    let mut fonts = egui::FontDefinitions::default();
+    let name = PHOSPHOR_FONT_FAMILY.to_owned();
+    fonts.font_data.insert(
+        name.clone(),
+        egui::FontData::from_static(include_bytes!("../assets/fonts/Phosphor-Regular.ttf")).into(),
+    );
+    fonts
+        .families
+        .insert(egui::FontFamily::Name(name.clone().into()), vec![name]);
+    ctx.set_fonts(fonts);
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Icon {
     New,
@@ -159,6 +177,25 @@ fn arc_points(center: Pos2, radius: f32, start: f32, end: f32, steps: usize) -> 
 
 /// Draws `icon` inside `rect` (a square button face).
 pub fn draw(painter: &Painter, rect: Rect, icon: Icon, color: Color32, width: f32) {
+    if let Some(glyph) = phosphor::glyph(icon) {
+        let icon_rect = rect.shrink(3.0);
+        let size = icon_rect.width().min(icon_rect.height());
+        painter.text(
+            icon_rect.center(),
+            egui::Align2::CENTER_CENTER,
+            glyph,
+            egui::FontId::new(
+                size * 1.18,
+                egui::FontFamily::Name(PHOSPHOR_FONT_FAMILY.into()),
+            ),
+            color,
+        );
+        return;
+    }
+    draw_legacy(painter, rect, icon, color, width);
+}
+
+fn draw_legacy(painter: &Painter, rect: Rect, icon: Icon, color: Color32, width: f32) {
     let r = rect.shrink(3.0);
     let cx = r.center().x;
     let cy = r.center().y;
