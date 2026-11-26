@@ -89,3 +89,6 @@ jobs:
           file: app/target/cobertura.xml
           language: Rust
           label: code-coverage/cargo-llvm-cov
+          # GitHub Code Quality API availability depends on repository entitlement.
+          # The Cobertura artifact remains the authoritative coverage receipt.
+          fail-on-error: false

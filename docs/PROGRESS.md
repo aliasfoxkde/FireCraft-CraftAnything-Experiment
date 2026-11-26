@@ -2,6 +2,15 @@
 
 Newest first.
 
+### 2026-11-26 — hosted gate follow-up and extension roadmap
+
+- Audited the latest hosted experiment-repo run. Coverage workflow passed 180 tests (154 unit, 12 CLI, 4 hygiene, 10 MCP) and produced Cobertura at 68.24% lines (16,978/24,880); no branch counters were emitted. This does not meet the requested 99% target.
+- Hosted Windows release build, CLI smoke, ZIP packaging, and the WASM release build passed on source `4bd1242`. Neither result proves Windows 11 interactive acceptance or a production deploy.
+- Strict Clippy found a duplicated generic bound and two test modules above production items. Corrected those source issues, and made GitHub Code Quality upload failure non-blocking after its endpoint returned HTTP 404; the Cobertura artifact remains the required coverage receipt.
+- Added Phase 31 to the task ledger for the extension API, local manager, public catalog, community submission, safe one-click installation, and author/user documentation. Historical desk research and the canonical informational Extensions page are complete; operational marketplace features remain future work.
+- Current source-level formatting, workflow lint (with the documented actionlint permission-scope exception), and whitespace checks pass. Full Rust checks and the updated workflow need a new hosted receipt after push; release and deploy remain gated.
+
+
 ## 2026-11-25 — Tasks 18.3, 18.7, 19.6: layout proof, frame budget, reproducible build
 
 - **18.3**: headless Xvfb captures at 960×640 and 1360×860 with demo scene and

@@ -1012,6 +1012,61 @@ impl FireCraft {
     }
 }
 
+/// Polygon boolean operations backed by `geo`. `join` is handled separately because it is an
+/// endpoint operation, not an area operation.
+pub(super) fn polygon_boolean(a: &[Vec2], b: &[Vec2], op: &str) -> Option<Vec<Vec2>> {
+    use geo::{BooleanOps, LineString, MultiPolygon, Polygon};
+    if a.len() < 3 || b.len() < 3 {
+        return None;
+    }
+    let poly = |pts: &[Vec2]| {
+        let mut coords: Vec<(f64, f64)> = pts.iter().map(|p| (p.x as f64, p.y as f64)).collect();
+        if coords.first() != coords.last() {
+            coords.push(coords[0]);
+        }
+        Polygon::new(LineString::from(coords), Vec::new())
+    };
+    let pa = poly(a);
+    let pb = poly(b);
+    let result: MultiPolygon<f64> = match op {
+        "intersect" | "crop" => pa.intersection(&pb),
+        "punch" => pa.difference(&pb),
+        _ => pa.union(&pb),
+    };
+    // A Path object holds one closed contour. A result with several disconnected regions, or
+    // with holes, cannot be represented without silently discarding geometry, so reject it and
+    // let the caller report the limitation instead of dropping part of the result.
+    let mut contours: Vec<Vec<Vec2>> = Vec::new();
+    for polygon in result.0 {
+        if !polygon.interiors().is_empty() {
+            return None;
+        }
+        let pts: Vec<Vec2> = polygon
+            .exterior()
+            .0
+            .iter()
+            .map(|c| Vec2::new(c.x as f32, c.y as f32))
+            .collect();
+        if pts.len() >= 3 && polygon_area(&pts).abs() >= 0.5 {
+            contours.push(pts);
+        }
+    }
+    match contours.len() {
+        1 => contours.pop(),
+        _ => None,
+    }
+}
+
+pub(super) fn polygon_area(pts: &[Vec2]) -> f64 {
+    let mut area = 0.0_f64;
+    for i in 0..pts.len() {
+        let a = pts[i];
+        let b = pts[(i + 1) % pts.len()];
+        area += (a.x as f64) * (b.y as f64) - (b.x as f64) * (a.y as f64);
+    }
+    area * 0.5
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1235,59 +1290,4 @@ mod tests {
             assert!((obj.opacity - (1.0 - (step + 1) as f32 * 0.18)).abs() < 0.001);
         }
     }
-}
-
-/// Polygon boolean operations backed by `geo`. `join` is handled separately because it is an
-/// endpoint operation, not an area operation.
-pub(super) fn polygon_boolean(a: &[Vec2], b: &[Vec2], op: &str) -> Option<Vec<Vec2>> {
-    use geo::{BooleanOps, LineString, MultiPolygon, Polygon};
-    if a.len() < 3 || b.len() < 3 {
-        return None;
-    }
-    let poly = |pts: &[Vec2]| {
-        let mut coords: Vec<(f64, f64)> = pts.iter().map(|p| (p.x as f64, p.y as f64)).collect();
-        if coords.first() != coords.last() {
-            coords.push(coords[0]);
-        }
-        Polygon::new(LineString::from(coords), Vec::new())
-    };
-    let pa = poly(a);
-    let pb = poly(b);
-    let result: MultiPolygon<f64> = match op {
-        "intersect" | "crop" => pa.intersection(&pb),
-        "punch" => pa.difference(&pb),
-        _ => pa.union(&pb),
-    };
-    // A Path object holds one closed contour. A result with several disconnected regions, or
-    // with holes, cannot be represented without silently discarding geometry, so reject it and
-    // let the caller report the limitation instead of dropping part of the result.
-    let mut contours: Vec<Vec<Vec2>> = Vec::new();
-    for polygon in result.0 {
-        if !polygon.interiors().is_empty() {
-            return None;
-        }
-        let pts: Vec<Vec2> = polygon
-            .exterior()
-            .0
-            .iter()
-            .map(|c| Vec2::new(c.x as f32, c.y as f32))
-            .collect();
-        if pts.len() >= 3 && polygon_area(&pts).abs() >= 0.5 {
-            contours.push(pts);
-        }
-    }
-    match contours.len() {
-        1 => contours.pop(),
-        _ => None,
-    }
-}
-
-pub(super) fn polygon_area(pts: &[Vec2]) -> f64 {
-    let mut area = 0.0_f64;
-    for i in 0..pts.len() {
-        let a = pts[i];
-        let b = pts[(i + 1) % pts.len()];
-        area += (a.x as f64) * (b.y as f64) - (b.x as f64) * (a.y as f64);
-    }
-    area * 0.5
 }

@@ -2117,10 +2117,10 @@ mod tests {
         PathIcon::NextPoint,
     ];
 
-    fn paint_each<T: std::fmt::Debug>(items: &[T], mut paint: impl FnMut(&egui::Painter, T))
-    where
-        T: Copy,
-    {
+    fn paint_each<T: std::fmt::Debug + Copy>(
+        items: &[T],
+        mut paint: impl FnMut(&egui::Painter, T),
+    ) {
         let ctx = egui::Context::default();
         install_phosphor_font(&ctx);
         let input = egui::RawInput {

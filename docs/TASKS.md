@@ -246,3 +246,13 @@ automated proof, not another manual pass.
 - [ ] **30.2** Write a terminal-in-app threat model and ADR covering process launch, command consent, working-directory scope, environment/secret exposure, output handling, cancellation, and platform parity; implementation is gated on safe process boundaries.
 - [ ] **30.3** Specify expanded Intelligence capabilities (skills, memories, scheduled jobs) with explicit opt-in, storage/retention, provenance, permission review, audit log, cancellation, and no fabricated outputs; add an ADR and staged acceptance criteria before implementation.
 - [ ] **30.4** Define independent, reproducible progress targets toward the requested 99% quality goal: Rust line/function/branch coverage where supported, behavioral test coverage by user flow, documentation link/claim coverage, and accessibility criteria. Keep dated baselines, generated-code exclusions, and ratchet increments in CI; coverage alone is not quality or conformance.
+
+## Phase 31 — FireCraft extension ecosystem
+
+- [x] **31.1** Review the historical Fireworks extension catalogs, authoring articles, command libraries, and source mirrors; record workflow patterns, limitations, licensing guardrails, and links in [`research/fireworks-extensions.md`](research/fireworks-extensions.md). *(Desk research complete; no legacy code or assets reused.)*
+- [x] **31.2** Add a public-facing Extensions information page and link it from the canonical marketing site; state plainly that the page is informational and the catalog/install service is not operational. *(Implemented in sibling `/nas/Temp/repos/FireCraft`; deployment remains gated under 28.10.)*
+- [ ] **31.3** Define the versioned FireCraft extension API, package manifest, compatibility contract, capability model, author SDK, validation harness, and migration/deprecation policy.
+- [ ] **31.4** Implement the local extension manager: per-user staged install, explicit enable, disable/uninstall, offline packages, hash/provenance checks, permission review, safe mode, immutable version history, update, and rollback.
+- [ ] **31.5** Build the public catalog and community submission workflow with identity/ownership, license and policy review, automated validation, moderation, security reports, takedown/advisory process, and official promotion criteria.
+- [ ] **31.6** Add one-click in-app discovery/install/update only after package validation and capability consent pass; test interrupted installs, tampering, API mismatch, permission escalation, rollback, and no-network/offline operation.
+- [ ] **31.7** Publish extension author and user tutorials, API reference, trust-tier policy, privacy/data behavior, support matrix, changelog, and an extension security response process.
