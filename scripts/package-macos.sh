@@ -44,7 +44,7 @@ esac
 bundle_version="${version%%-*}"
 
 # Require both architectures so the artifact name and support claim are accurate.
-lipo -verify_arch arm64 x86_64 "$binary"
+lipo "$binary" -verify_arch arm64 x86_64
 
 # The caller owns output_arg; remove only this script's named products.
 rm -rf "$app"

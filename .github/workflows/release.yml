@@ -148,7 +148,7 @@ jobs:
           sudo apt-get install -y -qq \
             libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev \
             libssl-dev libgl1-mesa-dev libfontconfig1-dev libfreetype6-dev libfuse2 \
-            dpkg-dev flatpak flatpak-builder jq curl file patchelf zip desktop-file-utils
+            dpkg-dev flatpak flatpak-builder jq curl file patchelf zip desktop-file-utils ripgrep
       - name: Build Linux release binary
         working-directory: app
         run: cargo build --locked --release
