@@ -15,8 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      # GitHub Code Quality permission; actionlint 1.7.12 predates this name.
-      code-quality: write
     defaults:
       run:
         working-directory: app
@@ -56,6 +54,30 @@ jobs:
             echo "::error::Missing or empty Cobertura report: app/$report"
             exit 1
           fi
+
+      - name: Preserve Cobertura report for the upload job
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rust-cobertura
+          path: app/target/llvm-cov/cobertura.xml
+          if-no-files-found: error
+          retention-days: 1
+
+  upload-coverage:
+    name: Upload Rust coverage
+    needs: coverage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      # GitHub Code Quality permission; actionlint 1.7.12 predates this name.
+      code-quality: write
+    steps:
+      - name: Download Cobertura report
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: rust-cobertura
+          path: app/target/llvm-cov
 
       - name: Upload coverage to GitHub Code Quality
         if: >-
