@@ -2,6 +2,21 @@
 
 Newest first.
 
+## 2026-11-25 — Task 17.1: extract command modules from app.rs
+
+- Extracted `app/src/app/edit.rs` (undo/redo, delete/duplicate/group, clipboard,
+  selection sets; 700 lines), `app/src/app/arrange.rs` (align/distribute/space,
+  match size, flip/rotate/scale, z-order; 667 lines) and `app/src/app/object.rs`
+  (paths/booleans, symbols, styles, auto-shapes, slices, filters, flatten,
+  saved commands; 1068 lines) from `app.rs` behind the existing child-module
+  pattern (`use super::*;` + `impl FireCraft`). `polygon_boolean`/`polygon_area`
+  moved to module scope in `object.rs` with `pub(super)` visibility for the
+  property tests. `app.rs` is 7368 -> 4952 lines. Gates: fmt, clippy
+  `-D warnings`, tests, wasm check, module-size budget all pass. Behavior is
+  unchanged - pure code motion; existing tests cover the seams.
+
+Newest first.
+
 ## 2026-11-25 — 0.3.0 quality and release pass
 
 Worked the open task list end to end; decisions D1–D5 recorded.
