@@ -45,11 +45,11 @@ jobs:
       - name: Run tests and generate Cobertura coverage
         run: >-
           cargo llvm-cov --workspace --cobertura
-          --output-path target/llvm-cov/cobertura.xml
+          --output-path target/cobertura.xml
 
       - name: Verify Cobertura report exists
         run: |
-          report=target/llvm-cov/cobertura.xml
+          report=target/cobertura.xml
           if [[ ! -s "$report" ]]; then
             echo "::error::Missing or empty Cobertura report: app/$report"
             exit 1
@@ -59,7 +59,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: rust-cobertura
-          path: app/target/llvm-cov/cobertura.xml
+          path: app/target/cobertura.xml
           if-no-files-found: error
           retention-days: 1
 
@@ -77,7 +77,7 @@ jobs:
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: rust-cobertura
-          path: app/target/llvm-cov
+          path: app/target
 
       - name: Upload coverage to GitHub Code Quality
         if: >-
@@ -86,6 +86,6 @@ jobs:
         uses: >-
           actions/upload-code-coverage@2b21a77928be8d5168c2b9581a67f2adbebacc52
         with:
-          file: app/target/llvm-cov/cobertura.xml
+          file: app/target/cobertura.xml
           language: Rust
           label: code-coverage/cargo-llvm-cov
