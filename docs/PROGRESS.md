@@ -11,6 +11,7 @@ Newest first.
 - Current source-level formatting, workflow lint (with the documented actionlint permission-scope exception), and whitespace checks pass. Full CI still requires the module-size fix and final package/CodeQL results; release and deploy remain gated.
 - Follow-up run `45870025403` confirmed strict Clippy, the 180 tests, formatting, docs validation, and WASM build pass. It found two file-size gate failures (`icons.rs` 2,193 lines and `panels/bodies.rs` 2,028 lines); moved only their test modules into adjacent files. Local `module-size.sh` now passes. The new extraction is pushed for another hosted check; Windows and CodeQL were still running.
 - Follow-up coverage run `45870025885` reports 68.24% lines (16,979/24,881) and its GitHub Code Quality upload step succeeds. Cobertura has no branch counters, so branch coverage remains unmeasured.
+- Full corrected run `45871239608` now passes Linux quality gates, all 180 tests, docs, module-size, Windows CLI/ZIP packaging, and WASM builds. CodeQL was still in progress at the last check. Its CI coverage ratchet measured 67.61% lines / 69.71% functions / 69.82% regions; its separate Cobertura artifact measured 68.05% lines and has no branch counters. Raised `coverage-floor.txt` from 44.40% to 67.61%; this exact new floor needs one hosted confirmation run.
 
 
 ## 2026-11-25 — Tasks 18.3, 18.7, 19.6: layout proof, frame budget, reproducible build
