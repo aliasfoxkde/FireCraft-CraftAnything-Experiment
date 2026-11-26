@@ -2,6 +2,19 @@
 
 Newest first.
 
+## 2026-11-25 — Task 17.3: panel bodies behind the PANELS registry
+
+- Extracted the remaining panel render bodies from `panels/mod.rs` (3635 ->
+  1388 lines) into `panels/bodies.rs` (1912 lines: Optimize, History, Align,
+  Path, Styles, Swatches, Info, Pages, Intelligence, Library, Start, and the
+  post-registry bodies) and `panels/tabs.rs` (355 lines: Pages/States/Layers
+  and related tab wrappers). `mod.rs` now holds the chrome, the `PANELS`
+  descriptor table and re-exports; every renderer is reached through the
+  registry seam. Pure code motion; fmt, clippy `-D warnings`, tests, wasm
+  check and module-size budget pass.
+
+Newest first.
+
 ## 2026-11-25 — Task 17.2: extract layout/chrome.rs
 
 - Extracted the document tab strip and canvas footer bar (with their helpers

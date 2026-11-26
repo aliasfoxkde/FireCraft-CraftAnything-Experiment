@@ -78,7 +78,7 @@ Every task names its proof. A task without proof is not done.
 
 - [x] **17.1** Extract arrange/edit/object command bodies from `app.rs` into `app/{arrange,edit,object}.rs` behind request/outcome seams. *(Done 2026-11-25: app.rs 7368->4952 lines; pure motion, gates green.)*
 - [x] **17.2** Extract `layout/chrome.rs` (menu bar, document tab strip, canvas footer). *(Done 2026-11-25: menu bar already lived in menus.rs; tab strip, footer and bottom dock moved to layout/chrome.rs, layout.rs 2850->2041.)*
-- [ ] **17.3** Move remaining panel bodies behind the `PANELS` registry.
+- [x] **17.3** Move remaining panel bodies behind the `PANELS` registry. *(Done 2026-11-25: panels/mod.rs 3635->1388; bodies split into panels/bodies.rs + panels/tabs.rs, all rendering via the registry seam.)*
 - [x] **17.4** Isolate panel drag/resize/stack geometry into a pure, egui-free module.
 - [ ] **17.5** Introduce the `FileService` seam for open/save/export so flows run headless.
 - [x] **17.6** Enforce a module size budget in CI (warn > 1,200 lines, fail > 2,000 with allowlist).
