@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.100.0
+      - uses: dtolnay/rust-toolchain@1.120.0
         with:
           components: rustfmt, clippy
           targets: wasm32-unknown-unknown
@@ -44,7 +44,7 @@ jobs:
         working-directory: app
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.100.0
+      - uses: dtolnay/rust-toolchain@1.120.0
         with:
           components: clippy, rustfmt
       - uses: Swatinem/rust-cache@v2
@@ -76,7 +76,7 @@ jobs:
         working-directory: app
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.100.0
+      - uses: dtolnay/rust-toolchain@1.120.0
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
