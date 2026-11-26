@@ -12,6 +12,9 @@ Raw user reports and design notes, now split by status. Open items have IDs and 
 | I-03 | `Ctrl`/mouse-wheel should zoom, `Shift`+scroll pan horizontally, plain scroll pan vertically, `Alt`+scroll hand-pan | Implemented in `canvas.rs` scroll handling. |
 | I-04 | Upper-left corner shows an Fw icon instead of Fc | Toolbar branding uses the FireCraft mark. |
 | I-05 | Improve branding / header label | Showcase page, title bar and About use FireCraft branding. |
+| I-06 | `Alt+F` should open the File menu with arrow navigation | Alt+letter mnemonics dispatch `Shortcut::OpenMenu` (layout.rs ~1700); arrows move within (nav_delta) and across menus, Enter/Space activate, Escape closes (menus.rs ~218). |
+| I-07 | `Tab` should toggle Preview / full-screen canvas mode | `(Key::Tab, no mods) => Shortcut::ToggleFullScreenCanvas` (layout.rs ~1739). |
+| I-08a | Properties/panel-group collapse chevron dead on single click | Fixed 2026-11-25: header drag-sense shadowed the chevron interact; detection now via header `interact_pointer_pos()` vs chevron rect (panels/mod.rs). |
 
 ## Open
 
@@ -19,8 +22,8 @@ Raw user reports and design notes, now split by status. Open items have IDs and 
 |----|--------|-----------|
 | I-06 | `Alt+F` should open the File menu with arrow navigation | TASKS 18.1 / 16.5 |
 | I-07 | `Tab` should toggle Preview / full-screen canvas mode | TASKS 16.5 |
-| I-08 | Expanding, pinning/snapping and grouping windows doesn't work | TASKS 16.3, 16.4, G-1 |
-| I-09 | Align and Path windows need design/polish work | TASKS 18.1 |
+| I-08b | Expanding, pinning/snapping and grouping windows doesn't work | TASKS 16.3, 16.4, G-1 (collapse toggle part closed as I-08a; drag/snap still GUI-verified) |
+| I-09 | Align and Path windows need design/polish work | Implemented as CS6 icon-row panels with tooltips and actions (panels/bodies.rs align_panel, paths_panel); pixel-level polish folds into G-1/18.3 screenshot review |
 | I-10 | General polish against the CS6 reference screenshots | TASKS G-1…G-4, 18.3 |
 | I-11 | Commit, push and publish WASM/Windows builds | Needs owner approval to push/publish; local bundles are produced by `scripts/package-windows.sh`. |
 

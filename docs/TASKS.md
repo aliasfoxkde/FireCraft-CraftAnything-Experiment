@@ -87,7 +87,7 @@ Every task names its proof. A task without proof is not done.
 
 ## Phase 18 — Functional verification and defect burn-down
 
-- [ ] **18.1** Triage and close the `IMPROVEMENTS.md` reports: panel expand/pin/snap/group; `Alt+F` + arrows; `Tab` preview; Align/Path design; branding; transparent splash.
+- [x] **18.1** Triage and close the `IMPROVEMENTS.md` reports: panel expand/pin/snap/group; `Alt+F` + arrows; `Tab` preview; Align/Path design; branding; transparent splash. *(Done 2026-11-25: I-06 Alt+letter mnemonics + arrow nav and I-07 Tab preview verified in code; I-09 Align/Path implemented as CS6 icon panels; I-08a collapse chevron fixed. Drag/snap gesture verification stays in 16.3/16.4; splash/branding closed earlier.)*
 - [ ] **18.2** Verify Windows Jump List, app-switch flashing and taskbar identity, or record them as unverified limitations.
 - [ ] **18.3** Prove 960×640 and 1360×860 with every panel open: nothing clipped, footer fits. *(Dock now scrolls and always shows a scrollbar, but the 960 px rule was not proven with every group expanded.)*
 - [ ] **18.4** Intelligence panel: unconfigured / invalid key / success / timeout paths, no fabricated output.

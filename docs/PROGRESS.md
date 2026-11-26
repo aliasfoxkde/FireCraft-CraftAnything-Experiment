@@ -159,3 +159,14 @@ unverified. Do not restate the plan; link it.
 - Gates: fmt clean; clippy -D warnings exit 0; test suite 110 passed / 0 failed;
   wasm check exit 0. Screenshot /tmp/fc-final.png verified under Xvfb. Interactions
   (click collapse, flyouts) remain unverified — screenshot only.
+
+### 18.1 IMPROVEMENTS triage (same day)
+
+- Verified in source: Alt+letter menu mnemonics dispatch OpenMenu; ArrowUp/Down set
+  nav_delta, Left/Right switch menus, Enter/Space activate (menus.rs). Tab (no mods)
+  maps to ToggleFullScreenCanvas (layout.rs). Align and Path panels are complete CS6
+  icon-row implementations (panels/bodies.rs).
+- IMPROVEMENTS.md updated: I-06, I-07 moved to Fixed; I-08 split (collapse part fixed,
+  drag/snap gesture stays with 16.3/16.4); I-09 folded into G-1/18.3 polish.
+- Unverified: actual keypress/click behavior needs the Phase 16 interactive harness or
+  a display; code paths only.
