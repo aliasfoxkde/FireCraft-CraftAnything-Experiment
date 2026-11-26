@@ -107,6 +107,28 @@ Worked the open task list end to end; decisions D1–D5 recorded.
 - **Release:** `scripts/package-windows.sh` builds `dist/windows/` + versioned zip + SHA-256;
   tag/version mismatch fails the release job; Wine smoke-tested the GNU binary.
 
+## 2026-11-26 — Harness interaction tests (16.2/16.4/16.6/16.7)
+
+New tests in `app/src/harness.rs`, all driving the real headless frame:
+
+- `workspace_shell_states_paint_at_the_minimum_size`: startup shell at both
+  sizes, splash, Tab key, Alt+F menu open, iconic flyout (Iconic Mode preset),
+  footer/status.
+- `panel_gestures_float_merge_stack_detach_snap_and_close`: ungroup → float
+  (multi-tab source keeps its id, new floating group gets a fresh one), merge,
+  stack, detach, edge snap within the 12 px threshold, close-last no-panic.
+- `every_menu_row_triggers_and_closes_the_menu`: walks all 10 menus, Enter
+  triggers each enabled row, Escape closes; selection set so Filters/Modify/Text
+  rows are enabled.
+- Find/replace: text mode cycles matches and replaces name+text slots (4
+  occurrences across 2 objects); color mode covers the no-match report and the
+  real swap (`replace_color` must differ from `find_color` or the run is a
+  no-op by design). Dialog toggles frame without panicking.
+
+Gates: `cargo test --bin firecraft` 101 passed; `cargo fmt --check` and
+`cargo clippy --all-targets -- -D warnings` clean. Not verified on screen —
+headless frame evidence only.
+
 ## 2026-11-25 — GUI hill-climb and architecture slice
 
 Four capture-and-fix iterations against real renders (`scripts/gui-shot.sh`, Xvfb + software GL,

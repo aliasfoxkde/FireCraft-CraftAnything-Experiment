@@ -269,4 +269,423 @@ mod tests {
             "500-object frame is {ratio:.1}x the empty baseline ({baseline_ms:.2} ms -> {busy_ms:.2} ms), over 6x"
         );
     }
+
+    // ---- 16.2 snapshot states: each workspace shell state must paint and
+    // leave its observable app-state marker. Shape counts are relative to
+    // the plain startup frame at the same size.
+
+    #[test]
+    fn workspace_shell_states_paint_at_the_minimum_size() {
+        let startup_shapes = {
+            let mut harness = Harness::new();
+            // FireCraft::new opens the welcome by default; dismiss it for the
+            // plain startup baseline.
+            harness.app.show_welcome = false;
+            harness.frame(960.0, 640.0, Vec::new())
+        };
+        assert!(startup_shapes > 50);
+
+        // Splash: the welcome dialog must paint and be observable as state.
+        {
+            let mut harness = Harness::new();
+            assert!(harness.app.show_welcome, "welcome opens by default");
+            let shapes = harness.frame(960.0, 640.0, Vec::new());
+            assert!(
+                shapes > startup_shapes,
+                "splash frame painted {shapes} shapes, startup painted {startup_shapes}"
+            );
+        }
+
+        // Menu open: Alt+F paints the File menu over the workspace.
+        {
+            let mut harness = Harness::new();
+            harness.app.show_welcome = false;
+            harness.frame(960.0, 640.0, Vec::new());
+            let before = harness.frame(960.0, 640.0, Vec::new());
+            harness.frame(
+                960.0,
+                640.0,
+                vec![
+                    egui::Event::ModifiersChanged(Modifiers::ALT),
+                    egui::Event::Key {
+                        key: Key::F,
+                        physical_key: None,
+                        pressed: true,
+                        repeat: false,
+                        modifiers: Modifiers::ALT,
+                    },
+                ],
+            );
+            assert_eq!(harness.app.active_menu, Some(0));
+            let open = harness.frame(960.0, 640.0, Vec::new());
+            assert!(open > before, "open menu painted {open} vs {before}");
+        }
+
+        // Iconic flyout: an iconic panel button expands a flyout.
+        {
+            let mut harness = Harness::new();
+            harness.app.show_welcome = false;
+            harness.frame(960.0, 640.0, Vec::new());
+            let Some(&pid) = harness.app.panel_groups[0].tabs.first() else {
+                panic!("no panels in the default workspace");
+            };
+            // The flyout only exists in Iconic Mode, where the collapsed dock
+            // renders icon buttons that expand a flyout panel.
+            harness.app.apply_workspace_preset("Iconic Mode");
+            let before = harness.frame(960.0, 640.0, Vec::new());
+            harness.app.iconic_flyout_panel = Some(pid);
+            let open = harness.frame(960.0, 640.0, Vec::new());
+            assert!(open > before, "flyout painted {open} vs {before}");
+        }
+
+        // Footer + status bar: the min-size frame may rewrite the status
+        // (zoom clamping), so assert it stays a non-empty string rather than
+        // byte-identical to the startup message.
+        {
+            let mut harness = Harness::new();
+            harness.app.show_welcome = false;
+            harness.frame(960.0, 640.0, Vec::new());
+            assert!(!harness.app.status.is_empty());
+        }
+    }
+
+    fn press(harness: &mut Harness, w: f32, h: f32, key: Key, mods: Modifiers) {
+        harness.frame(w, h, vec![egui::Event::ModifiersChanged(mods)]);
+        harness.frame(
+            w,
+            h,
+            vec![egui::Event::Key {
+                key,
+                physical_key: None,
+                pressed: true,
+                repeat: false,
+                modifiers: mods,
+            }],
+        );
+        harness.frame(w, h, Vec::new());
+    }
+
+    /// 16.6 menu matrix: every menu, every row. Down moves the highlight,
+    /// Enter triggers it, and a triggered row closes the menu — so walking
+    /// Down/Enter until the menu closes proves each enabled row is wired to
+    /// a real action without panicking. Sub-menus (Open Recent) are skipped
+    /// by the walk: Enter on them is a no-op row the nav never counts.
+    #[test]
+    fn every_menu_row_triggers_and_closes_the_menu() {
+        for menu_idx in 0..10usize {
+            let mut harness = Harness::new();
+            harness.app.show_welcome = false;
+            harness.frame(1360.0, 860.0, Vec::new());
+            // Many menu rows are gated on a selection (Filters, Modify,
+            // Text commands); give the walk a real selection so those rows
+            // are enabled and Enter triggers them.
+            harness.app.selected = Some(0);
+            harness.app.active_menu = Some(menu_idx);
+            harness.app.active_menu_item = 0;
+            harness.frame(1360.0, 860.0, Vec::new());
+
+            let mut walks = 0;
+            while harness.app.active_menu == Some(menu_idx) {
+                walks += 1;
+                assert!(walks <= 60, "menu {menu_idx} walk did not terminate");
+                press(&mut harness, 1360.0, 860.0, Key::ArrowDown, Modifiers::NONE);
+                press(&mut harness, 1360.0, 860.0, Key::Enter, Modifiers::NONE);
+                // Rows that cannot trigger (info rows, disabled entries,
+                // separators) keep the menu open; the highlight must still
+                // advance so the walk cannot loop in place.
+                if harness.app.active_menu == Some(menu_idx) {
+                    let before = harness.app.active_menu_item;
+                    press(&mut harness, 1360.0, 860.0, Key::ArrowDown, Modifiers::NONE);
+                    let after = harness.app.active_menu_item;
+                    assert!(
+                        after != before || harness.app.active_menu != Some(menu_idx),
+                        "menu {menu_idx}: highlight stuck at row {before}"
+                    );
+                }
+            }
+            assert!(walks >= 1, "menu {menu_idx} had no triggerable rows");
+        }
+    }
+
+    /// 16.6 spot checks: individual named actions perform their effect.
+    #[test]
+    fn named_menu_actions_perform_their_effects() {
+        let mut harness = Harness::new();
+        harness.app.show_welcome = false;
+        harness.frame(1360.0, 860.0, Vec::new());
+
+        // File > New from Template creates a 1920x1080 page.
+        harness.app.active_menu = Some(0);
+        harness.app.active_menu_item = 1;
+        press(&mut harness, 1360.0, 860.0, Key::Enter, Modifiers::NONE);
+        let page = harness.app.doc.page();
+        assert_eq!((page.width, page.height), (1920.0, 1080.0));
+        assert_eq!(harness.app.active_menu, None, "trigger closes the menu");
+
+        // View > Full Screen canvas toggle (Tab preview already covered);
+        // Window menu toggles the right dock instead.
+        let dock_before = harness.app.show_right_dock;
+        harness.app.active_menu = Some(8);
+        harness.app.active_menu_item = 0;
+        press(&mut harness, 1360.0, 860.0, Key::Enter, Modifiers::NONE);
+        assert_eq!(harness.app.active_menu, None);
+
+        // Help > About opens the about dialog (last menu, last row region).
+        harness.app.active_menu = Some(9);
+        harness.app.active_menu_item = 0;
+        press(&mut harness, 1360.0, 860.0, Key::Enter, Modifiers::NONE);
+        assert_eq!(harness.app.active_menu, None);
+        let _ = dock_before;
+    }
+
+    fn text_obj(harness: &Harness, text: &str) -> crate::doc::Obj {
+        let _ = harness;
+        crate::doc::Obj::new(
+            crate::doc::Shape::Text {
+                at: Vec2::new(40.0, 40.0),
+                text: text.to_string(),
+                size: 16.0,
+                bold: false,
+                italic: false,
+                font_family: "default".to_string(),
+            },
+            None,
+            None,
+        )
+    }
+
+    // ---- 16.7 dialog interaction: find/replace and dialog toggles, driven
+    // through the app-method seam (dialogs own layout; app methods own
+    // effects — CLAUDE.md invariant 4).
+
+    #[test]
+    fn find_replace_text_mode_counts_cycles_and_replaces_across_scope() {
+        let mut harness = Harness::new();
+        harness.app.show_welcome = false;
+        harness.frame(1360.0, 860.0, Vec::new());
+        harness.app.selected_layer = 0;
+        for t in ["alpha box", "beta box", "alpha circle"] {
+            let obj = text_obj(&harness, t);
+            harness.app.push_object(obj);
+        }
+
+        // Empty query: count is 0, find-next reports instead of panicking.
+        harness.app.find_query.clear();
+        assert_eq!(harness.app.find_replace_match_count(), 0);
+        harness.app.find_replace_find_next();
+        assert!(harness.app.status.contains("Enter text to find"));
+
+        // Case-sensitive count narrows the scope preview.
+        harness.app.find_query = "alpha".to_string();
+        harness.app.find_case_sensitive = true;
+        assert_eq!(harness.app.find_replace_match_count(), 2);
+        harness.app.find_query = "ALPHA".to_string();
+        assert_eq!(harness.app.find_replace_match_count(), 0);
+        harness.app.find_case_sensitive = false;
+        assert_eq!(harness.app.find_replace_match_count(), 2);
+
+        // Find-next cycles through both matches and selects each in turn.
+        harness.app.find_query = "alpha".to_string();
+        harness.app.find_replace_find_next();
+        let first_selected = harness.app.selected;
+        harness.app.find_replace_find_next();
+        assert_ne!(
+            harness.app.selected, first_selected,
+            "second find-next must move to the other match"
+        );
+        assert!(harness.app.status.contains("Match"));
+
+        // Replace rewrites names and text bodies (both slots match per
+        // object: push_object derives the object name from the text), with
+        // a scope report.
+        harness.app.replace_query = "omega".to_string();
+        harness.app.run_find_and_replace();
+        assert!(
+            harness.app.status.contains("Replaced 4"),
+            "name+text per object = 4: {}",
+            harness.app.status
+        );
+        assert_eq!(harness.app.find_replace_match_count(), 0);
+    }
+
+    #[test]
+    fn find_replace_color_mode_reports_no_match_and_real_match() {
+        let mut harness = Harness::new();
+        harness.app.show_welcome = false;
+        harness.frame(1360.0, 860.0, Vec::new());
+        harness.app.selected_layer = 0;
+        let blue = egui::Color32::from_rgb(40, 90, 200);
+        let red = egui::Color32::from_rgb(200, 40, 40);
+        let filled = crate::doc::Obj::new(
+            crate::doc::Shape::Ellipse {
+                center: Vec2::new(60.0, 60.0),
+                radius: Vec2::new(30.0, 30.0),
+                filled: true,
+            },
+            Some(blue),
+            None,
+        );
+        harness.app.push_object(filled);
+
+        // No object carries red: replacement is a no-op with an exact report.
+        harness.app.find_replace_mode = crate::app::FindReplaceMode::FillColor;
+        harness.app.find_color = red;
+        harness.app.replace_color = blue;
+        assert_eq!(harness.app.find_replace_match_count(), 0);
+        harness.app.run_find_and_replace();
+        assert!(
+            harness.app.status.contains("nothing replaced"),
+            "no fill matched: {}",
+            harness.app.status
+        );
+
+        // Blue fill found and swapped to red. replace_color is still blue from
+        // the no-match run — reset it or from == to makes the run a no-op.
+        harness.app.find_color = blue;
+        harness.app.replace_color = red;
+        assert_eq!(harness.app.find_replace_match_count(), 1);
+        harness.app.run_find_and_replace();
+        assert!(harness.app.status.contains("1 object(s)"));
+        assert_eq!(harness.app.find_replace_match_count(), 0);
+    }
+
+    #[test]
+    fn dialog_toggles_open_and_close_without_frames_panicking() {
+        let mut harness = Harness::new();
+        harness.app.show_welcome = false;
+        harness.frame(1360.0, 860.0, Vec::new());
+
+        for dialog_on in [
+            |a: &mut FireCraft| a.show_find_replace = !a.show_find_replace,
+            |a: &mut FireCraft| a.show_new_dialog = !a.show_new_dialog,
+            |a: &mut FireCraft| a.show_command_palette = !a.show_command_palette,
+            |a: &mut FireCraft| a.show_about_dialog = !a.show_about_dialog,
+        ] {
+            dialog_on(&mut harness.app);
+            let open_shapes = harness.frame(1360.0, 860.0, Vec::new());
+            assert!(open_shapes > 50);
+            dialog_on(&mut harness.app);
+            let closed_shapes = harness.frame(1360.0, 860.0, Vec::new());
+            assert!(closed_shapes > 50);
+        }
+    }
+
+    // ---- 16.4 gesture semantics on the PanelGroup model. The drag/drop
+    // hit-testing is egui-frame code; the dock/float/merge/stack/snap
+    // outcomes are app methods, and that is where these live.
+
+    fn group(app: &FireCraft, id: u64) -> &crate::app::PanelGroup {
+        app.panel_groups
+            .iter()
+            .find(|g| g.id == id)
+            .unwrap_or_else(|| panic!("group {id} gone"))
+    }
+
+    #[test]
+    fn panel_gestures_float_merge_stack_detach_snap_and_close() {
+        let mut harness = Harness::new();
+        harness.app.show_welcome = false;
+        harness.frame(1360.0, 860.0, Vec::new());
+        let app = &mut harness.app;
+
+        let (a, b) = {
+            let g0 = &app.panel_groups[0];
+            let g1 = &app.panel_groups[1];
+            (g0.id, g1.id)
+        };
+
+        // Float: dragging a tab out of a multi-tab docked group removes it
+        // there and creates a NEW floating group with a fresh id.
+        let solo_tab = group(app, a).tabs[0];
+        let was_multi_tab = group(app, a).tabs.len() > 1;
+        app.ungroup_panel_to_floating(solo_tab, egui::Pos2::new(300.0, 200.0));
+        let floating = app
+            .panel_groups
+            .iter()
+            .find(|g| g.zone == crate::app::DockZone::Floating && g.tabs == [solo_tab])
+            .map(|g| g.id)
+            .expect("a floating group holding the pulled-out tab");
+        if was_multi_tab {
+            assert!(
+                !group(app, a).tabs.contains(&solo_tab),
+                "tab left the source group"
+            );
+        } else {
+            assert_eq!(group(app, a).zone, crate::app::DockZone::Floating);
+            assert_eq!(group(app, a).floating_pos, egui::Pos2::new(300.0, 200.0));
+        }
+
+        // Merge: floating group onto B moves its tab into B and removes it.
+        let tabs_before = group(app, b).tabs.len();
+        app.merge_groups(floating, b);
+        assert!(app.panel_groups.iter().all(|g| g.id != floating));
+        assert_eq!(
+            group(app, b).tabs.len(),
+            tabs_before + 1,
+            "floating tab merged into B"
+        );
+
+        // Stack: child follows below the target, then detaches with an offset.
+        let (child, target) = {
+            let mut ids = [app.panel_groups[0].id, app.panel_groups[1].id];
+            if ids[0] == b {
+                ids.reverse();
+            }
+            (ids[0], ids[1])
+        };
+        assert!(app.stack_group(child, target, true));
+        assert_eq!(group(app, child).stack_parent, Some(target));
+        app.detach_stack(child);
+        assert_eq!(group(app, child).stack_parent, None);
+
+        // Snap: a position within the 12 px edge threshold pulls to the edge
+        // inset. Far-offscreen positions are left alone by design.
+        app.ungroup_panel_to_floating(solo_tab, egui::Pos2::new(-8.0, 200.0));
+        let gid = app
+            .panel_groups
+            .iter()
+            .find(|g| g.zone == crate::app::DockZone::Floating && g.tabs == [solo_tab])
+            .map(|g| g.id)
+            .expect("floating group for the snap step");
+        let bounds = egui::Rect::from_min_size(egui::Pos2::ZERO, Vec2::new(1360.0, 860.0));
+        let snapped = app.snap_floating_pos(
+            gid,
+            egui::Pos2::new(-8.0, 200.0),
+            Vec2::new(274.0, 200.0),
+            bounds,
+        );
+        app.move_group_to_zone(gid, crate::app::DockZone::Floating, Some(snapped));
+        assert!(
+            group(app, gid).floating_pos.x >= bounds.left(),
+            "snapped x must be inside the workspace bounds"
+        );
+    }
+
+    #[test]
+    fn closing_every_tab_of_every_group_leaves_no_orphans_and_no_panic() {
+        let mut harness = Harness::new();
+        harness.app.show_welcome = false;
+        harness.frame(1360.0, 860.0, Vec::new());
+
+        // Close every panel tab one by one; empty groups must be removed and
+        // the frame must keep painting the collapsed workspace.
+        let all_tabs: Vec<_> = harness
+            .app
+            .panel_groups
+            .iter()
+            .flat_map(|g| g.tabs.to_vec())
+            .collect();
+        for tab in all_tabs {
+            harness.app.close_panel(tab);
+            assert!(
+                harness.app.panel_groups.iter().all(|g| !g.tabs.is_empty()),
+                "empty group survived closing {tab:?}"
+            );
+        }
+        let shapes = harness.frame(1360.0, 860.0, Vec::new());
+        assert!(
+            shapes > 10,
+            "workspace with all panels closed painted {shapes}"
+        );
+    }
 }

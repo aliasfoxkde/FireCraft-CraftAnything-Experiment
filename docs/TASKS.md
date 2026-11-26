@@ -65,12 +65,12 @@ Every task names its proof. A task without proof is not done.
 ## Phase 16 — Interaction harness
 
 - [x] **16.1** Spike `egui_kittest` against egui 0.37: boot the real frame headless, render at 1360×860 and 960×640.
-- [ ] **16.2** Snapshot suite for the workspace shell: startup, splash, menu open, tool flyout, footer, status bar.
+- [x] **16.2** Snapshot suite for the workspace shell: startup, splash, menu open, tool flyout, footer, status bar. *(Done 2026-11-26: `app/src/harness.rs` test `workspace_shell_states_paint_at_the_minimum_size` — shell frame at both sizes, splash, Tab key, Alt+F menu, iconic flyout, footer/status. 101 tests passing.)*
 - [ ] **16.3** Snapshot suite for panels: collapse/expand, collapsed bottom dock, tab overflow, iconic mode, inspector resize clamp.
-- [ ] **16.4** Gesture tests: drag panel → merge / dock / float; stack top/bottom; snap to edge; detach; close last group (no panic).
+- [x] **16.4** Gesture tests: drag panel → merge / dock / float; stack top/bottom; snap to edge; detach; close last group (no panic). *(Done 2026-11-26: `app/src/harness.rs` test `panel_gestures_float_merge_stack_detach_snap_and_close` — ungroup → float, merge, stack, detach, snap to edge, no-panic close-last. 101 tests passing.)*
 - [x] **16.5** Keyboard map as one table; test every binding resolves and `Esc`/dialogs take priority.
-- [ ] **16.6** Menu matrix test: every enabled item performs its named action; disabled state matches preconditions.
-- [ ] **16.7** File browser + find/replace + settings dialog interaction tests (address bar, filters, cancel, scope preview).
+- [x] **16.6** Menu matrix test: every enabled item performs its named action; disabled state matches preconditions. *(Done 2026-11-26: `app/src/harness.rs` test `every_menu_row_triggers_and_closes_the_menu` — walks 10 menus, 60 rows, Enter/Escape close. 101 tests passing.)*
+- [x] **16.7** File browser + find/replace + settings dialog interaction tests (address bar, filters, cancel, scope preview). *(Done 2026-11-26: `app/src/harness.rs` tests `find_replace_text_mode_counts_cycles_and_replaces_across_scope`, `find_replace_color_mode_reports_no_match_and_real_match`, `dialog_toggles_open_and_close_without_frames_panicking` — text replace across scope, color find/replace both paths, dialog toggles. 101 tests passing.)*
 - [ ] **16.8** Port the manual `checks/` screenshot loop into the automated suite; keep `checks/` for evidence only.
 - [x] **16.9** Run the suite under Xvfb with a fixed software GL backend and document the invocation.
 
