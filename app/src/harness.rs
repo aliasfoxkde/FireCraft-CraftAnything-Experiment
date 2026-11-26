@@ -775,4 +775,175 @@ mod tests {
             );
         }
     }
+
+    // ---- 18.8 / ROADMAP 4.5: built-in styles and live filters on single and
+    // multi-selection — every effect kind attached, toggled and cleared.
+
+    #[test]
+    fn styles_and_live_filters_apply_to_single_and_multi_selection() {
+        let mut harness = Harness::new();
+        harness.app.show_welcome = false;
+        harness.frame(1360.0, 860.0, Vec::new());
+        let app = &mut harness.app;
+
+        // Built-in style library presets carry fill/stroke/effects.
+        let presets = crate::doc::StylePreset::library_styles(crate::doc::StyleLibrary::ShadowGlow);
+        assert!(!presets.is_empty());
+
+        // Single selection: style preset swaps fill, stroke and effects.
+        app.select_all();
+        let first = app.selected.expect("demo scene has objects");
+        app.select_single(Some(first));
+        let before = app.selected_object().expect("selection present");
+        app.apply_style_preset_value(&presets[0]);
+        let after = app.selected_object().expect("selection present");
+        assert_eq!(after.fill, presets[0].fill, "style fill applied");
+        assert_eq!(after.stroke, presets[0].stroke, "style stroke applied");
+        assert_eq!(after.effects, presets[0].effects, "style effects applied");
+        assert!(before != after);
+
+        // Multi-selection: the same preset lands on every selected object.
+        app.select_all();
+        let targets = app.selected_set.clone();
+        assert!(targets.len() >= 2, "demo scene has multiple objects");
+        let layer = app.selected_layer;
+        let baseline_effects: Vec<_> = targets
+            .iter()
+            .map(|&i| app.doc.page().layers[layer].objects[i].effects.clone())
+            .collect();
+        app.apply_style_preset_value(&presets[0]);
+        let layer = app.selected_layer;
+        for &i in &targets {
+            let obj = &app.doc.page().layers[layer].objects[i];
+            assert_eq!(obj.fill, presets[0].fill, "multi-select fill on {i}");
+            assert_eq!(
+                obj.effects, presets[0].effects,
+                "multi-select effects on {i}"
+            );
+        }
+
+        // Undo reverts the multi-select style application to the per-object
+        // baseline (demo objects may already carry live effects).
+        app.undo_action();
+        for (n, &i) in targets.iter().enumerate() {
+            let obj = &app.doc.page().layers[layer].objects[i];
+            assert_eq!(
+                obj.effects, baseline_effects[n],
+                "undo restores baseline effects on {i}"
+            );
+        }
+    }
+
+    #[test]
+    fn every_live_filter_kind_adds_toggles_and_clears_on_selection() {
+        let mut harness = Harness::new();
+        harness.app.show_welcome = false;
+        harness.frame(1360.0, 860.0, Vec::new());
+        let app = &mut harness.app;
+
+        app.select_all();
+        let targets = app.selected_set.clone();
+        assert!(targets.len() >= 2);
+        let layer = app.selected_layer;
+        // Demo objects may already carry live effects; count from baseline.
+        let baseline_counts: Vec<usize> = app.doc.page().layers[app.selected_layer]
+            .objects
+            .iter()
+            .map(|o| o.effects.len())
+            .collect();
+
+        let effect_kinds = vec![
+            crate::doc::LiveEffect::GaussianBlur {
+                radius: 4.0,
+                enabled: true,
+            },
+            crate::doc::LiveEffect::DropShadow {
+                distance: 3.0,
+                angle_deg: 90.0,
+                blur: 4.0,
+                color: eframe::egui::Color32::from_black_alpha(120),
+                enabled: true,
+            },
+            crate::doc::LiveEffect::Glow {
+                radius: 6.0,
+                color: eframe::egui::Color32::from_rgb(255, 200, 40),
+                inner: false,
+                enabled: true,
+            },
+            crate::doc::LiveEffect::Bevel {
+                width: 2.0,
+                highlight: eframe::egui::Color32::from_white_alpha(160),
+                shadow: eframe::egui::Color32::from_black_alpha(160),
+                enabled: true,
+            },
+            crate::doc::LiveEffect::InnerShadow {
+                distance: 2.0,
+                blur: 3.0,
+                color: eframe::egui::Color32::from_black_alpha(120),
+                enabled: true,
+            },
+        ];
+
+        for eff in &effect_kinds {
+            app.add_live_effect(eff.clone());
+            assert_eq!(
+                app.status,
+                format!("Added Live Filter: {}", eff.label()),
+                "filter rejected: {:?}",
+                eff
+            );
+        }
+        for &i in &targets {
+            let obj = &app.doc.page().layers[layer].objects[i];
+            assert_eq!(
+                obj.effects.len(),
+                baseline_counts[i] + effect_kinds.len(),
+                "object {i}"
+            );
+        }
+
+        // Toggle every effect off, then on, across the selection. Only the
+        // freshly added block (top of the list) is toggled by index.
+        for (k, _) in effect_kinds.iter().enumerate() {
+            let idx = baseline_counts[targets[0]] + k;
+            app.toggle_live_effect(idx, false);
+            for &i in &targets {
+                let obj = &app.doc.page().layers[layer].objects[i];
+                assert!(!obj.effects[idx].is_enabled(), "toggle-off {k} on {i}");
+            }
+            app.toggle_live_effect(idx, true);
+            for &i in &targets {
+                let obj = &app.doc.page().layers[layer].objects[i];
+                assert!(obj.effects[idx].is_enabled(), "toggle-on {k} on {i}");
+            }
+        }
+
+        // Remove one, then clear the rest.
+        let first_added = baseline_counts[targets[0]];
+        app.remove_live_effect(first_added);
+        for &i in &targets {
+            let obj = &app.doc.page().layers[layer].objects[i];
+            assert_eq!(
+                obj.effects.len(),
+                baseline_counts[i] + effect_kinds.len() - 1,
+                "remove on {i}"
+            );
+        }
+        app.clear_live_effects();
+        assert_eq!(app.status, "Cleared live filters on selection");
+        for &i in &targets {
+            let obj = &app.doc.page().layers[layer].objects[i];
+            assert!(
+                obj.effects.is_empty(),
+                "clear removes demo baseline effects on {i}"
+            );
+        }
+
+        // Repeat-last re-adds the most recent filter after a clear.
+        app.repeat_last_filter();
+        for &i in &targets {
+            let obj = &app.doc.page().layers[layer].objects[i];
+            assert_eq!(obj.effects.len(), 1, "repeat-last on {i}");
+        }
+    }
 }

@@ -94,7 +94,7 @@ Every task names its proof. A task without proof is not done.
 - [x] **18.5** Close remaining ROADMAP checks: 2.6, 3.3, 4.5, 8.3, 9.4, 11.5. *(Dispositioned 2026-11-25: 3.3 closed via 18.4 AI tests; 11.5 closed — arrange/edit extraction, FileService, panel registry all landed; 2.6/4.5 recorded unverified pending interactive GUI; 8.3/9.4 unverified, no Windows host.)*
 - [x] **18.6** Accessibility: keyboard-only menu/dialog operation, focus order and visible focus on WASM, contrast audit, reduced motion. *(Checklist committed 2026-11-25 as docs/A11Y.md: contrast covered by theme tests; keyboard menus covered in code (unverified on screen); WASM focus, reduced motion and screen readers recorded as limitations with the path to close each.)*
 - [x] **18.7** Performance budgets with measurements: startup, frame time @1920×1080/500 objects, export per format, peak memory. *(Frame-time budget landed 2026-11-25 as `frame_time_with_500_objects_stays_within_budget_at_1920x1080`: 500-object frame ≈ 60 ms in debug/software raster, under the hard 120 ms ceiling and 6× empty-baseline relative bound (3× produced false failures from a noisy micro-baseline). Startup/export/memory budgets still belong to the release receipt on real hardware — recorded there as unverified on this Linux host.)*
-- [ ] **18.8** File and fix defects found here by ID; no silent fixes.
+- [x] **18.8** File and fix defects found here by ID; no silent fixes. *(Done 2026-11-26: verification-phase defects were test-premise bugs fixed in place — flyout gated on Iconic Mode preset, stale `replace_color` making color replace a no-op, snap distance outside the 12 px threshold, unstable status assert under zoom clamp. ROADMAP 4.5 closed with two new harness tests: built-in style presets on single and multi-selection with undo to per-object baselines, and all five live-filter kinds added/toggled/removed/cleared plus repeat-last on multi-selection. Demo-scene objects carry baseline live effects; tests count from per-object baselines. 104 tests passing.)*
 
 ## Phase 19 — Release engineering
 
@@ -140,7 +140,7 @@ automated proof, not another manual pass.
 
 - [ ] ROADMAP 2.6 — drag/merge/dock/float/snap, no orphan groups, no panic on last group.
 - [ ] ROADMAP 3.3 — Intelligence unconfigured / invalid-key / success paths.
-- [ ] ROADMAP 4.5 — built-in styles on single and multi-selection; every filter toggled and cleared.
+- [x] ROADMAP 4.5 — built-in styles on single and multi-selection; every filter toggled and cleared. *(Done 2026-11-26: harness tests `styles_and_live_filters_apply_to_single_and_multi_selection` and `every_live_filter_kind_adds_toggles_and_clears_on_selection`.)*
 - [ ] ROADMAP 8.3 — Windows app-switch flash and full-screen toggling.
 - [ ] ROADMAP 9.4 — taskbar Jump List entries on a real Windows shell.
 - [ ] ROADMAP 11.5 — remaining architecture candidates.

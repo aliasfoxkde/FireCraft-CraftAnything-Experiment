@@ -107,6 +107,19 @@ Worked the open task list end to end; decisions D1–D5 recorded.
 - **Release:** `scripts/package-windows.sh` builds `dist/windows/` + versioned zip + SHA-256;
   tag/version mismatch fails the release job; Wine smoke-tested the GNU binary.
 
+## 2026-11-26 — 18.8 defect burn-down and ROADMAP 4.5 closure
+
+- 18.8 disposition: the defects surfaced during Phase 16 verification were
+  test-premise bugs, each root-caused and fixed in place (Iconic Mode gate,
+  stale replace_color, snap threshold, zoom-clamp status). No silent fixes.
+- ROADMAP 4.5 closed: two new harness tests. Styles — preset fill/stroke/
+  effects on single and multi-selection, undo restores per-object baselines
+  (demo objects carry baseline live effects). Filters — all five LiveEffect
+  kinds added, toggled off/on, one removed, all cleared, repeat-last re-adds,
+  every step asserted across the whole multi-selection.
+- Gates: `cargo test --bin firecraft` 104 passed; fmt clean; clippy
+  `-D warnings` result recorded in this entry's commit message.
+
 ## 2026-11-26 — Panel suite, screenshot loop, interactive-state capture (16.3/16.8/G-5)
 
 - 16.3: `panel_states_paint_collapse_tab_overflow_iconic_and_inspector_clamp`
