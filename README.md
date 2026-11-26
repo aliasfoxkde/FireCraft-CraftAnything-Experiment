@@ -23,8 +23,9 @@ graphics, animation states, live effects, MCP automation, and a portable desktop
 | See the measured state and gaps | [Audit](docs/AUDIT.md) |
 | Read the current full audit snapshot | [2026-11-26 Audit](docs/AUDIT-2026-11-26.md) |
 | Understand the plan and its exit criteria | [Plan](docs/PLAN.md) |
-| Read the completed UI polish history | [Polish history](ROADMAP.md) |
-| Read release notes | [Changelog](CHANGELOG.md) |
+| Read the completed UI polish history | [Polish history](docs/ROADMAP.md) |
+| Read release notes | [Changelog](.github/CHANGELOG.md) |
+| Contribute, report a security issue, or read the community code | [Contributing](.github/CONTRIBUTING.md) · [Security](.github/SECURITY.md) · [Code of Conduct](.github/CODE_OF_CONDUCT.md) |
 
 ## What is in the box
 
@@ -81,7 +82,7 @@ affiliated with Adobe; see the trademark note at the end of the license.
 
 ## Repository conventions
 
-- Domain vocabulary: [GLOSSARY.md](GLOSSARY.md)
+- Domain vocabulary: [GLOSSARY.md](docs/GLOSSARY.md)
 - Architecture decisions: [docs/adr/](docs/adr/)
 - Reference research: [docs/research/](docs/research/)
 - Agent guidance: [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md)

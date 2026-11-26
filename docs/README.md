@@ -19,6 +19,7 @@ is the map for deeper material.
 | Review Fireworks extensions and the community marketplace plan | [Fireworks extensions research](research/fireworks-extensions.md) |
 | Review CI/CD patterns and adoption steps | [CI/CD patterns](research/ci-cd-patterns.md) |
 | See requested Codex skill installations | [Agent skill installation record](research/agent-skills-installation.md) |
+| Read the repository working agreement | [AGENTS.md](../AGENTS.md) · [Contributor guide](../.github/CONTRIBUTING.md) |
 | See what changed and when | [Progress log](PROGRESS.md) |
 | Build, test, or package a release | [Build & Release](build-release.md) |
 | Understand the module layout and design seams | [Architecture](architecture.md) |
@@ -29,12 +30,15 @@ is the map for deeper material.
 | See the full feature inventory | [Feature Surface](features/README.md) |
 | Learn to use FireCraft (tutorials, keybindings) | [Tutorials](tutorials/README.md) |
 | Accessibility checklist and limitations | [A11Y](A11Y.md) |
-| Read the completed UI polish history | [Polish history](../ROADMAP.md) |
-| See changes by release | [Changelog](../CHANGELOG.md) |
+| Read the completed UI polish history | [Polish history](ROADMAP.md) |
+| See changes by release | [Changelog](../.github/CHANGELOG.md) |
+| Read the vocabulary and original product brief | [Glossary](GLOSSARY.md) · [Instructions](INSTRUCTIONS.md) |
+| Review completed and planned improvements | [Improvements](IMPROVEMENTS.md) · [Roadmap](ROADMAP.md) |
+| Contribute or report a security issue | [Contributing](../.github/CONTRIBUTING.md) · [Security](../.github/SECURITY.md) · [Code of Conduct](../.github/CODE_OF_CONDUCT.md) |
 
 ## Conventions
 
-- **Domain terms** are defined in [GLOSSARY.md](../GLOSSARY.md). Use those names in code, UI copy,
+- **Domain terms** are defined in [GLOSSARY.md](GLOSSARY.md). Use those names in code, UI copy,
   issues, and docs.
 - **Architecture decisions** live in [docs/adr/](adr/). Do not silently reverse an ADR; add a new
   one that explains the change.

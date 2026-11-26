@@ -12,5 +12,5 @@
 
 - [ ] `./scripts/ci-local.sh` passes (or `--quick`, with the skipped gate named)
 - [ ] New behavior has a test at its seam, or the PR says why it cannot
-- [ ] Docs updated (`docs/`, `CHANGELOG.md` for user-visible changes)
+- [ ] Docs updated (`docs/`, `.github/CHANGELOG.md` for user-visible changes)
 - [ ] No hardcoded version, no build artifacts, no new dependency without a reason

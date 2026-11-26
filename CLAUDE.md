@@ -4,7 +4,7 @@ Read this before changing anything. It is the entry point for agents; deeper mat
 [docs/](docs/README.md).
 
 FireCraft is a clean-room Rust/egui reimplementation of Adobe Fireworks CS6: one native binary plus
-a WASM build. Domain vocabulary is defined in [GLOSSARY.md](GLOSSARY.md) — use those names in code,
+a WASM build. Domain vocabulary is defined in [GLOSSARY.md](docs/GLOSSARY.md) — use those names in code,
 UI copy, commits and docs.
 
 ## Where the truth lives
@@ -15,14 +15,14 @@ UI copy, commits and docs.
 | Why this order, and what "done" means? | [docs/PLAN.md](docs/PLAN.md) |
 | What is actually measured? | [docs/AUDIT.md](docs/AUDIT.md) |
 | What changed, when? | [docs/PROGRESS.md](docs/PROGRESS.md) |
-| Completed polish pass and manual backlog | [ROADMAP.md](ROADMAP.md) |
+| Completed polish pass and manual backlog | [ROADMAP.md](docs/ROADMAP.md) |
 | Module map, seams, invariants | [docs/architecture.md](docs/architecture.md) |
 | Build, package, release | [docs/build-release.md](docs/build-release.md) |
 | Feature behavior and non-regression rules | [docs/features/](docs/features/) |
 | Decisions not to re-litigate | [docs/adr/](docs/adr/) |
 
 Do not create a second task list. New work goes into `docs/TASKS.md`; completed work moves to
-`docs/PROGRESS.md` and, if it is a milestone, `CHANGELOG.md`.
+`docs/PROGRESS.md` and, if it is a milestone, `.github/CHANGELOG.md`.
 
 ## Invariants that cause silent bugs
 
@@ -94,9 +94,9 @@ The local `cargo` is wrapped by a host admission gate: concurrent cargo invocati
 
 - `screenshots/` is read at compile time by `dialogs/mod.rs` (splash asset); moving or deleting it
   breaks the build outside the crate. Fix is task 13.10.
-- `release.yml` hardcodes `v0.2.0` artifact names while `Cargo.toml` says `0.2.0` and `CHANGELOG.md`
+- `release.yml` hardcodes `v0.2.0` artifact names while `Cargo.toml` says `0.2.0` and `.github/CHANGELOG.md`
   says `0.2.1`. Version is not single-sourced yet (task 13.2).
 - `app/index.html` and the inline HTML in `release.yml` are two copies of the web entry point
   (task 13.7).
-- `ROADMAP.md` marks phases complete while listing their verification as unchecked; treat unchecked
+- `docs/ROADMAP.md` marks phases complete while listing their verification as unchecked; treat unchecked
   verify items as open defects, tracked in `docs/TASKS.md`.

@@ -93,8 +93,8 @@ copy_required() {
 resources="$app/Contents/Resources"
 copy_required "$root/README.md" "$resources/README.md"
 copy_required "$root/LICENSE" "$resources/LICENSE"
-copy_required "$root/CHANGELOG.md" "$resources/CHANGELOG.md"
-copy_required "$root/GLOSSARY.md" "$resources/GLOSSARY.md"
+copy_required "$root/.github/CHANGELOG.md" "$resources/CHANGELOG.md"
+copy_required "$root/docs/GLOSSARY.md" "$resources/GLOSSARY.md"
 copy_required "$root/THIRD-PARTY-NOTICES.md" "$resources/THIRD-PARTY-NOTICES.md"
 copy_required "$root/app/MECHANICS.md" "$resources/MECHANICS.md"
 cat > "$resources/MACOS-DISTRIBUTION.txt" <<'NOTICE'

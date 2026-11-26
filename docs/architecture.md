@@ -116,7 +116,7 @@ panics, and symbol stripping. See [Build & Release](build-release.md).
 
 ## Adding a feature
 
-1. Name the domain concept in `GLOSSARY.md` if it is new.
+1. Name the domain concept in `docs/GLOSSARY.md` if it is new.
 2. Put pure behavior in the owning module, not in a dialog.
 3. Add a narrow test at the behavior seam (document/model or app method), not a screenshot test.
 4. Put the UI in the smallest existing surface; prefer extending `panels/tools.rs` or a dialog

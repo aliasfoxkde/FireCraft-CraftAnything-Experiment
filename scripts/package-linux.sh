@@ -47,7 +47,7 @@ fi
   echo "executable version does not match app/Cargo.toml (${version})" >&2
   exit 1
 }
-for required in LICENSE README.md CHANGELOG.md GLOSSARY.md THIRD-PARTY-NOTICES.md \
+for required in LICENSE README.md .github/CHANGELOG.md docs/GLOSSARY.md THIRD-PARTY-NOTICES.md \
   app/MECHANICS.md app/assets/logo.png packaging/linux/io.github.aliasfoxkde.FireCraft.desktop \
   packaging/linux/io.github.aliasfoxkde.FireCraft.metainfo.xml \
   packaging/linux/io.github.aliasfoxkde.FireCraft.yml; do
@@ -81,9 +81,11 @@ portable="$tmp/$name"
 mkdir -p "$portable/share/applications" "$portable/share/icons/hicolor/512x512/apps" \
   "$portable/share/metainfo" "$portable/docs/tutorials" "$portable/docs/features"
 install -Dm755 "$exe" "$portable/firecraft"
-for file_name in LICENSE README.md CHANGELOG.md GLOSSARY.md THIRD-PARTY-NOTICES.md; do
+for file_name in LICENSE README.md THIRD-PARTY-NOTICES.md; do
   install -Dm644 "$root/$file_name" "$portable/$file_name"
 done
+install -Dm644 "$root/.github/CHANGELOG.md" "$portable/CHANGELOG.md"
+install -Dm644 "$root/docs/GLOSSARY.md" "$portable/GLOSSARY.md"
 install -Dm644 "$root/app/MECHANICS.md" "$portable/MECHANICS.md"
 cp -R "$root/docs/tutorials/." "$portable/docs/tutorials/"
 cp -R "$root/docs/features/." "$portable/docs/features/"
@@ -121,9 +123,10 @@ install -Dm644 "$root/app/assets/logo.png" \
   "$deb_root/usr/share/icons/hicolor/512x512/apps/$app_id.png"
 install -Dm644 "$root/packaging/linux/$app_id.metainfo.xml" \
   "$deb_root/usr/share/metainfo/$app_id.metainfo.xml"
-for file_name in LICENSE README.md CHANGELOG.md THIRD-PARTY-NOTICES.md; do
+for file_name in LICENSE README.md THIRD-PARTY-NOTICES.md; do
   install -Dm644 "$root/$file_name" "$deb_root/usr/share/doc/firecraft/$file_name"
 done
+install -Dm644 "$root/.github/CHANGELOG.md" "$deb_root/usr/share/doc/firecraft/CHANGELOG.md"
 cat > "$deb_root/DEBIAN/control" <<EOF
 Package: firecraft
 Version: $version

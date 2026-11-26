@@ -278,3 +278,18 @@ unverified. Do not restate the plan; link it.
   layout.rs/menus.rs (code-verified, not screen-verified); WASM focus visuals,
   prefers-reduced-motion and screen readers recorded as limitations with the
   concrete path to close each.
+### 2026-11-26 — Documentation and GitHub community organization
+
+- Moved the generated changelog and GitHub community health documents to `.github/`; moved the
+  product brief, glossary, improvement history, and completed UI roadmap into `docs/`.
+- Kept the existing root `AGENTS.md` and linked it from README/docs navigation rather than creating
+  a duplicate. Updated the package assembly scripts so release archives still contain user-facing
+  `CHANGELOG.md` and `GLOSSARY.md` files at their established package paths.
+- Added GitHub issue-routing links, a Contributor Covenant Code of Conduct, and CODEOWNERS. Existing
+  bug, feature, and pull-request templates remain the supported submission forms.
+- Updated cross-document links and the documentation checker for the new file locations.
+- Verification: `./scripts/ci-local.sh --quick`, `./scripts/check-docs.sh`, `git diff --check`, and
+  `bash -n` on the three packaging scripts passed. Before this update, PR #7's current head had
+  passing hosted gates, coverage, Windows build/CLI smoke, WASM, and CodeQL; the pushed doc change
+  will produce a fresh receipt for the new head. `actionlint` still reports the known
+  `code-quality: write` permission scope in the coverage workflow, which GitHub currently accepts.

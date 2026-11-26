@@ -20,7 +20,7 @@ Quality, evidence and release-engineering pass. No intentional behavior changes 
   intents; property tests for color conversion and polygon booleans.
 - **Panel geometry module** (`app/src/panels/geometry.rs`) with unit tests for dock/snap/stack and
   inspector clamping math.
-- **CONTRIBUTING.md**, **SECURITY.md**, issue/PR templates and a Dependabot configuration.
+- **.github/CONTRIBUTING.md**, **.github/SECURITY.md**, issue/PR templates and a Dependabot configuration.
 
 ### Changed
 - **Single version source:** `app/Cargo.toml` is now the only version; `--version`, bundles, the

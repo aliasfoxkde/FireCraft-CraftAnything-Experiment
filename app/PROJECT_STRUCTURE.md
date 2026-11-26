@@ -2,7 +2,7 @@
 
 Where things live, not why. For seams, invariants and “must not own” rules read
 [`docs/architecture.md`](../docs/architecture.md); for vocabulary read
-[`GLOSSARY.md`](../GLOSSARY.md).
+[`GLOSSARY.md`](../docs/GLOSSARY.md).
 
 ## Entry points
 

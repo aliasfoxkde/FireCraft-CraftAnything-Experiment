@@ -1,7 +1,7 @@
 # Tasks — active work list
 
 Single source of truth for **open** work. Plan and rationale: [PLAN.md](PLAN.md). Measured baseline:
-[AUDIT.md](AUDIT.md). Completed polish pass and its history: [../ROADMAP.md](../ROADMAP.md).
+[AUDIT.md](AUDIT.md). Completed polish pass and its history: [ROADMAP.md](ROADMAP.md).
 Dated log of what actually changed: [PROGRESS.md](PROGRESS.md).
 
 Legend: `[ ]` todo · `[~]` blocked (needs a decision or external access) · `[x]` done.
@@ -230,6 +230,7 @@ automated proof, not another manual pass.
 - [ ] **28.9** Restore GitHub Actions and GitForge gate health; capture runner/job-step evidence for the current 6 Dependabot PRs before disposition.
 - [ ] **28.10** Publish to Cloudflare only from the canonical, validated WASM/site artifact and retain source-SHA deployment evidence.
 - [ ] **28.11** Build the public marketing site from the canonical repository and add a dedicated Extensions page describing the API roadmap, public catalog, official/community trust tiers, permission/review policy, and submission route; validate mobile, keyboard, contrast, and source-SHA deployment.
+- [x] **28.12** Organize project documentation: move community health files and changelog under `.github/`, consolidate product/reference docs under `docs/`, link the existing `AGENTS.md`, add GitHub issue routing and Code of Conduct, and update packaging paths and relative links.
 
 ## Phase 29 — v0.3.0 public multi-platform release
 

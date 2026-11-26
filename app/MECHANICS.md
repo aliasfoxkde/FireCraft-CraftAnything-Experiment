@@ -30,7 +30,7 @@ via Ghidra Deep mode decompiler and matched in `app/mechanics.json` and `app/src
 
 These are the values **FireCraft ships**, and they must match `app/mechanics.json` and
 `app/src/constants.rs`. FireCraft intentionally replaces CS6's legacy 800×600 default with a Full HD
-page and a 144 dpi export default (see `CHANGELOG.md` 0.2.0); the classic 800×600 size remains
+page and a 144 dpi export default (see `.github/CHANGELOG.md` 0.2.0); the classic 800×600 size remains
 available as a resolution preset.
 
 | Property | Value | Function | Address |

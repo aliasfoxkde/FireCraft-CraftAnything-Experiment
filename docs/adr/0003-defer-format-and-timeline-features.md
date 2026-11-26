@@ -6,7 +6,7 @@
 
 ## Context
 
-`INSTRUCTIONS.md` lists CS6 features the product does not implement: AVIF/HEIC import, PSD/AI
+`docs/INSTRUCTIONS.md` lists CS6 features the product does not implement: AVIF/HEIC import, PSD/AI
 interchange, a Bridge application, an Animate timeline with tweening and symbols, and video or
 animated-GIF authoring. Each is a large surface with its own decoder, UI, and file formats.
 

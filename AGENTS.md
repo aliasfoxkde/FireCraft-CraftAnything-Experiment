@@ -15,6 +15,12 @@ in `CLAUDE.md` is authoritative for FireCraft implementation details.
   belongs in [`docs/AUDIT.md`](docs/AUDIT.md); architecture belongs in
   [`docs/architecture.md`](docs/architecture.md) and [`docs/adr/`](docs/adr/).
 - Keep the user-facing product roadmap in [`docs/PRODUCT_ROADMAP.md`](docs/PRODUCT_ROADMAP.md).
+- Use [`docs/README.md`](docs/README.md) as the documentation map; preserve the directory layout:
+  project/architecture/usage material in `docs/`, GitHub community health files and the generated
+  changelog in `.github/`.
+- GitHub contribution entry points live in `.github/CONTRIBUTING.md`, `.github/SECURITY.md`,
+  `.github/CODE_OF_CONDUCT.md`, `.github/ISSUE_TEMPLATE/`, `.github/PULL_REQUEST_TEMPLATE.md`, and
+  `.github/CODEOWNERS`.
 - Do not copy Adobe code, artwork, proprietary assets, or third-party project code into this
   clean-room repository. Record third-party assets and their licenses in
   [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
