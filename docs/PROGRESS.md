@@ -2,6 +2,33 @@
 
 Newest first.
 
+## 2026-11-26 — WASM startup diagnostics, paste tests, and hosted coverage recovery
+
+- Retained the `eframe::WebRunner` for the page lifetime. Its startup handle owns browser
+  observers/animation state; dropping it after `start()` could stop the app. Startup failures now
+  write to the browser console and an accessible in-page error panel instead of being swallowed.
+- Added behavior tests for valid and invalid bitmap paste inputs. Full native suite: **186 passed**
+  (160 unit, 12 CLI, 4 hygiene, 10 MCP). Local ratchet coverage is **67.71% lines**, above the
+  unchanged 67.61% floor. This remains far below the requested 99% target.
+- Optimized WASM release build and target check pass. Browser clipboard write of a real PNG succeeded,
+  but Playwright could not verify rendering or app paste: even a standalone ResizeObserver fixture
+  failed to receive resize callbacks, screenshots timed out, and the deployed demo showed the same
+  300×150 canvas backing size. Keep Phase 32.1 open; this host's browser automation is not valid
+  runtime evidence.
+- Hosted CI on prior source `0915d40` passed WASM, Windows build/CLI smoke/archive, CodeQL, and the
+  separate Cobertura job. The Linux gate failed only because its ratchet read 67.58% against 67.61%;
+  the new paste tests raise local ratchet coverage to 67.71%. A new push is required to verify the
+  exact changeset in hosted CI and obtain a matching Windows package.
+- Windows review archive from `0915d40` is available at
+  `output/windows-review-0915/firecraft-v0.3.0-windows-x86_64.zip`, SHA-256
+  `98dabd2325d4bdd46d24b4fb80e5aa81301f96ec6deafaf1681f6c5d4bfffbbe`. Hosted Windows smoke passed;
+  interactive Windows 11 acceptance is still required.
+- GitForge endpoints are responsive, but its local deployment is 273 commits behind upstream, its
+  overall health is degraded, and only one runner is online. FireCraft has no GitForge remote, so no
+  local GitForge pipeline result is claimed. Aegis is still unavailable because the managed
+  `aegis-scan` profile is not installed. Supplemental Atheon source scan and its limits are recorded
+  in [`research/pattern-scan-triage.md`](research/pattern-scan-triage.md).
+
 ## 2026-11-26 — Clipboard, workspace UI, and file-browser follow-up
 
 - Added a browser `ClipboardEvent` bridge for copied image files. It reads image bytes asynchronously,

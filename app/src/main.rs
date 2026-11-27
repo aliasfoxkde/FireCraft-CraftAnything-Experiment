@@ -200,6 +200,12 @@ fn main() {
 }
 
 #[cfg(target_arch = "wasm32")]
+thread_local! {
+    // WebRunner owns the resize observer and animation frame. Keep it alive for the page lifetime.
+    static WEB_RUNNER: std::cell::RefCell<Option<eframe::WebRunner>> = const { std::cell::RefCell::new(None) };
+}
+
+#[cfg(target_arch = "wasm32")]
 fn main() {
     use wasm_bindgen::JsCast as _;
 
@@ -216,7 +222,8 @@ fn main() {
             .expect("#firecraft-canvas was not a HtmlCanvasElement");
 
         let web_options = eframe::WebOptions::default();
-        let _ = eframe::WebRunner::new()
+        let runner = eframe::WebRunner::new();
+        let start_result = runner
             .start(
                 canvas,
                 web_options,
@@ -227,6 +234,21 @@ fn main() {
                 }),
             )
             .await;
+        WEB_RUNNER.with(|slot| slot.replace(Some(runner)));
+        if let Err(error) = start_result {
+            web_sys::console::error_1(&error);
+            if let Some(message) = document.get_element_by_id("firecraft-startup-error") {
+                let detail = error.as_string().unwrap_or_else(|| {
+                    "The browser could not initialize the graphics renderer.".to_string()
+                });
+                message.set_text_content(Some(&format!(
+                    "FireCraft could not start. Try refreshing the page or using a browser with WebGL2 enabled. Details: {detail}"
+                )));
+                if let Ok(message) = message.dyn_into::<web_sys::HtmlElement>() {
+                    message.set_hidden(false);
+                }
+            }
+        }
     });
 }
 

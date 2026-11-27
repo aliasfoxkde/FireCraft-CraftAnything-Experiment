@@ -486,7 +486,6 @@ impl FireCraft {
                 .to_string();
     }
 
-    #[cfg(not(test))]
     fn paste_bitmap(&mut self, width: f32, height: f32, pixels: Vec<u8>) {
         if width <= 0.0 || height <= 0.0 || pixels.len() != width as usize * height as usize * 4 {
             self.status = "Could not paste image: clipboard image data is invalid".to_string();
@@ -841,6 +840,50 @@ mod tests {
         assert_eq!(
             empty.status,
             "Clipboard is empty — select an object and press Ctrl+C (or copy an image/text) first"
+        );
+    }
+
+    #[test]
+    fn paste_bitmap_adds_and_selects_a_valid_image() {
+        let mut app = app_with_rects(0);
+        app.show_welcome = true;
+        let pixels = vec![255; 2 * 3 * 4];
+
+        app.paste_bitmap(2.0, 3.0, pixels.clone());
+
+        let objects = &app.doc.page().layers[0].objects;
+        assert_eq!(objects.len(), 1);
+        let Shape::Bitmap {
+            pixels: pasted_pixels,
+            size,
+            ..
+        } = &objects[0].kind
+        else {
+            panic!("clipboard image becomes a bitmap object");
+        };
+        assert_eq!(*size, Vec2::new(2.0, 3.0));
+        assert_eq!(pasted_pixels, &pixels);
+        assert_eq!(app.selected, Some(0));
+        assert_eq!(app.selected_set, vec![0]);
+        assert!(!app.show_welcome);
+        assert_eq!(app.status, "Pasted bitmap image (2×3 px) from clipboard");
+    }
+
+    #[test]
+    fn paste_bitmap_rejects_empty_dimensions_and_malformed_pixels() {
+        let mut app = app_with_rects(0);
+        app.paste_bitmap(0.0, 2.0, vec![]);
+        assert!(app.doc.page().layers[0].objects.is_empty());
+        assert_eq!(
+            app.status,
+            "Could not paste image: clipboard image data is invalid"
+        );
+
+        app.paste_bitmap(2.0, 2.0, vec![255; 15]);
+        assert!(app.doc.page().layers[0].objects.is_empty());
+        assert_eq!(
+            app.status,
+            "Could not paste image: clipboard image data is invalid"
         );
     }
 

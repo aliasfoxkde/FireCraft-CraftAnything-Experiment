@@ -260,7 +260,7 @@ automated proof, not another manual pass.
 
 ## Phase 32 — UI fit, dialogs, clipboard, and Web performance follow-up
 
-- [ ] **32.1** Verify image/text/internal clipboard paste on Windows, macOS, Linux, and browser WASM; test browser `ClipboardEvent` permission and focus behavior, malformed images, and large clipboard payloads.
+- [ ] **32.1** Verify image/text/internal clipboard paste on Windows, macOS, Linux, and browser WASM; test browser `ClipboardEvent` permission and focus behavior, malformed images, and large clipboard payloads. *(Partial 2026-11-27: native bitmap-paste helper has valid/invalid input tests; browser clipboard write of a real PNG works, but this headless host fails ResizeObserver even for a static fixture, so it cannot prove application rendering/paste. Keep open for a capable browser and platform sessions.)*
 - [ ] **32.2** Re-audit every top-level CS6 menu against the checked-in screenshots; inventory absent/partial actions, add behavior or mark unsupported, and verify submenu keyboard/mouse navigation and tool flyout hover details.
 - [ ] **32.3** Rework file Open/Save/Import/Export window UX toward familiar OS file-browser behavior; decide native OS picker vs in-app parity per platform, then validate resize, small screens, keyboard, filters, overwrite, and cancellation flows.
 - [ ] **32.4** Review the full workspace at 960×640, 1360×860, and browser sizes; fix spacing, alignment, panel overflow, focus, and pop-out canvas issues with before/after captures.
