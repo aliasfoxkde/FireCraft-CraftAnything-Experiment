@@ -11,6 +11,16 @@
         ],
         "createdAt": "2026-11-27T02:58:34.440Z",
         "reason": "False positive: the startup error uses #f3f3f3 on #282828, measured contrast ratio 13.29:1, above WCAG AA and AAA thresholds."
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "output/playwright/wasm/index.html",
+          "output/release-v0.3.1/cloudflare-site/index.html"
+        ],
+        "createdAt": "2026-11-27T14:58:04.697Z",
+        "reason": "Agent: these are historical generated v0.3.1 release/Playwright snapshots retained for audit. Their old canvas fallback lacks the foreground styling now present in app/index.html; do not use generated snapshots as current source or a regression signal."
       }
     ]
   }
