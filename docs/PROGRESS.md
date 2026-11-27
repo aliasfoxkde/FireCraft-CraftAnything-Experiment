@@ -10,7 +10,12 @@ Newest first.
   `codex/prepare-v0.3.6`; PR #47 was closed after the repository ruleset rejected an update to its
   protected `release/prepare-v0.3.6` branch.
 - Exact-head validation, multi-platform tag release, and Cloudflare review deployment remain open;
-  these gates are tracked in TASKS 43.2–43.5. The public `v0.3.5` release has not been overwritten.
+  these gates are tracked in TASKS 43.2–43.5. Added a tag-triggered, versioned Cloudflare Pages
+  preview deployment to the release workflow; `actionlint` and the docs gate pass. It reuses the
+  `firecraft-web` Pages project and verifies source marker, MIME types, and downloaded bytes. The
+  local Cloudflare credentials are invalid, so deployment will use the configured GitHub Actions
+  secrets and remains unverified until the exact tag workflow runs. The public `v0.3.5` release has
+  not been overwritten.
 
 ### 2026-11-27 — TDD: include Live Filter Drop Shadows in raster export
 

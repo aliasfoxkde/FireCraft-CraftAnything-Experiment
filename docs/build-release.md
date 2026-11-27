@@ -112,7 +112,15 @@ unnotarized until Developer ID credentials and notarization are configured; macO
 under the default Gatekeeper policy. The package includes a distribution note and SHA-256 values.
 This limitation is not equivalent to native macOS runtime acceptance.
 
-The WASM ZIP is built from the same tag and the workflow deploys that directory to GitHub Pages.
+The WASM ZIP is built from the same tag and the workflow deploys that directory to GitHub Pages and
+to the existing `firecraft-web` Cloudflare Pages project under a versioned review branch such as
+`wasm-review-v0-3-6`. The Cloudflare job checks the release source marker, HTTP status, MIME type, and
+byte-for-byte identity of the build marker, JavaScript, WASM, and favicon. This is a review deployment;
+it does not replace the production Pages branch. Each tag keeps a separate preview URL, so rollback
+for review is to share the prior accepted preview URL (for example, `wasm-review-v0-3-5`) while the
+production WASM site remains unchanged. Never deploy this review job to the production branch. The
+job uses [Cloudflare's Wrangler Pages deploy command](https://developers.cloudflare.com/workers/wrangler/commands/pages/)
+through the [official Wrangler GitHub Action](https://github.com/cloudflare/wrangler-action).
 Cloudflare marketing-site deployment is a separate task and is not implied by the Pages deploy.
 Artifact hashes and source-SHA metadata are verified before the GitHub Release is published.
 
