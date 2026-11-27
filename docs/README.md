@@ -7,7 +7,7 @@ is the map for deeper material.
 
 | Goal | Read |
 |------|------|
-| Review the current v0.3.6 Windows build on Windows 11 | [Windows 11 review checklist](testing/windows-11-review-v0.3.6.md) |
+| Review the current v0.3.7 Windows build on Windows 11 | [Windows 11 review checklist](testing/windows-11-review-v0.3.7.md) |
 | Review the v0.3.5 Windows build | [Archived Windows 11 checklist](testing/windows-11-review-v0.3.5.md) |
 | Review the v0.3.3 Windows build | [Archived Windows 11 checklist](testing/windows-11-review.md) |
 | See what is measured right now | [Audit](AUDIT.md) |

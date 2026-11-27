@@ -554,13 +554,14 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     #[cfg(not(target_arch = "wasm32"))]
     if !app.floating_doc_tabs.is_empty() {
         app.sync_active_doc_slot();
-        let floating_list = app.floating_doc_tabs.clone();
         let mut redock_list: Vec<usize> = Vec::new();
-        let saved_active = app.active_doc;
-        let saved_doc = app.doc.clone();
-        for idx in floating_list {
+        let mut saved_active = app.active_doc;
+        let mut saved_doc = app.doc.clone();
+        let mut floating_cursor = 0;
+        while floating_cursor < app.floating_doc_tabs.len() {
+            let idx = app.floating_doc_tabs[floating_cursor];
             let Some(doc_clone) = app.open_docs.get(idx).cloned() else {
-                redock_list.push(idx);
+                app.floating_doc_tabs.remove(floating_cursor);
                 continue;
             };
             app.active_doc = idx;
@@ -577,8 +578,13 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
                 .with_min_inner_size([360.0, 260.0])
                 .with_resizable(true);
             let mut dock_back = false;
+            let mut close_tab = false;
             ui.ctx()
                 .show_viewport_immediate(vp_id, builder, |vui, _class| {
+                    // Route focused-window commands through the child viewport context so
+                    // editor shortcuts and clipboard writes are not sent to the main window.
+                    app.ctx = vui.ctx().clone();
+                    close_tab = shortcuts_with_deferred_close(vui, app, true);
                     if vui.ctx().input(|i| i.viewport().close_requested()) {
                         dock_back = true;
                     }
@@ -633,6 +639,37 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
                                 );
                             });
                         });
+                    let tools_w = if app.tools_collapsed { 40.0 } else { 90.0 };
+                    egui::Panel::left(("floating_doc_tools", idx))
+                        .exact_size(tools_w)
+                        .resizable(false)
+                        .frame(
+                            egui::Frame::new()
+                                .fill(app.palette.panel)
+                                .inner_margin(egui::Margin::symmetric(4, 2)),
+                        )
+                        .show(vui, |ui| {
+                            tools_top_bar(ui, app);
+                            tools_dock_contents(
+                                ui,
+                                app,
+                                &format!("floating_doc_tools_scroll_{idx}"),
+                            );
+                        });
+                    let inspector_h = if app.bottom_collapsed {
+                        30.0
+                    } else {
+                        app.bottom_height.clamp(118.0, 340.0)
+                    };
+                    egui::Panel::bottom(("floating_doc_properties", idx))
+                        .exact_size(inspector_h)
+                        .resizable(false)
+                        .frame(
+                            egui::Frame::new()
+                                .fill(app.palette.panel)
+                                .inner_margin(egui::Margin::symmetric(8, 2)),
+                        )
+                        .show(vui, |ui| chrome::bottom_properties_dock(ui, app));
                     egui::Panel::bottom(("floating_doc_footer", idx))
                         .exact_size(24.0)
                         .frame(
@@ -646,12 +683,46 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
                         .frame(egui::Frame::new().fill(app.palette.bg))
                         .show(vui, |ui| canvas::show(ui, app));
                 });
-            app.open_docs[idx] = app.doc.clone();
-            if dock_back {
+            app.ctx = ctx.clone();
+            if let Some(open_doc) = app.open_docs.get_mut(idx) {
+                *open_doc = app.doc.clone();
+            }
+            let docs_before_close = app.open_docs.len();
+            let floating_before_close = app.floating_doc_tabs.len();
+            if close_tab {
+                app.request_close_document_tab(idx);
+            }
+            let closed = app.open_docs.len() < docs_before_close
+                || app.floating_doc_tabs.len() < floating_before_close;
+            if closed {
+                let removed = docs_before_close.saturating_sub(app.open_docs.len());
+                if idx == saved_active || (removed == 0 && idx <= saved_active) {
+                    saved_active = app.active_doc;
+                    saved_doc = app.doc.clone();
+                } else if idx < saved_active {
+                    saved_active = saved_active.saturating_sub(removed.max(1));
+                }
+                redock_list.retain_mut(|redock_idx| {
+                    if *redock_idx == idx {
+                        false
+                    } else {
+                        if *redock_idx > idx {
+                            *redock_idx = redock_idx.saturating_sub(removed.max(1));
+                        }
+                        true
+                    }
+                });
+                if app.open_docs.is_empty() {
+                    floating_cursor = 0;
+                }
+            } else if dock_back {
                 redock_list.push(idx);
             }
+            if !closed {
+                floating_cursor += 1;
+            }
         }
-        app.active_doc = saved_active;
+        app.active_doc = saved_active.min(app.open_docs.len().saturating_sub(1));
         app.doc = saved_doc;
         if let Some(&last_redock) = redock_list.last() {
             app.floating_doc_tabs.retain(|i| !redock_list.contains(i));
@@ -1575,6 +1646,10 @@ enum Shortcut {
 }
 
 fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
+    let _ = shortcuts_with_deferred_close(ui, app, false);
+}
+
+fn shortcuts_with_deferred_close(ui: &mut Ui, app: &mut FireCraft, defer_close: bool) -> bool {
     // Check the pen state first: `consume_key` removes the event, so consuming it here and then
     // testing `pen_nodes` would swallow Escape whenever no pen path is being drawn.
     if !app.pen_nodes.is_empty()
@@ -1582,7 +1657,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
     {
         app.finish_pen_path(false);
         ui.ctx().request_repaint();
-        return;
+        return false;
     }
     if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, Key::Escape)) {
         if let Some(fid) = ui.ctx().memory(|m| m.focused()) {
@@ -1626,7 +1701,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
             app.set_tool(Tool::Select);
         }
         ui.ctx().request_repaint();
-        return;
+        return false;
     }
     // `egui_wants_keyboard_input` is true for *any* focused widget, including a clicked tab or
     // toolbar button. Only a text edit should block single-key tool shortcuts; otherwise the
@@ -1637,7 +1712,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
         {
             app.finish_pen_path(false);
             ui.ctx().request_repaint();
-            return;
+            return false;
         }
         // Shift+Tab must be consumed first: `consume_key(NONE, ..)` matches logically and would
         // otherwise swallow the shifted chord, making the dock toggle unreachable.
@@ -1645,7 +1720,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
         if shift_tab {
             app.show_right_dock = !app.show_right_dock;
             ui.ctx().request_repaint();
-            return;
+            return false;
         }
         let tab_toggled = ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, Key::Tab));
         if tab_toggled {
@@ -1654,17 +1729,48 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
             }
             app.toggle_full_screen_canvas();
             ui.ctx().request_repaint();
-            return;
+            return false;
         }
         let ctrl_a = ui.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, Key::A));
         if ctrl_a {
             app.select_all();
             ui.ctx().request_repaint();
-            return;
+            return false;
         }
     }
     if ui.ctx().text_edit_focused() {
-        return;
+        let canvas_paste_requested = app.inline_text_edit_obj.is_none()
+            && app.cursor_doc_pos.is_some()
+            && ui.input(|input| {
+                input.events.iter().any(|event| {
+                    matches!(
+                        event,
+                        egui::Event::Key {
+                            key: Key::V,
+                            pressed: true,
+                            modifiers,
+                            ..
+                        } if modifiers.ctrl && !modifiers.alt
+                    )
+                })
+            });
+        if canvas_paste_requested {
+            let paste_text = ui.input(|input| {
+                input.events.iter().find_map(|event| match event {
+                    egui::Event::Paste(text) => Some(text.clone()),
+                    _ => None,
+                })
+            });
+            ui.input_mut(|input| {
+                input.consume_key(egui::Modifiers::CTRL, Key::V);
+                input
+                    .events
+                    .retain(|event| !matches!(event, egui::Event::Paste(_)));
+            });
+            app.paste_with_text(paste_text.as_deref());
+            ui.ctx().request_repaint();
+        }
+        return false;
     }
     let (ctrl, shift, alt) = ui.input(|i| (i.modifiers.ctrl, i.modifiers.shift, i.modifiers.alt));
     let step = if shift { 10.0 } else { 1.0 };
@@ -1875,6 +1981,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
             }
         }
     });
+    let mut close_tab = false;
     match action {
         Some(Shortcut::OpenMenu(idx)) => {
             if app.active_menu == Some(idx) {
@@ -1914,7 +2021,11 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
         Some(Shortcut::New) => app.show_new_dialog = true,
         Some(Shortcut::Open) => app.begin_file_dialog(FileMode::Open),
         Some(Shortcut::CloseTab) => {
-            app.run_file_intent(crate::app::FileIntent::CloseActiveTab);
+            if defer_close {
+                close_tab = true;
+            } else {
+                app.run_file_intent(crate::app::FileIntent::CloseActiveTab);
+            }
         }
         Some(Shortcut::Quit) => {
             app.run_file_intent(crate::app::FileIntent::Quit);
@@ -2023,9 +2134,10 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
                 "Infinite canvas OFF".to_string()
             };
         }
-        None => return,
+        None => return false,
     }
     ui.ctx().request_repaint();
+    close_tab
 }
 
 /// Capture the rendered window to `app.screenshot_path` after a few frames and exit.

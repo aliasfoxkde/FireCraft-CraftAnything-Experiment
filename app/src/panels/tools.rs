@@ -282,9 +282,9 @@ fn palette_tool_button(
         // CS6's small corner triangle marks a group leader. It is also the click target
         // that opens the flyout, so the grouping is visible rather than a hidden gesture.
         if flyout {
-            let a = pos2(rect.right() - 9.0, rect.bottom() - 1.5);
+            let a = pos2(rect.right() - 10.0, rect.bottom() - 1.5);
             ui.painter().add(egui::Shape::convex_polygon(
-                vec![a, pos2(a.x + 7.0, a.y), pos2(a.x + 7.0, a.y - 7.0)],
+                vec![a, pos2(a.x + 8.0, a.y), pos2(a.x + 8.0, a.y - 8.0)],
                 p.selection.stroke.color,
                 Stroke::NONE,
             ));
@@ -358,8 +358,9 @@ fn vector_options(ui: &mut Ui, app: &mut FireCraft, compact: bool) {
 
 pub fn tools_panel_body(ui: &mut Ui, app: &mut FireCraft) {
     let p = app.palette;
-    let compact = ui.available_height() < 500.0;
-    let columns = if ui.available_width() < 48.0 { 1 } else { 2 };
+    let narrow = ui.available_width() < 80.0;
+    let compact = narrow;
+    let columns = if narrow { 1 } else { 2 };
     let mut open_flyout: Option<(usize, egui::Pos2)> = None;
     let mut flat_index = 0usize;
 
@@ -372,15 +373,7 @@ pub fn tools_panel_body(ui: &mut Ui, app: &mut FireCraft) {
             ui.allocate_exact_size(Vec2::new(ui.available_width(), band_h), Sense::hover());
         ui.painter()
             .rect_filled(band, 0.0, p.panel_alt.gamma_multiply(0.38));
-        let title = match section.name {
-            "SELECT" => "Select",
-            "BITMAP" => "Bitmap",
-            "VECTOR" => "Vector",
-            "WEB" => "Web",
-            "COLORS" => "Colors",
-            "VIEW" => "View",
-            name => name,
-        };
+        let title = section_title(section.name, narrow);
         ui.painter().text(
             pos2(band.left() + 4.0, band.center().y),
             egui::Align2::LEFT_CENTER,
@@ -427,7 +420,7 @@ pub fn tools_panel_body(ui: &mut Ui, app: &mut FireCraft) {
                     };
                     let response = response.on_hover_text(tip);
                     let corner_click = response.interact_pointer_pos().is_some_and(|pos| {
-                        pos.x >= rect.right() - 10.0 && pos.y >= rect.bottom() - 10.0
+                        pos.x >= rect.right() - 12.0 && pos.y >= rect.bottom() - 12.0
                     });
                     if response.clicked() {
                         if flyout && corner_click {
@@ -449,8 +442,8 @@ pub fn tools_panel_body(ui: &mut Ui, app: &mut FireCraft) {
                 }
             });
         }
-        if section.name == "VECTOR" {
-            vector_options(ui, app, compact);
+        if section.name == "VECTOR" && !narrow {
+            vector_options(ui, app, false);
         }
     }
 
@@ -459,6 +452,24 @@ pub fn tools_panel_body(ui: &mut Ui, app: &mut FireCraft) {
         app.tool_flyout = Some(open);
     }
     tool_group_flyout(ui, app, opened_now);
+}
+
+fn section_title(section: &str, narrow: bool) -> &'static str {
+    match (section, narrow) {
+        ("SELECT", true) => "SEL",
+        ("BITMAP", true) => "BMP",
+        ("VECTOR", true) => "VEC",
+        ("WEB", true) => "WEB",
+        ("COLORS", true) => "CLR",
+        ("VIEW", true) => "VIEW",
+        ("SELECT", false) => "Select",
+        ("BITMAP", false) => "Bitmap",
+        ("VECTOR", false) => "Vector",
+        ("WEB", false) => "Web",
+        ("COLORS", false) => "Colors",
+        ("VIEW", false) => "View",
+        _ => "Tools",
+    }
 }
 
 /// The open group flyout. It is anchored beside the tool strip and lists every member with
@@ -611,6 +622,40 @@ mod tests {
             names,
             ["SELECT", "BITMAP", "VECTOR", "WEB", "COLORS", "VIEW"]
         );
+    }
+
+    #[test]
+    fn narrow_category_labels_fit_the_collapsed_tools_rail() {
+        let ctx = egui::Context::default();
+        let mut too_wide = Vec::new();
+        let input = egui::RawInput {
+            screen_rect: Some(Rect::from_min_size(
+                egui::Pos2::ZERO,
+                Vec2::new(32.0, 640.0),
+            )),
+            ..Default::default()
+        };
+        let mut output = ctx.run_ui(input, |ui| {
+            let available_width = ui.available_width();
+            for section in SECTIONS {
+                let label = section_title(section.name, true);
+                let galley = ui.painter().layout_no_wrap(
+                    label.to_string(),
+                    egui::FontId::proportional(9.5),
+                    Color32::WHITE,
+                );
+                if galley.size().x > available_width - 8.0 {
+                    too_wide.push((label, galley.size().x, available_width));
+                }
+            }
+        });
+        output.textures_delta.clear();
+        assert!(
+            too_wide.is_empty(),
+            "collapsed labels overflow: {too_wide:?}"
+        );
+        assert_eq!(section_title("COLORS", true), "CLR");
+        assert_eq!(section_title("COLORS", false), "Colors");
     }
 
     #[test]

@@ -363,33 +363,54 @@ impl FireCraft {
         // Note: on Windows, Ctrl+V often emits `Event::Paste("")` (or a URL when copying an image from a browser),
         // so we check `cb.get_image()` whenever the event text is not an internal FireCraft marker or SVG payload.
         #[cfg(all(not(target_arch = "wasm32"), not(test)))]
-        if !is_svg_or_marker
+        let native_image = if !is_svg_or_marker
             && let Ok(mut cb) = arboard::Clipboard::new()
             && let Ok(img) = cb.get_image()
             && img.width > 0
             && img.height > 0
         {
-            self.paste_bitmap(img.width as f32, img.height as f32, img.bytes.into_owned());
-            return;
-        }
+            Some((img.width as f32, img.height as f32, img.bytes.into_owned()))
+        } else {
+            None
+        };
+        #[cfg(any(target_arch = "wasm32", test))]
+        let native_image: Option<(f32, f32, Vec<u8>)> = None;
 
         // 2. Determine clipboard text (from egui Paste event or OS clipboard)
         #[cfg(all(not(target_arch = "wasm32"), not(test)))]
-        let os_text = event_non_empty.map(|s| s.to_string()).or_else(|| {
+        let native_text = if event_non_empty.is_none() {
             arboard::Clipboard::new()
                 .ok()
                 .and_then(|mut cb| cb.get_text().ok())
-        });
+        } else {
+            None
+        };
         #[cfg(any(target_arch = "wasm32", test))]
-        let os_text = event_non_empty.map(|s| s.to_string());
+        let native_text: Option<String> = None;
+
+        self.paste_from_clipboard_sources(event_non_empty, native_image, native_text);
+    }
+
+    fn paste_from_clipboard_sources(
+        &mut self,
+        event_non_empty: Option<&str>,
+        native_image: Option<(f32, f32, Vec<u8>)>,
+        native_text: Option<String>,
+    ) {
+        if let Some((width, height, pixels)) = native_image {
+            self.paste_bitmap(width, height, pixels);
+            return;
+        }
+
+        let os_text = event_non_empty.map(str::to_string).or(native_text);
         let is_internal_marker = os_text
             .as_deref()
             .map(|s| s.starts_with("FIRECRAFT_CLIPBOARD"))
             .unwrap_or(false);
 
         // 3. If we have internal FireCraft objects in `clipboard_set` (or `clipboard`) and either
-        // the marker matches or no external text override was passed, paste the internal objects.
-        if (is_internal_marker || event_non_empty.is_none())
+        // the marker matches or the resolved OS/event clipboard has no text, paste the internal objects.
+        if (is_internal_marker || os_text.is_none())
             && (!self.clipboard_set.is_empty() || self.clipboard.is_some())
         {
             if self.clipboard_set.is_empty()
@@ -848,6 +869,37 @@ mod tests {
             empty.status,
             "Clipboard is empty — select an object and press Ctrl+C (or copy an image/text) first"
         );
+    }
+
+    #[test]
+    fn empty_paste_event_prefers_external_os_text_over_stale_internal_objects() {
+        let mut app = app_with_rects(1);
+        app.select_all();
+        app.copy_selected();
+
+        app.paste_from_clipboard_sources(None, None, Some("External Pasted Headline".to_string()));
+
+        let objects = &app.doc.page().layers[0].objects;
+        assert_eq!(objects.len(), 2);
+        let Shape::Text { text, .. } = &objects[1].kind else {
+            panic!(
+                "external OS clipboard text should take precedence over FireCraft's stale object clipboard"
+            );
+        };
+        assert_eq!(text, "External Pasted Headline");
+    }
+
+    #[test]
+    fn native_bitmap_clipboard_prefers_image_over_stale_internal_objects() {
+        let mut app = app_with_rects(1);
+        app.select_all();
+        app.copy_selected();
+
+        app.paste_from_clipboard_sources(None, Some((2.0, 2.0, vec![255; 16])), None);
+
+        let objects = &app.doc.page().layers[0].objects;
+        assert_eq!(objects.len(), 2);
+        assert!(matches!(objects[1].kind, Shape::Bitmap { .. }));
     }
 
     #[test]

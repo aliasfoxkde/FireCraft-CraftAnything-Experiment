@@ -836,6 +836,109 @@ unverified. Do not restate the plan; link it.
 - Read-only GitHub triage found 0 open issues and 0 open PRs; six Dependabot PRs are closed or
   merged. Nine remote branches remain (eight beyond `main`); none were deleted without ownership
   and unique-content review. No issue state was changed.
+
+### 2026-11-27 — detached canvas and collapsed Tools regressions
+
+- Corrected detached viewport shortcut dispatch and child-document persistence. Added real-frame
+  coverage for Ctrl+V in the detached viewport and for closing one floated tab without replacing
+  the next document. The suite passes 196 unit tests, 12 CLI tests, 5 hygiene tests, and 10 MCP
+  tests; one timing-sensitive test is intentionally ignored in this concurrent run.
+- Narrow Tools rail now uses compact category labels, hides controls that cannot fit, and gives
+  the flyout affordance a larger hit target. A measurement regression covers its 32 px inner width;
+  rendered screenshots and pointer acceptance remain open.
+- Strict Clippy (`-D warnings`), rustfmt check, documentation checks (64 Markdown files),
+  module-size check, and `git diff --check` passed before this documentation update.
+- Fresh local LLVM coverage on commit `915796fd0631813a2e13091db058c0384d2baa00`: 19,499 / 27,716 lines (70.35%),
+  1,237 / 1,680 functions (73.63%), and 25,299 / 34,909 regions (72.47%). Branch counts are
+  unavailable (0/0). This denominator is not reconciled with hosted Cobertura; the user's 99%
+  target remains unmet.
+- Memory MCP project-scoped durable todo and routing decision were found in the local ledger;
+  `codex-profile memory --dry-run` selects only `context-memory`. The safe code graph index contains
+  a sanitized tracked-source snapshot. Aegis on changed lines found no new-line hits, but full-file
+  and managed scan findings remain untriaged. BigData's configured REST listener at port 8080 is
+  still offline. Native clipboard, visual acceptance, hosted checks, Windows 11 acceptance,
+  current-SHA GitForge execution, and Cloudflare WASM deployment remain open.
+
+- Windows CI run `46071407249` passed its MSVC build and CLI smoke test for PR merge commit
+  `830a1fa3a8a925073b5fc6613cf080d52ba0dc7e`; its Git tree matches branch commit
+  `915796fd0631813a2e13091db058c0384d2baa00`. Review ZIP:
+  `output/review-915796f/firecraft-review-915796f-windows-msvc-x86_64.zip`, SHA-256
+  `9fb44a8b072c6d5a34cf929e248397b3052b2ec4e784c109cbcf7c53e13f8442`. The local GNU cross-build
+  is also preserved as `firecraft-review-915796f-windows-gnu-x86_64.zip`, SHA-256
+  `dae823509e3c297a859b630eb46375c84f275b7c8acde1693c6d730b4f4b0632`. Both archives use app
+  version metadata 0.3.6 and are review artifacts, not release assets. Windows 11 acceptance is
+  still pending.
+- Commit `915796fd0631813a2e13091db058c0384d2baa00` was pushed as `fix/tools-path-interaction` and
+  PR [#52](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/52) was opened.
+  Hosted Gates, coverage upload, CodeQL, Windows MSVC/CLI smoke, and WASM all passed in runs
+  `46071407249`, `46071407269`, and `46071407234`. Hosted Cobertura coverage is 19,163 / 27,083
+  lines = 70.76%, branches 0/0; local LLVM denominators differ.
+- Diagnosed a harness routing failure: Codex launched `harness_jobs_mcp.py` with bare `python3`,
+  which omitted `XDG_RUNTIME_DIR` and targeted a non-existent jobs socket. The user-level entry now
+  uses `scripts/mcp-python`; direct MCP health returned `ok`. No FireCraft test run was created via
+  this manager because its approved profile list contains no FireCraft gates profile. The separate
+  GitForge service gate is still unverified for this new SHA.
+- OpenAI Developer Docs MCP was added with the requested command, then routed only through the
+  opt-in `research` profile to preserve the global rule that base sessions load no MCP servers.
+  Search and fetch were exercised against the official MCP endpoint; its migration guide says
+  Responses is recommended for new projects while Chat Completions remains supported. The global
+  docs/profile configuration remains outside this repository and is locally backed up.
+- Full local validation also passed the isolated 500-object frame-time test and WASM target check.
+  `cargo deny --manifest-path app/Cargo.toml check` passed (with duplicate transitive lock-entry
+  warnings). `cargo audit --file app/Cargo.lock` reports zero vulnerabilities, four unmaintained
+  crates, and nine unsoundness advisories for transitive `heapless 0.8.0`. The only dependency path
+  is `geo 0.33.1 → rstar 0.12.2 → heapless 0.8.0`; rstar uses only heapless's `binary_heap` module,
+  while the advisories identify other structures. `rstar 0.14.0` uses heapless 0.9, but the current
+  geo/geo-types integration only supports rstar 0.12. The safe upstream-compatible update remains
+  open under task 44.10.
+
+## 2026-11-27 — Native Ctrl+V precedence regression
+
+- Added a failing test for empty native Paste events with external OS clipboard text while FireCraft
+  still has stale internal objects. Before the fix, this case pasted the old FireCraft objects.
+- Changed paste dispatch to choose internal objects only when the resolved event/native clipboard
+  has no text, or when its marker identifies FireCraft's internal clipboard. External text now wins.
+- Validation: 198 unit, 12 CLI, 5 hygiene, and 10 MCP tests passed; one timing test is intentionally
+  ignored in the concurrent suite. Strict Clippy, rustfmt, native `cargo check`, and WASM target
+  `cargo check` passed. The test supplies native clipboard text at the source seam; real desktop OS
+  clipboard acceptance and browser permission/focus denial behavior remain open.
+
+## 2026-11-27 — Ctrl+V routing while a dock field retains focus
+
+- Added a red regression that reproduced the reported failure: the canvas had pointer position and
+  selection, but a still-mounted dock text field retained egui focus, so the shortcut dispatcher
+  returned before handling Ctrl+V. The pre-fix assertion showed no canvas paste (expected object
+  count 43, actual 22).
+- Ctrl+V over the canvas now consumes the shortcut and any text Paste event before a persistent
+  panel field can receive it. The focused field remains the paste target when the pointer is
+  outside the canvas, and active inline canvas text editing is left alone.
+- Focused harness tests pass for internal-object canvas paste, external text paste to the canvas,
+  and ordinary focused-field paste outside the canvas (4 Ctrl+V tests total).
+- Exact source commit `c1ae70e52667aae202a5577260699e2757631758` was pushed to PR #52 and local
+  GitForge. GitHub Gates, WASM, Windows build/CLI smoke, CodeQL, and coverage passed. Hosted tests
+  report 201 unit passed, one timing test ignored, 12 CLI, 5 hygiene, and 10 MCP. Strict Clippy,
+  formatting, docs, security/dependency gates are included in the green Gates job.
+- Hosted Cobertura on this source reports 19,338 / 27,259 lines = 70.94%; branches remain unavailable
+  (0/0), so the 99% goal is still unmet. Changed-line Atheon reported 19 broad test-file matches;
+  manual review classified all as false positives or intentional test constructs. Managed full
+  Aegis scan `277900d0-c7cb-4fe0-8cd4-a2381974bddf` finished with 11,325 findings: 11,241 under
+  retained `investigation.cany/` and 84 outside it. There were 0 findings on the two changed
+  production source files; both critical hits are the known static Apple plist DTD false positive.
+  The scan is not clean; 84 outside-evidence findings and individual retained-evidence findings
+  still need triage. A redacted receipt is `.audit/aegis-c1ae70e-summary.json`.
+- Windows review ZIP: `output/review-c1ae70e/firecraft-v0.3.6-windows-x86_64.zip`, SHA-256
+  `8d27672d29b43666bfd2fc9e3d169e325bda2affdedb182c5b101f6527f6bb76`. Embedded CI source commit
+  `e6a61390feff82f8b7ba03473922611797a000da` has the same Git tree as `c1ae70e`. This is not a
+  release asset; native Windows 11 acceptance remains open.
+- OpenAI Developer Docs MCP is registered and verified by search/fetch. Added a docs-only
+  `openai-docs` Codex profile to the global MCP profile file so API lookups can avoid the wider
+  research bundle. The running Codex session still needs a restart to load newly configured tools.
+- Exact-source local GitForge run `68cea0ed-de59-4ced-8b54-da36ea0ccfb9` succeeded for commit
+  `c1ae70e` and `refs/heads/fix/tools-path-interaction` at 2026-11-27T22:41:53Z. It ran formatting,
+  strict Clippy, the full Rust test suite, docs checks, and a release WASM build. Real native OS
+  clipboard, browser clipboard permission/focus denial, native canvas/panel
+  visual acceptance, and the other listed Phase 44 interactions remain open.
+
 - Aegis critical-finding follow-up: added a Python stdlib test for the generated macOS Info.plist.
   It failed against the external Apple DTD, then passed after removing the DOCTYPE. The test is
   included in `scripts/ci-local.sh`; exact-head managed rescan and PR checks are pending. Other
@@ -847,3 +950,17 @@ unverified. Do not restate the plan; link it.
 - Managed Aegis re-scan `79fb7ccd-dbdc-440b-8448-f582e5a15109` on fix commit `67795ed` reports 0
   critical findings. All 80 findings outside protected investigation evidence are triaged; the
   11,241 findings inside retained `investigation.cany/` remain unreviewed. The scan stays non-clean.
+
+## 2026-11-27 — PR #51 merged, PR #52 release prep continues
+
+- PR #51 merged to `main` at `908ba4ca7a7fcdc6d4f6a2964970f8b24c7ea1d1`. Its GitHub Gates, WASM,
+  Windows CLI smoke, coverage, and CodeQL checks passed on exact PR head
+  `229cc37862cbcceeeecfbaca97b61b1c3e626bc9`.
+- PR #51 Aegis rescan `79fb7ccd-dbdc-440b-8448-f582e5a15109` reports zero critical findings after
+  removing the static plist DTD. It triaged 80 findings outside retained `investigation.cany/`;
+  11,241 retained-evidence findings remain unreviewed, so the scan is not clean.
+- The PR #51 GitForge run was submitted on exact head `229cc37`, but local GitForge now reports a
+  degraded deployment and the authenticated run-detail API returns 403. Its result is unverified;
+  the separately recorded exact-source c1ae70e GitForge pass remains valid.
+- Updated PR #51 description through the REST API after `gh pr edit` hit the deprecated Projects
+  GraphQL field; the PR now records exact passing checks, Aegis limits, and the unverified GitForge run.

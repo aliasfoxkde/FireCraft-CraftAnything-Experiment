@@ -4,6 +4,19 @@ All notable changes to **FireCraft** are documented in this file.
 
 ## [Unreleased]
 
+## [0.3.7] — 2026-11-27
+
+Canvas paste routing and floating-workspace update.
+
+### Fixed
+- Route Ctrl+V to the canvas when it is under the pointer even if a persistent dock field retains
+  keyboard focus; keep regular text-field paste behavior when the pointer is outside the canvas.
+- Prefer resolved external clipboard text over stale internal FireCraft objects when the operating
+  system sends an empty Paste event.
+- Keep floating canvas shortcut dispatch bound to its own viewport and persist detached document
+  state safely when floating tabs close.
+- Fit the collapsed Tools rail at narrow widths and improve the group-flyout hit target.
+
 ## [0.3.6] — 2026-11-27
 
 Raster effect export reliability update.
