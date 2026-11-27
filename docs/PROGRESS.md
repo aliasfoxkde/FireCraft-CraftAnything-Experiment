@@ -2,6 +2,13 @@
 
 Newest first.
 
+### 2026-11-27 — Gradient SVG axis export TDD (implementation in progress)
+
+- Added a vector-export regression that failed because per-object gradients were omitted from SVG; after adding `userSpaceOnUse` gradient definitions, a second regression caught duplicate gradient IDs when objects on separate layers reused local indices. SVG object IDs now come from one traversal counter, including grouped objects.
+- The gradient axis endpoints are projected from normalized object bounds into document-space SVG coordinates. Zero-length axes export a stable midpoint color. Focused SVG tests cover object-axis coordinates, stops, unique IDs across layers, and the inline SVG included by HTML export. Standalone CSS output still ignores editable gradient axes. Multiple stops, explicit linear/radial controls, broader geometry/concave path validation, and visual acceptance remain open.
+- Local verification passed: the full native suite (213 passed, 1 isolated timing test ignored), strict Clippy, WASM check, formatting, whitespace, and the 60-file docs/link check. Hosted PR checks remain pending for this follow-up.
+
+
 ### 2026-11-27 — Gradient direction editing TDD (PR #32 merged; task partial)
 
 - Added normalized start/end axis coordinates to per-object gradient fills. Missing coordinates in older documents default to the existing vertical direction. The Gradient tool now exposes draggable color endpoints for a selected gradient object; moving a handle changes only the fill axis and is undoable.
