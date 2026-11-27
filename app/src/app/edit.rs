@@ -342,16 +342,14 @@ impl FireCraft {
 
         // The WASM clipboard API reports pasted images as binary files. The browser
         // bridge encodes those bytes into a private event payload for this shared path.
-        #[cfg(target_arch = "wasm32")]
-        if let Some(payload) =
-            event_non_empty.and_then(|text| text.strip_prefix("FIRECRAFT_IMAGE:"))
-            && let Ok(bytes) =
-                base64::Engine::decode(&base64::engine::general_purpose::STANDARD, payload)
-            && let Ok(image) = image::load_from_memory(&bytes)
+        if let Some(event_text) = event_non_empty
+            && event_text.starts_with("FIRECRAFT_IMAGE:")
         {
-            let image = image.into_rgba8();
-            let (width, height) = image.dimensions();
-            self.paste_bitmap(width as f32, height as f32, image.into_raw());
+            if let Some((width, height, pixels)) = decode_browser_clipboard_image(event_text) {
+                self.paste_bitmap(width as f32, height as f32, pixels);
+            } else {
+                self.status = "Could not paste image: clipboard image data is invalid".to_string();
+            }
             return;
         }
 
@@ -719,6 +717,14 @@ impl FireCraft {
     }
 }
 
+fn decode_browser_clipboard_image(event_text: &str) -> Option<(u32, u32, Vec<u8>)> {
+    let payload = event_text.strip_prefix("FIRECRAFT_IMAGE:")?;
+    let bytes = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, payload).ok()?;
+    let image = image::load_from_memory(&bytes).ok()?.into_rgba8();
+    let (width, height) = image.dimensions();
+    (width > 0 && height > 0).then(|| (width, height, image.into_raw()))
+}
+
 #[cfg(test)]
 #[allow(clippy::expect_used, clippy::panic, clippy::unwrap_used)]
 mod tests {
@@ -884,6 +890,37 @@ mod tests {
         assert!(app.doc.page().layers[0].objects.is_empty());
         assert_eq!(
             app.status,
+            "Could not paste image: clipboard image data is invalid"
+        );
+    }
+
+    #[test]
+    fn paste_browser_image_payload_decodes_and_rejects_malformed_data() {
+        let source = image::RgbaImage::from_pixel(2, 3, image::Rgba([12, 34, 56, 255]));
+        let mut png = std::io::Cursor::new(Vec::new());
+        image::DynamicImage::ImageRgba8(source.clone())
+            .write_to(&mut png, image::ImageFormat::Png)
+            .expect("encode clipboard PNG fixture");
+        let payload =
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, png.get_ref());
+        let event = format!("FIRECRAFT_IMAGE:{payload}");
+        let mut app = app_with_rects(0);
+
+        app.paste_with_text(Some(&event));
+
+        let objects = &app.doc.page().layers[0].objects;
+        assert_eq!(objects.len(), 1);
+        let Shape::Bitmap { pixels, size, .. } = &objects[0].kind else {
+            panic!("browser clipboard payload becomes a bitmap object");
+        };
+        assert_eq!(*size, Vec2::new(2.0, 3.0));
+        assert_eq!(pixels, &source.into_raw());
+
+        let mut malformed = app_with_rects(0);
+        malformed.paste_with_text(Some("FIRECRAFT_IMAGE:not-base64"));
+        assert!(malformed.doc.page().layers[0].objects.is_empty());
+        assert_eq!(
+            malformed.status,
             "Could not paste image: clipboard image data is invalid"
         );
     }
