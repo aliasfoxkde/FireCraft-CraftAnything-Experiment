@@ -836,3 +836,25 @@ unverified. Do not restate the plan; link it.
 - Read-only GitHub triage found 0 open issues and 0 open PRs; six Dependabot PRs are closed or
   merged. Nine remote branches remain (eight beyond `main`); none were deleted without ownership
   and unique-content review. No issue state was changed.
+
+### 2026-11-27 — detached canvas and collapsed Tools regressions
+
+- Corrected detached viewport shortcut dispatch and child-document persistence. Added real-frame
+  coverage for Ctrl+V in the detached viewport and for closing one floated tab without replacing
+  the next document. The suite passes 196 unit tests, 12 CLI tests, 5 hygiene tests, and 10 MCP
+  tests; one timing-sensitive test is intentionally ignored in this concurrent run.
+- Narrow Tools rail now uses compact category labels, hides controls that cannot fit, and gives
+  the flyout affordance a larger hit target. A measurement regression covers its 32 px inner width;
+  rendered screenshots and pointer acceptance remain open.
+- Strict Clippy (`-D warnings`), rustfmt check, documentation checks (64 Markdown files),
+  module-size check, and `git diff --check` passed before this documentation update.
+- Fresh local LLVM coverage on the uncommitted tree: 19,499 / 27,716 lines (70.35%),
+  1,237 / 1,680 functions (73.63%), and 25,299 / 34,909 regions (72.47%). Branch counts are
+  unavailable (0/0). This denominator is not reconciled with hosted Cobertura; the user's 99%
+  target remains unmet.
+- Memory MCP project-scoped durable todo and routing decision were found in the local ledger;
+  `codex-profile memory --dry-run` selects only `context-memory`. The safe code graph index contains
+  a sanitized tracked-source snapshot. Aegis on changed lines found no new-line hits, but full-file
+  and managed scan findings remain untriaged. BigData's configured REST listener at port 8080 is
+  still offline. Native clipboard, visual acceptance, GitForge/hosted checks, fresh Windows build,
+  and Cloudflare WASM deployment remain open.

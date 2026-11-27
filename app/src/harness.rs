@@ -80,6 +80,63 @@ impl Harness {
             ],
         );
     }
+
+    fn frame_with_focused_field(
+        &mut self,
+        width: f32,
+        height: f32,
+        time: f64,
+        text: &mut String,
+        request_focus: bool,
+        events: Vec<egui::Event>,
+    ) {
+        let input = Self::raw_input(width, height, time, events);
+        let app = &mut self.app;
+        let mut output = self.ctx.run_ui(input, |ui| {
+            crate::layout::show(ui, app);
+            egui::Area::new(egui::Id::NULL.with("persistent_focus_test_field"))
+                .fixed_pos(Pos2::new(12.0, height - 42.0))
+                .show(ui.ctx(), |ui| {
+                    let response = ui.add(egui::TextEdit::singleline(text));
+                    if request_focus {
+                        response.request_focus();
+                    }
+                });
+        });
+        output.textures_delta.clear();
+        self.frames += 1;
+    }
+
+    fn frame_with_floating_viewport_events(&mut self, index: usize, events: Vec<egui::Event>) {
+        self.ctx.set_embed_viewports(false);
+        let floating_viewport = egui::ViewportId::from_hash_of(("firecraft_floating_doc", index));
+        let queued_events = std::sync::Arc::new(std::sync::Mutex::new(events));
+        let child_events = queued_events.clone();
+        egui::Context::set_immediate_viewport_renderer(move |ctx, mut viewport| {
+            let events = if viewport.ids.this == floating_viewport {
+                std::mem::take(&mut *child_events.lock().expect("child events lock"))
+            } else {
+                Vec::new()
+            };
+            let mut input = egui::RawInput {
+                viewport_id: viewport.ids.this,
+                screen_rect: Some(Rect::from_min_size(Pos2::ZERO, Vec2::new(860.0, 620.0))),
+                time: Some(4.0),
+                events,
+                ..Default::default()
+            };
+            input.viewports.entry(viewport.ids.this).or_default();
+            input.viewports.entry(viewport.ids.parent).or_default();
+            let mut output = ctx.run_ui(input, |ui| (viewport.viewport_ui_cb)(ui));
+            output.textures_delta.clear();
+        });
+
+        let input = Self::raw_input(1360.0, 860.0, 4.0, Vec::new());
+        let app = &mut self.app;
+        let mut output = self.ctx.run_ui(input, |ui| crate::layout::show(ui, app));
+        output.textures_delta.clear();
+        self.frames += 1;
+    }
 }
 
 #[cfg(test)]
@@ -206,6 +263,197 @@ mod tests {
             harness.app.active_menu, None,
             "Escape should close the menu"
         );
+    }
+
+    #[test]
+    fn ctrl_v_shortcut_pastes_internal_clipboard_objects_through_the_real_frame() {
+        let mut harness = Harness::new();
+        harness.app.select_all();
+        harness.app.copy_selected();
+        let copied = harness.app.clipboard_set.len();
+        let before = harness.app.doc.total_objects_on_page();
+        assert!(
+            copied > 0,
+            "fixture must put objects on the editor clipboard"
+        );
+
+        harness.frame(
+            1360.0,
+            860.0,
+            vec![
+                egui::Event::ModifiersChanged(Modifiers::CTRL),
+                egui::Event::Key {
+                    key: Key::V,
+                    physical_key: None,
+                    pressed: true,
+                    repeat: false,
+                    modifiers: Modifiers::CTRL,
+                },
+            ],
+        );
+
+        assert_eq!(
+            harness.app.doc.total_objects_on_page(),
+            before + copied,
+            "Ctrl+V should invoke the same paste command as the context menu"
+        );
+    }
+
+    #[test]
+    fn canvas_click_takes_focus_from_a_persistent_text_field_before_ctrl_v() {
+        let mut harness = Harness::new();
+        harness.frame(1360.0, 860.0, Vec::new());
+        harness.app.select_all();
+        harness.app.copy_selected();
+        let copied = harness.app.clipboard_set.len();
+        let before = harness.app.doc.total_objects_on_page();
+        let mut text = String::from("still mounted");
+
+        harness.frame_with_focused_field(1360.0, 860.0, 4.0, &mut text, true, Vec::new());
+        assert!(harness.ctx.text_edit_focused());
+
+        harness.frame_with_focused_field(
+            1360.0,
+            860.0,
+            5.0,
+            &mut text,
+            false,
+            vec![
+                egui::Event::PointerMoved(Pos2::new(700.0, 400.0)),
+                egui::Event::PointerButton {
+                    pos: Pos2::new(700.0, 400.0),
+                    button: egui::PointerButton::Primary,
+                    pressed: true,
+                    modifiers: Modifiers::NONE,
+                },
+            ],
+        );
+        harness.frame_with_focused_field(
+            1360.0,
+            860.0,
+            5.5,
+            &mut text,
+            false,
+            vec![egui::Event::PointerButton {
+                pos: Pos2::new(700.0, 400.0),
+                button: egui::PointerButton::Primary,
+                pressed: false,
+                modifiers: Modifiers::NONE,
+            }],
+        );
+        assert!(
+            !harness.ctx.text_edit_focused(),
+            "canvas click should clear a persistent editor field's focus"
+        );
+
+        harness.frame_with_focused_field(
+            1360.0,
+            860.0,
+            6.0,
+            &mut text,
+            false,
+            vec![
+                egui::Event::ModifiersChanged(Modifiers::CTRL),
+                egui::Event::Key {
+                    key: Key::V,
+                    physical_key: None,
+                    pressed: true,
+                    repeat: false,
+                    modifiers: Modifiers::CTRL,
+                },
+            ],
+        );
+        assert_eq!(
+            harness.app.doc.total_objects_on_page(),
+            before + copied,
+            "canvas Ctrl+V should run while the persistent editor remains mounted"
+        );
+    }
+
+    #[test]
+    fn floating_canvas_dispatches_child_viewport_keyboard_paste_to_its_document() {
+        static VIEWPORT_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+        let _guard = VIEWPORT_TEST_LOCK.lock().expect("viewport test lock");
+
+        let mut harness = Harness::new();
+        let floating_doc = harness.app.doc.clone();
+        let docked_doc = floating_doc.clone();
+        harness.app.open_docs = vec![floating_doc.clone(), docked_doc.clone()];
+        harness.app.active_doc = 1;
+        harness.app.doc = docked_doc;
+        harness.app.floating_doc_tabs = vec![0];
+        harness.app.select_all();
+        harness.app.copy_selected();
+        let copied = harness.app.clipboard_set.len();
+        let before = harness.app.open_docs[0].total_objects_on_page();
+        let docked_before = harness.app.open_docs[1].total_objects_on_page();
+
+        harness.frame_with_floating_viewport_events(
+            0,
+            vec![
+                egui::Event::ModifiersChanged(Modifiers::CTRL),
+                egui::Event::Key {
+                    key: Key::V,
+                    physical_key: None,
+                    pressed: true,
+                    repeat: false,
+                    modifiers: Modifiers::CTRL,
+                },
+            ],
+        );
+
+        assert_eq!(
+            harness.app.open_docs[0].total_objects_on_page(),
+            before + copied,
+            "Ctrl+V delivered to the detached viewport should paste into its document"
+        );
+        assert_eq!(
+            harness.app.open_docs[1].total_objects_on_page(),
+            docked_before,
+            "detached viewport shortcuts must not edit the docked document"
+        );
+    }
+
+    #[test]
+    fn closing_floated_document_does_not_overwrite_the_next_document() {
+        static VIEWPORT_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+        let _guard = VIEWPORT_TEST_LOCK.lock().expect("viewport test lock");
+
+        let mut harness = Harness::new();
+        let mut floating_doc = harness.app.doc.clone();
+        floating_doc.dirty = false;
+        floating_doc.name = "Floating.fw.png".to_string();
+        let mut docked_doc = floating_doc.clone();
+        docked_doc.dirty = false;
+        docked_doc.name = "Docked.fw.png".to_string();
+        harness.app.open_docs = vec![floating_doc, docked_doc.clone()];
+        harness.app.active_doc = 1;
+        harness.app.doc = docked_doc;
+        harness.app.floating_doc_tabs = vec![0];
+
+        harness.frame_with_floating_viewport_events(
+            0,
+            vec![
+                egui::Event::ModifiersChanged(Modifiers::CTRL),
+                egui::Event::Key {
+                    key: Key::W,
+                    physical_key: None,
+                    pressed: true,
+                    repeat: false,
+                    modifiers: Modifiers::CTRL,
+                },
+            ],
+        );
+
+        assert_eq!(
+            harness.app.open_docs.len(),
+            1,
+            "Ctrl+W should close a clean floated document; status: {}",
+            harness.app.status
+        );
+        assert_eq!(harness.app.open_docs[0].name, "Docked.fw.png");
+        assert_eq!(harness.app.active_doc, 0);
+        assert!(harness.app.floating_doc_tabs.is_empty());
     }
 
     #[test]
