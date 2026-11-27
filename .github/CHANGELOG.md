@@ -4,6 +4,30 @@ All notable changes to **FireCraft** are documented in this file.
 
 ## [Unreleased]
 
+## [0.3.3] — 2026-11-27
+
+Canvas editing, bitmap correctness, and clipboard reliability update.
+
+### Added
+- **Previous Tool shortcut:** press `Shift+Q` to toggle between the current and last distinct tool.
+- **Feathered bitmap eraser:** erase bitmap alpha with a brush size and feather control; group a
+  drag into one undo action.
+- **Browser image clipboard regression:** exercise valid PNG payload decoding and malformed payload
+  rejection through the same paste entry point used by the editor.
+
+### Changed
+- Keep source bitmap pixel dimensions separate from display bounds so scaling does not resample
+  clipboard, imported, or existing bitmap data; raster export follows display bounds.
+- Reuse bitmap textures by content identity after reorder and cloned render snapshots.
+- Paint startup with a transparent overlay that fades over the live workspace instead of blocking
+  the editor, and make the Welcome view opt-in.
+- Clarify the public task ledger with measured test/coverage state and remaining platform acceptance.
+
+### Fixed
+- Decode browser clipboard image payloads on the shared paste path and show an explicit error for
+  malformed private image payloads instead of inserting pasted marker text.
+- Preserve eraser behavior across scaled bitmap bounds and undo.
+
 ## [0.3.2] — 2026-11-27
 
 Browser clipboard reliability and roadmap planning update.
