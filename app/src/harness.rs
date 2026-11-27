@@ -142,6 +142,7 @@ impl Harness {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::doc::Shape;
 
     #[test]
     fn the_real_frame_boots_headless_at_both_supported_sizes() {
@@ -367,6 +368,148 @@ mod tests {
             harness.app.doc.total_objects_on_page(),
             before + copied,
             "canvas Ctrl+V should run while the persistent editor remains mounted"
+        );
+    }
+
+    #[test]
+    fn ctrl_v_over_canvas_routes_paste_away_from_a_focused_text_field() {
+        let mut harness = Harness::new();
+        harness.app.select_all();
+        harness.app.copy_selected();
+        let copied = harness.app.clipboard_set.len();
+        let before = harness.app.doc.total_objects_on_page();
+        let mut text = String::from("persistent field");
+
+        harness.frame_with_focused_field(1360.0, 860.0, 4.0, &mut text, true, Vec::new());
+        assert!(harness.ctx.text_edit_focused());
+
+        harness.frame_with_focused_field(
+            1360.0,
+            860.0,
+            5.0,
+            &mut text,
+            false,
+            vec![egui::Event::PointerMoved(Pos2::new(700.0, 400.0))],
+        );
+        assert!(harness.ctx.text_edit_focused());
+        assert!(harness.app.cursor_doc_pos.is_some());
+
+        harness.frame_with_focused_field(
+            1360.0,
+            860.0,
+            6.0,
+            &mut text,
+            false,
+            vec![
+                egui::Event::ModifiersChanged(Modifiers::CTRL),
+                egui::Event::Key {
+                    key: Key::V,
+                    physical_key: None,
+                    pressed: true,
+                    repeat: false,
+                    modifiers: Modifiers::CTRL,
+                },
+            ],
+        );
+
+        assert_eq!(
+            harness.app.doc.total_objects_on_page(),
+            before + copied,
+            "Ctrl+V should target the canvas when the pointer is over it, even if a persistent field still owns egui focus"
+        );
+    }
+
+    #[test]
+    fn ctrl_v_over_canvas_sends_external_paste_to_canvas_not_focused_field() {
+        let mut harness = Harness::new();
+        let before = harness.app.doc.total_objects_on_page();
+        let mut text = String::from("persistent field");
+
+        harness.frame_with_focused_field(1360.0, 860.0, 4.0, &mut text, true, Vec::new());
+        harness.frame_with_focused_field(
+            1360.0,
+            860.0,
+            5.0,
+            &mut text,
+            false,
+            vec![egui::Event::PointerMoved(Pos2::new(700.0, 400.0))],
+        );
+        assert!(harness.ctx.text_edit_focused());
+        assert!(harness.app.cursor_doc_pos.is_some());
+
+        harness.frame_with_focused_field(
+            1360.0,
+            860.0,
+            6.0,
+            &mut text,
+            false,
+            vec![
+                egui::Event::ModifiersChanged(Modifiers::CTRL),
+                egui::Event::Key {
+                    key: Key::V,
+                    physical_key: None,
+                    pressed: true,
+                    repeat: false,
+                    modifiers: Modifiers::CTRL,
+                },
+                egui::Event::Paste("Canvas Pasted Text".to_string()),
+            ],
+        );
+
+        let objects = &harness.app.doc.page().layers[0].objects;
+        let Shape::Text { text: pasted, .. } = &objects.last().expect("canvas paste object").kind
+        else {
+            panic!("external paste over the canvas should create a canvas text object");
+        };
+        assert_eq!(pasted, "Canvas Pasted Text");
+        assert_eq!(
+            text, "persistent field",
+            "the focused field must not also receive the paste"
+        );
+        assert_eq!(harness.app.doc.total_objects_on_page(), before + 1);
+    }
+
+    #[test]
+    fn ctrl_v_stays_in_focused_text_field_when_pointer_is_outside_canvas() {
+        let mut harness = Harness::new();
+        let before = harness.app.doc.total_objects_on_page();
+        let mut text = String::from("persistent field");
+        let field_pos = Pos2::new(24.0, 840.0);
+
+        harness.frame_with_focused_field(
+            1360.0,
+            860.0,
+            4.0,
+            &mut text,
+            true,
+            vec![egui::Event::PointerMoved(field_pos)],
+        );
+        assert!(harness.ctx.text_edit_focused());
+        assert!(harness.app.cursor_doc_pos.is_none());
+
+        harness.frame_with_focused_field(
+            1360.0,
+            860.0,
+            5.0,
+            &mut text,
+            false,
+            vec![
+                egui::Event::ModifiersChanged(Modifiers::CTRL),
+                egui::Event::Key {
+                    key: Key::V,
+                    physical_key: None,
+                    pressed: true,
+                    repeat: false,
+                    modifiers: Modifiers::CTRL,
+                },
+                egui::Event::Paste("field paste".to_string()),
+            ],
+        );
+
+        assert_eq!(harness.app.doc.total_objects_on_page(), before);
+        assert!(
+            text.contains("field paste"),
+            "normal focused-field paste must remain intact"
         );
     }
 

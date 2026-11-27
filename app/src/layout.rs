@@ -1739,6 +1739,37 @@ fn shortcuts_with_deferred_close(ui: &mut Ui, app: &mut FireCraft, defer_close: 
         }
     }
     if ui.ctx().text_edit_focused() {
+        let canvas_paste_requested = app.inline_text_edit_obj.is_none()
+            && app.cursor_doc_pos.is_some()
+            && ui.input(|input| {
+                input.events.iter().any(|event| {
+                    matches!(
+                        event,
+                        egui::Event::Key {
+                            key: Key::V,
+                            pressed: true,
+                            modifiers,
+                            ..
+                        } if modifiers.ctrl && !modifiers.alt
+                    )
+                })
+            });
+        if canvas_paste_requested {
+            let paste_text = ui.input(|input| {
+                input.events.iter().find_map(|event| match event {
+                    egui::Event::Paste(text) => Some(text.clone()),
+                    _ => None,
+                })
+            });
+            ui.input_mut(|input| {
+                input.consume_key(egui::Modifiers::CTRL, Key::V);
+                input
+                    .events
+                    .retain(|event| !matches!(event, egui::Event::Paste(_)));
+            });
+            app.paste_with_text(paste_text.as_deref());
+            ui.ctx().request_repaint();
+        }
         return false;
     }
     let (ctrl, shift, alt) = ui.input(|i| (i.modifiers.ctrl, i.modifiers.shift, i.modifiers.alt));
