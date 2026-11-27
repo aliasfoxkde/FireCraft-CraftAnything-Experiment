@@ -7,6 +7,9 @@ use crate::doc::{Document, GradientFill, LiveEffect, Obj, Shape};
 use eframe::egui::{Color32, Vec2};
 use std::path::Path;
 
+#[path = "formats/raster_effects.rs"]
+mod raster_effects;
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Format {
     Png,
@@ -883,6 +886,14 @@ pub fn rasterize(doc: &Document) -> image::RgbaImage {
 }
 
 fn draw_obj(img: &mut image::RgbaImage, obj: &Obj, alpha: u8) {
+    if alpha == 0 {
+        return;
+    }
+    raster_effects::render_drop_shadows(img, obj, alpha);
+    draw_obj_content(img, obj, alpha);
+}
+
+fn draw_obj_content(img: &mut image::RgbaImage, obj: &Obj, alpha: u8) {
     let to_px = |p: Vec2| -> (i32, i32) { (p.x.round() as i32, p.y.round() as i32) };
     let gradient_color = |gradient: GradientFill, x: f32, y: f32| {
         let normalized = obj.bounds().map_or(Vec2::splat(0.5), |(lo, hi)| {
@@ -1710,6 +1721,51 @@ mod tests {
         let img = rasterize(&doc);
         assert_eq!(img.dimensions(), (64, 48));
         assert_eq!(*img.get_pixel(32, 24), image::Rgba([255, 0, 0, 255]));
+    }
+
+    #[test]
+    fn raster_export_renders_enabled_drop_shadow_outside_object_bounds() {
+        let mut doc = Document::new(24.0, 24.0);
+        doc.page_mut().transparent_bg = true;
+        let mut rect = Obj::new(
+            Shape::Rect {
+                min: Vec2::new(5.0, 5.0),
+                max: Vec2::new(9.0, 9.0),
+                corner_radius: 0.0,
+                filled: true,
+            },
+            Some(Color32::from_rgb(240, 20, 10)),
+            None,
+        );
+        rect.effects.push(LiveEffect::DropShadow {
+            distance: 4.0,
+            angle_deg: 90.0,
+            blur: 1.0,
+            color: Color32::from_black_alpha(200),
+            enabled: false,
+        });
+        doc.page_mut().layers[0].objects.push(rect);
+
+        let disabled_image = rasterize(&doc);
+        assert_eq!(disabled_image.get_pixel(7, 12).0[3], 0);
+        if let LiveEffect::DropShadow { enabled, .. } =
+            &mut doc.page_mut().layers[0].objects[0].effects[0]
+        {
+            *enabled = true;
+        } else {
+            panic!("expected the drop shadow effect");
+        }
+
+        let image = rasterize(&doc);
+        assert_eq!(image.get_pixel(7, 7).0, [240, 20, 10, 255]);
+        assert!(
+            image.get_pixel(7, 12).0[3] > 0,
+            "the enabled shadow should be visible below the object's bounds"
+        );
+        assert!(
+            image.get_pixel(7, 14).0[3] > 0,
+            "the blur radius should produce a soft alpha falloff beyond the shadow body"
+        );
     }
 
     #[test]

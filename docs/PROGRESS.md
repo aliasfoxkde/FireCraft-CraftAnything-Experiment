@@ -2,11 +2,18 @@
 
 Newest first.
 
+### 2026-11-27 — TDD: include Live Filter Drop Shadows in raster export
+
+- Added `raster_export_renders_enabled_drop_shadow_outside_object_bounds` in `app/src/formats.rs`. Red showed the exported rectangle pixels were present but the enabled Drop Shadow produced no alpha outside the object. The test now checks that a disabled effect adds no shadow, an enabled effect follows its offset, and blur produces an alpha falloff.
+- Fixed the raster export path to composite Drop Shadows before object pixels. Rectangles use separable Gaussian interval coverage; ellipse/polygon silhouettes use bounded expanded passes, and other object shapes use an alpha mask with a reduced-resolution blur for larger radii. SVG/HTML behavior and the on-canvas renderer were left at their existing paths.
+- A first generic full-resolution blur made `every_export_format_produces_a_real_file` take 96.86 seconds. Replacing rectangular blur with the separable profile reduced that focused integration test to 8.54 seconds; the full suite's CLI integration set passed in 9.15 seconds. Full suite: 191 unit passed, 1 isolated timing test ignored, 12 CLI, 5 hygiene, and 10 MCP passed. Strict all-target Clippy (`-D warnings`) also passed. WASM check, docs validation, and exact-head hosted checks are next.
+- TASK 37.4 remains open: only raster Drop Shadow output is addressed. Other effect types and bitmap/path/text visual parity still need coverage and review.
+
 ### 2026-11-27 — TDD and verification follow-up
 
 - Re-ran the Save All & Quit regression by its full filter and the full suite on the current tree: 190 unit tests passed, one isolated frame-time test was ignored, and 12 CLI, 5 hygiene, and 10 MCP tests passed. Strict all-target Clippy (`-D warnings`), WASM target check, docs/link validation (63 files), rustfmt, diff check, and module-size hard budget passed. The new behavior test passes against existing production code; it did not reproduce a defect, so no production change was fabricated.
 - Recorded managed Aegis scan `0889e9ed-bbbe-4782-af42-597c4f3b9456` (Aegis 0.6.6, production profile, tree `07f2cba1d5c432bd3234e9193cdca6df52b6a51a`): 11,323 findings, with 11,241 in retained `investigation.cany/` evidence. Secret-shaped prose/temp-directory names and two static Apple plist DTD alerts were reviewed as false positives. The scan is non-clean; 82 findings outside retained evidence and individual evidence matches remain open under TASK 41.2. No raw candidate values were copied into project docs.
-- GitForge services currently answer HTTP 200 on ports 42780–42782, but the local `gitforge-status` CLI is absent and the installed server state is documented as stale. No passing local pipeline is claimed; branch-level verification is still pending.
+- GitForge services currently answer HTTP 200 on ports 42780–42782, but the local `gitforge-status` CLI is absent and the installed server state is documented as stale. No passing local pipeline is claimed; branch-level verification is still pending. <!-- # aegis:ignore:zip-code -- local service port numbers, not postal codes -->
 - PR #43 merged as `33ad313275f98317494204202926a610e21749ba` after exact-head Gates, WASM, Windows build/CLI smoke, Rust coverage, and CodeQL checks passed; CodeRabbit skipped by configuration. The exact-head coverage artifact reports 18,574 / 26,539 lines = 69.99%, with branch counters 0/0. The merge verifies build/smoke, not interactive Windows 11 acceptance.
 
 ### 2026-11-27 — TDD: Save All & Quit across untitled and named documents
