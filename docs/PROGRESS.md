@@ -23,7 +23,9 @@ Newest first.
   `aa8ae62835728ac88a493fd03d9d9ca7f0bb7800de31694175d4c621bedd3839`. Hosted Windows CLI smoke
   passed; native Windows 11 interactive acceptance remains for the reviewer.
 - Open PR and issue counts were both zero after PRs #13, #14, and #15 merged. Branch hygiene is
-  tracked in Phase 33; the only remaining local/remote branch before this log was `main`.
+  tracked in Phase 33. Final fetch/prune found local `main` plus remote `main` and
+  `release/prepare-v0.3.1`; the three merged PR branches were deleted. GitHub's ruleset explicitly
+  rejects deleting `release/*`, so that protected release branch is retained.
 
 ## 2026-11-27 — consolidation plan merged; v0.3.1 release prepared
 
