@@ -4,6 +4,9 @@ All notable changes to **FireCraft** are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- Prevent bitmap erasing on hidden layers at both pointer targeting and the pixel mutation seam.
+
 ## [0.3.3] — 2026-11-27
 
 Canvas editing, bitmap correctness, and clipboard reliability update.
