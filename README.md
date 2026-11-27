@@ -44,7 +44,7 @@ remain grounded in this repository's code, tests, tasks and release receipts.
 | See the public product roadmap | [Product Roadmap](docs/PRODUCT_ROADMAP.md) |
 | Explore extension ecosystem research and marketplace plan | [Fireworks Extensions Research](docs/research/fireworks-extensions.md) |
 | See the measured state and gaps | [Audit](docs/AUDIT.md) |
-| Read the current full audit snapshot | [2026-11-26 Audit](docs/AUDIT-2026-11-26.md) |
+| Read the current full audit snapshot | [2026-11-27 Audit](docs/AUDIT-2026-11-27.md) · [2026-11-26 archive](docs/AUDIT-2026-11-26.md) |
 | Understand the plan and its exit criteria | [Plan](docs/PLAN.md) |
 | Read the completed UI polish history | [Polish history](docs/ROADMAP.md) |
 | Read release notes | [Changelog](.github/CHANGELOG.md) |

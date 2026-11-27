@@ -7,9 +7,10 @@ is the map for deeper material.
 
 | Goal | Read |
 |------|------|
-| Review the current v0.3.4 Windows build on Windows 11 | [Windows 11 review checklist](testing/windows-11-review-v0.3.4.md) |
+| Review the current v0.3.5 Windows build on Windows 11 | [Windows 11 review checklist](testing/windows-11-review-v0.3.5.md) |
 | Review the earlier v0.3.3 Windows build | [Archived Windows 11 checklist](testing/windows-11-review.md) |
 | See what is measured right now | [Audit](AUDIT.md) |
+| Read the post-release audit, exact v0.3.5 receipts, coverage and gaps | [2026-11-27 audit](AUDIT-2026-11-27.md) |
 | Read the 2026-11-26 repository audit | [Audit snapshot](AUDIT-2026-11-26.md) |
 | Review UI/menu/dialog follow-up findings | [UI follow-up audit](AUDIT-2026-11-26.md#ui-and-workflow-follow-up--2026-11-26) |
 | Review code quality and verification gaps | [Quality gap analysis](research/quality-gap-analysis.md) |

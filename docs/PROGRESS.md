@@ -659,3 +659,36 @@ unverified. Do not restate the plan; link it.
   had silently accepted an empty file set when Git failed; a red/green hygiene regression now makes
   that condition fail closed and handles Git's safe-directory check inside the container. The exact
   release branch GitForge pipeline and hosted PR checks are still pending.
+
+### 2026-11-27 — v0.3.5 release, audit receipts, and marketing follow-up
+
+- Merged PR #39 and published [GitHub Release `v0.3.5`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.5)
+  from `bec0b65f3d05f66d299568f0ea80227e049daee4`. Release workflow
+  [46018626991](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/46018626991)
+  passed all platform/package, aggregate, release, and GitHub Pages jobs. The Windows review ZIP is
+  at `output/release-v0.3.5/firecraft-v0.3.5-windows-x86_64.zip` with SHA-256
+  `4cfdad8cc68133fa448d2cd424846a25612447bc25e0b509fe4167b300ed0868`. This is a build and CLI
+  smoke receipt; native Windows 11 editing acceptance remains open.
+- Downloaded the exact merged-main Cobertura artifact from
+  [coverage run 46018564233](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/46018564233):
+  18,425 / 26,445 lines = **69.67%**. Branch counters are 0/0; the requested 99% is not met.
+- The v0.3.5 Cloudflare WASM preview serves the exact release `BUILD-INFO`, JS, WASM, and favicon
+  with matching checksums and MIME types. Chromium loaded the page shell, but WebGL2 canvas startup /
+  screenshot capture timed out in this host. Editor interaction and clipboard are not claimed as
+  verified.
+- Managed Aegis 0.6.6 production scan `4885e72a-64a2-490a-a97b-c27b72ac3b7f` matched the exact
+  source tree. It reported 11,315 findings, of which 11,241 came from retained `investigation.cany/`
+  evidence/journals. Focused product/script alerts were reviewed as likely scanner false positives
+  or intended generated/input behavior; the full evidence set was not exhaustively triaged. The
+  scan is **not clean** and task 41.2 stays open. A redacted aggregate is stored at
+  [`.audit/aegis-v0.3.5-summary.json`](../.audit/aegis-v0.3.5-summary.json); raw findings were not
+  committed.
+- Added [the dated audit](AUDIT-2026-11-27.md), corrected the task board release statuses, and linked
+  the audit from README and the docs map. The architecture review report
+  `/tmp/architecture-review-20261127.html` ranks a canvas interaction policy seam first; its
+  implementation awaits maintainer selection.
+- In sibling marketing repo PR [#190](https://github.com/aliasfoxkde/FireCraft/pull/190), the
+  canonical release links, System/Dark/Light toggle, cursor-following hero light, and planned
+  extensions information page are covered by eight Node tests. The marketing validation job and
+  `actionlint` passed; Rust-hosted checks were still pending at the time of this entry. Marketing
+  Pages deployment remains open until checks, project provisioning, and route verification pass.

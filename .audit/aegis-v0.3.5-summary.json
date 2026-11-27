@@ -1,0 +1,58 @@
+{
+  "scanner": {
+    "name": "Aegis",
+    "version": "0.6.6",
+    "profile": "production"
+  },
+  "source": {
+    "commit": "bec0b65f3d05f66d299568f0ea80227e049daee4",
+    "tree": "4d4e0eb293889679b0dc3d5f35f157b61cfc4adb"
+  },
+  "run": {
+    "job_id": "4885e72a-64a2-490a-a97b-c27b72ac3b7f",
+    "files_scanned": 274,
+    "files_skipped": 146,
+    "files_failed": 0,
+    "bytes_scanned": 22772596,
+    "patterns_matched": 278,
+    "elapsed_seconds": 21.3,
+    "findings": {
+      "total": 11315,
+      "critical": 2,
+      "high": 53,
+      "medium": 638,
+      "low": 10622,
+      "categories": {
+        "pii": 11048,
+        "compliance": 245,
+        "web-security": 16,
+        "security-hardening": 3,
+        "secrets": 3
+      }
+    },
+    "largest_directory": {
+      "path": "investigation.cany",
+      "findings": 11241,
+      "disposition": "Retained forensic journal/evidence; findings are largely phone, postal-code, wallet-shaped text, and compliance references. Evidence retention is an explicit project constraint. Individual evidence hits were not all reviewed; this scan is not clean and Phase 41.2 remains open."
+    },
+    "focused_reviews": [
+      {
+        "path": "app/src",
+        "files_scanned": 35,
+        "bytes_scanned": 1315528,
+        "findings": 45,
+        "review": "33 high PCI-cardholder-data matches are the UI word Pan (canvas panning); 10 low ZIP matches are numeric ranges or JSON-RPC codes; the public support email is intentional; the api-key-field match is the masked TextEdit.password(true) input at panels/bodies.rs:1259. No confirmed secret exposure was found."
+      },
+      {
+        "path": "scripts",
+        "files_scanned": 12,
+        "bytes_scanned": 33062,
+        "findings": 4,
+        "review": "Two medium username matches are temporary account-variable names. Two critical XML external-entity patterns point to the standard Apple property-list DOCTYPE emitted by package-macos.sh; this script generates the plist and does not parse untrusted XML."
+      }
+    ],
+    "raw_output_sha256": "46f45bd685ad8c269df14841aa6ccc8ae3924c6bba3694a5c2fc7cb83352b1f8",
+    "raw_output_committed": false
+  },
+  "status": "findings-reported; scoped product findings reviewed; retained evidence findings not exhaustively triaged; do not claim a clean scan"
+}
