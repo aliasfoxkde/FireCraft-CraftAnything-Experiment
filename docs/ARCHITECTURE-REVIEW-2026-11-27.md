@@ -4,6 +4,15 @@ This review follows the `improve-codebase-architecture`, `codebase-design`,
 `domain-modeling`, `implement-spec`, `diagnosing-bugs`, and `show-me-your-work` workflows.
 It is a plan and evidence record, not a claim that proposed architecture work is implemented.
 
+## v0.3.6 follow-up scan
+
+A fresh, read-only architecture scan on the v0.3.6 release tree (`ee35e3ee1bdc088d9617e9cef237936509c0f641`, identical tree to the published `v0.3.6` tag) narrowed the architecture work to two candidates. The refreshed visual report is `/var/tmp/architecture-review-20261127-v036.html`; supporting notes are `/var/tmp/firecraft-architecture-candidates-v036.md`.
+
+1. **Canvas interaction policy — strongest candidate.** `app.rs` owns broad pointer handlers for tool policy, selection, snapping, edits, undo and status; `canvas.rs` adapts egui pointer events and also supplies hit testing. Deepen only if the task 37.2/37.6/37.8 test matrix shows the seam improves locality while preserving `FireCraft` as document state owner. Protect event ordering, selection resets, undo grouping, and god-view/page-bounds semantics.
+2. **Format implementations and flat-export semantics — worth exploring.** `formats.rs` combines support policy, path IO, codecs, raster drawing and layered-PNG persistence. Task 37.4/37.7 fixtures should first prove semantic mismatch and preserve a distinct canvas renderer. Keep the existing format-facing caller surface; do not split modules until tests show a real reduction in caller knowledge.
+
+Panel gesture geometry is already a pure, tested module; MCP restructuring remains premature until task 25.1 selects a stable extension command surface. Existing glossary language was sufficient; no glossary change or ADR was warranted. The repository has no open issues or pull requests, so there is no external issue graph for `implement-spec` to implement. The active task graph is `docs/TASKS.md`; implementation of either architecture candidate awaits acceptance tests and maintainer selection.
+
 - Visual report: `/tmp/architecture-review-20261127.html` (opened with `xdg-open`).
 - Evidence inspected: recent commits `6a6d305`, `c88bbcc`, and `3c184c3`; the current startup
   splash worktree; `docs/GLOSSARY.md`; `docs/architecture.md`; and ADR-0001 through ADR-0003.

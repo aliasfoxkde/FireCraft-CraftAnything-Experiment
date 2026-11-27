@@ -804,3 +804,35 @@ unverified. Do not restate the plan; link it.
   extensions information page are covered by eight Node tests. The marketing validation job and
   `actionlint` passed; Rust-hosted checks were still pending at the time of this entry. Marketing
   Pages deployment remains open until checks, project provisioning, and route verification pass.
+
+### 2026-11-27 — v0.3.6 release, TDD, architecture, and issue triage
+
+- Published [GitHub Release `v0.3.6`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.6)
+  from `c3edaa68598f0e0daf7f5ee8c6cdd202d0e1cdd3`. Release workflow
+  [46052887293](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/46052887293)
+  passed quality, Windows, macOS, Linux, WASM, publication, and GitHub Pages deployment. All eight
+  downloaded platform packages pass the published `SHA256SUMS.txt` check.
+- Windows review ZIP: `output/release-v0.3.6/release-assets/firecraft-v0.3.6-windows-x86_64.zip`,
+  SHA-256 `3ab4973b237186b7d2c3bf90760c8a1df7606299a1a8e63b208ee6947b4098af`; build source is the
+  release SHA. Hosted CLI smoke passed. The [Windows 11 checklist](testing/windows-11-review-v0.3.6.md)
+  is ready; interactive Windows acceptance remains pending.
+- Cloudflare Pages deployment failed before upload: Wrangler received no `CLOUDFLARE_API_TOKEN`,
+  and the v0.3.6 preview currently returns HTTP 404. GitHub action-secret inventory is empty; local
+  Cloudflare env credentials fail authentication, and OpenZenith's stored Wrangler auth is absent.
+  No secret values were read or copied. Production WASM remains untouched. The deployment requires
+  a valid Pages token and account ID configured by the account owner.
+- Exact-tree GitForge gate `6192a6b0-31e8-44da-8379-178c3ccd8652` succeeded on candidate
+  `ee35e3ee1bdc088d9617e9cef237936509c0f641`, whose tree matches the tag. Managed Aegis scan
+  `716d8207-9391-4b7f-ab34-aae7cda185a8` completed (280 scanned, 145 skipped, 0 failed) with 11,323
+  findings and two narrow suppressions. It exited 3; retained evidence and 82 other hits remain
+  incompletely triaged. Do not treat it as clean.
+- Latest line coverage remains 18,703 / 26,765 = **69.88%** on the PR #45 artifact; branches are
+  unavailable (0/0), so 99% is not met. PR #45's raster shadow export regression failed before the
+  compositor fix and passed after; this is the focused TDD proof carried into v0.3.6.
+- Fresh architecture scan ranks canvas interaction policy first and formats/export semantics
+  second. Visual report: `/var/tmp/architecture-review-20261127-v036.html`; candidate notes:
+  `/var/tmp/firecraft-architecture-candidates-v036.md`. No module extraction began without a
+  selected candidate and acceptance matrix. Glossary/ADR review required no changes.
+- Read-only GitHub triage found 0 open issues and 0 open PRs; six Dependabot PRs are closed or
+  merged. Nine remote branches remain (eight beyond `main`); none were deleted without ownership
+  and unique-content review. No issue state was changed.
