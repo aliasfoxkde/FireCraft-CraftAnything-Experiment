@@ -964,3 +964,33 @@ unverified. Do not restate the plan; link it.
   the separately recorded exact-source c1ae70e GitForge pass remains valid.
 - Updated PR #51 description through the REST API after `gh pr edit` hit the deprecated Projects
   GraphQL field; the PR now records exact passing checks, Aegis limits, and the unverified GitForge run.
+
+## 2026-11-27 — v0.3.7 release build and local review
+
+- PR #51 is merged at `908ba4c`; PR #52 is merged at `5bfdcfd` after exact head `d86e17d` passed
+  GitHub Gates, Windows build/CLI smoke, WASM, coverage, and CodeQL (runs `46080620732`,
+  `46080620778`, `46080620847`).
+- The tag `v0.3.7` points to `5bfdcfdcb2353f94e456b4e757c68b9f1b3ccc60` (tree
+  `b2d800e33672b555bb8a54f470b02a826d9f04a7`). The tag-triggered release workflow is
+  `46081881673` and is building. The GitHub release and Cloudflare review deployment are pending its
+  completion.
+- Windows review bundle from PR CI: `output/review-d86e17d/firecraft-v0.3.7-windows-x86_64.zip`,
+  ZIP SHA-256 `931de47e114b09660a8b6133acd00157b5fa6b25256b234adfe46685b6b04377`; executable SHA-256
+  `1d81b214f3f67e9b69d4207b2c255b309b3de49f84c8802e4692689421428e69`. The ZIP checksum verifies,
+  the PE is x86-64 Windows GUI, and CI source tree `b2d800e` exactly matches pushed PR head tree
+  `d86e17d`. Native Windows 11 GUI acceptance remains open.
+- Exact PR head coverage is 19,338 / 27,259 lines = 70.94%; branch counters are unavailable (0/0),
+  so the requested 99% coverage target is unmet.
+- The first GitForge remote was not registered to the local CI pipeline. Created a matching private
+  GitForge repository `52bf8def-7c63-4def-bb77-d5a50e6f4dd1`, registered FireCraft Studio CI, pushed
+  the exact branch, and started run `0b58ed0d-5048-45b5-bb38-93ee09e224ab` on commit `d86e17d`.
+  Its gates job `973d72cc-f450-4b61-a341-206703335246` is running; fmt and strict Clippy completed
+  far enough to start the full test suite. The GitForge deployment itself still reports 273 commits
+  of source drift; wait for the actual run receipt before calling local CI passed.
+- The regression for the plist template and the 65-file docs check passed locally. A separate
+  `ci-local.sh --quick` attempt waited for host build admission while other builds were active; that
+  waiting invocation was cancelled. Exact GitHub checks passed on the merged PR head instead.
+- Whole-repository Aegis remains non-clean: the latest exact rescan recorded zero critical matches,
+  triaged 80 findings outside retained `investigation.cany/`, and left 11,241 retained-evidence
+  findings unreviewed. Visual/native acceptance, path/raster/filter/dialog/autosave interactions,
+  remaining issue/branch cleanup, and full 99% coverage remain open in [`TASKS.md`](TASKS.md).
