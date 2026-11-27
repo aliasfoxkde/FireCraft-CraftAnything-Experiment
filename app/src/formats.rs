@@ -407,6 +407,7 @@ pub fn export_svg(doc: &Document) -> String {
             crate::colors::hex_of(page.bg_color)
         ));
     }
+    let mut next_svg_id = 0;
     for layer in &page.layers {
         if !layer.visible || layer.is_web_layer {
             continue;
@@ -416,12 +417,12 @@ pub fn export_svg(doc: &Document) -> String {
             layer.name.replace('"', ""),
             layer.opacity.clamp(0.0, 1.0)
         ));
-        for (idx, obj) in layer.objects.iter().enumerate() {
+        for obj in &layer.objects {
             if !obj.visible {
                 continue;
             }
             out.push_str("    ");
-            out.push_str(&obj_to_svg(obj, idx));
+            out.push_str(&obj_to_svg(obj, &mut next_svg_id));
             out.push('\n');
         }
         out.push_str("  </g>\n");
@@ -430,18 +431,59 @@ pub fn export_svg(doc: &Document) -> String {
     out
 }
 
-fn obj_to_svg(obj: &Obj, idx: usize) -> String {
-    let fill = obj
+fn object_gradient_svg(obj: &Obj, idx: usize) -> Option<(String, String)> {
+    let gradient = obj.gradient?;
+    if !matches!(
+        &obj.kind,
+        Shape::Rect { .. }
+            | Shape::Ellipse { .. }
+            | Shape::Polygon { .. }
+            | Shape::Path { closed: true, .. }
+            | Shape::Text { .. }
+    ) {
+        return None;
+    }
+    let (lo, hi) = obj.bounds()?;
+    let size = hi - lo;
+    let start = Vec2::new(
+        lo.x + size.x * gradient.start_pos.x,
+        lo.y + size.y * gradient.start_pos.y,
+    );
+    let end = Vec2::new(
+        lo.x + size.x * gradient.end_pos.x,
+        lo.y + size.y * gradient.end_pos.y,
+    );
+    let id = format!("obj_grad_{idx}");
+    let (x1, y1, x2, y2, start_color, end_color) = if (end - start).length_sq() <= 1.0e-12 {
+        let color = gradient.start.lerp_to_gamma(gradient.end, 0.5);
+        (lo.x, lo.y, lo.x, hi.y, color, color)
+    } else {
+        (start.x, start.y, end.x, end.y, gradient.start, gradient.end)
+    };
+    let defs = format!(
+        r#"<defs><linearGradient id="{id}" gradientUnits="userSpaceOnUse" x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}"><stop offset="0%" stop-color="{}"/><stop offset="100%" stop-color="{}"/></linearGradient></defs>"#,
+        crate::colors::hex_of(start_color),
+        crate::colors::hex_of(end_color)
+    );
+    Some((defs, format!("url(#{id})")))
+}
+
+fn obj_to_svg(obj: &Obj, next_id: &mut usize) -> String {
+    let idx = *next_id;
+    *next_id += 1;
+    let fallback_fill = obj
         .fill
         .map(crate::colors::hex_of)
         .unwrap_or_else(|| "none".to_string());
+    let (gradient_defs, fill) =
+        object_gradient_svg(obj, idx).unwrap_or_else(|| (String::new(), fallback_fill));
     let stroke = obj
         .stroke
         .map(crate::colors::hex_of)
         .unwrap_or_else(|| "none".to_string());
     let width = obj.width.max(0.1);
     let op = obj.opacity.clamp(0.0, 1.0);
-    match &obj.kind {
+    let shape_svg = match &obj.kind {
         Shape::Rect {
             min,
             max,
@@ -581,13 +623,14 @@ fn obj_to_svg(obj: &Obj, idx: usize) -> String {
         Shape::Slice { .. } | Shape::SymbolInstance { .. } => String::new(),
         Shape::Group { children } => {
             let mut g = String::from("<g>");
-            for (ci, ch) in children.iter().enumerate() {
-                g.push_str(&obj_to_svg(ch, idx * 100 + ci));
+            for child in children {
+                g.push_str(&obj_to_svg(child, next_id));
             }
             g.push_str("</g>");
             g
         }
-    }
+    };
+    format!("{gradient_defs}{shape_svg}")
 }
 
 /// Export the document as an HTML5 + CSS + inline SVG + Slice/Hotspot interactive web page.
@@ -1563,6 +1606,65 @@ mod tests {
         let html = export_html(&doc);
         assert!(html.contains("<!DOCTYPE html>"));
         assert!(html.contains("<svg"));
+    }
+
+    #[test]
+    fn svg_export_preserves_the_object_gradient_axis() {
+        let mut doc = Document::new(160.0, 120.0);
+        let mut rect = Obj::new(
+            Shape::Rect {
+                min: Vec2::new(10.0, 15.0),
+                max: Vec2::new(110.0, 95.0),
+                corner_radius: 0.0,
+                filled: true,
+            },
+            Some(Color32::BLACK),
+            None,
+        );
+        let mut gradient = GradientFill::new(Color32::BLACK, Color32::WHITE);
+        gradient.start_pos = Vec2::new(0.0, 0.5);
+        gradient.end_pos = Vec2::new(1.0, 0.5);
+        rect.gradient = Some(gradient);
+        doc.page_mut().layers[0].objects.push(rect);
+
+        let svg = export_svg(&doc);
+        assert!(svg.contains(
+            "<linearGradient id=\"obj_grad_0\" gradientUnits=\"userSpaceOnUse\" x1=\"10\" y1=\"55\" x2=\"110\" y2=\"55\">"
+        ));
+        assert!(svg.contains("fill=\"url(#obj_grad_0)\""));
+        assert!(svg.contains("stop-color=\"#000000\""));
+        assert!(svg.contains("stop-color=\"#FFFFFF\""));
+
+        let html = export_html(&doc);
+        assert!(html.contains("obj_grad_0"));
+        assert!(html.contains("x1=\"10\" y1=\"55\" x2=\"110\" y2=\"55\""));
+    }
+
+    #[test]
+    fn svg_export_gradient_ids_are_unique_across_layers() {
+        let gradient_rect = || {
+            let mut rect = Obj::new(
+                Shape::Rect {
+                    min: Vec2::ZERO,
+                    max: Vec2::new(10.0, 10.0),
+                    corner_radius: 0.0,
+                    filled: true,
+                },
+                Some(Color32::BLACK),
+                None,
+            );
+            rect.gradient = Some(GradientFill::new(Color32::BLACK, Color32::WHITE));
+            rect
+        };
+        let mut doc = Document::new(20.0, 20.0);
+        doc.page_mut().layers[0].objects.push(gradient_rect());
+        let mut second_layer = crate::doc::Layer::new("Second");
+        second_layer.objects.push(gradient_rect());
+        doc.page_mut().layers.push(second_layer);
+
+        let svg = export_svg(&doc);
+        assert!(svg.contains("id=\"obj_grad_0\""));
+        assert!(svg.contains("id=\"obj_grad_1\""));
     }
 
     #[test]
