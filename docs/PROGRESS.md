@@ -6,7 +6,9 @@ Newest first.
 
 - Prepared version `0.3.6` with matching `app/Cargo.toml`, `app/Cargo.lock`, and changelog entry for
   the merged PR #45 raster Drop Shadow export fix. `scripts/version.sh` reports `0.3.6`; locked
-  `cargo metadata --no-deps` reports `firecraft@0.3.6`.
+  `cargo metadata --no-deps` reports `firecraft@0.3.6`. Review is in PR #48 on
+  `codex/prepare-v0.3.6`; PR #47 was closed after the repository ruleset rejected an update to its
+  protected `release/prepare-v0.3.6` branch.
 - Exact-head validation, multi-platform tag release, and Cloudflare review deployment remain open;
   these gates are tracked in TASKS 43.2–43.5. The public `v0.3.5` release has not been overwritten.
 
