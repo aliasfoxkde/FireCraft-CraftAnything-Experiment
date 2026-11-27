@@ -8,10 +8,10 @@
 > **Execution ledger:** [TASKS.md](TASKS.md) is the only active checkbox ledger.
 > **Primary supporting docs:** [AGENTS.md](../AGENTS.md), [CLAUDE.md](../CLAUDE.md), [PLAN.md](PLAN.md), [PRODUCT_ROADMAP.md](PRODUCT_ROADMAP.md), [AUDIT.md](AUDIT.md), [architecture.md](architecture.md), [build-release.md](build-release.md), and [PROGRESS.md](PROGRESS.md).
 
-> **Status update — 2026-11-27:** Baseline PR #13 has been reviewed and merged as `00b1fd0` after
-> Linux gates, coverage, WASM, Windows build/CLI smoke, and CodeQL passed on its exact head SHA.
-> PR #14 contains this plan and is being reconciled with that merged work. See the newest
-> [`PROGRESS.md`](PROGRESS.md) entry and Phase 33 in [`TASKS.md`](TASKS.md) for current statuses.
+> **Status update — 2026-11-27:** PR #13 merged as `00b1fd0`; PR #14's reconciled plan merged as
+> `62e004c`; v0.3.1 release prep merged as `3efe9c1`. The all-platform release and GitHub Pages
+> deployment passed on `3efe9c1`. See the newest [`PROGRESS.md`](PROGRESS.md) entry and Phases 32–34
+> in [`TASKS.md`](TASKS.md) for current status and remaining acceptance work.
 
 ---
 
@@ -236,7 +236,11 @@ Do not create another overlapping task list or leave legacy root FireCraft docs 
 
 **Goal:** land or disposition the only open experiment PR and remove confusing task/status drift before importing legacy features.
 
-### 6.1 PR #13 is not a one-line release-title change
+### 6.1 PR #13 was not a one-line release-title change
+
+This subsection preserves the review scope at the time the plan was drafted. The work is complete:
+PR #13's full changeset was reviewed, its title/body were corrected, exact-SHA hosted checks passed,
+and it was merged as `00b1fd0` on 2026-11-27. See [PROGRESS.md](PROGRESS.md) for the release receipt.
 
 At the audit snapshot, [experiment PR #13](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/13) was open, mergeable, two commits ahead and not behind `main`, with **20 changed files (+787 / -249)**.
 
@@ -254,7 +258,7 @@ Do not assess or merge this PR by its title. Produce a file-level review, verify
 
 ### 6.2 Repair stale status without erasing evidence
 
-The current main task ledger still has Phase 29 release tasks unchecked even though a public v0.3.0 release and associated assets now exist. PR #13 carries updates marking some Phase 29 work complete. Reconcile every checkbox with the actual release tag, workflow run, release manifest, package hash and validation receipt. Do not use "published asset exists" as proof of install/launch certification.
+At preparation time, the main task ledger had Phase 29 release tasks unchecked even though the public v0.3.0 release and assets existed. That reconciliation is now supplemented by the v0.3.1 receipts in Phase 34. Do not use "published asset exists" as proof of install/launch certification; native install and interactive acceptance remain separate.
 
 Also reconcile:
 - Phase 22.7 (repo/PR/branch/issue audit).
@@ -471,7 +475,7 @@ Use [LEGACY-FIRECRAFT-MIGRATION-REGISTER.md](LEGACY-FIRECRAFT-MIGRATION-REGISTER
 
 - #186 and #187 are closed unmerged. Do not reopen or merge them as a batch. Mine their unique changes and evidence through the migration register.
 - #188 is an open old-repository planning PR built around the previous direction. The new experiment-first plan supersedes that direction. Leave it untouched during the audit; once this new plan is accepted, close it as superseded with a link to the canonical experiment plan if the owner agrees.
-- Experiment PR #13 remains its own active code review and must be reconciled first.
+- Experiment PR #13 was reviewed and merged as `00b1fd0`; future donor work should use the Phase 33 migration sequence.
 
 ---
 

@@ -9,16 +9,17 @@
 
 ## Current status addendum — 2026-11-27
 
-The baseline below is historical. Main is now `00b1fd0e12859a2a81ed014d898c5af46bf2ca8e`.
-Experiment PR #13 was reviewed, updated to describe its real scope, passed exact-SHA Linux, coverage,
-WASM, Windows build/CLI smoke, and CodeQL checks, and merged as `00b1fd0`. Its review/merge task is
-closed in Phase 33. PR #14 is the remaining open planning PR; after PR #13 merged, its `TASKS.md`
-conflict was reconciled by keeping UI follow-up at Phase 32 and placing repository consolidation in
-Phase 33. PR #14 requires fresh hosted checks on the reconciled branch before merge.
+The baseline below is historical. Main is now `3efe9c1c9c3bad6537c2038ecb5660946d56e028`, with
+published release `v0.3.1`. PR #13 was reviewed and merged as `00b1fd0`; PR #14's consolidation plan
+merged as `62e004c`; PR #15 prepared the release and merged as `3efe9c1`. All required hosted checks
+passed. The live task ledger retains UI follow-up in Phase 32 and repository consolidation in Phase
+33. PR and issue counts were zero after the release-prep merge.
 
 Still open: native Fireworks file-format compatibility and legacy ticket crosswalk, Windows 11
-interactive acceptance, browser clipboard paste under a functioning browser renderer, production
-Cloudflare deployment evidence, and the longer-term roadmap tasks. See [TASKS.md](TASKS.md).
+interactive acceptance, browser clipboard paste under a functioning browser renderer, marketing-site
+deployment, and the longer-term roadmap tasks. The WASM review preview is live at
+[wasm-review-v0-3-1.firecraft-web.pages.dev](https://wasm-review-v0-3-1.firecraft-web.pages.dev/).
+See [TASKS.md](TASKS.md).
 
 ---
 
@@ -37,7 +38,7 @@ Do not begin broad refactoring or new feature implementation until this baseline
 3. Confirm the current experiment main SHA and refresh all remote PR, branch, issue, tag, and release states. The baseline in the docs is dated and may already have changed.
 4. Preserve all local work. No reset, clean, stash-pop, forced update, branch deletion, or worktree pruning during the inventory.
 5. *(Complete 2026-11-27.)* Audit experiment PR #13 by its full patch, update title/body, pass exact-SHA checks, and merge. Review and receipt are recorded in Phase 33.2 and the progress/audit logs.
-6. Reconcile the experiment's Phase 22.7/28.x/29.x task states with current PRs, workflow runs and the published v0.3.0 release. Keep dated audit evidence; do not rewrite historical reports.
+6. Reconcile remaining task states with current PRs, workflow runs, and published releases. The v0.3.0 and v0.3.1 tags are immutable; retain dated audit evidence rather than rewriting historical measurements.
 7. Produce the Phase 0 baseline report and update TASKS.md with precise migration tasks. Stop and report blockers before destructive operations.
 
 ## Phase 1 — Legacy donor audit
