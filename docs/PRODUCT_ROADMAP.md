@@ -30,11 +30,33 @@ FireCraft brings vector and raster editing, web graphics production, and design 
 7. **Evidence before claims:** a rendered control, build, or passing unit test alone does not prove a complete end-user workflow.
 8. **Clean-room implementation:** reference projects inform design and feature priorities; their code, assets, names, and licenses are not imported without explicit compatibility review.
 
+## Canonical repository and consolidation direction — 2026-11-26
+
+This repository, `aliasfoxkde/FireCraft-CraftAnything-Experiment`, is the canonical FireCraft product.
+The earlier `aliasfoxkde/FireCraft` repository is retained as a donor/reference source, not as the
+destination architecture. Its richer engine, native Fireworks format handling, codecs, scripting,
+automation, tests, feature specifications, issues and release work will be evaluated for selective
+migration into this application.
+
+This is a preserve-and-improve strategy, not a wholesale merge. Keep the current egui application,
+document model, FileService, command/CLI/MCP paths, test harness, CI, agent instructions and existing
+release history. Do not merge unrelated repository histories, create a second app/document model,
+or maintain duplicate task and product roadmaps.
+
+The operating plan is [PRIMARY-REPO-RESET-AND-CONSOLIDATION-PLAN.md](PRIMARY-REPO-RESET-AND-CONSOLIDATION-PLAN.md);
+the donor capability/ticket mapping is [LEGACY-FIRECRAFT-MIGRATION-REGISTER.md](LEGACY-FIRECRAFT-MIGRATION-REGISTER.md);
+the immediate agent sequence is [AGENT-HANDOFF-2026-11-26.md](AGENT-HANDOFF-2026-11-26.md).
+Execution checkboxes remain exclusively in [TASKS.md](TASKS.md).
+
 ## Current product foundations
 
 The repository currently contains a Rust/egui desktop editor with a CS6-inspired shell, raster/vector tools, layers and panel groups, pages/states, styles/effects, import/export paths, layered `.fw.png` persistence, a command palette, keybinding/help material, an Intelligence panel, CLI/MCP surfaces, and a WebAssembly build path. See the [feature inventory](features/README.md), [tutorials](tutorials/README.md), and the dated [audit](AUDIT.md) for verified details and limitations.
 
-The current code is an active experiment repository. This roadmap does not imply that its branches, public release process, hosted marketing page, or integration with the separate root FireCraft repository are already reconciled or production-certified.
+The current product has moved beyond the initial experiment stage and has a published v0.3.0 release.
+That release is useful baseline evidence, not a blanket certification: build, package, install, launch,
+interactive acceptance, signing, deployment, and independent verification remain distinct states.
+The older repository's feature and release history is still being audited; no unverified donor
+capability is included in the current product claims.
 
 ## Phases and exit criteria
 
