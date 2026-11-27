@@ -5,7 +5,7 @@
 # Defaults: app/target/release/firecraft and app/dist/linux
 #
 # Requires an x86_64 Linux host, dpkg-deb, Flatpak + flatpak-builder, curl, jq,
-# file, ldd, tar, and a functional X11/OpenGL-compatible build environment.
+# file, ldd, ripgrep, tar, and a functional X11/OpenGL-compatible build environment.
 # Flatpak builds download the Freedesktop 24.08 runtime/SDK from Flathub.
 set -euo pipefail
 
