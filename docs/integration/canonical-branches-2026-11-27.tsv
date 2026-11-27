@@ -1,0 +1,9 @@
+snapshot_utc	branch	head_sha	protected	ahead_of_main	related_prs	latest_commit	disposition
+2026-11-27	docs/audit-marketing-deploy-status	4fe0a8f303f7f33f49e00a5f82a7541ab4d94421	false	2	#41:OPEN	docs: record successful Pages preview workflow	retain-open-pr
+2026-11-27	docs/quality-and-webos-roadmap-2026-11-27	6140d09a2f5a11e69ba28b7bf79a3dc3f1810c7c	false	11	none	docs: include release-version hygiene fix in quality tasks	retain-unreviewed
+2026-11-27	docs/support-feedback-pipeline-handoff-2026-11-27	8dcad50882ea620baaaa436070d7889eb6521d6f	false	8	none	docs: order autonomous delivery tasks after v0.3.2 release	retain-unreviewed
+2026-11-27	docs/v0.3.2-release-receipts	2c1cb9e1192710e2c08b685d813366219334acae	false	1	none	docs(release): record v0.3.2 receipts and remaining gaps	retain-unreviewed
+2026-11-27	release/prepare-v0.3.1	e8e02e0b94fff5b0a4513ba9fe18b244ce143a61	true	1	#15:MERGED	release: prepare FireCraft v0.3.1	retain-protected; no protection changes authorized
+2026-11-27	release/prepare-v0.3.4	2e7f9061a7a94e4c840bae6e6603a3a1496279a7	true	1	#23:MERGED	chore(release): prepare FireCraft v0.3.4	retain-protected; no protection changes authorized
+2026-11-27	release/prepare-v0.3.5	31ec269990c59422ba893c653434e72e51bc2a83	true	1	#37:CLOSED	chore(release): prepare FireCraft v0.3.5	retain-protected; no protection changes authorized
+2026-11-27	release/v0.3.3	c656268728334e481b23bf2899cb33de879121e5	true	1	#20:MERGED	chore(release): prepare v0.3.3	retain-protected; no protection changes authorized
