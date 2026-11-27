@@ -9,6 +9,10 @@ in `CLAUDE.md` is authoritative for FireCraft implementation details.
 
 ## Repository facts
 
+- **Canonical project:** this repository, `aliasfoxkde/FireCraft-CraftAnything-Experiment`, is the primary FireCraft application and development history.
+- **Legacy donor:** `aliasfoxkde/FireCraft` is a historical/reference source. Do not merge its history or treat its main branch as the destination. Port selected, verified behavior into this architecture only through reviewed changes.
+- **Direction and migration authorities:** [experiment-first consolidation plan](docs/PRIMARY-REPO-RESET-AND-CONSOLIDATION-PLAN.md), [legacy migration register](docs/LEGACY-FIRECRAFT-MIGRATION-REGISTER.md), and [agent handoff](docs/AGENT-HANDOFF-2026-11-26.md).
+
 - FireCraft is a clean-room Rust/egui raster and vector graphics editor.
 - The application crate and Cargo commands live in `app/`.
 - Active work and checkboxes belong in [`docs/TASKS.md`](docs/TASKS.md); measured state
