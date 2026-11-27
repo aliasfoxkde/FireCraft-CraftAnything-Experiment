@@ -21,6 +21,7 @@ run cargo clippy --all-targets --quiet -- -D warnings
 run cargo test --quiet
 run cargo test frame_time_with_500_objects_stays_within_budget_at_1920x1080 -- --ignored --nocapture
 ( cd "$root" && run ./scripts/check-docs.sh )
+( cd "$root" && run python3 scripts/tests/test_macos_plist_template.py )
 ( cd "$root" && run ./scripts/module-size.sh )
 
 if [ "$quick" -eq 0 ]; then

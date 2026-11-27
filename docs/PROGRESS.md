@@ -938,3 +938,29 @@ unverified. Do not restate the plan; link it.
   strict Clippy, the full Rust test suite, docs checks, and a release WASM build. Real native OS
   clipboard, browser clipboard permission/focus denial, native canvas/panel
   visual acceptance, and the other listed Phase 44 interactions remain open.
+
+- Aegis critical-finding follow-up: added a Python stdlib test for the generated macOS Info.plist.
+  It failed against the external Apple DTD, then passed after removing the DOCTYPE. The test is
+  included in `scripts/ci-local.sh`; exact-head managed rescan and PR checks are pending. Other
+  Aegis findings remain explicitly untriaged.
+- PR #50 merged the v0.3.6 audit/release receipt to `main` at
+  `2eadba2561ae017ec52163289a61065e4e635586`; all PR and merge-triggered GitHub checks passed. A
+  bounded GitForge attempt on the docs-only merge did not produce an authenticated run row, so its
+  one-use ref was removed; the earlier exact-release-tree GitForge pass remains valid.
+- Managed Aegis re-scan `79fb7ccd-dbdc-440b-8448-f582e5a15109` on fix commit `67795ed` reports 0
+  critical findings. All 80 findings outside protected investigation evidence are triaged; the
+  11,241 findings inside retained `investigation.cany/` remain unreviewed. The scan stays non-clean.
+
+## 2026-11-27 — PR #51 merged, PR #52 release prep continues
+
+- PR #51 merged to `main` at `908ba4ca7a7fcdc6d4f6a2964970f8b24c7ea1d1`. Its GitHub Gates, WASM,
+  Windows CLI smoke, coverage, and CodeQL checks passed on exact PR head
+  `229cc37862cbcceeeecfbaca97b61b1c3e626bc9`.
+- PR #51 Aegis rescan `79fb7ccd-dbdc-440b-8448-f582e5a15109` reports zero critical findings after
+  removing the static plist DTD. It triaged 80 findings outside retained `investigation.cany/`;
+  11,241 retained-evidence findings remain unreviewed, so the scan is not clean.
+- The PR #51 GitForge run was submitted on exact head `229cc37`, but local GitForge now reports a
+  degraded deployment and the authenticated run-detail API returns 403. Its result is unverified;
+  the separately recorded exact-source c1ae70e GitForge pass remains valid.
+- Updated PR #51 description through the REST API after `gh pr edit` hit the deprecated Projects
+  GraphQL field; the PR now records exact passing checks, Aegis limits, and the unverified GitForge run.
