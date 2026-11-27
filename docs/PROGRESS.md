@@ -2,6 +2,60 @@
 
 Newest first.
 
+## 2026-11-27 — v0.3.7 publication and cleanup inventory
+
+- GitHub Release [`v0.3.7`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.7) is published with the exact version title. Windows, universal macOS, Linux tar/AppImage/DEB/Flatpak, and WASM payloads are present alongside package/release manifests, source SHA, and checksums. Every payload hash in `SHA256SUMS.txt` verified locally; both Windows and WASM ZIP archives passed integrity checks. `SOURCE-SHA.txt` and `BUILD-INFO.txt` identify source `5bfdcfdcb2353f94e456b4e757c68b9f1b3ccc60`.
+- The release workflow's quality gates, WASM, Windows, Linux, macOS, release publication, and GitHub Pages deployment jobs succeeded. The Cloudflare review Pages job failed because the GitHub repository has no Cloudflare secret configured. The environment's local token was rejected by Cloudflare (invalid token); no Cloudflare or production deployment is claimed. GitHub Pages served `BUILD-INFO.txt` for v0.3.7 from the exact tag source.
+- Updated root README to link current release v0.3.7 and verified GitHub Pages demo; the Cloudflare v0.3.5 preview is clearly labeled older.
+- PR/branch inventory: #53 is the only open PR; #51/#52 merged. `git fetch --prune origin` removed six stale remote-tracking refs for already-deleted GitHub branches. Three no-PR docs refs carry unique planning/evidence; they remain pending content review rather than being deleted. Protected historic release refs remain under branch protection. Local worktrees with uncommitted or nested worktree content were preserved.
+
+## 2026-11-27 — docs map and release verification update
+
+- Reworked root documentation links to point to latest published GitHub release `v0.3.6` and the
+  verified Cloudflare review preview `v0.3.5` (`bec0b65`). The preview is explicitly labeled older
+  than the current desktop release; replace it after verifying the v0.3.7 deployment.
+- Documentation PR #53 replaces task-phrase navigation with categorized progressive detail and adds
+  [`DOCUMENTATION-AND-WORKFLOW-EVIDENCE.md`](DOCUMENTATION-AND-WORKFLOW-EVIDENCE.md), a workflow for
+  reusing live app tests and evidence to produce tutorials, screenshots, bug reports, and release docs.
+  `scripts/check-docs.sh` passed before this receipt update; PR checks are still running on its latest
+  head.
+- Exact GitForge run `0b58ed0d-5048-45b5-bb38-93ee09e224ab` succeeded for commit
+  `d86e17dd0d89e8071e248b9848c2e947bd58928f`; its `gates` job `973d72cc-f450-4b61-a341-206703335246`
+  also succeeded. This supersedes the earlier pending observation for that same run.
+- v0.3.7 tag workflow `46081881673`: release quality gates, WASM app, and Windows x86_64 jobs passed;
+  Linux package and universal macOS jobs were still running at this check. The GitHub Release and
+  versioned Cloudflare preview are not yet confirmed published.
+
+## 2026-11-27 — v0.3.7 release build and local review
+
+- PR #51 is merged at `908ba4c`; PR #52 is merged at `5bfdcfd` after exact head `d86e17d` passed
+  GitHub Gates, Windows build/CLI smoke, WASM, coverage, and CodeQL (runs `46080620732`,
+  `46080620778`, `46080620847`).
+- The tag `v0.3.7` points to `5bfdcfdcb2353f94e456b4e757c68b9f1b3ccc60` (tree
+  `b2d800e33672b555bb8a54f470b02a826d9f04a7`). The tag-triggered release workflow is
+  `46081881673` and is building. The GitHub release and Cloudflare review deployment are pending its
+  completion.
+- Windows review bundle from PR CI: `output/review-d86e17d/firecraft-v0.3.7-windows-x86_64.zip`,
+  ZIP SHA-256 `931de47e114b09660a8b6133acd00157b5fa6b25256b234adfe46685b6b04377`; executable SHA-256
+  `1d81b214f3f67e9b69d4207b2c255b309b3de49f84c8802e4692689421428e69`. The ZIP checksum verifies,
+  the PE is x86-64 Windows GUI, and CI source tree `b2d800e` exactly matches pushed PR head tree
+  `d86e17d`. Native Windows 11 GUI acceptance remains open.
+- Exact PR head coverage is 19,338 / 27,259 lines = 70.94%; branch counters are unavailable (0/0),
+  so the requested 99% coverage target is unmet.
+- The first GitForge remote was not registered to the local CI pipeline. Created a matching private
+  GitForge repository `52bf8def-7c63-4def-bb77-d5a50e6f4dd1`, registered FireCraft Studio CI, pushed
+  the exact branch, and started run `0b58ed0d-5048-45b5-bb38-93ee09e224ab` on commit `d86e17d`.
+  Its gates job `973d72cc-f450-4b61-a341-206703335246` is running; fmt and strict Clippy completed
+  far enough to start the full test suite. The GitForge deployment itself still reports 273 commits
+  of source drift; wait for the actual run receipt before calling local CI passed.
+- The regression for the plist template and the 65-file docs check passed locally. A separate
+  `ci-local.sh --quick` attempt waited for host build admission while other builds were active; that
+  waiting invocation was cancelled. Exact GitHub checks passed on the merged PR head instead.
+- Whole-repository Aegis remains non-clean: the latest exact rescan recorded zero critical matches,
+  triaged 80 findings outside retained `investigation.cany/`, and left 11,241 retained-evidence
+  findings unreviewed. Visual/native acceptance, path/raster/filter/dialog/autosave interactions,
+  remaining issue/branch cleanup, and full 99% coverage remain open in [`TASKS.md`](TASKS.md).
+
 ### 2026-11-27 — v0.3.6 release candidate prepared
 
 - Prepared version `0.3.6` with matching `app/Cargo.toml`, `app/Cargo.lock`, and changelog entry for
@@ -315,6 +369,23 @@ Newest first.
   secure terminal/SSH workflows, 3D exploration, mobile/tablet, and the reference-project matrix.
   The external architecture skill's scan/report is being used as planning input; no broad refactor
   is being started ahead of the plan and review build.
+
+## 2026-11-27 — FireCraft v0.3.2 review release
+
+- PR [#18](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/18) merged as
+  `284e00a53001da9bcb93d6de9e2c7f46abcdf2b3`; exact-head CI, strict gates, WASM, Windows build/CLI
+  smoke, coverage upload, and CodeQL passed. Release workflow
+  [45942527550](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/45942527550)
+  passed platform builds, release validation, publication, and GitHub Pages deployment.
+- [GitHub Release `v0.3.2`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.2)
+  published Windows x86_64 ZIP, universal macOS ZIP/DMG, Linux tar.gz/AppImage/DEB/Flatpak, and WASM ZIP,
+  with manifests, checksums, and source SHA. Its recorded Windows review ZIP SHA-256 was
+  `979151e2896a48c5d52211882a2e8eec307b4dbf0f5f3caf4d9a7a2aeb333804`.
+- The contemporaneous receipt recorded the Cloudflare preview marker and browser load for source
+  `284e00a`; the browser PNG clipboard happy path passed. Native OS clipboard, browser clipboard edge
+  cases, and Windows 11 GUI acceptance remained open. The exact historical evidence was recovered from
+  the formerly unsubmitted branch `docs/v0.3.2-release-receipts`; this paragraph preserves it in the
+  canonical progress log before that remote branch is removed.
 
 ## 2026-11-27 — FireCraft v0.3.1 release and Web deployments
 
@@ -964,59 +1035,3 @@ unverified. Do not restate the plan; link it.
   the separately recorded exact-source c1ae70e GitForge pass remains valid.
 - Updated PR #51 description through the REST API after `gh pr edit` hit the deprecated Projects
   GraphQL field; the PR now records exact passing checks, Aegis limits, and the unverified GitForge run.
-
-## 2026-11-27 — v0.3.7 release build and local review
-
-- PR #51 is merged at `908ba4c`; PR #52 is merged at `5bfdcfd` after exact head `d86e17d` passed
-  GitHub Gates, Windows build/CLI smoke, WASM, coverage, and CodeQL (runs `46080620732`,
-  `46080620778`, `46080620847`).
-- The tag `v0.3.7` points to `5bfdcfdcb2353f94e456b4e757c68b9f1b3ccc60` (tree
-  `b2d800e33672b555bb8a54f470b02a826d9f04a7`). The tag-triggered release workflow is
-  `46081881673` and is building. The GitHub release and Cloudflare review deployment are pending its
-  completion.
-- Windows review bundle from PR CI: `output/review-d86e17d/firecraft-v0.3.7-windows-x86_64.zip`,
-  ZIP SHA-256 `931de47e114b09660a8b6133acd00157b5fa6b25256b234adfe46685b6b04377`; executable SHA-256
-  `1d81b214f3f67e9b69d4207b2c255b309b3de49f84c8802e4692689421428e69`. The ZIP checksum verifies,
-  the PE is x86-64 Windows GUI, and CI source tree `b2d800e` exactly matches pushed PR head tree
-  `d86e17d`. Native Windows 11 GUI acceptance remains open.
-- Exact PR head coverage is 19,338 / 27,259 lines = 70.94%; branch counters are unavailable (0/0),
-  so the requested 99% coverage target is unmet.
-- The first GitForge remote was not registered to the local CI pipeline. Created a matching private
-  GitForge repository `52bf8def-7c63-4def-bb77-d5a50e6f4dd1`, registered FireCraft Studio CI, pushed
-  the exact branch, and started run `0b58ed0d-5048-45b5-bb38-93ee09e224ab` on commit `d86e17d`.
-  Its gates job `973d72cc-f450-4b61-a341-206703335246` is running; fmt and strict Clippy completed
-  far enough to start the full test suite. The GitForge deployment itself still reports 273 commits
-  of source drift; wait for the actual run receipt before calling local CI passed.
-- The regression for the plist template and the 65-file docs check passed locally. A separate
-  `ci-local.sh --quick` attempt waited for host build admission while other builds were active; that
-  waiting invocation was cancelled. Exact GitHub checks passed on the merged PR head instead.
-- Whole-repository Aegis remains non-clean: the latest exact rescan recorded zero critical matches,
-  triaged 80 findings outside retained `investigation.cany/`, and left 11,241 retained-evidence
-  findings unreviewed. Visual/native acceptance, path/raster/filter/dialog/autosave interactions,
-  remaining issue/branch cleanup, and full 99% coverage remain open in [`TASKS.md`](TASKS.md).
-
-
-## 2026-11-27 — docs map and release verification update
-
-- Reworked root documentation links to point to latest published GitHub release `v0.3.6` and the
-  verified Cloudflare review preview `v0.3.5` (`bec0b65`). The preview is explicitly labeled older
-  than the current desktop release; replace it after verifying the v0.3.7 deployment.
-- Documentation PR #53 replaces task-phrase navigation with categorized progressive detail and adds
-  [`DOCUMENTATION-AND-WORKFLOW-EVIDENCE.md`](DOCUMENTATION-AND-WORKFLOW-EVIDENCE.md), a workflow for
-  reusing live app tests and evidence to produce tutorials, screenshots, bug reports, and release docs.
-  `scripts/check-docs.sh` passed before this receipt update; PR checks are still running on its latest
-  head.
-- Exact GitForge run `0b58ed0d-5048-45b5-bb38-93ee09e224ab` succeeded for commit
-  `d86e17dd0d89e8071e248b9848c2e947bd58928f`; its `gates` job `973d72cc-f450-4b61-a341-206703335246`
-  also succeeded. This supersedes the earlier pending observation for that same run.
-- v0.3.7 tag workflow `46081881673`: release quality gates, WASM app, and Windows x86_64 jobs passed;
-  Linux package and universal macOS jobs were still running at this check. The GitHub Release and
-  versioned Cloudflare preview are not yet confirmed published.
-
-
-## 2026-11-27 — v0.3.7 publication and cleanup inventory
-
-- GitHub Release [`v0.3.7`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.7) is published with the exact version title. Windows, universal macOS, Linux tar/AppImage/DEB/Flatpak, and WASM payloads are present alongside package/release manifests, source SHA, and checksums. Every payload hash in `SHA256SUMS.txt` verified locally; both Windows and WASM ZIP archives passed integrity checks. `SOURCE-SHA.txt` and `BUILD-INFO.txt` identify source `5bfdcfdcb2353f94e456b4e757c68b9f1b3ccc60`.
-- The release workflow's quality gates, WASM, Windows, Linux, macOS, release publication, and GitHub Pages deployment jobs succeeded. The Cloudflare review Pages job failed because the GitHub repository has no Cloudflare secret configured. The environment's local token was rejected by Cloudflare (invalid token); no Cloudflare or production deployment is claimed. GitHub Pages served `BUILD-INFO.txt` for v0.3.7 from the exact tag source.
-- Updated root README to link current release v0.3.7 and verified GitHub Pages demo; the Cloudflare v0.3.5 preview is clearly labeled older.
-- PR/branch inventory: #53 is the only open PR; #51/#52 merged. `git fetch --prune origin` removed six stale remote-tracking refs for already-deleted GitHub branches. Three no-PR docs refs carry unique planning/evidence; they remain pending content review rather than being deleted. Protected historic release refs remain under branch protection. Local worktrees with uncommitted or nested worktree content were preserved.
