@@ -21,11 +21,12 @@ remain grounded in this repository's code, tests, tasks and release receipts.
 
 ## Download and try FireCraft
 
-- **[Download the latest published release — v0.3.6](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.6)**
+- **[Download the latest release — v0.3.7](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.7)**
   for Windows, macOS, Linux, and WebAssembly. Linux packages include AppImage, DEB, and Flatpak.
-- **[Open the Cloudflare Web app review preview — v0.3.5](https://wasm-review-v0-3-5.firecraft-web.pages.dev/)**,
-  built from source `bec0b65`. This preview predates the latest published desktop release; a newer
-  tag-matched preview will be linked after deployment is verified.
+- **[Open the v0.3.7 Web app on GitHub Pages](https://aliasfoxkde.github.io/FireCraft-CraftAnything-Experiment/)**;
+  its served build marker matches source `5bfdcfd`.
+- **[Open the Cloudflare review preview — v0.3.5](https://wasm-review-v0-3-5.firecraft-web.pages.dev/)**.
+  This preview is older than the current release; the v0.3.7 Cloudflare deployment has not completed.
 - Explore the companion [ArtCraft WebOS demo](https://artcraft-webos.pages.dev/) or browse the
   [documentation and tutorials](docs/README.md).
 

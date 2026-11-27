@@ -1012,3 +1012,11 @@ unverified. Do not restate the plan; link it.
 - v0.3.7 tag workflow `46081881673`: release quality gates, WASM app, and Windows x86_64 jobs passed;
   Linux package and universal macOS jobs were still running at this check. The GitHub Release and
   versioned Cloudflare preview are not yet confirmed published.
+
+
+## 2026-11-27 — v0.3.7 publication and cleanup inventory
+
+- GitHub Release [`v0.3.7`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.7) is published with the exact version title. Windows, universal macOS, Linux tar/AppImage/DEB/Flatpak, and WASM payloads are present alongside package/release manifests, source SHA, and checksums. Every payload hash in `SHA256SUMS.txt` verified locally; both Windows and WASM ZIP archives passed integrity checks. `SOURCE-SHA.txt` and `BUILD-INFO.txt` identify source `5bfdcfdcb2353f94e456b4e757c68b9f1b3ccc60`.
+- The release workflow's quality gates, WASM, Windows, Linux, macOS, release publication, and GitHub Pages deployment jobs succeeded. The Cloudflare review Pages job failed because the GitHub repository has no Cloudflare secret configured. The environment's local token was rejected by Cloudflare (invalid token); no Cloudflare or production deployment is claimed. GitHub Pages served `BUILD-INFO.txt` for v0.3.7 from the exact tag source.
+- Updated root README to link current release v0.3.7 and verified GitHub Pages demo; the Cloudflare v0.3.5 preview is clearly labeled older.
+- PR/branch inventory: #53 is the only open PR; #51/#52 merged. `git fetch --prune origin` removed six stale remote-tracking refs for already-deleted GitHub branches. Three no-PR docs refs carry unique planning/evidence; they remain pending content review rather than being deleted. Protected historic release refs remain under branch protection. Local worktrees with uncommitted or nested worktree content were preserved.
