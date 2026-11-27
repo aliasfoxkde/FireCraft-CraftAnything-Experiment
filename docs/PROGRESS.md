@@ -1,3 +1,15 @@
+### 2026-11-26 — experiment-first repository direction reset (documentation branch)
+
+- Owner-selected direction: this repository is the canonical FireCraft product; the older `aliasfoxkde/FireCraft` repository is a legacy donor/reference source, not the destination architecture.
+- Added `docs/PRIMARY-REPO-RESET-AND-CONSOLIDATION-PLAN.md`, including architecture policy, phased execution, product priorities, repository/PR/branch/ticket reconciliation, format compatibility work, release/docs/site and agent operating rules.
+- Added `docs/LEGACY-FIRECRAFT-MIGRATION-REGISTER.md`, inventorying the old repository's 31 open issues, PRs #186/#187/#188, 21 observed branch names, candidate donor capabilities and preliminary ticket dispositions.
+- Added `docs/AGENT-HANDOFF-2026-11-26.md` for the first implementation session; updated README, AGENTS, CLAUDE, docs index, product roadmap, plan and TASKS to make the new direction authoritative.
+- Experiment PR #13 remains open and requires a full 20-file review. It includes browser clipboard, path editing, file-browser/UI, dependency and release workflow changes beyond its title. No merge has been performed.
+- The old repository's PRs #186/#187 are closed unmerged; old PR #188 remains open and describes the superseded direction. No old issues or branches were closed/deleted.
+- The v0.3.0 release is preserved. Existing package assets are not being rewritten. Build/package/install/launch/interactive acceptance remain separate evidence states.
+- Important compatibility gap to investigate: the experiment's versioned iTXt-based project payload versus the legacy native Fireworks mkTS/mkBT chunk/tiled-raster handling. No code was copied or changed in this documentation pass.
+- Verification boundary: GitHub remote state was inspected. Local clones, worktrees, stashes, unpushed commits and active agent sessions cannot be enumerated from GitHub; Phase 0 requires read-only inspection on the owner's development machine. No application tests were run for this docs-only branch.
+
 # Progress log
 
 Newest first.
