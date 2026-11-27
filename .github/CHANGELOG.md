@@ -4,6 +4,16 @@ All notable changes to **FireCraft** are documented in this file.
 
 ## [Unreleased]
 
+## [0.3.5] — 2026-11-27
+
+Path editing reliability and review-build update.
+
+### Fixed
+- Join three or more selected open paths in nearest-endpoint order instead of selection order,
+  preserving the complete source geometry and deterministically orienting each connected segment.
+- Assert the exact joined point chain in regression coverage to guard against dropped, reordered,
+  or malformed source segments.
+
 ## [0.3.4] — 2026-11-27
 
 Bitmap editing safety update.
