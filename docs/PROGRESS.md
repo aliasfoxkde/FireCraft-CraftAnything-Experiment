@@ -554,7 +554,9 @@ unverified. Do not restate the plan; link it.
 - Both PRs passed the full hosted gates, including strict Rust gates, coverage, Windows CLI/build,
   WASM build, and CodeQL. Local validation on PR #27's head passed 178 unit tests, with one isolated
   timing test intentionally ignored in the full-suite command; strict Clippy, formatting, and
-  whitespace checks passed. The added flatten regression passed in isolation before submission.
+  whitespace checks passed. After adding the flatten case, the full suite passed 179 tests with one
+  isolated timing test ignored; strict Clippy, formatting, and the 60-file documentation/link check
+  passed. The added flatten regression also passed in isolation.
 - Retrieved the exact Cobertura artifact from hosted coverage run [45984084090](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/45984084090):
   17,934 / 25,895 lines = **69.26%**. The report has no branch counters (0/0). This is below the
   requested 99% and differs in denominator from the older llvm-cov summary; the discrepancy remains
@@ -564,3 +566,9 @@ unverified. Do not restate the plan; link it.
   profile only runs Aegis's Rust tests, not a FireCraft scan. No Aegis findings or clean result are
   claimed. The dependency/advisory, cache hashing-cost, broader document/page lifecycle, browser
   WebGL2/clipboard, native Windows GUI, and 99% coverage work remain open.
+- Local GitForge health is now checked directly: API, CI/scheduler, and Git HTTP each returned HTTP
+  200; the API health response reported a connected database. Authenticated runner listing returned
+  401 (`missing_token`), neither `GITFORGE_TOKEN` nor `GITFORGE_API_TOKEN` is set, and FireCraft has
+  only its GitHub `origin`, so no local FireCraft pipeline result is claimed. The GitForge checkout
+  is itself on `main` ahead of `origin/main` by two commits with a large dirty worktree; it was left
+  untouched.

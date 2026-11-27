@@ -220,7 +220,7 @@ automated proof, not another manual pass.
 ## Phase 28 — Repository, CI, release, and deployment
 
 - [ ] **28.1** Repair GitHub Actions failures and establish a passing required-check baseline on the exact target revision.
-- [ ] **28.2** Validate FireCraft CI through local GitForge only after fleet freshness, runner activity, and semantic check results are confirmed.
+- [ ] **28.2** Validate FireCraft CI through local GitForge only after fleet freshness, runner activity, and semantic check results are confirmed. *(2026-11-27 live check: API, CI/scheduler, and Git HTTP health endpoints returned HTTP 200; API DB reported connected. Runner listing returned 401 because no GitForge token is configured in this session, and FireCraft has only its GitHub origin, so no local FireCraft pipeline can yet be claimed.)*
 - [ ] **28.3** Create a safe issue/PR/branch disposition ledger; test branch candidates and dependency updates before merging; remove stale branches only after ownership and remote-use review.
 - [x] **28.4** Set the experiment repository as the canonical FireCraft product; retain the former root FireCraft repository as a historical donor/reference source. *(Direction decision recorded 2026-11-26 in PRIMARY-REPO-RESET-AND-CONSOLIDATION-PLAN.md. This does not claim code/ticket migration is complete; execution is tracked in Phase 33.)*
 - [ ] **28.5** Define target support matrix and build/install/open/edit/save/reopen/export/update/uninstall receipt per supported platform.
