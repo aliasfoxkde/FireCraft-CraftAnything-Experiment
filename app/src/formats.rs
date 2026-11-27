@@ -132,6 +132,7 @@ fn open_raster(path: &Path) -> Result<Document, String> {
             at: Vec2::new(0.0, 0.0),
             pixels: rgba.into_raw(),
             size: Vec2::new(w as f32, h as f32),
+            pixel_size: Vec2::new(w as f32, h as f32),
         },
         None,
         None,
@@ -987,20 +988,44 @@ fn draw_obj(img: &mut image::RgbaImage, obj: &Obj, alpha: u8) {
                 }
             }
         }
-        Shape::Bitmap { at, pixels, size } => {
+        Shape::Bitmap {
+            at,
+            pixels,
+            size,
+            pixel_size,
+        } => {
+            let source_size = if pixel_size.x >= 1.0 && pixel_size.y >= 1.0 {
+                *pixel_size
+            } else {
+                *size
+            };
             let src = image::RgbaImage::from_raw(
-                size.x.max(1.0) as u32,
-                size.y.max(1.0) as u32,
+                source_size.x.max(1.0) as u32,
+                source_size.y.max(1.0) as u32,
                 pixels.clone(),
             )
             .unwrap_or_else(|| image::RgbaImage::new(1, 1));
+            let display_size = (
+                size.x.max(1.0).round() as u32,
+                size.y.max(1.0).round() as u32,
+            );
+            let rendered = if src.dimensions() == display_size {
+                src
+            } else {
+                image::imageops::resize(
+                    &src,
+                    display_size.0,
+                    display_size.1,
+                    image::imageops::FilterType::Triangle,
+                )
+            };
             let (ox, oy) = to_px(*at);
-            for y in 0..src.height() as i32 {
-                for x in 0..src.width() as i32 {
+            for y in 0..rendered.height() as i32 {
+                for x in 0..rendered.width() as i32 {
                     let px = ox + x;
                     let py = oy + y;
                     if px >= 0 && py >= 0 && px < img.width() as i32 && py < img.height() as i32 {
-                        let mut p = *src.get_pixel(x as u32, y as u32);
+                        let mut p = *rendered.get_pixel(x as u32, y as u32);
                         p.0[3] = (p.0[3] as f32 * alpha as f32 / 255.0) as u8;
                         let old = img.get_pixel(px as u32, py as u32);
                         img.put_pixel(px as u32, py as u32, blend(*old, p));
@@ -1582,5 +1607,28 @@ mod tests {
         let img = rasterize(&doc);
         assert_eq!(img.dimensions(), (64, 48));
         assert_eq!(*img.get_pixel(32, 24), image::Rgba([255, 0, 0, 255]));
+    }
+
+    #[test]
+    fn raster_export_respects_scaled_bitmap_display_bounds() {
+        let mut doc = Document::new(4.0, 2.0);
+        doc.page_mut().transparent_bg = true;
+        let mut bitmap = Obj::new(
+            Shape::Bitmap {
+                at: Vec2::ZERO,
+                pixels: vec![255, 0, 0, 255, 0, 0, 255, 255],
+                size: Vec2::new(2.0, 1.0),
+                pixel_size: Vec2::new(2.0, 1.0),
+            },
+            None,
+            None,
+        );
+        bitmap.set_bounds(Vec2::ZERO, Vec2::new(4.0, 2.0));
+        doc.page_mut().layers[0].objects.push(bitmap);
+
+        let image = rasterize(&doc);
+
+        assert_eq!(image.dimensions(), (4, 2));
+        assert_ne!(*image.get_pixel(3, 1), image::Rgba([0, 0, 0, 0]));
     }
 }

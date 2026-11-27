@@ -1834,8 +1834,18 @@ fn draw_obj(
                 painter.rect_stroke(r, 0.0, Stroke::new(sw, stroke), egui::StrokeKind::Middle);
             }
         }
-        Shape::Bitmap { at, pixels, size } => {
-            let tex = FireCraft::bitmap_texture(&app.ctx, &mut app.textures, pixels, *size);
+        Shape::Bitmap {
+            at,
+            pixels,
+            size,
+            pixel_size,
+        } => {
+            let dimensions = if pixel_size.x >= 1.0 && pixel_size.y >= 1.0 {
+                *pixel_size
+            } else {
+                *size
+            };
+            let tex = FireCraft::bitmap_texture(&app.ctx, &mut app.textures, pixels, dimensions);
             if let Some(tex) = tex {
                 let rect = Rect::from_min_size(
                     to_screen(origin, zoom, *at),
@@ -2455,6 +2465,7 @@ mod tests {
                     at: Vec2::new(10.0, 10.0),
                     pixels: vec![],
                     size: Vec2::splat(20.0),
+                    pixel_size: Vec2::splat(20.0),
                 },
                 Vec2::new(15.0, 15.0),
             ),

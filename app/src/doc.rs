@@ -211,6 +211,9 @@ pub enum Shape {
         at: Vec2,
         pixels: Vec<u8>,
         size: Vec2,
+        /// Source raster dimensions. Missing values in older project files fall back to `size`.
+        #[serde(default)]
+        pixel_size: Vec2,
     },
     Slice {
         min: Vec2,
@@ -473,6 +476,28 @@ impl Obj {
         }
     }
 
+    /// Dimensions of the stored RGBA buffer, independent of its on-canvas display size.
+    pub fn bitmap_pixel_size(&self) -> Option<Vec2> {
+        let Shape::Bitmap {
+            pixels,
+            size,
+            pixel_size,
+            ..
+        } = &self.kind
+        else {
+            return None;
+        };
+        let stored = if pixel_size.x >= 1.0 && pixel_size.y >= 1.0 {
+            *pixel_size
+        } else {
+            *size
+        };
+        let width = stored.x.max(1.0).floor() as usize;
+        let height = stored.y.max(1.0).floor() as usize;
+        (pixels.len() == width.saturating_mul(height).saturating_mul(4))
+            .then_some(Vec2::new(width as f32, height as f32))
+    }
+
     pub fn translate(&mut self, delta: Vec2) {
         match &mut self.kind {
             Shape::Rect { min, max, .. }
@@ -540,8 +565,22 @@ impl Obj {
                 *at = Vec2::new(lo.x, hi.y);
                 *size = (new_size.y / 1.2).clamp(6.0, 240.0);
             }
-            Shape::Bitmap { at, .. } => {
+            Shape::Bitmap {
+                at,
+                pixels,
+                size,
+                pixel_size,
+            } => {
+                if pixel_size.x < 1.0 || pixel_size.y < 1.0 {
+                    let inferred = size.max(Vec2::splat(1.0));
+                    let width = inferred.x.floor() as usize;
+                    let height = inferred.y.floor() as usize;
+                    if pixels.len() == width.saturating_mul(height).saturating_mul(4) {
+                        *pixel_size = Vec2::new(width as f32, height as f32);
+                    }
+                }
                 *at = lo;
+                *size = new_size;
             }
             Shape::SymbolInstance { at, scale, .. } => {
                 *at = lo;
@@ -1335,6 +1374,19 @@ impl Document {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn older_bitmap_documents_infer_source_dimensions_from_display_size() {
+        let kind: Shape = serde_json::from_str(
+            r#"{"Bitmap":{"at":[0.0,0.0],"pixels":[255,0,0,255],"size":[1.0,1.0]}}"#,
+        )
+        .expect("legacy bitmap without pixel_size should deserialize");
+        let mut obj = Obj::new(kind, None, None);
+        assert_eq!(obj.bitmap_pixel_size(), Some(Vec2::splat(1.0)));
+        obj.set_bounds(Vec2::ZERO, Vec2::new(4.0, 3.0));
+        assert_eq!(obj.bitmap_pixel_size(), Some(Vec2::splat(1.0)));
+        assert_eq!(obj.bounds(), Some((Vec2::ZERO, Vec2::new(4.0, 3.0))));
+    }
 
     #[test]
     fn multiline_text_bounds_use_the_longest_line() {

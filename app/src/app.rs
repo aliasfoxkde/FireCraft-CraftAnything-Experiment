@@ -2447,15 +2447,18 @@ impl FireCraft {
         }) else {
             return false;
         };
-        let Shape::Bitmap { at, pixels, size } = &mut obj.kind else {
+        let pixel_size = obj.bitmap_pixel_size().unwrap_or(Vec2::ZERO);
+        let Shape::Bitmap {
+            at, pixels, size, ..
+        } = &mut obj.kind
+        else {
             return false;
         };
-        let count = pixels.len() / 4;
-        if count == 0 || size.x <= 0.0 || size.y <= 0.0 {
+        let pixel_w = pixel_size.x as usize;
+        let pixel_h = pixel_size.y as usize;
+        if pixel_w == 0 || pixel_h == 0 || size.x <= 0.0 || size.y <= 0.0 {
             return false;
         }
-        let pixel_w = ((count as f32 * size.x / size.y).sqrt().round() as usize).max(1);
-        let pixel_h = count.div_ceil(pixel_w);
         let px_per_doc_x = pixel_w as f32 / size.x;
         let px_per_doc_y = pixel_h as f32 / size.y;
         let center_x = (doc_pos.x - at.x) * px_per_doc_x;
@@ -2523,7 +2526,8 @@ impl FireCraft {
         else {
             return;
         };
-        let Shape::Bitmap { pixels, size, .. } = &mut obj.kind else {
+        let pixel_size = obj.bitmap_pixel_size().unwrap_or(Vec2::ZERO);
+        let Shape::Bitmap { pixels, .. } = &mut obj.kind else {
             // If it's a vector object, apply a non-destructive Live Filter or color adjustment instead
             match filter_tool {
                 Tool::Blur => self.add_live_effect(LiveEffect::GaussianBlur {
@@ -2539,8 +2543,11 @@ impl FireCraft {
             return;
         };
         let count = pixels.len() / 4;
-        let w = size.x.max(1.0) as usize;
-        let rows = size.y.max(1.0) as usize;
+        let w = pixel_size.x as usize;
+        let rows = pixel_size.y as usize;
+        if w == 0 || rows == 0 {
+            return;
+        }
         let original = pixels.clone();
         for i in 0..count {
             match filter_tool {
@@ -3617,6 +3624,7 @@ impl FireCraft {
                             at: Vec2::new(40.0, 40.0),
                             size: Vec2::new(w as f32, h as f32),
                             pixels: rgba.into_raw(),
+                            pixel_size: Vec2::new(w as f32, h as f32),
                         },
                         None,
                         None,
@@ -5271,6 +5279,7 @@ mod tests {
                 at: Vec2::ZERO,
                 pixels: [255, 80, 20, 255].repeat(32 * 32),
                 size: Vec2::splat(32.0),
+                pixel_size: Vec2::splat(32.0),
             },
             None,
             None,
@@ -5341,6 +5350,7 @@ mod tests {
                 at: Vec2::ZERO,
                 pixels: [255, 80, 20, 255].repeat(32 * 32),
                 size: Vec2::splat(32.0),
+                pixel_size: Vec2::splat(32.0),
             },
             None,
             None,
@@ -5369,6 +5379,7 @@ mod tests {
                 at: Vec2::ZERO,
                 pixels: [200, 120, 40, 255].repeat(32 * 8),
                 size: Vec2::new(32.0, 8.0),
+                pixel_size: Vec2::new(32.0, 8.0),
             },
             None,
             None,

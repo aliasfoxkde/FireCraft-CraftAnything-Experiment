@@ -475,14 +475,24 @@ impl FireCraft {
                     reflect_pt(p);
                 }
             }
-            Shape::Bitmap { at, size, pixels } => {
+            Shape::Bitmap {
+                at,
+                size,
+                pixels,
+                pixel_size,
+            } => {
                 if horizontal {
                     at.x = axis - (at.x + size.x);
                 } else {
                     at.y = axis - (at.y + size.y);
                 }
-                let w = size.x.max(1.0) as usize;
-                let h = size.y.max(1.0) as usize;
+                let dimensions = if pixel_size.x >= 1.0 && pixel_size.y >= 1.0 {
+                    *pixel_size
+                } else {
+                    *size
+                };
+                let w = dimensions.x.max(1.0) as usize;
+                let h = dimensions.y.max(1.0) as usize;
                 if pixels.len() >= w * h * 4 {
                     if horizontal {
                         for row in 0..h {
@@ -811,6 +821,7 @@ mod tests {
                     at: Vec2::ZERO,
                     pixels: rgba.to_vec(),
                     size: Vec2::splat(1.0),
+                    pixel_size: Vec2::splat(1.0),
                 },
                 None,
                 None,
@@ -904,6 +915,51 @@ mod tests {
     }
 
     #[test]
+    fn scaling_bitmap_changes_its_display_bounds_without_resampling_source_pixels() {
+        let mut app = FireCraft::new(None);
+        let index = app.push_object(Obj::new(
+            Shape::Bitmap {
+                at: Vec2::new(10.0, 20.0),
+                pixels: vec![255; 4 * 2 * 4],
+                size: Vec2::new(4.0, 2.0),
+                pixel_size: Vec2::new(4.0, 2.0),
+            },
+            None,
+            None,
+        ));
+        app.select_single(Some(index));
+
+        app.scale_selected(2.0);
+
+        let (lo, hi) = bounds(&app, index);
+        close(hi.x - lo.x, 8.0);
+        close(hi.y - lo.y, 4.0);
+        let Shape::Bitmap { pixels, .. } =
+            &app.doc.page().layers[app.selected_layer].objects[index].kind
+        else {
+            panic!("bitmap shape should remain a bitmap");
+        };
+        assert_eq!(
+            pixels.len(),
+            4 * 2 * 4,
+            "scaling should preserve source resolution"
+        );
+        app.brush_size = 2.0;
+        app.eraser_feather = 0.0;
+        app.set_tool(Tool::Eraser);
+        app.on_pointer_down(Vec2::new(9.0, 20.0), Vec2::ZERO, false, false, false);
+        let Shape::Bitmap { pixels, .. } =
+            &app.doc.page().layers[app.selected_layer].objects[index].kind
+        else {
+            panic!("bitmap shape should remain a bitmap after erasing");
+        };
+        assert_eq!(
+            pixels[3], 0,
+            "erasing at the scaled visual center should edit the corresponding source pixel"
+        );
+    }
+
+    #[test]
     fn flipping_bitmap_mirrors_pixel_rows_and_columns() {
         let mut app = FireCraft::new(None);
         let index = app.push_object(Obj::new(
@@ -911,6 +967,7 @@ mod tests {
                 at: Vec2::new(4.0, 8.0),
                 size: Vec2::new(2.0, 2.0),
                 pixels: vec![1, 0, 0, 255, 2, 0, 0, 255, 3, 0, 0, 255, 4, 0, 0, 255],
+                pixel_size: Vec2::new(2.0, 2.0),
             },
             None,
             None,

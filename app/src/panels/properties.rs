@@ -938,6 +938,7 @@ mod tests {
                 at: Vec2::new(10.0, 20.0),
                 pixels: vec![255, 0, 0, 255],
                 size: Vec2::new(1.0, 1.0),
+                pixel_size: Vec2::new(1.0, 1.0),
             },
             Shape::SymbolInstance {
                 symbol_id: 0,

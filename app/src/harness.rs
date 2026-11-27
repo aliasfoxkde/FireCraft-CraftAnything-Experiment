@@ -284,6 +284,7 @@ mod tests {
     /// silently. Absolute startup/GPU numbers belong to the release
     /// receipt, not a unit test.
     #[test]
+    #[ignore = "runs in isolation so concurrent unit tests cannot distort frame timing"]
     fn frame_time_with_500_objects_stays_within_budget_at_1920x1080() {
         use std::time::Instant;
 

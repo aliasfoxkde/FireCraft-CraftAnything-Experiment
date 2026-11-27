@@ -498,6 +498,7 @@ impl FireCraft {
                 at,
                 pixels,
                 size: Vec2::new(width, height),
+                pixel_size: Vec2::new(width, height),
             },
             None,
             None,
