@@ -6,6 +6,47 @@ Inputs: [AUDIT.md](AUDIT.md) (measured baseline, findings F-01…F-18), [ROADMAP
 The current architecture candidate ranking and dependency audit are in
 [ARCHITECTURE-REVIEW-2026-11-27.md](ARCHITECTURE-REVIEW-2026-11-27.md).
 
+## Current execution map — 2026-11-27
+
+The original Phase 13–20 sequence is the quality foundation; current work is tracked in the later
+phases of [`TASKS.md`](TASKS.md). This map gives the active order without creating a second task
+ledger:
+
+```text
+v0.3.6 review delivery
+  ├─ Cloudflare credential → exact-tag WASM preview → served-byte checks
+  └─ Windows 11 user review ─────────────────────────────┐
+                                                         ▼
+TDD defect matrices (37.2–37.9; 36.2; 32.1/33.5) → testable architecture seam
+  → full interaction/format validation → measured quality ratchets (38.5, 41.3)
+  → branch/issue disposition evidence (28.3, 28.9, 42.3–42.4)
+  → next release gate
+
+Product expansion is downstream: autosave/recovery → versioning; extension API/threat model
+  → local manager → catalog/submission/one-click install; device/format research → optional
+  brush, mobile, HDR/RAW, timeline/video, CorridorKey and 3D decisions.
+```
+
+**Immediate release gates:** the published release is sound at the package/build level, but the
+Cloudflare v0.3.6 preview is not deployed because no usable Pages credential is available to this
+repository; Windows 11 interactive acceptance is still pending. GitHub Pages is live. Do not call
+the release fully reviewed until both open gates have their own receipts.
+
+**Implementation order:** (1) unblock and verify the Cloudflare preview and collect Windows 11
+review; (2) close each high-risk editing behavior with a failing-before TDD regression, especially
+bitmap target/cache/undo, gradients, filters, custom paths, and rendering/export parity; (3) select
+one architecture candidate only after its acceptance matrix is green; (4) run exact-source full
+CI, local GitForge, Aegis, accessibility and coverage receipts; (5) reconcile issues, PRs and
+branches without deleting history whose unique work has not been reviewed. Future-scope design and
+implementation stay behind the dependencies listed in Phases 23–31 and 35 of the task ledger.
+
+**Quality measurement:** the latest hosted line-coverage artifact is 18,703 / 26,765 = 69.88% on
+the PR #45 source, with 0 / 0 branch counters; it does not meet the requested 99%. The v0.3.6 tag
+adds no Rust behavior changes, but no new exact-tag Cobertura artifact was published. The Aegis
+scan for the v0.3.6 tree is non-clean with 11,323 findings; 82 findings outside protected retained
+evidence and the retained evidence findings remain incompletely triaged. See the dated audit for
+exact receipts and scanner scope.
+
 The plan continues the roadmap's numbering at **Phase 13** so IDs stay unique. Work items live in
 [TASKS.md](TASKS.md); this file explains ordering, exit criteria and risk.
 

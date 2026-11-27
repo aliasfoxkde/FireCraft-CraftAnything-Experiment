@@ -1,0 +1,9 @@
+snapshot_utc	branch	head_sha	protected	relation_to_main	ahead	behind	open_pr	unique_paths_or_note	disposition
+2026-11-27	docs/quality-and-webos-roadmap-2026-11-27	6140d09a2f5a11e69ba28b7bf79a3dc3f1810c7c	false	diverged	11	28	none	docs/PRODUCT_ROADMAP.md; docs/QUALITY-AND-WEBOS-ROADMAP-2026-11-27.md; docs/README.md; docs/TASKS.md; docs/WEBOS-HOST-INTEGRATION.md	retain-unreviewed; unique docs require content reconciliation
+2026-11-27	docs/support-feedback-pipeline-handoff-2026-11-27	8dcad50882ea620baaaa436070d7889eb6521d6f	false	diverged	8	28	none	docs/SUPPORT-FEEDBACK-PIPELINE-HANDOFF-2026-11-27.md; docs/TASKS.md	retain-unreviewed; handoff includes owner choices
+2026-11-27	docs/v0.3.2-release-receipts	2c1cb9e1192710e2c08b685d813366219334acae	false	diverged	1	28	none	docs/PROGRESS.md; docs/TASKS.md	retain-unreviewed; one unique receipt commit; working copy has unrelated pre-existing changes
+2026-11-27	release/prepare-v0.3.1	e8e02e0b94fff5b0a4513ba9fe18b244ce143a61	true	diverged	1	32	#15 merged	version/changelog and historical planning deltas	retain-protected; no protection changes authorized
+2026-11-27	release/prepare-v0.3.4	2e7f9061a7a94e4c840bae6e6603a3a1496279a7	true	diverged	1	24	#23 merged	version/changelog and release-task deltas	retain-protected; no protection changes authorized
+2026-11-27	release/prepare-v0.3.5	31ec269990c59422ba893c653434e72e51bc2a83	true	diverged	1	10	#37 closed	version/changelog and release-task deltas	retain-protected; no protection changes authorized
+2026-11-27	release/prepare-v0.3.6	e9b468d8a165554f0f94f5c0aa22c4a595d0493b	true	diverged	1	1	#47 closed; #48 merged from codex branch	version/changelog and release-task deltas	retain-protected; no protection changes authorized
+2026-11-27	release/v0.3.3	c656268728334e481b23bf2899cb33de879121e5	true	diverged	1	27	#20 merged	version/changelog and release-task deltas	retain-protected; no protection changes authorized
