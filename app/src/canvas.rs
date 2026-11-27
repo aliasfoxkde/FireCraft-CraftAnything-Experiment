@@ -2391,6 +2391,96 @@ mod tests {
     }
 
     #[test]
+    fn bitmap_rendering_keeps_each_image_texture_after_hotkey_reorder() {
+        fn render_bitmap_ids(app: &mut FireCraft) -> Vec<(Rect, egui::TextureId)> {
+            let ctx = app.ctx.clone();
+            let objects = app.doc.page().layers[0].objects.clone();
+            let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
+                for (index, object) in objects.iter().enumerate() {
+                    draw_obj(
+                        ui.painter(),
+                        app,
+                        object,
+                        Vec2::ZERO,
+                        1.0,
+                        1.0,
+                        (0, index),
+                        false,
+                    );
+                }
+            });
+            let rendered = output
+                .shapes
+                .iter()
+                .filter_map(|clipped| match &clipped.shape {
+                    egui::Shape::Mesh(mesh) => Some((mesh.calc_bounds(), mesh.texture_id)),
+                    _ => None,
+                })
+                .collect();
+            output.textures_delta.clear();
+            rendered
+        }
+
+        let bitmap = |at: Vec2, rgba: [u8; 4]| {
+            Obj::new(
+                Shape::Bitmap {
+                    at,
+                    pixels: rgba.to_vec(),
+                    size: Vec2::splat(10.0),
+                    pixel_size: Vec2::splat(1.0),
+                },
+                None,
+                None,
+            )
+        };
+        let mut app = app_with_objects(vec![
+            bitmap(Vec2::new(5.0, 10.0), [255, 0, 0, 255]),
+            bitmap(Vec2::new(40.0, 10.0), [0, 0, 255, 255]),
+        ]);
+
+        let before = render_bitmap_ids(&mut app);
+        assert_eq!(before.len(), 2, "both bitmap objects should render");
+        let red_texture = before
+            .iter()
+            .find(|(bounds, _)| bounds.min.x == 5.0)
+            .expect("red bitmap should render at its original position")
+            .1;
+        let blue_texture = before
+            .iter()
+            .find(|(bounds, _)| bounds.min.x == 40.0)
+            .expect("blue bitmap should render at its original position")
+            .1;
+        assert_ne!(red_texture, blue_texture);
+
+        app.select_single(Some(0));
+        app.reorder_selected_step(true);
+        let after = render_bitmap_ids(&mut app);
+        assert_eq!(
+            after.len(),
+            2,
+            "both reordered bitmap objects should render"
+        );
+        assert_eq!(
+            after
+                .iter()
+                .find(|(bounds, _)| bounds.min.x == 5.0)
+                .expect("red bitmap should remain at its original position")
+                .1,
+            red_texture,
+            "the red image must retain its texture after its object index changes"
+        );
+        assert_eq!(
+            after
+                .iter()
+                .find(|(bounds, _)| bounds.min.x == 40.0)
+                .expect("blue bitmap should remain at its original position")
+                .1,
+            blue_texture,
+            "the blue image must retain its texture after its object index changes"
+        );
+    }
+
+    #[test]
     fn hit_testing_obeys_topmost_order_visibility_locks_and_web_layer_toggle() {
         let mut back = rect(0.0, 0.0, 50.0, 50.0);
         back.name = "back".into();
