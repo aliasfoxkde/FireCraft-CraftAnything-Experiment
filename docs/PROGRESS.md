@@ -6,8 +6,9 @@ Newest first.
 
 - Added `eraser_does_not_edit_bitmap_on_hidden_layer` at the app interaction seam. Red reproduced the defect: pointer-down changed the target pixel alpha from 255 to 0 while its layer was hidden.
 - Updated both bitmap-target hit-testing and the eraser mutation method to reject hidden layers. The regression now proves the direct mutation method returns false, pointer-down leaves the pixel untouched, and hidden-layer bitmap targets are ineligible.
-- Focused verification: the red test failed with the observed alpha change before the fix; the green test and all four `eraser_*` tests pass afterward.
+- Focused verification: the red test failed with the observed alpha change before the fix; the green test and all four `eraser_*` tests pass afterward. PR #22 merged as `b494b721acff5f2da6160499236da57afd413906` after hosted Gates, Rust coverage, WASM, Windows build/CLI smoke, and CodeQL checks passed.
 - Current local validation: `cargo test --locked` passed 176 unit tests, 12 CLI tests, 4 hygiene tests, and 10 MCP tests (one separately isolated frame-time test is ignored by the ordinary suite); the isolated 500-object frame-time test also passed. `cargo clippy --all-targets --locked -- -D warnings`, `cargo fmt --all -- --check`, `scripts/check-docs.sh` (59 files), and `git diff --check` passed.
+- Exact PR #22 Cobertura artifact for head `a550aac30105652ab76ef5b1a2a7718deb3850ae` reports 17,736 / 25,736 instrumented lines = 68.92%. This differs from the earlier same-day local `scripts/ci-local.sh` receipt of 70.79%; denominator/configuration reconciliation is now tracked as TASK 38.5/39.6 rather than blending the numbers.
 - Remaining eraser work is not claimed done: pixel selection masks are not represented in the current object-selection model; selection clipping design, complete locked/hidden target matrix, opacity/tip controls, and native canvas/export visual review remain open in TASKS 37.2/38.1.
 
 ### 2026-11-27 — v0.3.3 TDD, cross-platform release, and browser review
