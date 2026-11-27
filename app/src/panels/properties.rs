@@ -438,7 +438,10 @@ fn properties_body(ui: &mut Ui, app: &mut FireCraft) {
                                 changed = true;
                             }
                             if changed {
-                                app.set_selected_gradient(Some(GradientFill { start, end }));
+                                let mut gradient = g;
+                                gradient.start = start;
+                                gradient.end = end;
+                                app.set_selected_gradient(Some(gradient));
                             }
                             if ui
                                 .small_button("Remove")
@@ -454,7 +457,7 @@ fn properties_body(ui: &mut Ui, app: &mut FireCraft) {
                         {
                             let start = obj.fill.unwrap_or(app.fill);
                             let end = obj.stroke.unwrap_or(app.stroke);
-                            app.set_selected_gradient(Some(GradientFill { start, end }));
+                            app.set_selected_gradient(Some(GradientFill::new(start, end)));
                         }
                     });
                 });

@@ -1327,6 +1327,7 @@ fn fill_polygon(painter: &Painter, pts: &[Pos2], star_inner: f32, center: Pos2, 
 /// Draws a vertical linear gradient in bands, clipping each band to `bounds`. The caller draws
 /// the actual shape inside the clip, so rectangles, ellipses, polygons, and paths all get a
 /// gradient that respects their silhouette.
+#[cfg(test)]
 fn paint_gradient(
     painter: &Painter,
     bounds: Rect,
@@ -1344,7 +1345,7 @@ fn paint_gradient(
         let t = (i as f32 + 0.5) / steps as f32;
         let color = gradient
             .start
-            .lerp_to_gamma(gradient.end, t)
+            .lerp_to_gamma(gradient.end, gradient.t_at(Vec2::new(0.5, t)))
             .gamma_multiply(alpha);
         let y0 = bounds.top() + bounds.height() * (i as f32 / steps as f32);
         let y1 = bounds.top() + bounds.height() * ((i + 1) as f32 / steps as f32) + 0.6;
@@ -1355,6 +1356,84 @@ fn paint_gradient(
         let clipped = painter.with_clip_rect(band.intersect(clip));
         draw(&clipped, color);
     }
+}
+
+fn paint_gradient_mesh(
+    painter: &Painter,
+    bounds: Rect,
+    points: &[Pos2],
+    triangles: &[[usize; 3]],
+    gradient: GradientFill,
+    alpha: f32,
+) {
+    if points.is_empty() || triangles.is_empty() {
+        return;
+    }
+    let width = bounds.width().max(f32::EPSILON);
+    let height = bounds.height().max(f32::EPSILON);
+    let mut mesh = egui::Mesh::default();
+    for point in points {
+        let normalized = Vec2::new(
+            (point.x - bounds.left()) / width,
+            (point.y - bounds.top()) / height,
+        );
+        let color = gradient
+            .start
+            .lerp_to_gamma(gradient.end, gradient.t_at(normalized))
+            .gamma_multiply(alpha);
+        mesh.colored_vertex(*point, color);
+    }
+    for [a, b, c] in triangles {
+        mesh.add_triangle(*a as u32, *b as u32, *c as u32);
+    }
+    painter.add(egui::Shape::mesh(mesh));
+}
+
+fn gradient_fan_triangles(point_count: usize) -> Vec<[usize; 3]> {
+    (0..point_count)
+        .map(|index| [0, index + 1, ((index + 1) % point_count) + 1])
+        .collect()
+}
+
+fn rounded_rect_gradient_points(rect: Rect, radius: f32) -> Vec<Pos2> {
+    let radius = radius.clamp(0.0, rect.width().min(rect.height()) * 0.5);
+    if radius <= 0.5 {
+        return vec![
+            rect.center(),
+            rect.left_top(),
+            rect.right_top(),
+            rect.right_bottom(),
+            rect.left_bottom(),
+        ];
+    }
+    let corners = [
+        (pos2(rect.right() - radius, rect.top() + radius), -90.0_f32),
+        (pos2(rect.right() - radius, rect.bottom() - radius), 0.0),
+        (pos2(rect.left() + radius, rect.bottom() - radius), 90.0),
+        (pos2(rect.left() + radius, rect.top() + radius), 180.0),
+    ];
+    let mut points = Vec::with_capacity(1 + corners.len() * 8);
+    points.push(rect.center());
+    let segments = 8;
+    for (center, start_deg) in corners {
+        for i in 0..segments {
+            let angle = (start_deg + 90.0 * i as f32 / (segments - 1) as f32).to_radians();
+            points.push(pos2(
+                center.x + radius * angle.cos(),
+                center.y + radius * angle.sin(),
+            ));
+        }
+    }
+    points
+}
+
+fn gradient_handle_points(obj: &Obj, gradient: GradientFill) -> Option<(Vec2, Vec2)> {
+    let (lo, hi) = obj.bounds()?;
+    let size = hi - lo;
+    Some((
+        lo + Vec2::new(size.x * gradient.start_pos.x, size.y * gradient.start_pos.y),
+        lo + Vec2::new(size.x * gradient.end_pos.x, size.y * gradient.end_pos.y),
+    ))
 }
 
 fn draw_dotted_rect(painter: &Painter, rect: Rect, stroke: Stroke, dash: f32, gap: f32) {
@@ -1703,9 +1782,9 @@ fn draw_obj(
             let r = Rect::from_min_max(a.min(b), a.max(b));
             let cr = *corner_radius * zoom;
             if let Some(g) = obj.gradient {
-                paint_gradient(painter, r, g, alpha, |p, c| {
-                    p.rect_filled(r, cr, c);
-                });
+                let points = rounded_rect_gradient_points(r, cr);
+                let triangles = gradient_fan_triangles(points.len() - 1);
+                paint_gradient_mesh(painter, r, &points, &triangles, g, alpha);
             } else if let Some(f) = fill {
                 painter.rect_filled(r, cr, f);
             }
@@ -1718,9 +1797,15 @@ fn draw_obj(
             let rr = Vec2::new(radius.x.abs() * zoom, radius.y.abs() * zoom);
             let bounds = Rect::from_center_size(c, rr * 2.0);
             if let Some(g) = obj.gradient {
-                paint_gradient(painter, bounds, g, alpha, |p, col| {
-                    p.add(egui::Shape::ellipse_filled(c, rr, col));
-                });
+                let segments = 64;
+                let mut points = Vec::with_capacity(segments + 1);
+                points.push(c);
+                points.extend((0..segments).map(|i| {
+                    let angle = std::f32::consts::TAU * i as f32 / segments as f32;
+                    pos2(c.x + rr.x * angle.cos(), c.y + rr.y * angle.sin())
+                }));
+                let triangles = gradient_fan_triangles(segments);
+                paint_gradient_mesh(painter, bounds, &points, &triangles, g, alpha);
             } else if let Some(f) = fill {
                 painter.add(egui::Shape::ellipse_filled(c, rr, f));
             }
@@ -1749,9 +1834,11 @@ fn draw_obj(
             let center_screen = to_screen(origin, zoom, *center);
             let bounds = Rect::from_points(&pts);
             if let Some(g) = obj.gradient {
-                paint_gradient(painter, bounds, g, alpha, |p, col| {
-                    fill_polygon(p, &pts, *star_inner, center_screen, col);
-                });
+                let mut points = Vec::with_capacity(pts.len() + 1);
+                points.push(center_screen);
+                points.extend(pts.iter().copied());
+                let triangles = gradient_fan_triangles(pts.len());
+                paint_gradient_mesh(painter, bounds, &points, &triangles, g, alpha);
             } else if let Some(f) = fill {
                 fill_polygon(painter, &pts, *star_inner, center_screen, f);
             }
@@ -1765,9 +1852,12 @@ fn draw_obj(
                 if *closed {
                     let bounds = Rect::from_points(&pts);
                     if let Some(g) = obj.gradient {
-                        paint_gradient(painter, bounds, g, alpha, |p, col| {
-                            p.add(egui::Shape::convex_polygon(pts.clone(), col, Stroke::NONE));
-                        });
+                        let center = bounds.center();
+                        let mut mesh_points = Vec::with_capacity(pts.len() + 1);
+                        mesh_points.push(center);
+                        mesh_points.extend(pts.iter().copied());
+                        let triangles = gradient_fan_triangles(pts.len());
+                        paint_gradient_mesh(painter, bounds, &mesh_points, &triangles, g, alpha);
                     } else if let Some(f) = fill {
                         painter.add(egui::Shape::convex_polygon(pts.clone(), f, Stroke::NONE));
                     }
@@ -2049,6 +2139,26 @@ fn draw_obj(
             }
         }
     }
+
+    if !preview_mode
+        && app.tool == Tool::Gradient
+        && app.selected_layer == layer_index
+        && app.is_selected(obj_index)
+        && let Some(gradient) = obj.gradient
+        && let Some((start, end)) = gradient_handle_points(obj, gradient)
+    {
+        let start_screen = to_screen(origin, zoom, start);
+        let end_screen = to_screen(origin, zoom, end);
+        painter.line_segment(
+            [start_screen, end_screen],
+            Stroke::new(1.5, app.palette.accent),
+        );
+        for (point, color) in [(start_screen, gradient.start), (end_screen, gradient.end)] {
+            painter.circle_filled(point, 6.0, Color32::WHITE);
+            painter.circle_filled(point, 4.0, color);
+            painter.circle_stroke(point, 6.0, Stroke::new(1.0, app.palette.text));
+        }
+    }
 }
 
 pub fn selection_handles(sel: Rect) -> [Pos2; 8] {
@@ -2089,6 +2199,34 @@ pub fn auto_handle_for(obj: &Obj) -> Option<(usize, Vec2)> {
             Some((1, *center + Vec2::new(ang.cos(), ang.sin()) * r))
         }
         _ => None,
+    }
+}
+
+/// The editable endpoint selected by the Gradient tool.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GradientHandle {
+    Start,
+    End,
+}
+
+pub fn gradient_handle_positions(app: &FireCraft) -> Option<(Vec2, Vec2)> {
+    let obj = app.selected_object()?;
+    gradient_handle_points(&obj, obj.gradient?)
+}
+
+pub fn hit_test_gradient_handle(app: &FireCraft, doc_pos: Vec2) -> Option<GradientHandle> {
+    let (start, end) = gradient_handle_positions(app)?;
+    let tolerance = 8.0 / app.doc.zoom.max(0.1);
+    let start_distance = (start - doc_pos).length();
+    let end_distance = (end - doc_pos).length();
+    let start_hit = start_distance <= tolerance;
+    let end_hit = end_distance <= tolerance;
+    match (start_hit, end_hit) {
+        (true, true) if start_distance <= end_distance => Some(GradientHandle::Start),
+        (true, true) => Some(GradientHandle::End),
+        (true, false) => Some(GradientHandle::Start),
+        (false, true) => Some(GradientHandle::End),
+        (false, false) => None,
     }
 }
 
@@ -2415,6 +2553,54 @@ mod tests {
                 egui::Shape::Rect(_) | egui::Shape::Circle(_)
             )),
             "drawing with the Star tool should not leave a selection box or handles"
+        );
+        output.textures_delta.clear();
+    }
+
+    #[test]
+    fn gradient_fill_mesh_uses_its_editable_axis_endpoints() {
+        let mut object = rect(0.0, 0.0, 100.0, 80.0);
+        let mut gradient = GradientFill::new(Color32::BLACK, Color32::WHITE);
+        gradient.start_pos = Vec2::new(0.0, 0.5);
+        gradient.end_pos = Vec2::new(1.0, 0.5);
+        object.gradient = Some(gradient);
+        let mut app = app_with_objects(vec![object.clone()]);
+        let ctx = egui::Context::default();
+        let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
+            draw_obj(
+                ui.painter(),
+                &mut app,
+                &object,
+                Vec2::ZERO,
+                1.0,
+                1.0,
+                (0, 0),
+                false,
+            );
+        });
+        let mesh = output
+            .shapes
+            .iter()
+            .find_map(|clipped| match &clipped.shape {
+                egui::Shape::Mesh(mesh) => Some(mesh),
+                _ => None,
+            })
+            .expect("gradient fills render through a colored mesh");
+        let left = mesh
+            .vertices
+            .iter()
+            .min_by(|a, b| a.pos.x.total_cmp(&b.pos.x))
+            .unwrap();
+        let right = mesh
+            .vertices
+            .iter()
+            .max_by(|a, b| a.pos.x.total_cmp(&b.pos.x))
+            .unwrap();
+        assert_eq!(left.color, Color32::BLACK);
+        assert_eq!(right.color, Color32::WHITE);
+        assert!(
+            mesh.vertices.len() >= 5,
+            "rounded rectangle adds corner samples"
         );
         output.textures_delta.clear();
     }
@@ -2886,10 +3072,7 @@ mod tests {
                 5.0,
                 3.0,
             );
-            let gradient = GradientFill {
-                start: Color32::BLACK,
-                end: Color32::WHITE,
-            };
+            let gradient = GradientFill::new(Color32::BLACK, Color32::WHITE);
             paint_gradient(
                 &painter,
                 Rect::from_min_max(pos2(100.0, 20.0), pos2(150.0, 80.0)),

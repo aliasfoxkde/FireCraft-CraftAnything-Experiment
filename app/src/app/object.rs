@@ -125,7 +125,7 @@ impl FireCraft {
             obj.width = preset_clone.stroke_width;
             obj.effects = preset_clone.effects.clone();
             obj.gradient = match (preset_clone.fill, preset_clone.gradient_end) {
-                (Some(start), Some(end)) => Some(GradientFill { start, end }),
+                (Some(start), Some(end)) => Some(GradientFill::new(start, end)),
                 _ => None,
             };
         });

@@ -2,6 +2,12 @@
 
 Newest first.
 
+### 2026-11-27 — Gradient direction editing TDD (in progress)
+
+- Added normalized start/end axis coordinates to per-object gradient fills. Missing coordinates in older documents default to the existing vertical direction. The Gradient tool now exposes draggable color endpoints for a selected gradient object; moving a handle changes only the fill axis and is undoable.
+- Canvas mesh rendering and PNG/raster export now project pixels through the same axis math. TDD added tests for legacy serde defaults, horizontal projection, zero-length axes, pointer editing with undo, renderer mesh sampling, and horizontal raster export. The model test first failed on the missing projection method, and the interaction test first failed on missing handles/drag states; each passes after implementation. Raster test also first caught an expected-value mismatch (gamma interpolation is 128 at the midpoint); corrected expectation follows the existing interpolation behavior.
+- Focused tests passed. Full formatting, strict Clippy, full native suite, WASM build and docs checks are still pending. SVG/HTML export direction, multiple color stops, explicit linear/radial controls, broader path geometry parity, and GUI visual acceptance remain open; this does not complete TASK 37.3.
+
 ### 2026-11-27 — Exact-head coverage receipt refresh
 
 - Retrieved the Cobertura artifact for PR #29 run [45989583242](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/45989583242), exact source `982b952945af5deea00b7b1c0eda274dbd5ac80f` (the PR head before squash merge).
