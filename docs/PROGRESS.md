@@ -9,6 +9,34 @@ Newest first.
 - A first generic full-resolution blur made `every_export_format_produces_a_real_file` take 96.86 seconds. Replacing rectangular blur with the separable profile reduced that focused integration test to 8.54 seconds; the full suite's CLI integration set passed in 9.15 seconds. Full suite: 191 unit passed, 1 isolated timing test ignored, 12 CLI, 5 hygiene, and 10 MCP passed. Strict all-target Clippy (`-D warnings`) also passed. WASM check, docs validation, and exact-head hosted checks are next.
 - TASK 37.4 remains open: only raster Drop Shadow output is addressed. Other effect types and bitmap/path/text visual parity still need coverage and review.
 
+### 2026-11-27 — PR #45 merged: raster Drop Shadow export fix
+
+- PR [#45](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/45) merged as
+  [`48d5d4b7b683aed199cff72aa953d43b60d549cd`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/commit/48d5d4b7b683aed199cff72aa953d43b60d549cd).
+  The behavior test first failed because raster export omitted the enabled shadow; the implementation
+  made it pass for disabled/enabled state, offset, and blur falloff. The initial generic blur made an
+  export integration test take 96.86 seconds; the optimized rectangular path reduced that test to
+  8.54 seconds. Full local suite: 191 unit passed, 1 isolated timing test ignored, 12 CLI, 5 hygiene,
+  and 10 MCP passed. Strict Clippy, WASM check, docs validation, module-size, rustfmt, and diff checks
+  passed.
+- Exact-head GitHub Gates, WASM build, Windows build/CLI smoke, Rust coverage, and CodeQL all passed;
+  CodeRabbit skipped by repository configuration. The Windows hosted smoke is not Windows 11 GUI
+  acceptance. Downloaded the review artifact to
+  `output/review-pr-45/firecraft-v0.3.5-windows-x86_64.zip` (SHA-256
+  `e5e4ffd57da0079004880a6f37ddad8fa4cfc526ed4136007e04d0ce8bb16bc6`). Its `BUILD-INFO.txt` source
+  is GitHub's PR merge-test commit `160f95a32971995039213212389ad89a29b53214`, combining PR head
+  `e55071c82e4095be2dcd107e9eca564614aa7a44` with base `14ae8c5e7e38894545de77d4857708b54ba23764`.
+  Archive and embedded executable checksums pass. This is a review build, not a new tagged release or
+  Windows 11 GUI acceptance. Cobertura artifact [run 46047264325](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/46047264325)
+  reports 18,703 / 26,765 lines = **69.88%** and 0 / 0 branch counters. The 99% target is not met.
+- TASK 37.4 remains open: other live-filter types, bitmap/path/text/zoom parity, undo checks, and visual
+  acceptance still need work. The managed Aegis rerun `6ae27914-4c5c-4d96-bff0-dbee65f5cdcb` is
+  queued behind the normal-lane resource gate; the completed pre-annotation scan found only two new
+  low-confidence port-number matches in the edited audit text. No clean Aegis result is claimed.
+- The local GitForge service accepts pushes but has no authenticated run API available in this session;
+  its earlier runner failed during offline toolchain/package resolution. Local GitForge validation is
+  still open, and no passing pipeline receipt is claimed.
+
 ### 2026-11-27 — TDD and verification follow-up
 
 - Re-ran the Save All & Quit regression by its full filter and the full suite on the current tree: 190 unit tests passed, one isolated frame-time test was ignored, and 12 CLI, 5 hygiene, and 10 MCP tests passed. Strict all-target Clippy (`-D warnings`), WASM target check, docs/link validation (63 files), rustfmt, diff check, and module-size hard budget passed. The new behavior test passes against existing production code; it did not reproduce a defect, so no production change was fabricated.
