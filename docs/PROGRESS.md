@@ -836,3 +836,11 @@ unverified. Do not restate the plan; link it.
 - Read-only GitHub triage found 0 open issues and 0 open PRs; six Dependabot PRs are closed or
   merged. Nine remote branches remain (eight beyond `main`); none were deleted without ownership
   and unique-content review. No issue state was changed.
+- Aegis critical-finding follow-up: added a Python stdlib test for the generated macOS Info.plist.
+  It failed against the external Apple DTD, then passed after removing the DOCTYPE. The test is
+  included in `scripts/ci-local.sh`; exact-head managed rescan and PR checks are pending. Other
+  Aegis findings remain explicitly untriaged.
+- PR #50 merged the v0.3.6 audit/release receipt to `main` at
+  `2eadba2561ae017ec52163289a61065e4e635586`; all PR and merge-triggered GitHub checks passed. A
+  bounded GitForge attempt on the docs-only merge did not produce an authenticated run row, so its
+  one-use ref was removed; the earlier exact-release-tree GitForge pass remains valid.
