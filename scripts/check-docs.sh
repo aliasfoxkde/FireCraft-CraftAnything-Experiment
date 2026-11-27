@@ -7,7 +7,19 @@ cd "$root"
 
 status=0
 # Documentation set: tracked Markdown, excluding generated bundles and audit evidence.
-mapfile -t docs < <(git ls-files '*.md' | grep -v -E '^(app/dist/|checks/|investigation\.cany/)' || true)
+if ! tracked_markdown="$(git -c safe.directory="$root" ls-files '*.md')"; then
+  echo "docs: unable to list tracked Markdown; run from a valid Git checkout" >&2
+  exit 2
+fi
+if [ -z "$tracked_markdown" ]; then
+  echo "docs: no tracked Markdown files found; refusing to pass an empty check" >&2
+  exit 2
+fi
+mapfile -t docs < <(printf '%s\n' "$tracked_markdown" | grep -v -E '^(app/dist/|checks/|investigation\.cany/)' || true)
+if [ "${#docs[@]}" -eq 0 ]; then
+  echo "docs: no eligible Markdown files found; refusing to pass an empty check" >&2
+  exit 2
+fi
 
 for f in "${docs[@]}"; do
   dir="$(dirname "$f")"

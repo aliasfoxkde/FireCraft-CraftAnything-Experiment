@@ -640,3 +640,13 @@ unverified. Do not restate the plan; link it.
   only its GitHub `origin`, so no local FireCraft pipeline result is claimed. The GitForge checkout
   is itself on `main` ahead of `origin/main` by two commits with a large dirty worktree; it was left
   untouched.
+- 2026-11-27 release-candidate follow-up: local GitForge pipeline `dba842d5-0eaf-428d-86ab-b5e1b7041876`
+  completed successfully for the offline CI-image branch; job `9d7f2bdd-457f-4f5d-859e-fd7cfd49d071`
+  finished at 13:58:31 UTC, including the WASM release build. The exact v0.3.5 lockfile needs a new
+  image: image 4 was built as `sha256:d03a844a27237b333ec1b9bc9d1a8989d822227d8d6bc2c57894c8ad755887d8`,
+  label `76d7fb62c41c6939bc86debc39b2f7270a3f2e98f744e570db4bee1f89201432`. Offline gates passed
+  on the v0.3.5 candidate with 188 unit, 12 CLI, 5 hygiene, 10 MCP and 1 isolated performance test;
+  strict Clippy, formatting, 61-file docs, module-size, and release WASM build passed. The docs gate
+  had silently accepted an empty file set when Git failed; a red/green hygiene regression now makes
+  that condition fail closed and handles Git's safe-directory check inside the container. The exact
+  release branch GitForge pipeline and hosted PR checks are still pending.

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
-image_tag="${FIRECRAFT_CI_IMAGE_TAG:-firecraft-ci-rust:3}"
+image_tag="${FIRECRAFT_CI_IMAGE_TAG:-firecraft-ci-rust:4}"
 lock_sha256="$(sha256sum "$repo_root/app/Cargo.lock" | cut -d ' ' -f 1)"
 build_context="$(mktemp -d "${TMPDIR:-/tmp}/firecraft-ci-image.XXXXXX")"
 trap 'rm -rf -- "$build_context"' EXIT

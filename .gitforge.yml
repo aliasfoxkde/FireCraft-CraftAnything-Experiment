@@ -11,7 +11,7 @@ environment:
   CARGO_NET_OFFLINE: "true"
 jobs:
   - name: gates
-    image: firecraft-ci-rust:3
+    image: firecraft-ci-rust:4
     timeout: 90m
     steps:
       - name: Run local CI gates

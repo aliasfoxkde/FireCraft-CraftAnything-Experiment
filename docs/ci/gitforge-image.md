@@ -14,7 +14,10 @@ Build the image on the Docker host used by the GitForge runner:
 ./scripts/build-gitforge-ci-image.sh
 ```
 
-The script builds `firecraft-ci-rust:3` by default. It uses a pinned
+The script builds `firecraft-ci-rust:4` by default. Image 3 was built for
+Cargo lock SHA `27a923efe41aa380a23c452c86b921dbf38b23a698878b5473a9d64500756bdd`.
+Image 4 records the v0.3.5 lock SHA
+`76d7fb62c41c6939bc86debc39b2f7270a3f2e98f744e570db4bee1f89201432`. It uses a pinned
 linux/amd64 Rust base image and a minimal context containing the app manifest,
 lockfile, the real `src/main.rs` Cargo target marker, and Dockerfile. The source
 file is only needed while Cargo resolves/fetches dependencies; the job mounts
@@ -35,10 +38,10 @@ From the repository root, validate the same gates the pipeline runs:
 ```sh
 docker run --rm --network none \
   -v "$PWD:/workspace" -w /workspace \
-  firecraft-ci-rust:3 ./scripts/ci-local.sh --quick
+  firecraft-ci-rust:4 ./scripts/ci-local.sh --quick
 docker run --rm --network none \
   -v "$PWD:/workspace" -w /workspace/app \
-  firecraft-ci-rust:3 cargo build --release --target wasm32-unknown-unknown
+  firecraft-ci-rust:4 cargo build --release --target wasm32-unknown-unknown
 ```
 
 `CARGO_NET_OFFLINE=true` is set in the image. A new dependency missing from
