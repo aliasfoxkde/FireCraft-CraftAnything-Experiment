@@ -550,6 +550,53 @@ mod tests {
     }
 
     #[test]
+    fn save_all_and_quit_waits_for_untitled_save_as_then_saves_named_dirty_documents() {
+        let mut app = FireCraft::new(None);
+        let fake = std::rc::Rc::new(FakeFiles::empty());
+        app.file_io = Box::new(FakeHandle(fake.clone()));
+
+        let named_path = PathBuf::from("/fake/named.fire");
+        let mut named = Document::new(32.0, 32.0);
+        named.name = "named.fire".into();
+        named.file_path = Some(named_path.clone());
+        named.dirty = true;
+
+        let mut untitled = Document::new(64.0, 64.0);
+        untitled.name = "Untitled".into();
+        untitled.dirty = true;
+
+        app.open_docs = vec![named, untitled.clone()];
+        app.active_doc = 0;
+        app.doc = app.open_docs[0].clone();
+        app.current_path = Some(named_path.clone());
+
+        assert_eq!(app.save_all_and_quit_step(), Ok(true));
+        assert_eq!(app.active_doc, 1, "Save As should target the untitled tab");
+        assert!(app.pending_quit_after_save);
+        assert!(app.show_file_dialog);
+        assert_eq!(app.file_mode, FileMode::Save);
+
+        app.file_dialog_dir = PathBuf::from("/fake");
+        app.file_dialog_name = "untitled.fire".into();
+        app.commit_file_dialog();
+
+        let untitled_path = PathBuf::from("/fake/untitled.fire");
+        assert!(!app.show_file_dialog);
+        assert!(!app.pending_quit_after_save);
+        assert!(
+            !app.should_intercept_close(),
+            "all dirty documents must be saved before quit"
+        );
+        assert!(app.open_docs.iter().all(|doc| !doc.dirty));
+        assert_eq!(app.current_path.as_deref(), Some(untitled_path.as_path()));
+        assert_eq!(
+            fake.saved.borrow().as_slice(),
+            &[untitled_path, named_path],
+            "save-as should finish before the existing named document is saved"
+        );
+    }
+
+    #[test]
     fn export_rejects_an_unwriteable_format_without_touching_the_status() {
         let mut app = FireCraft::new(None);
         let err = app.export_to(Path::new("/tmp/out.psd")).unwrap_err();
