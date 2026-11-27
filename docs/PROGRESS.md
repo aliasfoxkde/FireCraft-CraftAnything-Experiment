@@ -41,9 +41,11 @@ Newest first.
   acceptance still need work. The managed Aegis rerun `6ae27914-4c5c-4d96-bff0-dbee65f5cdcb` is
   queued behind the normal-lane resource gate; the completed pre-annotation scan found only two new
   low-confidence port-number matches in the edited audit text. No clean Aegis result is claimed.
-- The local GitForge service accepts pushes but has no authenticated run API available in this session;
-  its earlier runner failed during offline toolchain/package resolution. Local GitForge validation is
-  still open, and no passing pipeline receipt is claimed.
+- GitForge authentication initially failed because the environment token had expired. Logging in with
+  the existing local admin credential enabled exact-run inspection. PR #46's gates succeeded on commit
+  `33f49266de0bcf51712bfba8e41b371f5c736677` (run `b4e5ed15-e1c7-45c3-8132-ee43e03dfba3`). The
+  v0.3.6 candidate run on `e9b468d8a165554f0f94f5c0aa22c4a595d0493b` is still running; no result is
+  claimed for it yet.
 
 ### 2026-11-27 — TDD and verification follow-up
 
