@@ -844,3 +844,6 @@ unverified. Do not restate the plan; link it.
   `2eadba2561ae017ec52163289a61065e4e635586`; all PR and merge-triggered GitHub checks passed. A
   bounded GitForge attempt on the docs-only merge did not produce an authenticated run row, so its
   one-use ref was removed; the earlier exact-release-tree GitForge pass remains valid.
+- Managed Aegis re-scan `79fb7ccd-dbdc-440b-8448-f582e5a15109` on fix commit `67795ed` reports 0
+  critical findings. All 80 findings outside protected investigation evidence are triaged; the
+  11,241 findings inside retained `investigation.cany/` remain unreviewed. The scan stays non-clean.
