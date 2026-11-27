@@ -4,6 +4,32 @@ All notable changes to **FireCraft** are documented in this file.
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-11-27
+
+Focused editor workflow, clipboard, and Web startup reliability release.
+
+### Added
+- **Demos menu:** open the Studio Showcase and starter document, with direct links to the tutorials.
+- **Web startup diagnostics:** show an accessible error message and console detail if the WASM app
+  cannot initialize.
+- **Bitmap-paste behavior tests** for valid image content and malformed dimensions/pixel buffers.
+
+### Changed
+- **Tool palette:** restore compact CS6-inspired tool-family labels and keep its body usable in short
+  windows; place Demos directly beside Palette.
+- **File browser:** constrain the window to the display and virtualize visible rows so large folders
+  do not repeatedly measure and paint off-screen metadata.
+- **Preview and Swatches:** keep the Preview badge within the canvas and use a compact color grid.
+- **WASM lifecycle:** retain `eframe::WebRunner` for the page lifetime so its resize observer and
+  animation state remain owned after startup.
+- **UI:** make external paste actions available from Edit and the canvas context menu; refine menu
+  spacing and help/tutorial access.
+
+### Fixed
+- Avoid silently discarding WebRunner startup errors.
+- Reject malformed clipboard bitmap payloads without inserting a broken object.
+- Avoid unbounded file-browser growth and repeated metadata work for rows outside the viewport.
+
 ## [0.3.0] — 2026-11-26
 
 Quality, evidence and release-engineering pass. No intentional behavior changes to editing tools.

@@ -3,7 +3,7 @@
 > **Prepared:** 2026-11-26 (America/Chicago).
 > **Canonical repository:** `aliasfoxkde/FireCraft-CraftAnything-Experiment`.
 > **Baseline branch / commit:** `main` at `e415a333f6a474bd738f47bb64d56704d711f1ce`.
-> **Current product version:** `0.3.0` in `app/Cargo.toml`.
+> **Release baseline at preparation:** published `v0.3.0` (2026-11-26); current source is preparing `0.3.1`.
 > **Legacy reference repository:** `aliasfoxkde/FireCraft`.
 > **Execution ledger:** [TASKS.md](TASKS.md) is the only active checkbox ledger.
 > **Primary supporting docs:** [AGENTS.md](../AGENTS.md), [CLAUDE.md](../CLAUDE.md), [PLAN.md](PLAN.md), [PRODUCT_ROADMAP.md](PRODUCT_ROADMAP.md), [AUDIT.md](AUDIT.md), [architecture.md](architecture.md), [build-release.md](build-release.md), and [PROGRESS.md](PROGRESS.md).
