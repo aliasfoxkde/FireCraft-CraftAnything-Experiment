@@ -891,3 +891,14 @@ unverified. Do not restate the plan; link it.
   while the advisories identify other structures. `rstar 0.14.0` uses heapless 0.9, but the current
   geo/geo-types integration only supports rstar 0.12. The safe upstream-compatible update remains
   open under task 44.10.
+
+## 2026-11-27 — Native Ctrl+V precedence regression
+
+- Added a failing test for empty native Paste events with external OS clipboard text while FireCraft
+  still has stale internal objects. Before the fix, this case pasted the old FireCraft objects.
+- Changed paste dispatch to choose internal objects only when the resolved event/native clipboard
+  has no text, or when its marker identifies FireCraft's internal clipboard. External text now wins.
+- Validation: 198 unit, 12 CLI, 5 hygiene, and 10 MCP tests passed; one timing test is intentionally
+  ignored in the concurrent suite. Strict Clippy, rustfmt, native `cargo check`, and WASM target
+  `cargo check` passed. The test supplies native clipboard text at the source seam; real desktop OS
+  clipboard acceptance and browser permission/focus denial behavior remain open.
