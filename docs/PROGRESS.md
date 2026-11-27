@@ -2,6 +2,14 @@
 
 Newest first.
 
+### 2026-11-27 — v0.3.4 cross-platform release and review handoff
+
+- Published [GitHub Release v0.3.4](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.4), tagged from source `c73ea44e90933288fbe8f4c3554ba47d4b574d94`. Release workflow [45974435786](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/45974435786) passed quality, Windows x86_64, universal macOS, Linux x86_64, WASM, publisher, and GitHub Pages deployment jobs.
+- Published assets include Windows ZIP, universal macOS ZIP/DMG, Linux tar.gz/AppImage/DEB/Flatpak, WASM ZIP, package/release manifests, source SHA, and SHA256SUMS. The Windows ZIP was downloaded locally and checked against the published checksum: `5d613e835769dbe9c1116f35a7602c0b84ef450cff6c782cd2cf9600e5091fd5`.
+- Deployed the exact tagged WASM ZIP to [Cloudflare Pages preview](https://wasm-review-v0-3-4.firecraft-web.pages.dev/). The deployed marker names version 0.3.4 and the tag source SHA. HTML, marker, JS, WASM, and favicon return HTTP 200 with expected MIME; the marker, JS, WASM, and favicon bytes match the release bundle. Cloudflare injects its Analytics script into the served HTML.
+- Browser validation remains partial: Playwright loaded the correct page and canvas element, but this local Chromium session did not provide WebGL2. Retrying with SwiftShader stalled while creating the context, so this environment did not prove editor startup or clipboard paste. Do not treat static asset checks as runtime acceptance. Native Windows 11 GUI review is also pending; see [the v0.3.4 checklist](testing/windows-11-review-v0.3.4.md).
+- Current coverage remains well below the 99% target; the local/hosted denominator reconciliation remains open under TASK 39.6. The hidden-layer eraser fix is verified separately with its red/green regression and complete repository suite as recorded below.
+
 ### 2026-11-27 — TDD: prevent erasing hidden-layer bitmaps
 
 - Added `eraser_does_not_edit_bitmap_on_hidden_layer` at the app interaction seam. Red reproduced the defect: pointer-down changed the target pixel alpha from 255 to 0 while its layer was hidden.
