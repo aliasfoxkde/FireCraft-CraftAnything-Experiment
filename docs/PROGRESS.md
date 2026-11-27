@@ -994,3 +994,21 @@ unverified. Do not restate the plan; link it.
   triaged 80 findings outside retained `investigation.cany/`, and left 11,241 retained-evidence
   findings unreviewed. Visual/native acceptance, path/raster/filter/dialog/autosave interactions,
   remaining issue/branch cleanup, and full 99% coverage remain open in [`TASKS.md`](TASKS.md).
+
+
+## 2026-11-27 — docs map and release verification update
+
+- Reworked root documentation links to point to latest published GitHub release `v0.3.6` and the
+  verified Cloudflare review preview `v0.3.5` (`bec0b65`). The preview is explicitly labeled older
+  than the current desktop release; replace it after verifying the v0.3.7 deployment.
+- Documentation PR #53 replaces task-phrase navigation with categorized progressive detail and adds
+  [`DOCUMENTATION-AND-WORKFLOW-EVIDENCE.md`](DOCUMENTATION-AND-WORKFLOW-EVIDENCE.md), a workflow for
+  reusing live app tests and evidence to produce tutorials, screenshots, bug reports, and release docs.
+  `scripts/check-docs.sh` passed before this receipt update; PR checks are still running on its latest
+  head.
+- Exact GitForge run `0b58ed0d-5048-45b5-bb38-93ee09e224ab` succeeded for commit
+  `d86e17dd0d89e8071e248b9848c2e947bd58928f`; its `gates` job `973d72cc-f450-4b61-a341-206703335246`
+  also succeeded. This supersedes the earlier pending observation for that same run.
+- v0.3.7 tag workflow `46081881673`: release quality gates, WASM app, and Windows x86_64 jobs passed;
+  Linux package and universal macOS jobs were still running at this check. The GitHub Release and
+  versioned Cloudflare preview are not yet confirmed published.

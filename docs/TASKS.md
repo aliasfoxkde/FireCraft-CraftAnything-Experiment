@@ -397,8 +397,8 @@ Evidence and design rationale: [Architecture review](ARCHITECTURE-REVIEW-2026-11
 
 ## Phase 45 — v0.3.7 cross-platform review release
 
-- [x] **45.1** Prepare the v0.3.7 patch release metadata and Windows 11 review checklist, including the focused canvas Ctrl+V scenarios. *(Version source is `app/Cargo.toml`; `Cargo.lock`, changelog, README navigation, and `docs/testing/windows-11-review-v0.3.7.md` are aligned. The release remains unpublished until its exact-tag workflow passes.)*
-- [ ] **45.2** Run the exact-tag release quality gate and build Windows, universal macOS, Linux tar/AppImage/DEB/Flatpak, and WASM assets; verify source markers, package manifest, MIME, and checksums.
+- [x] **45.1** Prepare the v0.3.7 patch release metadata and Windows 11 review checklist, including the focused canvas Ctrl+V scenarios. *(Version source is `app/Cargo.toml`; `Cargo.lock`, changelog, and `docs/testing/windows-11-review-v0.3.7.md` are aligned. README download/demo links point to the latest published/verified artifacts; update them after v0.3.7 publication and preview deployment.)*
+- [ ] **45.2** Run the exact-tag release quality gate and build Windows, universal macOS, Linux tar/AppImage/DEB/Flatpak, and WASM assets; verify source markers, package manifest, MIME, and checksums. *(Workflow `46081881673`: quality gates, WASM, and Windows jobs passed; Linux and macOS packaging were still running at the latest check.)*
 - [ ] **45.3** Publish GitHub Release `v0.3.7` with the exact platform asset names, release manifest, source SHA, and checksum list after all release jobs pass.
 - [ ] **45.4** Deploy the tag-built WASM bundle to its versioned Cloudflare review Pages branch and verify the served bytes, version marker, MIME types, and startup; keep production distinct until accepted.
 - [ ] **45.5** Complete interactive Windows 11 acceptance using the published ZIP and record reviewer results before treating the release as signed off.
