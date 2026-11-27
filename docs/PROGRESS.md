@@ -2,6 +2,15 @@
 
 Newest first.
 
+### 2026-11-27 — v0.3.5 release candidate and TDD follow-up
+
+- PR [#39](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/39) is based on merged main commit `87089407bbdc35d379aae42531327d3da187c71d`; exact PR head `f294e9f8afec100e6b320f05f96393b8f1886c80` passed GitHub Gates, Rust coverage, Windows build/CLI smoke, WASM and CodeQL. CodeRabbit remains skipped by repository configuration. PR #37 was closed after its protected branch refused force-push; GitHub also refused remote deletion of that protected branch.
+- The latest Cobertura artifact ([run 46013680520](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/46013680520)) reports 18,425 / 26,445 = 69.67% lines, with no branch counters. This is unchanged from PR #36 and remains below 99%.
+- TDD caught `scripts/check-docs.sh` silently passing when `git ls-files` failed and returned an empty list. New hygiene test failed before the fix with `docs: 0 files checked`; the checker now fails closed, explicitly allows its mounted checkout as a Git safe directory, and passes with 61 tracked Markdown files.
+- Image 4 is `sha256:d03a844a27237b333ec1b9bc9d1a8989d822227d8d6bc2c57894c8ad755887d8`, labeled for Cargo.lock SHA `76d7fb62c41c6939bc86debc39b2f7270a3f2e98f744e570db4bee1f89201432`. Exact GitForge run `d8664d77-8b38-41f5-99cf-b00175acc266` for PR head `f294e9f8afec100e6b320f05f96393b8f1886c80` succeeded at 14:26:37 UTC, including the offline WASM release build.
+- The Windows review artifact from the PR workflow is `output/review-pr-39/firecraft-windows-x86_64/firecraft-v0.3.5-windows-x86_64.zip`, SHA-256 `316a5d27cf3450b68e16593b70bb326aba1e07dfc0f558d5f3a352d3f670728d`. Its build info says version 0.3.5 and source `ec359286cb2e738340863f40f98d2020c2edb83f`, the workflow's PR merge ref. It is a review ZIP, not the published release. Windows 11 GUI edit/save/export acceptance is still reviewer-owned.
+- Offline image-4 gates passed: formatting, strict Clippy, 188 unit tests, 12 CLI tests, 5 hygiene tests, 10 MCP tests, the isolated frame-time test, docs and module-size. Offline release-mode WASM build passed. Native GUI, browser WebGL2 startup/clipboard, Cloudflare deployment, managed Aegis scan, exact tagged multi-platform release and 99% coverage remain open.
+
 ### 2026-11-27 — TDD: join selected paths by endpoint proximity
 
 - Added `join_orders_three_paths_by_proximity_instead_of_selection_order`. The red run failed with connector lengths `[100.0, 12.0]` for paths selected in spatially poor order. After independent review, tightened the regression to assert the complete expected six-point chain so every source segment and connector order is checked; that focused test passes.
