@@ -41,7 +41,7 @@ remain grounded in this repository's code, tests, tasks and release receipts.
 | Work on the file browser | [File Browser](docs/features/file-browser.md) |
 | See all documentation | [Documentation index](docs/README.md) |
 | Check remaining work | [Tasks](docs/TASKS.md) |
-| Review the v0.3.6 Windows build on Windows 11 | [Review checklist](docs/testing/windows-11-review-v0.3.6.md) |
+| Review the v0.3.7 Windows build on Windows 11 | [Review checklist](docs/testing/windows-11-review-v0.3.7.md) |
 | See the public product roadmap | [Product Roadmap](docs/PRODUCT_ROADMAP.md) |
 | Explore extension ecosystem research and marketplace plan | [Fireworks Extensions Research](docs/research/fireworks-extensions.md) |
 | See the measured state and gaps | [Audit](docs/AUDIT.md) |
