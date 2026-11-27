@@ -848,7 +848,7 @@ unverified. Do not restate the plan; link it.
   rendered screenshots and pointer acceptance remain open.
 - Strict Clippy (`-D warnings`), rustfmt check, documentation checks (64 Markdown files),
   module-size check, and `git diff --check` passed before this documentation update.
-- Fresh local LLVM coverage on the uncommitted tree: 19,499 / 27,716 lines (70.35%),
+- Fresh local LLVM coverage on commit `915796fd0631813a2e13091db058c0384d2baa00`: 19,499 / 27,716 lines (70.35%),
   1,237 / 1,680 functions (73.63%), and 25,299 / 34,909 regions (72.47%). Branch counts are
   unavailable (0/0). This denominator is not reconciled with hosted Cobertura; the user's 99%
   target remains unmet.
@@ -856,5 +856,38 @@ unverified. Do not restate the plan; link it.
   `codex-profile memory --dry-run` selects only `context-memory`. The safe code graph index contains
   a sanitized tracked-source snapshot. Aegis on changed lines found no new-line hits, but full-file
   and managed scan findings remain untriaged. BigData's configured REST listener at port 8080 is
-  still offline. Native clipboard, visual acceptance, GitForge/hosted checks, fresh Windows build,
-  and Cloudflare WASM deployment remain open.
+  still offline. Native clipboard, visual acceptance, hosted checks, Windows 11 acceptance,
+  current-SHA GitForge execution, and Cloudflare WASM deployment remain open.
+
+- Windows CI run `46071407249` passed its MSVC build and CLI smoke test for PR merge commit
+  `830a1fa3a8a925073b5fc6613cf080d52ba0dc7e`; its Git tree matches branch commit
+  `915796fd0631813a2e13091db058c0384d2baa00`. Review ZIP:
+  `output/review-915796f/firecraft-review-915796f-windows-msvc-x86_64.zip`, SHA-256
+  `9fb44a8b072c6d5a34cf929e248397b3052b2ec4e784c109cbcf7c53e13f8442`. The local GNU cross-build
+  is also preserved as `firecraft-review-915796f-windows-gnu-x86_64.zip`, SHA-256
+  `dae823509e3c297a859b630eb46375c84f275b7c8acde1693c6d730b4f4b0632`. Both archives use app
+  version metadata 0.3.6 and are review artifacts, not release assets. Windows 11 acceptance is
+  still pending.
+- Commit `915796fd0631813a2e13091db058c0384d2baa00` was pushed as `fix/tools-path-interaction` and
+  PR [#52](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/52) was opened.
+  Hosted Gates, coverage upload, CodeQL, Windows MSVC/CLI smoke, and WASM all passed in runs
+  `46071407249`, `46071407269`, and `46071407234`. Hosted Cobertura coverage is 19,163 / 27,083
+  lines = 70.76%, branches 0/0; local LLVM denominators differ.
+- Diagnosed a harness routing failure: Codex launched `harness_jobs_mcp.py` with bare `python3`,
+  which omitted `XDG_RUNTIME_DIR` and targeted a non-existent jobs socket. The user-level entry now
+  uses `scripts/mcp-python`; direct MCP health returned `ok`. No FireCraft test run was created via
+  this manager because its approved profile list contains no FireCraft gates profile. The separate
+  GitForge service gate is still unverified for this new SHA.
+- OpenAI Developer Docs MCP was added with the requested command, then routed only through the
+  opt-in `research` profile to preserve the global rule that base sessions load no MCP servers.
+  Search and fetch were exercised against the official MCP endpoint; its migration guide says
+  Responses is recommended for new projects while Chat Completions remains supported. The global
+  docs/profile configuration remains outside this repository and is locally backed up.
+- Full local validation also passed the isolated 500-object frame-time test and WASM target check.
+  `cargo deny --manifest-path app/Cargo.toml check` passed (with duplicate transitive lock-entry
+  warnings). `cargo audit --file app/Cargo.lock` reports zero vulnerabilities, four unmaintained
+  crates, and nine unsoundness advisories for transitive `heapless 0.8.0`. The only dependency path
+  is `geo 0.33.1 → rstar 0.12.2 → heapless 0.8.0`; rstar uses only heapless's `binary_heap` module,
+  while the advisories identify other structures. `rstar 0.14.0` uses heapless 0.9, but the current
+  geo/geo-types integration only supports rstar 0.12. The safe upstream-compatible update remains
+  open under task 44.10.
