@@ -2591,6 +2591,61 @@ mod tests {
     }
 
     #[test]
+    fn flattening_bitmaps_creates_a_new_rendered_texture_for_the_composite_pixels() {
+        let bitmap = |at: Vec2, rgba: [u8; 4]| {
+            Obj::new(
+                Shape::Bitmap {
+                    at,
+                    pixels: rgba.to_vec(),
+                    size: Vec2::splat(10.0),
+                    pixel_size: Vec2::splat(1.0),
+                },
+                None,
+                None,
+            )
+        };
+        let mut app = app_with_objects(vec![
+            bitmap(Vec2::new(5.0, 10.0), [255, 0, 0, 255]),
+            bitmap(Vec2::new(40.0, 10.0), [0, 0, 255, 255]),
+        ]);
+        app.selected = Some(1);
+        app.selected_set = vec![0, 1];
+
+        let source_textures = render_bitmap_ids(&mut app);
+        assert_eq!(source_textures.len(), 2);
+        app.flatten_selected_to_bitmap();
+
+        let objects = &app.doc.page().layers[0].objects;
+        assert_eq!(objects.len(), 1, "flatten should replace selected bitmaps");
+        let (pixels, pixel_size, at) = match &objects[0].kind {
+            Shape::Bitmap {
+                pixels,
+                pixel_size,
+                at,
+                ..
+            } => (pixels.clone(), *pixel_size, *at),
+            _ => panic!("flattened selection should be a bitmap"),
+        };
+        let flattened_texture = render_bitmap_ids(&mut app);
+        assert_eq!(flattened_texture.len(), 1, "composite bitmap should render");
+        assert_eq!(flattened_texture[0].0.min.x, at.x);
+        let expected_texture =
+            FireCraft::bitmap_texture(&app.ctx, &mut app.textures, &pixels, pixel_size)
+                .expect("flattened pixel data should produce a texture")
+                .id();
+        assert_eq!(
+            flattened_texture[0].1, expected_texture,
+            "the renderer must upload the flattened document pixels"
+        );
+        assert!(
+            source_textures
+                .iter()
+                .all(|(_, source)| *source != flattened_texture[0].1),
+            "the composite must not reuse either source image texture"
+        );
+    }
+
+    #[test]
     fn hit_testing_obeys_topmost_order_visibility_locks_and_web_layer_toggle() {
         let mut back = rect(0.0, 0.0, 50.0, 50.0);
         back.name = "back".into();
