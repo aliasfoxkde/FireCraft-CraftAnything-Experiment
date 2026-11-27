@@ -5346,6 +5346,49 @@ mod tests {
     }
 
     #[test]
+    fn eraser_rejects_locked_layers_and_locked_bitmaps() {
+        for (lock_layer, lock_bitmap) in [(true, false), (false, true)] {
+            let mut app = FireCraft::new(None);
+            let index = app.push_object(Obj::new(
+                Shape::Bitmap {
+                    at: Vec2::ZERO,
+                    pixels: [255, 80, 20, 255].repeat(8 * 8),
+                    size: Vec2::splat(8.0),
+                    pixel_size: Vec2::splat(8.0),
+                },
+                None,
+                None,
+            ));
+            let layer_index = app.selected_layer;
+            app.doc.page_mut().layers[layer_index].locked = lock_layer;
+            app.doc.page_mut().layers[layer_index].objects[index].locked = lock_bitmap;
+            app.set_tool(Tool::Eraser);
+            let position = Vec2::splat(4.0);
+
+            assert!(
+                !app.bitmap_target_at(position),
+                "locked layer={lock_layer}, bitmap={lock_bitmap} must not be an eraser target"
+            );
+            assert!(
+                !app.erase_at(position),
+                "the mutation seam must reject locked layer={lock_layer}, bitmap={lock_bitmap}"
+            );
+            app.on_pointer_down(position, Vec2::ZERO, false, false, false);
+
+            let Shape::Bitmap { pixels, .. } =
+                &app.doc.page().layers[layer_index].objects[index].kind
+            else {
+                panic!("the eraser must preserve a locked bitmap object");
+            };
+            assert_eq!(
+                pixels[(4 * 8 + 4) * 4 + 3],
+                255,
+                "locked layer={lock_layer}, bitmap={lock_bitmap} pixels must remain unchanged"
+            );
+        }
+    }
+
+    #[test]
     fn bitmap_texture_cache_uses_content_and_reuses_across_clones() {
         let mut app = FireCraft::new(None);
         let red = vec![255, 0, 0, 255];

@@ -2,6 +2,21 @@
 
 Newest first.
 
+### 2026-11-27 — TDD verification: locked Eraser targets
+
+- Added a focused regression test for locked layers and individually locked bitmaps. It checks
+  target eligibility, direct pixel mutation, and pointer-down behavior, and confirms the original
+  bitmap alpha stays unchanged.
+- The current implementation already rejected these targets at both the eligibility and mutation
+  seams, so the new test passed without a production edit. This is green-baseline verification;
+  no failing-before run or bug fix is claimed. The existing hidden-layer test remains a separate
+  coverage case.
+- Verification on `origin/main` plus this test: `cargo test --locked` passed 180 unit tests, 12
+  CLI tests, 4 hygiene tests, and 10 MCP tests (206 passed; 1 isolated timing test ignored);
+  strict `cargo clippy --all-targets --locked -- -D warnings` passed; `cargo fmt --all -- --check`,
+  `git diff --check`, and `scripts/check-docs.sh` (60 files) passed. The WASM check
+  `cargo check --locked --target wasm32-unknown-unknown` passed.
+
 ### 2026-11-27 — v0.3.4 cross-platform release and review handoff
 
 - Published [GitHub Release v0.3.4](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.4), tagged from source `c73ea44e90933288fbe8f4c3554ba47d4b574d94`. Release workflow [45974435786](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/45974435786) passed quality, Windows x86_64, universal macOS, Linux x86_64, WASM, publisher, and GitHub Pages deployment jobs.
