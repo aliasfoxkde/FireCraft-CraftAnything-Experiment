@@ -27,6 +27,14 @@ Newest first.
   receipt is claimed for this test branch; TASK 28.2 remains open. The current GitHub PR checks are
   the executable hosted validation for this change.
 
+### 2026-11-27 — marketing deployment and repository closeout follow-up
+
+- Merged the v0.3.5 audit/task documentation as [PR #40](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/40). Gates, coverage upload, Windows build/CLI smoke, WASM build, and Analyze Rust passed.
+- Merged the legacy repository's 1.0 execution plan [PR #188](https://github.com/aliasfoxkde/FireCraft/pull/188), marketing refresh [PR #190](https://github.com/aliasfoxkde/FireCraft/pull/190), and deployment/accessibility follow-up [PR #191](https://github.com/aliasfoxkde/FireCraft/pull/191). The follow-up includes failing-first nav/contrast and Cloudflare destination tests; the full site suite is 10/10, both shell self-test suites pass, and `actionlint` passes.
+- Cloudflare confirmed the account has reached 10 Pages projects and `firecraft-site` does not exist. To preserve the production WASM app, the site workflow targets a stable preview branch on `firecraft-web`. Merged source `0c80ad76` was manually deployed to [marketing-review.firecraft-web.pages.dev](https://marketing-review.firecraft-web.pages.dev/); landing, clean `/extensions`, styles, and logo return HTTP 200. Production `firecraft-web.pages.dev` still serves the app; `firecraft.app` still redirects to `/coming-soon`. The separate marketing project/custom-domain production launch and rollback are still open.
+- The first GitHub deploy failed because the Pages project was missing and the repository token secret was absent. The verified token has been added as `CLOUDFLARE_API_TOKEN`; follow-up workflow [46031404998](https://github.com/aliasfoxkde/FireCraft/actions/runs/46031404998) then passed and deployed source `fdc0e282` to the stable preview alias.
+- The legacy repository has no open PRs, but 19 remote branches remain. The canonical repository has eight non-main remote branches, including four protected release branches and three docs branches without active PRs. Histories are divergent or protected, so none were deleted; see the [legacy](integration/legacy-branches-2026-11-27.tsv) and [canonical](integration/canonical-branches-2026-11-27.tsv) inventories. Issue triage remains open and no issues were changed pending maintainer choices and artifact-level acceptance.
+
 ### 2026-11-27 — v0.3.5 release candidate and TDD follow-up
 
 - PR [#39](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/39) is based on merged main commit `87089407bbdc35d379aae42531327d3da187c71d`; exact PR head `f294e9f8afec100e6b320f05f96393b8f1886c80` passed GitHub Gates, Rust coverage, Windows build/CLI smoke, WASM and CodeQL. CodeRabbit remains skipped by repository configuration. PR #37 was closed after its protected branch refused force-push; GitHub also refused remote deletion of that protected branch.
