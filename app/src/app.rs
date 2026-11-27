@@ -5244,6 +5244,42 @@ mod tests {
         );
     }
 
+    #[test]
+    fn join_orders_three_paths_by_proximity_instead_of_selection_order() {
+        let mut app = FireCraft::new(None);
+        for (start, end) in [(100.0, 110.0), (0.0, 10.0), (12.0, 20.0)] {
+            app.push_object(Obj::new(
+                Shape::Path {
+                    points: vec![Vec2::new(start, 0.0), Vec2::new(end, 0.0)],
+                    closed: false,
+                },
+                None,
+                Some(Color32::BLACK),
+            ));
+        }
+        app.select_single(Some(0));
+        app.selected_set = vec![0, 1, 2];
+
+        app.combine_paths_op("join");
+
+        let Shape::Path { points, closed } = &app.selected_object().unwrap().kind else {
+            panic!("join should retain a single open path");
+        };
+        assert!(!closed);
+        assert_eq!(
+            points,
+            &[
+                Vec2::new(0.0, 0.0),
+                Vec2::new(10.0, 0.0),
+                Vec2::new(12.0, 0.0),
+                Vec2::new(20.0, 0.0),
+                Vec2::new(100.0, 0.0),
+                Vec2::new(110.0, 0.0),
+            ],
+            "join should preserve every source segment and connect paths in nearest-endpoint order"
+        );
+    }
+
     // ---- Intelligence panel paths (task 18.4) ----
     // The codebase forbids `unsafe`, so tests never mutate the process
     // environment; the no-key path is exercised via an empty inline key
