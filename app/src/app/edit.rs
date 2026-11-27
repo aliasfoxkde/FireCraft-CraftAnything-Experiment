@@ -339,6 +339,22 @@ impl FireCraft {
 
     pub fn paste_with_text(&mut self, event_text: Option<&str>) {
         let event_non_empty = event_text.filter(|s| !s.is_empty());
+
+        // The WASM clipboard API reports pasted images as binary files. The browser
+        // bridge encodes those bytes into a private event payload for this shared path.
+        #[cfg(target_arch = "wasm32")]
+        if let Some(payload) =
+            event_non_empty.and_then(|text| text.strip_prefix("FIRECRAFT_IMAGE:"))
+            && let Ok(bytes) =
+                base64::Engine::decode(&base64::engine::general_purpose::STANDARD, payload)
+            && let Ok(image) = image::load_from_memory(&bytes)
+        {
+            let image = image.into_rgba8();
+            let (width, height) = image.dimensions();
+            self.paste_bitmap(width as f32, height as f32, image.into_raw());
+            return;
+        }
+
         #[cfg_attr(any(target_arch = "wasm32", test), allow(unused_variables))]
         let is_svg_or_marker = event_non_empty.is_some_and(|s| {
             let t = s.trim_start();
@@ -355,29 +371,7 @@ impl FireCraft {
             && img.width > 0
             && img.height > 0
         {
-            let w = img.width as f32;
-            let h = img.height as f32;
-            let center = Vec2::new(self.doc.page().width * 0.5, self.doc.page().height * 0.5);
-            let at = (center - Vec2::new(w * 0.5, h * 0.5)).max(Vec2::ZERO);
-            let mut obj = Obj::new(
-                Shape::Bitmap {
-                    at,
-                    pixels: img.bytes.into_owned(),
-                    size: Vec2::new(w, h),
-                },
-                None,
-                None,
-            );
-            obj.name = format!("Pasted Bitmap ({:.0}×{:.0})", w, h);
-            self.push_undo("Paste Image");
-            let idx = self.push_object(obj);
-            self.select_single(Some(idx));
-            self.textures.clear();
-            self.show_welcome = false;
-            self.status = format!(
-                "Pasted bitmap image ({:.0}×{:.0} px) from system clipboard",
-                w, h
-            );
+            self.paste_bitmap(img.width as f32, img.height as f32, img.bytes.into_owned());
             return;
         }
 
@@ -490,6 +484,32 @@ impl FireCraft {
         self.status =
             "Clipboard is empty — select an object and press Ctrl+C (or copy an image/text) first"
                 .to_string();
+    }
+
+    #[cfg(not(test))]
+    fn paste_bitmap(&mut self, width: f32, height: f32, pixels: Vec<u8>) {
+        if width <= 0.0 || height <= 0.0 || pixels.len() != width as usize * height as usize * 4 {
+            self.status = "Could not paste image: clipboard image data is invalid".to_string();
+            return;
+        }
+        let center = Vec2::new(self.doc.page().width * 0.5, self.doc.page().height * 0.5);
+        let at = (center - Vec2::new(width * 0.5, height * 0.5)).max(Vec2::ZERO);
+        let mut obj = Obj::new(
+            Shape::Bitmap {
+                at,
+                pixels,
+                size: Vec2::new(width, height),
+            },
+            None,
+            None,
+        );
+        obj.name = format!("Pasted Bitmap ({width:.0}×{height:.0})");
+        self.push_undo("Paste Image");
+        let idx = self.push_object(obj);
+        self.select_single(Some(idx));
+        self.textures.clear();
+        self.show_welcome = false;
+        self.status = format!("Pasted bitmap image ({width:.0}×{height:.0} px) from clipboard");
     }
 
     pub fn select_all(&mut self) {

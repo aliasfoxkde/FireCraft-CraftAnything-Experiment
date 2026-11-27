@@ -23,17 +23,25 @@ pub fn file_dialog(app: &mut FireCraft) {
     }
     let mut open = app.show_file_dialog;
     let mut close_now = app.ctx.input(|i| i.key_pressed(egui::Key::Escape));
+    let available = app.ctx.content_rect().size();
+    let dialog_size = Vec2::new(
+        760.0_f32.min((available.x - 48.0).max(420.0)),
+        500.0_f32.min((available.y - 48.0).max(300.0)),
+    );
+    let max_size = Vec2::new(
+        (available.x - 24.0).max(420.0),
+        (available.y - 24.0).max(300.0),
+    );
     let center = app.ctx.content_rect().center();
     egui::Window::new(title)
         .open(&mut open)
         .collapsible(false)
         .movable(true)
         .resizable(true)
-        .default_width(820.0)
-        .min_width(640.0)
-        .default_height(540.0)
-        .min_height(410.0)
-        .default_pos(center - Vec2::new(410.0, 270.0))
+        .default_size(dialog_size)
+        .min_size(Vec2::new(560.0, 360.0).min(max_size))
+        .max_size(max_size)
+        .default_pos(center - dialog_size * 0.5)
         .show(&app.ctx.clone(), |ui| {
             file_dialog_body(ui, app, &mut close_now);
         });
@@ -232,7 +240,7 @@ fn file_dialog_body(ui: &mut egui::Ui, app: &mut FireCraft, close_now: &mut bool
         ui.separator();
 
         ui.vertical(|ui| {
-            let list_h = (ui.available_height() - 88.0).max(150.0);
+            let list_h = (ui.available_height() - 88.0).clamp(70.0, 480.0);
             // Column header keeps the list scannable instead of the old badge + name + pushed-right size.
             let (head, _) =
                 ui.allocate_exact_size(Vec2::new(ui.available_width(), 19.0), egui::Sense::hover());
@@ -268,28 +276,43 @@ fn file_dialog_body(ui: &mut egui::Ui, app: &mut FireCraft, close_now: &mut bool
             );
 
             let q = app.file_dialog_filter.trim().to_lowercase();
+            let visible_entries: Vec<_> = app
+                .file_dialog_entries
+                .iter()
+                .filter(|entry| {
+                    let name = entry
+                        .file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_default();
+                    if !q.is_empty() && !name.to_lowercase().contains(&q) {
+                        return false;
+                    }
+                    let is_dir = entry.is_dir();
+                    let ext = entry
+                        .extension()
+                        .and_then(|e| e.to_str())
+                        .unwrap_or("")
+                        .to_lowercase();
+                    is_dir || !is_read || file_passes_filter(app, entry, &ext)
+                })
+                .cloned()
+                .collect();
             egui::ScrollArea::vertical()
                 .max_height(list_h)
                 .auto_shrink([false, false])
-                .show(ui, |ui| {
-                    ui.set_min_height(list_h);
-                    for entry in app.file_dialog_entries.clone() {
+                .show_rows(ui, 23.0, visible_entries.len(), |ui, row_range| {
+                    for row_index in row_range {
+                        let entry = &visible_entries[row_index];
                         let name = entry
                             .file_name()
                             .map(|n| n.to_string_lossy().to_string())
                             .unwrap_or_default();
-                        if !q.is_empty() && !name.to_lowercase().contains(&q) {
-                            continue;
-                        }
                         let is_dir = entry.is_dir();
                         let ext = entry
                             .extension()
                             .and_then(|e| e.to_str())
                             .unwrap_or("")
                             .to_lowercase();
-                        if !is_dir && is_read && !file_passes_filter(app, &entry, &ext) {
-                            continue;
-                        }
                         let row = ui.allocate_exact_size(
                             Vec2::new(ui.available_width(), 23.0),
                             egui::Sense::click(),
@@ -343,7 +366,7 @@ fn file_dialog_body(ui: &mut egui::Ui, app: &mut FireCraft, close_now: &mut bool
                             ("Folder".to_string(), String::new(), String::new())
                         } else {
                             let type_label = format!("{} file", ext.to_uppercase());
-                            let meta = std::fs::metadata(&entry).ok();
+                            let meta = std::fs::metadata(entry).ok();
                             let size_label = meta
                                 .as_ref()
                                 .map(|m| human_file_size(m.len()))
@@ -626,6 +649,24 @@ mod tests {
             assert!(render_body(&mut app) > 20);
         }
 
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn long_directory_listing_only_paints_visible_rows() {
+        let mut app = app();
+        let dir = temporary_browser_folder();
+        app.set_file_dialog_dir(dir.clone());
+        app.file_mode = FileMode::Open;
+        app.file_dialog_type_filter = 0;
+        app.file_dialog_entries = vec![dir.join("photo.jpg"); 1_000];
+
+        let painted_shapes = render_body(&mut app);
+
+        assert!(
+            painted_shapes < 500,
+            "painted {painted_shapes} shapes for 1,000 rows"
+        );
         std::fs::remove_dir_all(dir).unwrap();
     }
 

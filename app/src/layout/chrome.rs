@@ -617,7 +617,7 @@ pub(super) fn canvas_footer_bar(ui: &mut Ui, app: &mut FireCraft) {
             .selectable_label(
                 snap_on,
                 RichText::new(if snap_on {
-                    "🧲 Snap: On"
+                    "Snap: On"
                 } else {
                     "Snap: Off"
                 })
@@ -637,15 +637,22 @@ pub(super) fn canvas_footer_bar(ui: &mut Ui, app: &mut FireCraft) {
         }
         ui.separator();
         if ui
-            .selectable_label(
-                app.infinite_canvas,
-                RichText::new(if app.infinite_canvas {
-                    "∞ Canvas: On"
-                } else {
-                    "∞ Canvas"
-                })
-                .small(),
-            )
+            .selectable_label(app.show_rulers, RichText::new("Rulers").small())
+            .on_hover_text("Show or hide rulers (View > Rulers)")
+            .clicked()
+        {
+            app.show_rulers = !app.show_rulers;
+        }
+        if ui
+            .selectable_label(app.show_grid, RichText::new("Grid").small())
+            .on_hover_text("Show or hide the document grid (View > Grid)")
+            .clicked()
+        {
+            app.show_grid = !app.show_grid;
+        }
+        ui.separator();
+        if ui
+            .selectable_label(app.infinite_canvas, RichText::new("Show All").small())
             .on_hover_text(
                 "Infinite canvas: objects may extend beyond the page. The dotted box marks the page bounds. Flat raster, SVG, and HTML exports crop to the page; out-of-page objects stay editable in the project.",
             )

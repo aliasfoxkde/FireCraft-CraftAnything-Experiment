@@ -2,6 +2,31 @@
 
 Newest first.
 
+## 2026-11-26 — Clipboard, workspace UI, and file-browser follow-up
+
+- Added a browser `ClipboardEvent` bridge for copied image files. It reads image bytes asynchronously,
+  releases each one-shot reader callback, and forwards the bytes into the normal Paste action. Edit
+  and canvas context-menu Paste now remain available for external/system clipboard contents.
+- Fixed Preview badge overflow by measuring rendered text and eliding it to the canvas width.
+- Bound the file browser to the display, reduced its default dimensions, and virtualized the file
+  list so only visible rows perform size/date metadata reads and paint. Added a 1,000-row render
+  regression check.
+- Restored the CS6 tool-family labels, constrained the tool-rail body on short windows, and rendered
+  the Swatches panel as a compact, direct 2D grid. Replaced a stale text-outline test that expected
+  a fake rectangle conversion with a truthful unsupported-operation assertion.
+- Cleaned up the top menu/header arrangement against the checked-in Fireworks menu/layout images.
+  Removed crowded MCP/CLI, fullscreen, and theme buttons from the menu row; their actions remain in
+  Help/Window. The Palette button stays visible and a Demos dropdown sits immediately to its right,
+  with the real Studio Showcase and 1080p starter document actions plus links to all four tutorials.
+- Verification: native `cargo check` passed; format check and strict Clippy passed after correcting
+  one needless borrow found by Clippy; WASM `cargo check` passed. Full test suite: 158 unit + 12 CLI
+  + 4 hygiene + 10 MCP = **184 passed**. Xvfb captures at 1360×860 and 960×640 were visually
+  inspected. The 960×640 workspace remains dense and scrolls lower right-dock groups; live browser
+  clipboard paste and platform-native picker behavior are still unverified.
+- Updated [`AUDIT-2026-11-26.md`](AUDIT-2026-11-26.md) and added Phase 32 to [`TASKS.md`](TASKS.md).
+  Aegis scan remains pending: the local command is protected by managed admission, but the shared
+  queue currently exposes no `aegis-scan` profile (only the separate Aegis-repository tests profile).
+
 ### 2026-11-26 — hosted gate follow-up and extension roadmap
 
 - Audited the latest hosted experiment-repo run. Coverage workflow passed 180 tests (154 unit, 12 CLI, 4 hygiene, 10 MCP) and produced Cobertura at 68.24% lines (16,978/24,880); no branch counters were emitted. This does not meet the requested 99% target.

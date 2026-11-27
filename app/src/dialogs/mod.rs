@@ -1580,7 +1580,7 @@ pub fn welcome_overlay(app: &mut FireCraft) {
                     if ui.button("Start Blank 1080p Canvas").clicked() {
                         app.show_welcome = false;
                     }
-                    if ui.button("Load 1080p Showcase Demo").clicked() {
+                    if ui.button("Load Studio Showcase Demo").clicked() {
                         app.load_demo_showcase();
                         app.show_welcome = false;
                     }

@@ -859,42 +859,49 @@ pub(super) fn swatches_panel(ui: &mut Ui, app: &mut FireCraft) {
     let cols = constants::SWATCH_COLS;
     let cell = 11.0;
     let swatches = app.swatches.clone();
-    let mut index = 0;
-    ui.spacing_mut().item_spacing = Vec2::splat(1.0);
-    while index < swatches.len() {
-        ui.horizontal(|ui| {
-            ui.spacing_mut().item_spacing = Vec2::splat(1.0);
-            for _ in 0..cols {
-                if index >= swatches.len() {
-                    break;
-                }
-                let color = swatches[index];
-                let (rect, response) = ui.allocate_exact_size(Vec2::splat(cell), Sense::click());
-                let painter = ui.painter();
-                painter.rect_filled(rect, 0.0, color);
-                painter.rect_stroke(
-                    rect,
-                    0.0,
-                    Stroke::new(0.5, p.stroke),
-                    egui::StrokeKind::Middle,
-                );
-                if response.clicked() {
-                    app.fill = color;
-                    app.set_selected_fill(Some(color));
-                }
-                if response.secondary_clicked() {
-                    app.stroke = color;
-                    app.set_selected_stroke(Some(color));
-                }
-                if response.hovered() {
-                    response.on_hover_text(format!(
-                        "{} (Left-click: Fill, Right-click: Stroke)",
-                        colors::hex_of(color)
-                    ));
-                }
-                index += 1;
+    let rows = swatches.len().div_ceil(cols);
+    let (grid_rect, response) = ui.allocate_exact_size(
+        Vec2::new(cols as f32 * cell, rows as f32 * cell),
+        Sense::click(),
+    );
+    let painter = ui.painter();
+    for (index, &color) in swatches.iter().enumerate() {
+        let x = index % cols;
+        let y = index / cols;
+        let rect = Rect::from_min_size(
+            pos2(
+                grid_rect.left() + x as f32 * cell,
+                grid_rect.top() + y as f32 * cell,
+            ),
+            Vec2::splat(cell),
+        );
+        painter.rect_filled(rect, 0.0, color);
+        painter.rect_stroke(
+            rect,
+            0.0,
+            Stroke::new(0.5, p.stroke),
+            egui::StrokeKind::Middle,
+        );
+    }
+    if response.hovered()
+        && let Some(pos) = response.hover_pos()
+    {
+        let x = ((pos.x - grid_rect.left()) / cell).floor() as usize;
+        let y = ((pos.y - grid_rect.top()) / cell).floor() as usize;
+        if let Some(&color) = swatches.get(y * cols + x) {
+            response.clone().on_hover_text(format!(
+                "{} (Left-click: Fill, Right-click: Stroke)",
+                colors::hex_of(color)
+            ));
+            if response.clicked() {
+                app.fill = color;
+                app.set_selected_fill(Some(color));
             }
-        });
+            if response.secondary_clicked() {
+                app.stroke = color;
+                app.set_selected_stroke(Some(color));
+            }
+        }
     }
 }
 
