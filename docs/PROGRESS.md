@@ -2,6 +2,12 @@
 
 Newest first.
 
+### 2026-11-27 — Exact-head coverage receipt refresh
+
+- Retrieved the Cobertura artifact for PR #29 run [45989583242](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/45989583242), exact source `982b952945af5deea00b7b1c0eda274dbd5ac80f` (the PR head before squash merge).
+- The report measures 18,002 / 25,964 lines = **69.33%**. It has no branch counters (0/0). This supersedes 69.26% from PR #27 as the newest hosted Cobertura receipt; it does not resolve the different llvm-cov denominator or meet the 99% goal.
+- Updated TASKS 38.5 and 39.6. Kept prior dated coverage snapshots intact.
+
 ### 2026-11-27 — TDD verification: locked Eraser targets
 
 - Added a focused regression test for locked layers and individually locked bitmaps. It checks
