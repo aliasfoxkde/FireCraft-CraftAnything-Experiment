@@ -4,6 +4,21 @@ All notable changes to **FireCraft** are documented in this file.
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-11-27
+
+Browser clipboard reliability and roadmap planning update.
+
+### Fixed
+- Preserve asynchronous browser image-paste data until the next editor frame so WASM image paste
+  reaches FireCraft's shared bitmap paste path.
+
+### Documentation
+- Expand the public roadmap and task ledger for local/remote document history, PDF/page export,
+  web publishing, provider-based AI, speech and image workflows, terminal/SSH safety, 3D research,
+  and mobile/tablet support.
+- Record current research and source-trust notes for Photopea, Pixlr, Affinity, Illustrator,
+  Inkscape, and palette tools.
+
 ## [0.3.1] — 2026-11-27
 
 Focused editor workflow, clipboard, and Web startup reliability release.

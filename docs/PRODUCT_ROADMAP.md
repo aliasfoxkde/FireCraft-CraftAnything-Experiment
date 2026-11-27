@@ -191,12 +191,56 @@ capability is included in the current product claims.
 
 **Exit:** repository ownership and release source are explicit; required workflows pass on the exact tag SHA; platform receipts are recorded; site deployment can be traced to source and rolled back.
 
+### Phase 8 — Version history, page output, and publishing
+
+**Goal:** make a design's history and downstream delivery understandable without turning FireCraft into a source-control client or web-hosting service by default.
+
+1. Build on Phase 1's autosave/recovery work to define durable local document snapshots: trigger rules, retention limits, storage location, corruption handling, and the distinction between recovery snapshots and user-named versions.
+2. Add a version browser only after snapshot integrity is proven. Show timestamps, labels, source/current comparison, restore preview, and a reversible restore action; never overwrite the sole good copy.
+3. Keep history local and offline by default. Evaluate optional Git/GitHub integration as a separate adapter with explicit repository selection, credential isolation, conflict behavior, and clear network actions; do not require an account for snapshots.
+4. Define page-layout and PDF use cases before expanding export: multipage/artboard mapping, physical units, bleed/margins, font embedding or substitution, vector/raster preservation, transparency, color profiles, hyperlinks, and accessibility metadata.
+5. Add deterministic PDF and print-output fixtures with visual/text inspection, size/performance bounds, and cancellation/error recovery. Clearly document unsupported PDF import/edit behavior.
+6. Define web-publishing output as a generated, reviewable package first: asset paths, responsive variants, CSS/image export, local preview, manifest, and reproducible output. Keep design export distinct from an in-app website builder.
+7. Evaluate optional deploy adapters for Cloudflare Pages, Vercel, and self-hosted static hosts (including IIS/Apache). Require a dry run, target preview, scoped credentials, explicit publish confirmation, immutable deployment identity, and rollback instructions. Never persist secrets in a document or export bundle.
+8. Treat Dreamweaver-era workflows as interoperability research: export clean assets, CSS snippets, HTML handoff, and predictable filenames. Do not promise a bundled site IDE until a validated user workflow and ownership case justify it.
+
+**Exit:** snapshot/restore tests prove non-destructive recovery; PDF/export acceptance corpus is published; web packages are reproducible; deployment adapters have least-privilege credentials, preview/rollback evidence, and per-host support limits.
+
+### Phase 9 — Provider-based AI and creative assistance
+
+**Goal:** add useful optional AI capabilities without making editing dependent on a provider or obscuring what was generated or transmitted.
+
+1. Extend Phase 30's Intelligence design into a provider-neutral capability inventory: text assistance, image generation/edit/extend, speech-to-text, text-to-speech, and document-aware suggestions. Each capability gets a user story, data-flow diagram, failure behavior, cost model, and explicit decision before implementation.
+2. Define BYOK/provider configuration as a separate secure settings concern: secret storage by platform, provider/model selection, endpoint allowlist, per-capability consent, budget/rate controls, connectivity status, and one-click credential deletion. Never log keys or silently select paid providers.
+3. Require a preview/accept/reject loop for generated images, text, and edits. Store provenance and prompt/model metadata only when the user chooses; make generated assets undoable and distinguish them from authored content.
+4. Design speech features for explicit microphone/playback activation, visible recording state, transcript correction, data-retention controls, accessibility, and offline/provider capability reporting. No background recording or hidden upload.
+5. Keep skills, memory, and scheduled jobs opt-in, inspectable, bounded, cancelable, and auditable. Scheduled work must not access documents, networks, or credentials beyond grants made for that job.
+6. Test provider adapters with deterministic local contract tests, but do not treat mocks as proof of live provider behavior. Report live-provider qualifications only from permitted real calls with consent, bounded cost, and no private document data unless explicitly authorized.
+7. Compare Pixlr and Photopea's web-native interaction patterns, and mainstream vector workflows in Affinity Designer, Illustrator, and Inkscape. Record workflow observations and target-device limitations; do not infer internals, copy assets, or claim parity from screenshots.
+
+**Exit:** each shipped capability has a privacy/data-flow review, user consent and cost controls, keyboard/accessibility coverage, cancellation/error tests, provider-specific support matrix, and an off switch that leaves core editing usable.
+
+### Phase 10 — 3D and expanded workspace research
+
+**Goal:** decide whether lightweight 3D viewing/editing belongs in FireCraft and define a strict boundary if it does.
+
+1. Collect concrete user workflows that need 3D alongside raster/vector design: asset inspection, simple model placement, camera/light staging, material preview, or rendered image compositing. Rank them against core editor work before selecting scope.
+2. Compare embedded viewer, 2.5D compositing, and separate optional 3D editor/provider approaches. Record file-format licensing, GPU requirements, scene/document ownership, undo, accessibility, and project-size implications.
+3. Prototype only a bounded viewer/asset-import spike after a written decision; keep 3D scenes isolated from the 2D document schema until round-trip and performance needs are proven.
+4. Evaluate whether an integrated terminal, SSH client, or AI/IDE workspace solves a demonstrated creator workflow. Treat process launch, remote hosts, filesystem access, credentials, extension scripts, and AI tools as one threat-model surface; prefer launching a user's configured external tool when that meets the need.
+
+**Exit:** a documented continue/defer/reject decision with user evidence, a bounded spike report if accepted, license/security review, and explicit non-goals. No 3D or agent-workbench support is advertised before target-hardware interaction tests.
+
 ## Deferred exploration and boundaries
 
 - **Mobile/touch-first editor:** research and prototype after the tablet input model; do not advertise support without real devices.
 - **Full video editor:** out of scope until the timeline and media pipeline are stable and an owner accepts its storage/performance cost.
 - **AI agents, skills, memories, scheduled jobs:** Phase 30 specifies the expanded Intelligence section before implementation. Keep it opt-in and transparent, with bounded capabilities, explicit permissions, auditable actions, reversible edits, and no fabricated results.
 - **System terminal inside the app:** Phase 30 requires a threat model and ADR before implementation. A terminal can execute arbitrary commands and is a distinct security boundary; define process isolation, consent, environment exposure, cancellation, and output handling first.
+- **Git/GitHub version control:** Phase 8 keeps local snapshots independent; any remote adapter remains opt-in and must isolate credentials and make network writes visible.
+- **PDF/page layout and web publishing:** Phase 8 starts with measurable export/handoff workflows; a full page-layout or web-authoring suite requires separate product evidence.
+- **AI speech and image tools:** Phase 9 treats providers as optional, consented adapters with cost, data-flow, and attribution controls; no provider behavior is represented as live-tested by a mock.
+- **3D modeling/viewing and embedded SSH/AI IDE:** Phase 10 is research and decision work first. The editor remains a 2D raster/vector product unless a bounded 3D use case earns a separately tested scope.
 - **Cloud collaboration and accounts:** not required for local editing; would need a separate privacy, identity, conflict-resolution, and operations plan.
 - **Adobe/Fireworks legacy extensions:** treat as behavioral and API research only. Existing `.jsf`, Flash/SWF panels, undocumented DOM details, and extension code do not imply binary/API compatibility.
 
@@ -210,12 +254,14 @@ The research notes record the source links, observations, licensing caveats, and
 | [BonBon / Libreworks](https://github.com/librebon/BonBon) | Format matrix, shortcut-set inheritance, native-app packaging, and workflow research; GPL-3.0 code remains separate |
 | [Fireworks extension resources](https://github.com/bomberstudios/fireworks), [fwlib](https://github.com/fwextensions/fwlib), [fwconsole](https://github.com/fwextensions/fwconsole), [John Dunning's catalog](https://www.johndunning.com/fireworks/), and [Smashing Magazine extension article](https://www.smashingmagazine.com/2014/06/introduction-to-developing-fireworks-extensions-theyre-just-javascript/) | Extension categories, command discovery, author tooling, API introspection, and community marketplace requirements |
 | [Krita](https://github.com/KDE/krita) | Brush engine, stylus/touch, resource packs, and painting workflow research |
+| [Photopea](https://www.photopea.com/) and [Pixlr](https://pixlr.com/) | Browser-native onboarding, import/export, shortcut discoverability, selection/layer workflows, responsiveness, and offline/network behavior to compare through hands-on scenarios; no parity claims from marketing material |
+| [Affinity Designer](https://www.affinity.studio/), [Adobe Illustrator](https://www.adobe.com/products/illustrator.html), and [Inkscape](https://inkscape.org/) | Vector document, node editing, artboard, typography, color, export, and accessibility workflows; use public product documentation and observable behavior, not copied code/assets |
 | [darktable](https://github.com/darktable-org/darktable) | Non-destructive photo pipeline, color management, RAW workflow, and modular processing architecture |
 | [CorridorKey2.0](https://github.com/nikopueringer/CorridorKey2.0) | Optional greenscreen/keying job integration after license, hardware, model-weight, and process-isolation review |
 | `/nas/Temp/repos/FireCraft` (separate local repository) | Local sibling source of CI, release gates, task ledgers, parity tables, fuzzing, corpus, and accessibility process patterns; see research notes for its exact reviewed revision |
 
 ## User-visible wishlist traceability
 
-The following requests are represented above and must remain traceable in [`TASKS.md`](TASKS.md): tagline and identity; keyboard/help screens; command palette search; public roadmap and done/future feature docs; in-app feedback; app updates/changelog; CS6 menu review; system terminal; Intelligence panel expansion; autosave/recovery; typography/icon/layout consistency; pop-out canvases and file dialogs; styles/layers; sample design page; logo; Windows packages; Cloudflare site and WebAssembly app; repository consolidation; issues/PR/branch hygiene; tutorials/Wiki; Phosphor iconography; extension library/marketplace; brush/touch/mobile; photo/RAW/HDR; timeline/video; CorridorKey; splash, focus/Tab, and clipboard bugs.
+The following requests are represented above and must remain traceable in [`TASKS.md`](TASKS.md): tagline and identity; keyboard/help screens; command palette search; public roadmap and done/future feature docs; in-app feedback; app updates/changelog; CS6 menu review; system terminal; Intelligence panel expansion; autosave/recovery; typography/icon/layout consistency; pop-out canvases and file dialogs; styles/layers; sample design page; logo; Windows packages; Cloudflare site and WebAssembly app; repository consolidation; issues/PR/branch hygiene; tutorials/Wiki; Phosphor iconography; extension library/marketplace; brush/touch/mobile; photo/RAW/HDR; timeline/video; CorridorKey; local/remote version history; PDF/page-layout output; static web publishing and hosting adapters; AI BYOK, image generation/editing, speech input/output; 3D viewing/modeling research; SSH/AI-workbench evaluation; splash, focus/Tab, and clipboard bugs.
 
 This list is a scope index, not a completion checklist. `TASKS.md` records current status, blockers, and acceptance evidence.

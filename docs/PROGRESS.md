@@ -2,6 +2,24 @@
 
 Newest first.
 
+## 2026-11-27 — Browser clipboard reproduction and architecture planning
+
+- Reproduced the reported browser image-paste failure against the v0.3.1 WASM app in headed
+  Chromium under Xvfb. A browser `ClipboardEvent` contained a real PNG file, but the async callback
+  injected `egui::Event::Paste` outside the runner's active input cycle, so the editor reported an
+  empty clipboard.
+- Replaced that transient event injection with a frame-safe queue consumed by the editor before
+  drawing. Rebuilt the locked WASM target with matching `wasm-bindgen` CLI 0.2.130 and repeated the
+  real browser clipboard API + Ctrl+V flow. The PNG appeared as a selected 128×128 bitmap, the
+  status bar reported a successful paste, and the page reported no JavaScript errors.
+- This closes only the browser PNG happy path. Text/internal clipboard, denied permissions, large
+  or malformed images, and native Windows/macOS/Linux clipboards still need separate evidence.
+- Expanding `PRODUCT_ROADMAP.md` and `TASKS.md` before starting speculative product work to cover
+  document history/version snapshots, PDF/page layout, web publishing, provider-based AI media,
+  secure terminal/SSH workflows, 3D exploration, mobile/tablet, and the reference-project matrix.
+  The external architecture skill's scan/report is being used as planning input; no broad refactor
+  is being started ahead of the plan and review build.
+
 ## 2026-11-27 — FireCraft v0.3.1 release and Web deployments
 
 - Published GitHub Release [`v0.3.1`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.1)

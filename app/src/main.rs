@@ -203,6 +203,19 @@ fn main() {
 thread_local! {
     // WebRunner owns the resize observer and animation frame. Keep it alive for the page lifetime.
     static WEB_RUNNER: std::cell::RefCell<Option<eframe::WebRunner>> = const { std::cell::RefCell::new(None) };
+    static BROWSER_PASTE_QUEUE: std::cell::RefCell<Vec<String>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// Queue an asynchronous browser clipboard payload for consumption during the next UI frame.
+#[cfg(target_arch = "wasm32")]
+pub(crate) fn queue_browser_paste(payload: String) {
+    BROWSER_PASTE_QUEUE.with(|queue| queue.borrow_mut().push(payload));
+}
+
+/// Drain image payloads collected by the browser clipboard listener.
+#[cfg(target_arch = "wasm32")]
+pub(crate) fn take_browser_pastes() -> Vec<String> {
+    BROWSER_PASTE_QUEUE.with(|queue| std::mem::take(&mut *queue.borrow_mut()))
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -298,11 +311,7 @@ fn install_browser_image_paste(ctx: eframe::egui::Context) {
                     }
                     let payload =
                         base64::Engine::encode(&base64::engine::general_purpose::STANDARD, bytes);
-                    callback_ctx.input_mut(|input| {
-                        input.events.push(eframe::egui::Event::Paste(format!(
-                            "FIRECRAFT_IMAGE:{payload}"
-                        )));
-                    });
+                    queue_browser_paste(format!("FIRECRAFT_IMAGE:{payload}"));
                     callback_ctx.request_repaint();
                 });
                 reader.set_onload(Some(on_load.unchecked_ref()));
