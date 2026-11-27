@@ -14,6 +14,8 @@
             height: 100%;
             overflow: hidden;
             background: #282828;
+            color: #f3f3f3;
+            font: 15px/1.5 system-ui, sans-serif;
         }
         #firecraft-canvas {
             width: 100%;
@@ -23,6 +25,15 @@
         #firecraft-canvas:focus-visible {
             outline: 2px solid #E8A33D;
             outline-offset: -2px;
+        }
+        #firecraft-fallback {
+            display: grid;
+            box-sizing: border-box;
+            width: 100%;
+            height: 100%;
+            place-content: center;
+            padding: 24px;
+            text-align: center;
         }
         #firecraft-startup-error {
             position: fixed;

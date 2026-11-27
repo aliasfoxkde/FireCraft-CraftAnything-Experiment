@@ -2,6 +2,16 @@
 
 Newest first.
 
+### 2026-11-27 — WASM fallback contrast triage
+
+- The hook flagged two ignored generated WASM `index.html` artifacts. Their startup-error text is
+  already white on `#282828`, but the canvas fallback text inherited the browser's default dark
+  foreground, a real low-contrast case if canvas support is absent.
+- Fixed the source template `app/index.html` with explicit `#f3f3f3` text and centered fallback
+  layout. The contrast is 13.29:1. Impeccable's targeted detector reported no remaining issue in
+  the source. The two ignored output snapshots remain historical generated artifacts; no
+  suppression was added.
+
 ### 2026-11-27 — Canvas tools, cache identity, and validation
 
 - Added Previous Tool (`Shift+Q`) with a state test and keyboard-event harness test.
