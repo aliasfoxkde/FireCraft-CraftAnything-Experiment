@@ -5110,6 +5110,94 @@ mod tests {
     }
 
     #[test]
+    fn flatten_selected_bitmaps_is_pixel_exact_and_undo_restores_sources_and_order() {
+        let bitmap = |name: &str, at: Vec2, rgba: [u8; 4]| {
+            let mut obj = Obj::new(
+                Shape::Bitmap {
+                    at,
+                    pixels: rgba.repeat(16),
+                    size: Vec2::splat(4.0),
+                    pixel_size: Vec2::splat(4.0),
+                },
+                None,
+                None,
+            );
+            obj.name = name.to_string();
+            obj
+        };
+        let mut app = FireCraft::new(None);
+        let layer_idx = app.selected_layer;
+        let originals = vec![
+            bitmap("below", Vec2::new(1.0, 2.0), [0, 255, 0, 255]),
+            bitmap("red", Vec2::new(10.0, 20.0), [255, 0, 0, 255]),
+            bitmap("blue", Vec2::new(12.0, 20.0), [0, 0, 255, 128]),
+            bitmap("above", Vec2::new(30.0, 40.0), [255, 255, 0, 255]),
+        ];
+        app.doc.page_mut().layers[layer_idx].objects = originals.clone();
+        let (page_width, page_height) = (app.doc.page().width, app.doc.page().height);
+        app.selected = Some(2);
+        app.selected_set = vec![2, 1];
+
+        app.flatten_selected_to_bitmap();
+
+        let objects = &app.doc.page().layers[layer_idx].objects;
+        assert_eq!(
+            objects
+                .iter()
+                .map(|obj| obj.name.as_str())
+                .collect::<Vec<_>>(),
+            vec!["below", "Flattened Bitmap (6×4)", "above"],
+            "the flattened bitmap must occupy the selected objects' stack position"
+        );
+        let Shape::Bitmap {
+            at,
+            pixels,
+            size,
+            pixel_size,
+        } = &objects[1].kind
+        else {
+            panic!("flattening should produce a bitmap");
+        };
+        assert_eq!(*at, Vec2::new(10.0, 20.0));
+        assert_eq!(*size, Vec2::new(6.0, 4.0));
+        assert_eq!(*pixel_size, Vec2::new(6.0, 4.0));
+        assert_eq!(pixels.len(), 6 * 4 * 4);
+        assert_eq!(&pixels[0..4], &[255, 0, 0, 255]);
+        assert_eq!(
+            &pixels[8..12],
+            &[127, 0, 128, 255],
+            "the later blue bitmap must source-over the earlier red bitmap"
+        );
+        assert_eq!(&pixels[16..20], &[0, 0, 255, 128]);
+        assert_eq!(
+            (app.doc.page().width, app.doc.page().height),
+            (page_width, page_height),
+            "flattening must not change the document canvas dimensions"
+        );
+        let flattened_pixels = pixels.clone();
+
+        app.undo_action();
+        assert_eq!(app.doc.page().layers[layer_idx].objects, originals);
+        assert_eq!(
+            (app.doc.page().width, app.doc.page().height),
+            (page_width, page_height),
+            "undo must restore the page dimensions"
+        );
+        app.redo_action();
+        let Shape::Bitmap {
+            pixels: redone_pixels,
+            ..
+        } = &app.doc.page().layers[layer_idx].objects[1].kind
+        else {
+            panic!("redo should restore the flattened bitmap");
+        };
+        assert_eq!(
+            redone_pixels, &flattened_pixels,
+            "redo must restore exact composite bytes"
+        );
+    }
+
+    #[test]
     fn smart_snapping_aligns_object_to_canvas_center_and_guides() {
         let app = FireCraft::new(None);
         assert!(app.snap_to_guides);

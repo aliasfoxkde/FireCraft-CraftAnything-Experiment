@@ -2,6 +2,33 @@
 
 Newest first.
 
+### 2026-11-27 — TDD: pixel-exact bitmap flatten and undo contract
+
+- Added `flatten_selected_bitmaps_is_pixel_exact_and_undo_restores_sources_and_order` at the app
+  behavior seam. It verifies selection order does not change stack placement, source-over alpha
+  composition is exactly `[127, 0, 128, 255]`, the composite uses the expected origin and 6×4
+  bounds, page dimensions remain stable, undo restores the original objects and bytes, and redo
+  restores the exact composite bytes. The focused test passes; no production mismatch was found,
+  so this closes a test-coverage gap without changing raster behavior.
+- Verification: the focused test passed; `cargo test --locked` passed 189 unit tests, 12 CLI tests,
+  5 hygiene tests, and 10 MCP tests (one isolated frame-time test ignored); strict all-target
+  Clippy (`-D warnings`), WASM target check, rustfmt, `git diff --check`, the 63-file docs/link
+  checker, module-size gate, and `cargo machete` passed. `cargo audit` completed with 13 allowed
+  transitive advisories (9 unsound `heapless 0.8.0` notices and 4 unmaintained-crate notices);
+  dependency task 38.6 remains open. `cargo update -p rstar` confirmed no compatible lockfile update
+  under the current `geo 0.33.1` constraints. Exact PR-head coverage artifact from
+  [run 46036827007](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/46036827007)
+  measures 18,496 / 26,504 = **69.79%** lines; branch counters are 0/0 and 99% is not met.
+- The first targeted Cargo invocation used `--lib`, which is invalid for this binary-only crate and
+  exited before compilation. The corrected focused command omitted `--lib` and passed. A red-before
+  behavior failure was not claimed because production behavior already met the newly asserted
+  contract; the added test is a regression guard for the previously untested exact output.
+- GitForge accepted the branch push, but the current local service snapshot from
+  `/nas/Temp/repos/GitForge/scripts/gitforge-status --json` is `degraded`: the deployed build
+  `gitforge-989b33e2-20260925` is 273 commits behind its local `origin/main`. No passing GitForge
+  receipt is claimed for this test branch; TASK 28.2 remains open. The current GitHub PR checks are
+  the executable hosted validation for this change.
+
 ### 2026-11-27 — marketing deployment and repository closeout follow-up
 
 - Merged the v0.3.5 audit/task documentation as [PR #40](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/40). Gates, coverage upload, Windows build/CLI smoke, WASM build, and Analyze Rust passed.
