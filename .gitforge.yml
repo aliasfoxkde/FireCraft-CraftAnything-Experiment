@@ -7,20 +7,13 @@ version: "1.0"
 trigger_on:
   - push
   - pull_request
-environment: {}
+environment:
+  CARGO_NET_OFFLINE: "true"
 jobs:
   - name: gates
-    image: rust:1.100-bookworm
+    image: firecraft-ci-rust:3
     timeout: 90m
     steps:
-      - name: Install system dependencies and Rust targets
-        run: |
-          set -e
-          apt-get update -qq
-          apt-get install -y -qq libxcb-render0-dev libxcb-shape0-dev \
-            libxcb-xfixes0-dev libxkbcommon-dev libssl-dev
-          rustup component add rustfmt clippy
-          rustup target add wasm32-unknown-unknown
       - name: Run local CI gates
         run: ./scripts/ci-local.sh --quick
       - name: Build the WebAssembly release

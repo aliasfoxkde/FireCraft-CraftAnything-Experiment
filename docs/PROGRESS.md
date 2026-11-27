@@ -6,10 +6,28 @@ Newest first.
 
 - Added `join_orders_three_paths_by_proximity_instead_of_selection_order`. The red run failed with connector lengths `[100.0, 12.0]` for paths selected in spatially poor order. After independent review, tightened the regression to assert the complete expected six-point chain so every source segment and connector order is checked; that focused test passes.
 - `combine_paths_op("join")` now selects the closest endpoint pair as the initial chain, then appends each remaining contour from the endpoint nearest the current tail. Equal distances use stable contour order and orientation tie-breaks; two-path behavior and open-path state are preserved.
-- Green verification: `cargo test --locked` passed 188 unit tests, 12 CLI tests, 4 hygiene tests, and 10 MCP tests; one isolated frame-time test remains ignored. Strict Clippy, formatting, `git diff --check`, and `scripts/check-docs.sh` (60 files) passed. Native visual path-tool acceptance, compound Boolean outputs with holes/disconnected contours, and full renderer/export parity remain open.
-- Exact PR head `10024a9992008fe01b62431e9785fffeaa49557b` passed hosted Gates, coverage, WASM, and CodeQL. Windows build/CLI smoke is still running; CodeRabbit is skipped. Review build/release publication and native GUI acceptance remain separate gates.
-- Follow-up exact-head run for `1600d761333ba1ddab19e6b75455805a108ffdaa`: Gates, coverage, WASM, and Windows build/CLI smoke passed; CodeQL is pending and CodeRabbit is skipped. Cobertura run [46007345363](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/46007345363) reports 18,425 / 26,445 = 69.67% line coverage, with no branch counters (0/0).
+- Green verification: `cargo test --locked` passed 188 unit tests, 12 CLI tests, 4 hygiene tests, and 10 MCP tests; one isolated frame-time test remains ignored. Strict Clippy, formatting, `git diff --check`, and `scripts/check-docs.sh` (60 files) passed. Exact merged PR #36 head passed Gates, coverage, WASM, Windows build/CLI smoke, and CodeQL; CodeRabbit is skipped. Native visual path-tool acceptance, compound Boolean outputs with holes/disconnected contours, and full renderer/export parity remain open.
+- Cobertura run [46007345363](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/46007345363) for source `1600d761333ba1ddab19e6b75455805a108ffdaa` reports 18,425 / 26,445 = 69.67% line coverage; branch counters are absent (0/0).
 - The passing Windows workflow artifact was copied to `output/review-pr-36/firecraft-v0.3.4-windows-x86_64.zip`; SHA-256 `f3dcd4e5adb6ffbd62c2d6c904b35a871ae9e9b9466f93f36e888619f158d89f`. Its `BUILD-INFO.txt` source is the workflow's PR merge ref `27ecf1aed0064db675b997d63ca92ce8418f4c94` (parents: main `5d65027` and PR head `1600d76`). This is a review artifact carrying the current release version string, not a replacement release; native Windows GUI acceptance remains with the reviewer.
+
+### 2026-11-27 — Offline GitForge CI image
+
+- Added a FireCraft CI image build definition and script using a digest-pinned Rust 1.100 base,
+  baked `rustfmt`, Clippy, the WASM target, Linux native headers, and dependencies from the locked
+  Cargo manifest. `.gitforge.yml` now uses this image and declares Cargo offline; job steps no
+  longer install OS packages, Rust components, targets, or crates.
+- Built local image `firecraft-ci-rust:3`, ID
+  `sha256:45d384318f910a9fd6efdd9d205b8d512177c6649e1816331f6c2864aa4dcb51`; its Cargo lock
+  label is `27a923efe41aa380a23c452c86b921dbf38b23a698878b5473a9d64500756bdd`. The offline
+  `scripts/ci-local.sh --quick` run passed: fmt, strict Clippy, 187 unit tests, 12 CLI tests,
+  4 hygiene tests, 10 MCP tests, the isolated frame-time test, all 60 documentation files, and
+  the module-size gate. One timing test remains ignored in the ordinary suite and passed in its
+  isolated run.
+- `cargo build --release --locked --target wasm32-unknown-unknown` passed with Docker
+  `--network none`; produced a 14 MiB WASM artifact. Local image validation does not yet prove
+  the GitForge runner can access this Docker image tag. A successful GitForge receipt remains
+  open in TASK 28.2; if runner and build host do not share an image store, the image must be
+  pushed to a runner-accessible registry and the pipeline tag updated.
 
 ### 2026-11-27 — Gradient SVG axis export TDD (PR #34 merged)
 
