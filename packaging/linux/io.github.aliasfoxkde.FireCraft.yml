@@ -3,6 +3,10 @@ runtime: org.freedesktop.Platform
 runtime-version: '26.08'
 sdk: org.freedesktop.Sdk
 command: firecraft
+# Ubuntu 22.04 ships flatpak-builder 1.2, which invokes the removed
+# appstream-compose tool for the 24.08+ Freedesktop SDK. Keep the installed
+# metainfo file in the app bundle and let catalog generation happen downstream.
+appstream-compose: false
 finish-args:
   - --share=ipc
   - --socket=x11
