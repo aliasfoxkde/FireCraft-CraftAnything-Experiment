@@ -21,6 +21,11 @@ Newest first.
   exited before compilation. The corrected focused command omitted `--lib` and passed. A red-before
   behavior failure was not claimed because production behavior already met the newly asserted
   contract; the added test is a regression guard for the previously untested exact output.
+- GitForge accepted the branch push, but the current local service snapshot from
+  `/nas/Temp/repos/GitForge/scripts/gitforge-status --json` is `degraded`: the deployed build
+  `gitforge-989b33e2-20260925` is 273 commits behind its local `origin/main`. No passing GitForge
+  receipt is claimed for this test branch; TASK 28.2 remains open. The current GitHub PR checks are
+  the executable hosted validation for this change.
 
 ### 2026-11-27 — v0.3.5 release candidate and TDD follow-up
 
