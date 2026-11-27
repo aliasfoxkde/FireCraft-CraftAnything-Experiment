@@ -2,11 +2,12 @@
 
 Newest first.
 
-### 2026-11-27 — Gradient SVG axis export TDD (implementation in progress)
+### 2026-11-27 — Gradient SVG axis export TDD (PR #34 merged)
 
 - Added a vector-export regression that failed because per-object gradients were omitted from SVG; after adding `userSpaceOnUse` gradient definitions, a second regression caught duplicate gradient IDs when objects on separate layers reused local indices. SVG object IDs now come from one traversal counter, including grouped objects.
 - The gradient axis endpoints are projected from normalized object bounds into document-space SVG coordinates. Zero-length axes export a stable midpoint color. Focused SVG tests cover object-axis coordinates, stops, unique IDs across layers, and the inline SVG included by HTML export. Standalone CSS output still ignores editable gradient axes. Multiple stops, explicit linear/radial controls, broader geometry/concave path validation, and visual acceptance remain open.
-- Local verification passed: the full native suite (213 passed, 1 isolated timing test ignored), strict Clippy, WASM check, formatting, whitespace, and the 60-file docs/link check. Hosted PR checks remain pending for this follow-up.
+- Local verification passed: the full native suite (213 passed, 1 isolated timing test ignored), strict Clippy, WASM check, formatting, whitespace, and the 60-file docs/link check. Exact PR head `7b23745118666591948e135c0d69a5d3c5288c0a` passed Gates, Rust coverage, WASM, Windows build/CLI smoke, and CodeQL. PR [#34](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/34) merged as `f775b8d7a3c2edc6d812252dafde4a756916831e`.
+- Exact-head Cobertura artifact for run [46000312418](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/46000312418) measures 18,341 / 26,355 = **69.59%** lines. Branch counters are absent (0/0); this remains below 99% and does not establish behavioral or documentation coverage.
 
 
 ### 2026-11-27 — Gradient direction editing TDD (PR #32 merged; task partial)
