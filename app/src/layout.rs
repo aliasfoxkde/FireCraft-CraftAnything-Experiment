@@ -44,7 +44,7 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
 
     shortcuts(ui, app);
 
-    // 1. Top Menu Bar (10 CS6 menus + Bridge/Hand/Zoom/Resolution/Theme/Workspace mode selector)
+    // 1. CS6 menu bar plus familiar file, hand, zoom and workspace controls.
     egui::Panel::top("menu")
         .exact_size(26.0)
         .frame(
@@ -806,13 +806,6 @@ fn main_toolbar(ui: &mut Ui, app: &mut FireCraft) {
             app.flip_vertical();
         }
         ui.separator();
-        if ui
-            .small_button("Demo Showcase")
-            .on_hover_text("Populate canvas with a Fireworks CS6 vector + live-effect UI showcase")
-            .clicked()
-        {
-            app.load_demo_showcase();
-        }
     });
 }
 
@@ -1452,9 +1445,9 @@ fn right_dock(ui: &mut Ui, app: &mut FireCraft) {
 
 /// Scrolling tool sections plus an always-visible footer pinned to the bottom of the rail.
 fn tools_dock_contents(ui: &mut Ui, app: &mut FireCraft, scroll_id: &str) {
-    let footer_h = 30.0;
+    let footer_h = ui.available_height().min(30.0);
     let total_h = ui.available_height();
-    let body_h = (total_h - footer_h).max(90.0);
+    let body_h = (total_h - footer_h).max(0.0);
     ui.allocate_ui_with_layout(
         Vec2::new(ui.available_width(), body_h),
         egui::Layout::top_down(egui::Align::Min),

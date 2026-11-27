@@ -775,8 +775,7 @@ fn canvas_context_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
                         app.copy_selected_css();
                         close_menu = true;
                     }
-                    let has_clipboard = app.clipboard.is_some() || !app.clipboard_set.is_empty();
-                    if ctx_menu_row(ui, p, has_clipboard, "Paste", "Ctrl+V") {
+                    if ctx_menu_row(ui, p, true, "Paste", "Ctrl+V") {
                         app.paste();
                         close_menu = true;
                     }
@@ -1060,7 +1059,7 @@ fn canvas_context_menu(ui: &mut egui::Ui, app: &mut FireCraft) {
                             close_menu = true;
                         }
                         ui.separator();
-                        if ctx_menu_row(ui, p, true, "Load 1080p Demo Showcase", "") {
+                        if ctx_menu_row(ui, p, true, "Load Studio Showcase Demo", "") {
                             app.load_demo_showcase();
                             close_menu = true;
                         }
@@ -1188,16 +1187,30 @@ fn render_viewport(
     }
 
     if !badge.is_empty() {
+        let badge_font = FontId::proportional(11.0);
+        let badge_text = elide_to_width(
+            &clip_vp,
+            badge,
+            &badge_font,
+            (viewport_rect.width() - 32.0).max(24.0),
+        );
+        let text_width = clip_vp
+            .layout_no_wrap(badge_text.clone(), badge_font.clone(), Color32::WHITE)
+            .size()
+            .x;
         let badge_rect = Rect::from_min_size(
             pos2(viewport_rect.left() + 8.0, viewport_rect.top() + 8.0),
-            Vec2::new(badge.len() as f32 * 6.5 + 16.0, 20.0),
+            Vec2::new(
+                (text_width + 16.0).min((viewport_rect.width() - 16.0).max(0.0)),
+                20.0,
+            ),
         );
         clip_vp.rect_filled(badge_rect, 3.0, Color32::from_black_alpha(175));
         clip_vp.text(
             badge_rect.center(),
             Align2::CENTER_CENTER,
-            badge,
-            FontId::proportional(11.0),
+            badge_text,
+            badge_font,
             Color32::WHITE,
         );
     }
@@ -2002,10 +2015,15 @@ fn draw_obj(
         if app.tool == Tool::Subselect
             && let Shape::Path { points, .. } = &obj.kind
         {
-            for p in points {
+            for (node_idx, p) in points.iter().enumerate() {
                 let sp = to_screen(origin, zoom, *p);
                 let nr = Rect::from_center_size(sp, Vec2::splat(6.0));
-                painter.rect_filled(nr, 1.0, app.palette.accent);
+                let color = if app.selected_path_nodes.contains(&node_idx) {
+                    app.palette.selection
+                } else {
+                    app.palette.accent
+                };
+                painter.rect_filled(nr, 1.0, color);
                 painter.rect_stroke(
                     nr,
                     1.0,
@@ -2598,6 +2616,34 @@ mod tests {
         assert!(
             output.shapes.len() > 100,
             "expected overlays and gradient bands to paint"
+        );
+        output.textures_delta.clear();
+    }
+
+    #[test]
+    fn preview_badge_elides_to_the_available_canvas_width() {
+        let ctx = egui::Context::default();
+        let mut output = ctx.run_ui(
+            egui::RawInput {
+                screen_rect: Some(Rect::from_min_size(Pos2::ZERO, Vec2::new(220.0, 80.0))),
+                ..Default::default()
+            },
+            |ui| {
+                let font = FontId::proportional(11.0);
+                let badge = elide_to_width(
+                    ui.painter(),
+                    "Preview: PNG · ~12345678901234567890 KB",
+                    &font,
+                    60.0,
+                );
+                let width = ui
+                    .painter()
+                    .layout_no_wrap(badge.clone(), font, Color32::WHITE)
+                    .size()
+                    .x;
+                assert!(width <= 60.0);
+                assert!(badge.ends_with('…'));
+            },
         );
         output.textures_delta.clear();
     }

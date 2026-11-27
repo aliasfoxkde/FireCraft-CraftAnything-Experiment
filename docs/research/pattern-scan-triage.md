@@ -5,6 +5,27 @@
 **Input:** `/tmp/firecraft-atheon-scan.json` (Atheon-Enhanced pattern scan)
 **Disposition:** Initial manual triage of every distinct critical/high rule, using the scan's reported matches and representative source context. This is not a clean bill of health or a substitute for a dedicated security review.
 
+## Follow-up source scan (2026-11-27)
+
+A second scoped Atheon scan ran against `app/src` at source SHA `0915d405e7e80a844fb5ee0e74b8619fd1523257`.
+It reported **3,983 heuristic matches in 34 files** with scanner risk score 100: 86 critical, 79 high,
+1,469 medium, and 2,349 low. Categories were 2,395 code-quality, 838 devops, 297 data-visualization,
+214 cloud-native, 128 Rust, 47 supply-chain, 32 performance, 11 AI-detection, 8 accessibility,
+5 security-hardening, 4 web-development, 2 git hygiene, and 2 PII. Leading rules were magic-number
+(2,138), dockerfile (829), chart-accessibility (296), container-no-tag (213), unused-variable (98),
+and sql-concatenation (86).
+
+This is a source-only, heuristic scan and not a security verdict. Several categories appear unrelated
+to this Rust GUI source (Docker, chart accessibility); the previous SQL false-positive analysis still
+applies, but the changed counts require a fresh context-aware review before rule-level conclusions.
+The scan happened before the current uncommitted WebRunner/paste changes. No medium/low findings were
+individually triaged, and no clean result is claimed. Raw output is retained at
+`/tmp/firecraft-atheon-src-2026-11-27.json` for local follow-up, not committed because it includes
+large generated scanner detail.
+
+The Aegis scan remains unavailable: managed admission still does not expose the required `aegis-scan`
+profile. The Aegis repository test profile is not a substitute for scanning FireCraft.
+
 ## Summary
 
 The scan reported 3,747 matches in `app/src`: 83 critical, 75 high, 1,383 medium, and 2,206 low (risk score is scanner-derived). All critical/high results fall into seven rule patterns. Most are clear heuristic mismatches: the scanner masks snippets so aggressively that ordinary Rust tokens such as `match`, `Rect`, `self`, and UI strings appear as SQL or package names. The unsafe-code rule correctly identifies unsafe Rust and therefore remains a review signal even though the project intentionally confines Windows COM interop to one module. The contact-data rules point to an intentional support email and a Windows COM GUID, respectively.

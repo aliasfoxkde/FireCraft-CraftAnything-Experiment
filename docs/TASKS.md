@@ -234,10 +234,10 @@ automated proof, not another manual pass.
 
 ## Phase 29 — v0.3.0 public multi-platform release
 
-- [ ] **29.1** Build and package Windows x64, macOS universal (arm64 + x86_64), Linux x86_64 tar.gz/DEB/AppImage/Flatpak, and WebAssembly ZIP from the same matching `v0.3.0` tag.
-- [ ] **29.2** Smoke-test each package, validate package inventories and executable versions, and create a source-SHA artifact manifest plus SHA-256 checksums.
-- [ ] **29.3** Run release workflow on public GitHub-hosted runners; resolve startup or build failures and require every platform job to pass.
-- [ ] **29.4** Publish the GitHub Release and deploy the exact WASM build only after the aggregate release gate passes.
+- [x] **29.1** Build and package Windows x64, macOS universal (arm64 + x86_64), Linux x86_64 tar.gz/DEB/AppImage/Flatpak, and WebAssembly ZIP from the same matching `v0.3.0` tag. *(Source `e415a333`; all eight platform assets published.)*
+- [x] **29.2** Smoke-test each package, validate package inventories and executable versions, and create a source-SHA artifact manifest plus SHA-256 checksums. *(All package jobs and published asset SHA-256 checks passed; source and release manifests published.)*
+- [x] **29.3** Run release workflow on public GitHub-hosted runners; resolve startup or build failures and require every platform job to pass. *(Final workflow run #81, attempt 3 passed all jobs.)*
+- [x] **29.4** Publish the GitHub Release and deploy the exact WASM build only after the aggregate release gate passes. *(Release `v0.3.0` and Pages deployment completed.)*
 - [ ] **29.5** Record macOS Developer ID signing/notarization status; publish as unsigned only with an explicit artifact note if credentials are unavailable.
 - [ ] **29.6** Collect Windows 11, macOS, and Linux native-user review; distinguish build/smoke evidence from user acceptance/certification.
 
@@ -257,3 +257,12 @@ automated proof, not another manual pass.
 - [ ] **31.5** Build the public catalog and community submission workflow with identity/ownership, license and policy review, automated validation, moderation, security reports, takedown/advisory process, and official promotion criteria.
 - [ ] **31.6** Add one-click in-app discovery/install/update only after package validation and capability consent pass; test interrupted installs, tampering, API mismatch, permission escalation, rollback, and no-network/offline operation.
 - [ ] **31.7** Publish extension author and user tutorials, API reference, trust-tier policy, privacy/data behavior, support matrix, changelog, and an extension security response process.
+
+## Phase 32 — UI fit, dialogs, clipboard, and Web performance follow-up
+
+- [ ] **32.1** Verify image/text/internal clipboard paste on Windows, macOS, Linux, and browser WASM; test browser `ClipboardEvent` permission and focus behavior, malformed images, and large clipboard payloads. *(Partial 2026-11-27: native bitmap-paste helper has valid/invalid input tests; browser clipboard write of a real PNG works, but this headless host fails ResizeObserver even for a static fixture, so it cannot prove application rendering/paste. Keep open for a capable browser and platform sessions.)*
+- [ ] **32.2** Re-audit every top-level CS6 menu against the checked-in screenshots; inventory absent/partial actions, add behavior or mark unsupported, and verify submenu keyboard/mouse navigation and tool flyout hover details.
+- [ ] **32.3** Rework file Open/Save/Import/Export window UX toward familiar OS file-browser behavior; decide native OS picker vs in-app parity per platform, then validate resize, small screens, keyboard, filters, overwrite, and cancellation flows.
+- [ ] **32.4** Review the full workspace at 960×640, 1360×860, and browser sizes; fix spacing, alignment, panel overflow, focus, and pop-out canvas issues with before/after captures.
+- [ ] **32.5** Profile browser rendering with realistic documents and large folders; record frame, input-to-paint, memory, startup, and export baselines before adding optimization complexity.
+- [ ] **32.6** Validate swatch grid density, selection hit targets, keyboard alternative, and contrast in docked and floating panel states.

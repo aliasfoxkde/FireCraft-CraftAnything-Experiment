@@ -24,6 +24,21 @@
             outline: 2px solid #E8A33D;
             outline-offset: -2px;
         }
+        #firecraft-startup-error {
+            position: fixed;
+            inset: 0;
+            display: grid;
+            place-content: center;
+            gap: 12px;
+            padding: 24px;
+            background: #282828;
+            color: #f3f3f3;
+            font: 15px/1.5 system-ui, sans-serif;
+            text-align: center;
+        }
+        #firecraft-startup-error[hidden] {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -33,9 +48,17 @@
         It requires WebAssembly and WebGL2 in your browser.
     </span>
 </canvas>
+<div id="firecraft-startup-error" role="alert" aria-live="assertive" hidden></div>
 <script type="module">
     import init from './firecraft.js';
-    init('./firecraft_bg.wasm');
+    init({ module_or_path: './firecraft_bg.wasm' }).catch((error) => {
+        console.error('FireCraft WebAssembly failed to initialize', error);
+        const message = document.getElementById('firecraft-startup-error');
+        if (message) {
+            message.textContent = 'FireCraft could not load. Refresh the page or use a browser with WebAssembly and WebGL2 enabled.';
+            message.hidden = false;
+        }
+    });
 </script>
 </body>
 </html>

@@ -200,6 +200,12 @@ fn main() {
 }
 
 #[cfg(target_arch = "wasm32")]
+thread_local! {
+    // WebRunner owns the resize observer and animation frame. Keep it alive for the page lifetime.
+    static WEB_RUNNER: std::cell::RefCell<Option<eframe::WebRunner>> = const { std::cell::RefCell::new(None) };
+}
+
+#[cfg(target_arch = "wasm32")]
 fn main() {
     use wasm_bindgen::JsCast as _;
 
@@ -216,15 +222,100 @@ fn main() {
             .expect("#firecraft-canvas was not a HtmlCanvasElement");
 
         let web_options = eframe::WebOptions::default();
-        let _ = eframe::WebRunner::new()
+        let runner = eframe::WebRunner::new();
+        let start_result = runner
             .start(
                 canvas,
                 web_options,
                 Box::new(|cc| {
                     icons::install_phosphor_font(&cc.egui_ctx);
+                    install_browser_image_paste(cc.egui_ctx.clone());
                     Ok(Box::new(app::FireCraft::new(None)))
                 }),
             )
             .await;
+        WEB_RUNNER.with(|slot| slot.replace(Some(runner)));
+        if let Err(error) = start_result {
+            web_sys::console::error_1(&error);
+            if let Some(message) = document.get_element_by_id("firecraft-startup-error") {
+                let detail = error.as_string().unwrap_or_else(|| {
+                    "The browser could not initialize the graphics renderer.".to_string()
+                });
+                message.set_text_content(Some(&format!(
+                    "FireCraft could not start. Try refreshing the page or using a browser with WebGL2 enabled. Details: {detail}"
+                )));
+                if let Ok(message) = message.dyn_into::<web_sys::HtmlElement>() {
+                    message.set_hidden(false);
+                }
+            }
+        }
     });
+}
+
+/// Browser clipboard paste events expose image blobs through DataTransfer rather than
+/// egui's text-only `Event::Paste`. Read those blobs asynchronously and feed the bytes
+/// into the same paste action path as text clipboard events.
+#[cfg(target_arch = "wasm32")]
+fn install_browser_image_paste(ctx: eframe::egui::Context) {
+    use wasm_bindgen::{JsCast as _, closure::Closure};
+
+    let Some(document) = web_sys::window().and_then(|window| window.document()) else {
+        return;
+    };
+    let on_paste = Closure::<dyn FnMut(web_sys::ClipboardEvent)>::new(
+        move |event: web_sys::ClipboardEvent| {
+            let Some(items) = event.clipboard_data().map(|data| data.items()) else {
+                return;
+            };
+            for index in 0..items.length() {
+                let Some(item) = items.get(index) else {
+                    continue;
+                };
+                if !item.type_().starts_with("image/") {
+                    continue;
+                }
+                let Ok(Some(file)) = item.get_as_file() else {
+                    continue;
+                };
+                event.prevent_default();
+                let Ok(reader) = web_sys::FileReader::new() else {
+                    continue;
+                };
+                let callback_ctx = ctx.clone();
+                let on_load = Closure::once_into_js(move |load_event: web_sys::Event| {
+                    let Some(reader) = load_event
+                        .target()
+                        .and_then(|target| target.dyn_into::<web_sys::FileReader>().ok())
+                    else {
+                        return;
+                    };
+                    let Ok(result) = reader.result() else {
+                        return;
+                    };
+                    let bytes = js_sys::Uint8Array::new(&result).to_vec();
+                    if bytes.is_empty() {
+                        return;
+                    }
+                    let payload =
+                        base64::Engine::encode(&base64::engine::general_purpose::STANDARD, bytes);
+                    callback_ctx.input_mut(|input| {
+                        input.events.push(eframe::egui::Event::Paste(format!(
+                            "FIRECRAFT_IMAGE:{payload}"
+                        )));
+                    });
+                    callback_ctx.request_repaint();
+                });
+                reader.set_onload(Some(on_load.unchecked_ref()));
+                if reader.read_as_array_buffer(&file).is_ok() {
+                    break;
+                }
+            }
+        },
+    );
+    if document
+        .add_event_listener_with_callback("paste", on_paste.as_ref().unchecked_ref())
+        .is_ok()
+    {
+        on_paste.forget();
+    }
 }

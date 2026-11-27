@@ -1,7 +1,8 @@
 # File Browser
 
-The Open / Save / Import / Export browser is an in-app resizable window, not a separate native
-viewport.
+The Open / Save / Import / Export browser is a resizable in-app window, not a separate native
+viewport. It follows familiar desktop file-browser structure while keeping document actions in the
+editor's event loop.
 
 ## Why in-app
 
@@ -22,6 +23,10 @@ loop and one style, and allows the address bar and app state to update immediate
 - **File list** — dense Name / Type / Size / Modified columns; double-click a file to confirm.
 - **Footer** — filename, format-specific quality/transparency controls, estimated size, primary
   action, Cancel.
+- **Window bounds** — the default window is 760×500 px and is clamped to the available display;
+  long directories scroll inside the file list and do not grow the dialog. Only visible file rows
+  are laid out, so size and modification metadata is read only for visible rows instead of the
+  entire directory on every frame.
 
 ## Behavior rules
 
@@ -41,3 +46,9 @@ loop and one style, and allows the address bar and app state to update immediate
 - Serialization: `formats.rs`
 
 Do not put format parsing or document mutation in the browser UI.
+
+## Known follow-up
+
+The file browser is not a native OS picker. Native-picker parity, browser-specific picker and
+download behavior, accessible row navigation, and interactive checks on Windows/macOS/Linux remain
+open in the task ledger. Do not claim those platform behaviors from the shared egui implementation.

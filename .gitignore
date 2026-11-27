@@ -108,6 +108,9 @@ pnpm-debug.log*
 .vite/
 .wrangler/
 next-env.d.ts
+/output/
+/.playwright-cli/
+/.impeccable/hook.cache.json
 
 # ---------------------------------------------------------------------------
 # Editors, IDEs, OS

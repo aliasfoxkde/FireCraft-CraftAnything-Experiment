@@ -459,6 +459,8 @@ pub struct FireCraft {
     pub swatches: Vec<Color32>,
     pub selected: Option<usize>,
     pub selected_set: Vec<usize>,
+    /// Anchor indices selected with the Subselection tool on the active path.
+    pub selected_path_nodes: Vec<usize>,
     pub selected_extra_layers: Vec<(usize, usize)>,
     pub selected_layer: usize,
     pub context_menu_pos: Option<egui::Pos2>,
@@ -639,6 +641,7 @@ impl FireCraft {
             swatches: colors::swatch_grid(),
             selected: None,
             selected_set: Vec::new(),
+            selected_path_nodes: Vec::new(),
             selected_extra_layers: Vec::new(),
             selected_layer: 0,
             context_menu_pos: None,
@@ -1521,6 +1524,7 @@ impl FireCraft {
     pub fn select_single(&mut self, idx: Option<usize>) {
         self.selected = idx;
         self.selected_set = idx.into_iter().collect();
+        self.selected_path_nodes.clear();
         self.selected_extra_layers.clear();
     }
 
@@ -1537,6 +1541,7 @@ impl FireCraft {
     pub fn clear_selection(&mut self) {
         self.selected = None;
         self.selected_set.clear();
+        self.selected_path_nodes.clear();
         self.selected_extra_layers.clear();
     }
 
@@ -2030,8 +2035,29 @@ impl FireCraft {
                     if let Some((node_idx, _)) = points
                         .iter()
                         .enumerate()
-                        .find(|(_, pt)| (**pt - raw_doc_pos).length() <= tol)
+                        .filter(|(_, pt)| (**pt - raw_doc_pos).length() <= tol)
+                        .min_by(|(_, a), (_, b)| {
+                            (**a - raw_doc_pos)
+                                .length_sq()
+                                .total_cmp(&(**b - raw_doc_pos).length_sq())
+                        })
                     {
+                        if shift {
+                            if let Some(pos) = self
+                                .selected_path_nodes
+                                .iter()
+                                .position(|&selected| selected == node_idx)
+                            {
+                                self.selected_path_nodes.remove(pos);
+                                self.status = format!("Deselected anchor {}", node_idx + 1);
+                                return;
+                            } else {
+                                self.selected_path_nodes.push(node_idx);
+                            }
+                        } else if !self.selected_path_nodes.contains(&node_idx) {
+                            self.selected_path_nodes.clear();
+                            self.selected_path_nodes.push(node_idx);
+                        }
                         self.push_undo("Move Path Node");
                         self.drag = Some(Drag {
                             kind: DragKind::MoveNode(node_idx),
@@ -4756,7 +4782,7 @@ mod tests {
     }
 
     #[test]
-    fn convert_to_path_works_for_shapes_and_text() {
+    fn convert_to_path_converts_shapes_and_preserves_unsupported_text() {
         let mut app = FireCraft::new(None);
         let layer_idx = app.selected_layer;
         app.doc.page_mut().layers[layer_idx].objects.push(Obj::new(
@@ -4792,8 +4818,9 @@ mod tests {
         app.convert_selected_to_path();
         assert!(matches!(
             app.selected_object().unwrap().kind,
-            Shape::Path { closed: true, .. }
+            Shape::Text { .. }
         ));
+        assert!(app.status.contains("Text outlines are not available"));
     }
 
     #[test]

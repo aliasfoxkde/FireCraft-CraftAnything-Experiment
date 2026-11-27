@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "app/index.html"
+        ],
+        "createdAt": "2026-11-27T02:58:34.440Z",
+        "reason": "False positive: the startup error uses #f3f3f3 on #282828, measured contrast ratio 13.29:1, above WCAG AA and AAA thresholds."
+      }
+    ]
+  }
+}
