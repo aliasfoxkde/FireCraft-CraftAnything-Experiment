@@ -222,7 +222,7 @@ automated proof, not another manual pass.
 - [ ] **28.1** Repair GitHub Actions failures and establish a passing required-check baseline on the exact target revision.
 - [ ] **28.2** Validate FireCraft CI through local GitForge only after fleet freshness, runner activity, and semantic check results are confirmed.
 - [ ] **28.3** Create a safe issue/PR/branch disposition ledger; test branch candidates and dependency updates before merging; remove stale branches only after ownership and remote-use review.
-- [ ] **28.4** Decide and execute experiment-to-root-repository consolidation with explicit source-of-truth, history/PR/issue mapping, and rollback plan.
+- [x] **28.4** Set the experiment repository as the canonical FireCraft product; retain the former root FireCraft repository as a historical donor/reference source. *(Direction decision recorded 2026-11-26 in PRIMARY-REPO-RESET-AND-CONSOLIDATION-PLAN.md. This does not claim code/ticket migration is complete; execution is tracked in Phase 32.)*
 - [ ] **28.5** Define target support matrix and build/install/open/edit/save/reopen/export/update/uninstall receipt per supported platform.
 - [ ] **28.6** Add release manifest, checksums, license notices, SBOM/provenance, signing policy, and fail-closed artifact validation.
 - [ ] **28.7** Deploy marketing site and WASM app from the canonical source; verify previews, cache behavior, source SHA, download hashes, and rollback.
@@ -257,3 +257,20 @@ automated proof, not another manual pass.
 - [ ] **31.5** Build the public catalog and community submission workflow with identity/ownership, license and policy review, automated validation, moderation, security reports, takedown/advisory process, and official promotion criteria.
 - [ ] **31.6** Add one-click in-app discovery/install/update only after package validation and capability consent pass; test interrupted installs, tampering, API mismatch, permission escalation, rollback, and no-network/offline operation.
 - [ ] **31.7** Publish extension author and user tutorials, API reference, trust-tier policy, privacy/data behavior, support matrix, changelog, and an extension security response process.
+
+
+## Phase 32 — Experiment-first repository reset and legacy migration
+
+- [ ] **32.1** Inventory and preserve all local/remote experiment worktrees, branches, stashes, agent sessions, PRs, tags and current release state; record exact source SHAs and ownership. Do not reset, clean, prune or delete anything during the inventory.
+- [ ] **32.2** Audit experiment PR #13 by its complete 20-file diff, including browser image clipboard, path-node editing, file-browser/UI changes, dependencies, workflow, and docs. Update its scope, run required tests, then merge or split only after review and hosted checks pass.
+- [ ] **32.3** Reconcile the experiment TASKS, current audit/progress, v0.3.0 release manifest/assets and CI receipts on the exact target SHA; keep build, package, install, launch and interactive acceptance states separate.
+- [ ] **32.4** Produce a complete old-repository crosswalk for the 31 open issues, old PRs #186/#187/#188, all 21 observed branches, related tasks/decisions and useful commits. Each item receives a verified target disposition and successor link where applicable.
+- [ ] **32.5** Build a native Fireworks .fw.png compatibility corpus and compare the experiment's versioned iTXt payload with legacy mkTS/mkBT/tiled-raster/unknown-node handling. Record an ADR and tested adapter strategy before changing the target document model or format code.
+- [ ] **32.6** Create a donor feature matrix for legacy engine, codecs, scripting, CLI/MCP, compositor, vector/raster, web export and host integration. Select behavior/code only where a demonstrated target gap and acceptance test exist; do not merge the legacy workspace wholesale.
+- [ ] **32.7** Port the first owner-approved high-priority compatibility or editing capability behind the experiment's existing document/FileService/command seams, with regression tests and source provenance.
+- [ ] **32.8** Reconcile duplicate and stale feature/task/README/release claims across both repositories. Keep experiment docs and TASKS as the only live product authorities; preserve dated legacy audits/history.
+- [ ] **32.9** Complete the issue/PR/branch disposition report. Close or transfer legacy items only after successor links or acceptance evidence are present; preserve releases/tags and all unmerged owner-active work.
+- [ ] **32.10** Deliver a final owner review package: exact SHAs, files and commits reused, format compatibility results, tests, ticket outcomes, branch/PR decisions, remaining blockers, and the next prioritized milestone.
+
+**Execution authority:** [PRIMARY-REPO-RESET-AND-CONSOLIDATION-PLAN.md](PRIMARY-REPO-RESET-AND-CONSOLIDATION-PLAN.md), [LEGACY-FIRECRAFT-MIGRATION-REGISTER.md](LEGACY-FIRECRAFT-MIGRATION-REGISTER.md), and [AGENT-HANDOFF-2026-11-26.md](AGENT-HANDOFF-2026-11-26.md).
+
