@@ -319,3 +319,73 @@ jobs:
     steps:
       - uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e  # v4
         id: deployment
+
+  deploy-cloudflare-wasm-review:
+    name: Deploy the release WASM app to Cloudflare review Pages
+    needs: [build-wasm, publish-release]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: firecraft-wasm32-web
+          path: artifacts
+      - name: Prepare the exact tag-built WASM bundle
+        id: preview
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          version="$(scripts/version.sh)"
+          branch="wasm-review-$(printf '%s' "$RELEASE_TAG" | tr '.' '-')"
+          mkdir -p dist/wasm
+          unzip -q "artifacts/firecraft-v${version}-wasm32-web.zip" -d dist/wasm
+          grep -Fx "FireCraft $version" dist/wasm/BUILD-INFO.txt
+          grep -Fx "source: $EXPECTED_SHA" dist/wasm/BUILD-INFO.txt
+          test -s dist/wasm/firecraft.js
+          test -s dist/wasm/firecraft_bg.wasm
+          {
+            echo "branch=$branch"
+            echo "url=https://${branch}.firecraft-web.pages.dev"
+          } >> "$GITHUB_OUTPUT"
+      - name: Deploy the versioned preview (production remains untouched)
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0  # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.169.0"
+          command: pages deploy dist/wasm --project-name=firecraft-web --branch=${{ steps.preview.outputs.branch }} --commit-hash=${{ github.sha }} --commit-message="FireCraft ${{ github.ref_name }} review"
+      - name: Verify Cloudflare preview bytes and MIME types
+        env:
+          PREVIEW_URL: ${{ steps.preview.outputs.url }}
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          ready=false
+          for _ in $(seq 1 12); do
+            status="$(curl --silent --show-error --output "$work/index.html" --write-out '%{http_code}' "$PREVIEW_URL/")" || true
+            if [ "$status" = 200 ]; then ready=true; break; fi
+            sleep 5
+          done
+          test "$ready" = true
+          for asset in BUILD-INFO.txt firecraft.js firecraft_bg.wasm favicon.png; do
+            status="$(curl --silent --show-error --dump-header "$work/headers" --output "$work/$asset" --write-out '%{http_code}' "$PREVIEW_URL/$asset")"
+            test "$status" = 200
+            case "$asset" in
+              BUILD-INFO.txt) grep -qi '^content-type: text/plain' "$work/headers" ;;
+              firecraft.js) grep -Eqi '^content-type: (text|application)/javascript' "$work/headers" ;;
+              firecraft_bg.wasm) grep -Eqi '^content-type: application/wasm' "$work/headers" ;;
+              favicon.png) grep -Eqi '^content-type: image/png' "$work/headers" ;;
+            esac
+            cmp "dist/wasm/$asset" "$work/$asset"
+          done
+          grep -Fx "FireCraft $(scripts/version.sh)" "$work/BUILD-INFO.txt"
+          grep -Fx "source: $EXPECTED_SHA" "$work/BUILD-INFO.txt"
+          echo "Cloudflare review preview verified: $PREVIEW_URL/"

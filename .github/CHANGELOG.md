@@ -4,6 +4,15 @@ All notable changes to **FireCraft** are documented in this file.
 
 ## [Unreleased]
 
+## [0.3.6] — 2026-11-27
+
+Raster effect export reliability update.
+
+### Fixed
+- Include enabled Drop Shadow effects when exporting objects to raster formats, preserving the
+  configured offset and blur. Regression coverage verifies enabled/disabled behavior and alpha
+  falloff on raster export.
+
 ## [0.3.5] — 2026-11-27
 
 Path editing reliability and review-build update.

@@ -2,6 +2,21 @@
 
 Newest first.
 
+### 2026-11-27 — v0.3.6 release candidate prepared
+
+- Prepared version `0.3.6` with matching `app/Cargo.toml`, `app/Cargo.lock`, and changelog entry for
+  the merged PR #45 raster Drop Shadow export fix. `scripts/version.sh` reports `0.3.6`; locked
+  `cargo metadata --no-deps` reports `firecraft@0.3.6`. Review is in PR #48 on
+  `codex/prepare-v0.3.6`; PR #47 was closed after the repository ruleset rejected an update to its
+  protected `release/prepare-v0.3.6` branch.
+- Exact-head validation, multi-platform tag release, and Cloudflare review deployment remain open;
+  these gates are tracked in TASKS 43.2–43.5. Added a tag-triggered, versioned Cloudflare Pages
+  preview deployment to the release workflow; `actionlint` and the docs gate pass. It reuses the
+  `firecraft-web` Pages project and verifies source marker, MIME types, and downloaded bytes. The
+  local Cloudflare credentials are invalid, so deployment will use the configured GitHub Actions
+  secrets and remains unverified until the exact tag workflow runs. The public `v0.3.5` release has
+  not been overwritten.
+
 ### 2026-11-27 — TDD: include Live Filter Drop Shadows in raster export
 
 - Added `raster_export_renders_enabled_drop_shadow_outside_object_bounds` in `app/src/formats.rs`. Red showed the exported rectangle pixels were present but the enabled Drop Shadow produced no alpha outside the object. The test now checks that a disabled effect adds no shadow, an enabled effect follows its offset, and blur produces an alpha falloff.
@@ -30,12 +45,18 @@ Newest first.
   Windows 11 GUI acceptance. Cobertura artifact [run 46047264325](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/46047264325)
   reports 18,703 / 26,765 lines = **69.88%** and 0 / 0 branch counters. The 99% target is not met.
 - TASK 37.4 remains open: other live-filter types, bitmap/path/text/zoom parity, undo checks, and visual
-  acceptance still need work. The managed Aegis rerun `6ae27914-4c5c-4d96-bff0-dbee65f5cdcb` is
-  queued behind the normal-lane resource gate; the completed pre-annotation scan found only two new
-  low-confidence port-number matches in the edited audit text. No clean Aegis result is claimed.
-- The local GitForge service accepts pushes but has no authenticated run API available in this session;
-  its earlier runner failed during offline toolchain/package resolution. Local GitForge validation is
-  still open, and no passing pipeline receipt is claimed.
+  acceptance still need work. Managed Aegis 0.6.6 rerun `6ae27914-4c5c-4d96-bff0-dbee65f5cdcb`
+  completed on merge `48d5d4b7b683aed199cff72aa953d43b60d549cd` (280 files scanned, 145 skipped,
+  zero failed). It reports 11,323 findings (2 critical, 55 high, 639 medium, 10,627 low; categories:
+  11,053 PII, 247 compliance, 17 web-security, 3 secrets, 3 security-hardening); 2 findings are
+  narrowly suppressed by the same-line annotation for GitForge service port numbers. 11,241 alerts
+  are in retained `investigation.cany/`; the remaining 82 are outside that evidence tree. The job
+  exits 3 due to findings; the scan is not clean and full triage remains open under TASK 41.2.
+- GitForge authentication initially failed because the environment token had expired. Logging in with
+  the existing local admin credential enabled exact-run inspection. PR #46's gates succeeded on commit
+  `33f49266de0bcf51712bfba8e41b371f5c736677` (run `b4e5ed15-e1c7-45c3-8132-ee43e03dfba3`). The
+  v0.3.6 candidate run on `e9b468d8a165554f0f94f5c0aa22c4a595d0493b` is still running; no result is
+  claimed for it yet.
 
 ### 2026-11-27 — TDD and verification follow-up
 
