@@ -301,7 +301,7 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
             ui,
             crate::icons::Icon::Folder,
             false,
-            "Browse files - Bridge-style file browser (Ctrl+Alt+O)",
+            "Browse files (Ctrl+Alt+O)",
         )
         .clicked()
         {
@@ -392,56 +392,46 @@ pub fn menu_bar(ui: &mut egui::Ui, app: &mut FireCraft) {
                     }
                 });
 
-            egui::ComboBox::from_id_salt("header_theme_combo")
-                .width(128.0)
-                .selected_text(app.theme_mode.label())
-                .show_ui(ui, |ui| {
-                    for mode in [ThemeMode::Dark, ThemeMode::Light, ThemeMode::System] {
-                        if ui
-                            .selectable_label(app.theme_mode == mode, mode.label())
-                            .clicked()
-                        {
-                            app.set_theme(mode);
-                        }
-                    }
-                });
-
             if ui
-                .add_sized(
-                    [38.0, 20.0],
-                    egui::Button::new(if app.window_fullscreen {
-                        "Exit"
-                    } else {
-                        "Full"
-                    })
-                    .corner_radius(0.0),
-                )
-                .on_hover_text("Toggle App Fullscreen (F11)")
-                .clicked()
-            {
-                app.toggle_window_fullscreen();
-            }
-
-            if ui
-                .add_sized(
-                    [68.0, 20.0],
-                    egui::Button::new("MCP / CLI").corner_radius(0.0),
-                )
-                .on_hover_text("Open Model Context Protocol (MCP) JSON-RPC 2.0 & CLI Console")
-                .clicked()
-            {
-                app.show_mcp_dialog = true;
-            }
-            if ui
-                .add_sized(
-                    [64.0, 20.0],
-                    egui::Button::new("Palette").corner_radius(0.0),
-                )
-                .on_hover_text("Open Searchable Command Palette (Ctrl+K / Ctrl+P)")
+                .add_sized([64.0, 20.0], egui::Button::new("Palette").corner_radius(0.0))
+                .on_hover_text("Search commands, tools and panels (Ctrl+K / Ctrl+P)")
                 .clicked()
             {
                 app.show_command_palette = !app.show_command_palette;
             }
+
+            egui::ComboBox::from_id_salt("demos_examples_menu")
+                .width(104.0)
+                .selected_text("Demos")
+                .show_ui(ui, |ui| {
+                    ui.label(egui::RichText::new("EXAMPLES").small().strong().color(p.accent));
+                    if ui.button("Load Studio Showcase").clicked() {
+                        app.load_demo_showcase();
+                        ui.close();
+                    }
+                    if ui.button("New 1080p Starter Document").clicked() {
+                        app.create_template_document("Full_HD_1080p_Showcase", 1920.0, 1080.0);
+                        ui.close();
+                    }
+                    ui.separator();
+                    ui.label(egui::RichText::new("TUTORIALS").small().strong().color(p.accent));
+                    ui.hyperlink_to(
+                        "Getting Started",
+                        "https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/blob/main/docs/tutorials/getting-started.md",
+                    );
+                    ui.hyperlink_to(
+                        "Drawing & Editing",
+                        "https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/blob/main/docs/tutorials/drawing-and-editing.md",
+                    );
+                    ui.hyperlink_to(
+                        "Pages & States",
+                        "https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/blob/main/docs/tutorials/pages-and-states.md",
+                    );
+                    ui.hyperlink_to(
+                        "Optimize & Export",
+                        "https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/blob/main/docs/tutorials/optimize-and-export.md",
+                    );
+                });
         });
     });
 
@@ -508,7 +498,7 @@ fn file_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
     if nav.row(ui, p, true, "New…", "Ctrl+N") {
         app.show_new_dialog = true;
     }
-    if nav.row(ui, p, true, "New from Template (1080p Showcase)…", "") {
+    if nav.row(ui, p, true, "New from Template…", "") {
         app.create_template_document("Full_HD_1080p_Showcase", 1920.0, 1080.0);
     }
     if nav.row(ui, p, true, "Open…", "Ctrl+O") {
@@ -651,13 +641,7 @@ fn edit_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
     if nav.row(ui, p, has_sel, "Copy HTML / CSS Code…", "Ctrl+Shift+C") {
         app.copy_selected_css();
     }
-    if nav.row(
-        ui,
-        p,
-        app.clipboard.is_some() || !app.clipboard_set.is_empty(),
-        "Paste",
-        "Ctrl+V",
-    ) {
+    if nav.row(ui, p, true, "Paste", "Ctrl+V") {
         app.paste();
     }
     if nav.row(
@@ -1198,6 +1182,10 @@ fn window_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
     if nav.check_row(ui, p, &mut props, "Properties", "Ctrl+F3") {
         app.show_bottom_inspector = props;
     }
+    let mut app_fullscreen = app.window_fullscreen;
+    if nav.check_row(ui, p, &mut app_fullscreen, "Application Full Screen", "F11") {
+        app.toggle_window_fullscreen();
+    }
     ui.separator();
     for pid in crate::app::PanelId::ALL {
         let mut active = app.show_right_dock && app.is_panel_open(pid);
@@ -1238,7 +1226,7 @@ fn help_menu(ui: &mut Ui, app: &mut FireCraft, nav: &mut MenuNav) {
     if nav.row(ui, p, true, "FireCraft Exchange (MCP / CLI)…", "") {
         app.show_mcp_dialog = true;
     }
-    if nav.row(ui, p, true, "Load 1080p Demo Showcase", "") {
+    if nav.row(ui, p, true, "Load Studio Showcase Demo", "") {
         app.load_demo_showcase();
     }
     ui.separator();

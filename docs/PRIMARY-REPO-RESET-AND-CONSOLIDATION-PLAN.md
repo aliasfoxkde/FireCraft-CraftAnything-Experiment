@@ -8,6 +8,11 @@
 > **Execution ledger:** [TASKS.md](TASKS.md) is the only active checkbox ledger.
 > **Primary supporting docs:** [AGENTS.md](../AGENTS.md), [CLAUDE.md](../CLAUDE.md), [PLAN.md](PLAN.md), [PRODUCT_ROADMAP.md](PRODUCT_ROADMAP.md), [AUDIT.md](AUDIT.md), [architecture.md](architecture.md), [build-release.md](build-release.md), and [PROGRESS.md](PROGRESS.md).
 
+> **Status update — 2026-11-27:** Baseline PR #13 has been reviewed and merged as `00b1fd0` after
+> Linux gates, coverage, WASM, Windows build/CLI smoke, and CodeQL passed on its exact head SHA.
+> PR #14 contains this plan and is being reconciled with that merged work. See the newest
+> [`PROGRESS.md`](PROGRESS.md) entry and Phase 33 in [`TASKS.md`](TASKS.md) for current statuses.
+
 ---
 
 ## 1. Executive decision — change the direction, not the working product

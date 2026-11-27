@@ -14,6 +14,72 @@
 
 Newest first.
 
+## 2026-11-27 — PR #13 merged; roadmap reconciliation underway
+
+- Merged PR #13 as squash commit [`00b1fd0`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/commit/00b1fd0e12859a2a81ed014d898c5af46bf2ca8e).
+  Exact-SHA hosted checks passed: Linux gates, coverage ratchet, WASM, Windows build/CLI smoke and
+  ZIP artifact, CodeQL, and Analyze Rust. Coverage upload to GitHub Code Quality returned HTTP 404
+  but is configured non-blocking; Cobertura artifact uploaded successfully.
+- PR #14 carries the repository consolidation and legacy migration plan. Its checks passed before
+  PR #13 merged; the branch conflicted in `docs/TASKS.md`. Reconciled both workstreams by retaining
+  UI follow-up as Phase 32 and moving repository consolidation to Phase 33. Its updated branch must
+  receive a fresh hosted run before merge.
+- Current main is `00b1fd0`; PR #13 is closed/merged. PR #14 is the remaining open experiment PR.
+  GitHub issue search returned no open experiment issues. Windows 11 interactive acceptance and
+  real browser clipboard-paste proof remain outstanding.
+
+## 2026-11-26 — WASM startup diagnostics, paste tests, and hosted coverage recovery
+
+- Retained the `eframe::WebRunner` for the page lifetime. Its startup handle owns browser
+  observers/animation state; dropping it after `start()` could stop the app. Startup failures now
+  write to the browser console and an accessible in-page error panel instead of being swallowed.
+- Added behavior tests for valid and invalid bitmap paste inputs. Full native suite: **186 passed**
+  (160 unit, 12 CLI, 4 hygiene, 10 MCP). Local ratchet coverage is **67.71% lines**, above the
+  unchanged 67.61% floor. This remains far below the requested 99% target.
+- Optimized WASM release build and target check pass. Browser clipboard write of a real PNG succeeded,
+  but Playwright could not verify rendering or app paste: even a standalone ResizeObserver fixture
+  failed to receive resize callbacks, screenshots timed out, and the deployed demo showed the same
+  300×150 canvas backing size. Keep Phase 32.1 open; this host's browser automation is not valid
+  runtime evidence.
+- Hosted CI on prior source `0915d40` passed WASM, Windows build/CLI smoke/archive, CodeQL, and the
+  separate Cobertura job. The Linux gate failed only because its ratchet read 67.58% against 67.61%;
+  the new paste tests raise local ratchet coverage to 67.71%. A new push is required to verify the
+  exact changeset in hosted CI and obtain a matching Windows package.
+- Windows review archive from `0915d40` is available at
+  `output/windows-review-0915/firecraft-v0.3.0-windows-x86_64.zip`, SHA-256
+  `98dabd2325d4bdd46d24b4fb80e5aa81301f96ec6deafaf1681f6c5d4bfffbbe`. Hosted Windows smoke passed;
+  interactive Windows 11 acceptance is still required.
+- GitForge endpoints are responsive, but its local deployment is 273 commits behind upstream, its
+  overall health is degraded, and only one runner is online. FireCraft has no GitForge remote, so no
+  local GitForge pipeline result is claimed. Aegis is still unavailable because the managed
+  `aegis-scan` profile is not installed. Supplemental Atheon source scan and its limits are recorded
+  in [`research/pattern-scan-triage.md`](research/pattern-scan-triage.md).
+
+## 2026-11-26 — Clipboard, workspace UI, and file-browser follow-up
+
+- Added a browser `ClipboardEvent` bridge for copied image files. It reads image bytes asynchronously,
+  releases each one-shot reader callback, and forwards the bytes into the normal Paste action. Edit
+  and canvas context-menu Paste now remain available for external/system clipboard contents.
+- Fixed Preview badge overflow by measuring rendered text and eliding it to the canvas width.
+- Bound the file browser to the display, reduced its default dimensions, and virtualized the file
+  list so only visible rows perform size/date metadata reads and paint. Added a 1,000-row render
+  regression check.
+- Restored the CS6 tool-family labels, constrained the tool-rail body on short windows, and rendered
+  the Swatches panel as a compact, direct 2D grid. Replaced a stale text-outline test that expected
+  a fake rectangle conversion with a truthful unsupported-operation assertion.
+- Cleaned up the top menu/header arrangement against the checked-in Fireworks menu/layout images.
+  Removed crowded MCP/CLI, fullscreen, and theme buttons from the menu row; their actions remain in
+  Help/Window. The Palette button stays visible and a Demos dropdown sits immediately to its right,
+  with the real Studio Showcase and 1080p starter document actions plus links to all four tutorials.
+- Verification: native `cargo check` passed; format check and strict Clippy passed after correcting
+  one needless borrow found by Clippy; WASM `cargo check` passed. Full test suite: 158 unit + 12 CLI
+  + 4 hygiene + 10 MCP = **184 passed**. Xvfb captures at 1360×860 and 960×640 were visually
+  inspected. The 960×640 workspace remains dense and scrolls lower right-dock groups; live browser
+  clipboard paste and platform-native picker behavior are still unverified.
+- Updated [`AUDIT-2026-11-26.md`](AUDIT-2026-11-26.md) and added Phase 32 to [`TASKS.md`](TASKS.md).
+  Aegis scan remains pending: the local command is protected by managed admission, but the shared
+  queue currently exposes no `aegis-scan` profile (only the separate Aegis-repository tests profile).
+
 ### 2026-11-26 — hosted gate follow-up and extension roadmap
 
 - Audited the latest hosted experiment-repo run. Coverage workflow passed 180 tests (154 unit, 12 CLI, 4 hygiene, 10 MCP) and produced Cobertura at 68.24% lines (16,978/24,880); no branch counters were emitted. This does not meet the requested 99% target.
@@ -305,3 +371,15 @@ unverified. Do not restate the plan; link it.
   passing hosted gates, coverage, Windows build/CLI smoke, WASM, and CodeQL; the pushed doc change
   will produce a fresh receipt for the new head. `actionlint` still reports the known
   `code-quality: write` permission scope in the coverage workflow, which GitHub currently accepts.
+
+### 2026-11-27 — v0.3.0 release and version-only release title
+
+- Published [v0.3.0](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.0)
+  from source `e415a333f6a474bd738f47bb64d56704d711f1ce` with Windows, universal macOS ZIP/DMG,
+  Linux tar.gz/AppImage/DEB/Flatpak, and WASM ZIP assets. The release manifest and aggregate SHA-256
+  verification cover the exact platform asset set.
+- All release workflow jobs passed on run #81, attempt 3. The WASM site is deployed at
+  https://aliasfoxkde.github.io/FireCraft-CraftAnything-Experiment/.
+- Corrected the published release name to exactly `v0.3.0`; updated the release workflow to use the
+  tag as the release name for future releases. Verified the published release assets against
+  `SHA256SUMS.txt` and refreshed the local Windows review bundle under `dist/windows-review/v0.3.0/`.

@@ -191,6 +191,10 @@ contents match `docs/build-release.md` exactly.
 
 ## Cross-repository direction reset — experiment-first workstream
 
+**Status update — 2026-11-27:** PR #13 was reviewed, passed exact-SHA hosted checks, and merged as
+`00b1fd0`. The current PR #14 reconciles this planning work with the merged code/audit additions;
+Phase 32 remains the UI/clipboard follow-up and Phase 33 tracks repository consolidation.
+
 **Goal:** establish this repository as the single canonical FireCraft product and safely reconcile
 the older root FireCraft repository without replacing the current app architecture.
 
@@ -200,8 +204,8 @@ with ticket/branch/PR mapping in [LEGACY-FIRECRAFT-MIGRATION-REGISTER.md](LEGACY
 and the immediate operating sequence in [AGENT-HANDOFF-2026-11-26.md](AGENT-HANDOFF-2026-11-26.md).
 
 Required order:
-1. Preserve and inventory local worktrees, stashes, active sessions, branches, tags and PR #13.
-2. Review all 20 changed files in experiment PR #13; its scope includes clipboard/path/UI/dependency/release changes, not only its title change.
+1. Preserve and inventory local worktrees, stashes, active sessions, branches, tags and active PRs.
+2. *(Complete for PR #13.)* Review the full changeset for clipboard/path/UI/dependency/release changes, then retain the hosted receipts and merge SHA in the progress log.
 3. Reconcile experiment TASKS and v0.3.0 release receipts against current CI and package hashes.
 4. Audit legacy issues/PRs/branches and map only still-useful work into one experiment task/issue.
 5. Prove native Fireworks .fw.png compatibility against real files before replacing or extending the current document format.

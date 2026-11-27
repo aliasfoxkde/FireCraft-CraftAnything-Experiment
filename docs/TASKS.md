@@ -222,7 +222,7 @@ automated proof, not another manual pass.
 - [ ] **28.1** Repair GitHub Actions failures and establish a passing required-check baseline on the exact target revision.
 - [ ] **28.2** Validate FireCraft CI through local GitForge only after fleet freshness, runner activity, and semantic check results are confirmed.
 - [ ] **28.3** Create a safe issue/PR/branch disposition ledger; test branch candidates and dependency updates before merging; remove stale branches only after ownership and remote-use review.
-- [x] **28.4** Set the experiment repository as the canonical FireCraft product; retain the former root FireCraft repository as a historical donor/reference source. *(Direction decision recorded 2026-11-26 in PRIMARY-REPO-RESET-AND-CONSOLIDATION-PLAN.md. This does not claim code/ticket migration is complete; execution is tracked in Phase 32.)*
+- [x] **28.4** Set the experiment repository as the canonical FireCraft product; retain the former root FireCraft repository as a historical donor/reference source. *(Direction decision recorded 2026-11-26 in PRIMARY-REPO-RESET-AND-CONSOLIDATION-PLAN.md. This does not claim code/ticket migration is complete; execution is tracked in Phase 33.)*
 - [ ] **28.5** Define target support matrix and build/install/open/edit/save/reopen/export/update/uninstall receipt per supported platform.
 - [ ] **28.6** Add release manifest, checksums, license notices, SBOM/provenance, signing policy, and fail-closed artifact validation.
 - [ ] **28.7** Deploy marketing site and WASM app from the canonical source; verify previews, cache behavior, source SHA, download hashes, and rollback.
@@ -234,10 +234,10 @@ automated proof, not another manual pass.
 
 ## Phase 29 — v0.3.0 public multi-platform release
 
-- [ ] **29.1** Build and package Windows x64, macOS universal (arm64 + x86_64), Linux x86_64 tar.gz/DEB/AppImage/Flatpak, and WebAssembly ZIP from the same matching `v0.3.0` tag.
-- [ ] **29.2** Smoke-test each package, validate package inventories and executable versions, and create a source-SHA artifact manifest plus SHA-256 checksums.
-- [ ] **29.3** Run release workflow on public GitHub-hosted runners; resolve startup or build failures and require every platform job to pass.
-- [ ] **29.4** Publish the GitHub Release and deploy the exact WASM build only after the aggregate release gate passes.
+- [x] **29.1** Build and package Windows x64, macOS universal (arm64 + x86_64), Linux x86_64 tar.gz/DEB/AppImage/Flatpak, and WebAssembly ZIP from the same matching `v0.3.0` tag. *(Source `e415a333`; all eight platform assets published.)*
+- [x] **29.2** Smoke-test each package, validate package inventories and executable versions, and create a source-SHA artifact manifest plus SHA-256 checksums. *(All package jobs and published asset SHA-256 checks passed; source and release manifests published.)*
+- [x] **29.3** Run release workflow on public GitHub-hosted runners; resolve startup or build failures and require every platform job to pass. *(Final workflow run #81, attempt 3 passed all jobs.)*
+- [x] **29.4** Publish the GitHub Release and deploy the exact WASM build only after the aggregate release gate passes. *(Release `v0.3.0` and Pages deployment completed.)*
 - [ ] **29.5** Record macOS Developer ID signing/notarization status; publish as unsigned only with an explicit artifact note if credentials are unavailable.
 - [ ] **29.6** Collect Windows 11, macOS, and Linux native-user review; distinguish build/smoke evidence from user acceptance/certification.
 
@@ -258,19 +258,26 @@ automated proof, not another manual pass.
 - [ ] **31.6** Add one-click in-app discovery/install/update only after package validation and capability consent pass; test interrupted installs, tampering, API mismatch, permission escalation, rollback, and no-network/offline operation.
 - [ ] **31.7** Publish extension author and user tutorials, API reference, trust-tier policy, privacy/data behavior, support matrix, changelog, and an extension security response process.
 
+## Phase 32 — UI fit, dialogs, clipboard, and Web performance follow-up
 
-## Phase 32 — Experiment-first repository reset and legacy migration
+- [ ] **32.1** Verify image/text/internal clipboard paste on Windows, macOS, Linux, and browser WASM; test browser `ClipboardEvent` permission and focus behavior, malformed images, and large clipboard payloads. *(Partial 2026-11-27: native bitmap-paste helper has valid/invalid input tests; browser clipboard write of a real PNG works, but this headless host fails ResizeObserver even for a static fixture, so it cannot prove application rendering/paste. Keep open for a capable browser and platform sessions.)*
+- [ ] **32.2** Re-audit every top-level CS6 menu against the checked-in screenshots; inventory absent/partial actions, add behavior or mark unsupported, and verify submenu keyboard/mouse navigation and tool flyout hover details.
+- [ ] **32.3** Rework file Open/Save/Import/Export window UX toward familiar OS file-browser behavior; decide native OS picker vs in-app parity per platform, then validate resize, small screens, keyboard, filters, overwrite, and cancellation flows.
+- [ ] **32.4** Review the full workspace at 960×640, 1360×860, and browser sizes; fix spacing, alignment, panel overflow, focus, and pop-out canvas issues with before/after captures.
+- [ ] **32.5** Profile browser rendering with realistic documents and large folders; record frame, input-to-paint, memory, startup, and export baselines before adding optimization complexity.
+- [ ] **32.6** Validate swatch grid density, selection hit targets, keyboard alternative, and contrast in docked and floating panel states.
 
-- [ ] **32.1** Inventory and preserve all local/remote experiment worktrees, branches, stashes, agent sessions, PRs, tags and current release state; record exact source SHAs and ownership. Do not reset, clean, prune or delete anything during the inventory.
-- [ ] **32.2** Audit experiment PR #13 by its complete 20-file diff, including browser image clipboard, path-node editing, file-browser/UI changes, dependencies, workflow, and docs. Update its scope, run required tests, then merge or split only after review and hosted checks pass.
-- [ ] **32.3** Reconcile the experiment TASKS, current audit/progress, v0.3.0 release manifest/assets and CI receipts on the exact target SHA; keep build, package, install, launch and interactive acceptance states separate.
-- [ ] **32.4** Produce a complete old-repository crosswalk for the 31 open issues, old PRs #186/#187/#188, all 21 observed branches, related tasks/decisions and useful commits. Each item receives a verified target disposition and successor link where applicable.
-- [ ] **32.5** Build a native Fireworks .fw.png compatibility corpus and compare the experiment's versioned iTXt payload with legacy mkTS/mkBT/tiled-raster/unknown-node handling. Record an ADR and tested adapter strategy before changing the target document model or format code.
-- [ ] **32.6** Create a donor feature matrix for legacy engine, codecs, scripting, CLI/MCP, compositor, vector/raster, web export and host integration. Select behavior/code only where a demonstrated target gap and acceptance test exist; do not merge the legacy workspace wholesale.
-- [ ] **32.7** Port the first owner-approved high-priority compatibility or editing capability behind the experiment's existing document/FileService/command seams, with regression tests and source provenance.
-- [ ] **32.8** Reconcile duplicate and stale feature/task/README/release claims across both repositories. Keep experiment docs and TASKS as the only live product authorities; preserve dated legacy audits/history.
-- [ ] **32.9** Complete the issue/PR/branch disposition report. Close or transfer legacy items only after successor links or acceptance evidence are present; preserve releases/tags and all unmerged owner-active work.
-- [ ] **32.10** Deliver a final owner review package: exact SHAs, files and commits reused, format compatibility results, tests, ticket outcomes, branch/PR decisions, remaining blockers, and the next prioritized milestone.
+## Phase 33 — Experiment-first repository reset and legacy migration
+
+- [ ] **33.1** Inventory and preserve all local/remote experiment worktrees, branches, stashes, agent sessions, PRs, tags and current release state; record exact source SHAs and ownership. Do not reset, clean, prune or delete anything during the inventory. *(Partial 2026-11-27: current clone was clean before work; only `main` and PR #14's remote branch remain after PR #13 merge; open issue search is empty. A full cross-repo worktree/stash/agent ownership inventory remains open.)*
+- [x] **33.2** Audit experiment PR #13 by its complete diff, including browser image clipboard, path-node editing, file-browser/UI changes, dependencies, workflow, and docs; update its scope, validate required checks, and merge only after review. *(Done 2026-11-27: PR #13 merged as `00b1fd0`; exact-SHA hosted Linux gates, coverage, WASM, Windows build/CLI smoke, and CodeQL passed.)*
+- [ ] **33.3** Reconcile the experiment TASKS, current audit/progress, v0.3.0 release manifest/assets and CI receipts on the exact target SHA; keep build, package, install, launch and interactive acceptance states separate.
+- [ ] **33.4** Produce a complete old-repository crosswalk for the 31 open issues, old PRs #186/#187/#188, all 21 observed branches, related tasks/decisions and useful commits. Each item receives a verified target disposition and successor link where applicable.
+- [ ] **33.5** Build a native Fireworks .fw.png compatibility corpus and compare the experiment's versioned iTXt payload with legacy mkTS/mkBT/tiled-raster/unknown-node handling. Record an ADR and tested adapter strategy before changing the target document model or format code.
+- [ ] **33.6** Create a donor feature matrix for legacy engine, codecs, scripting, CLI/MCP, compositor, vector/raster, web export and host integration. Select behavior/code only where a demonstrated target gap and acceptance test exist; do not merge the legacy workspace wholesale.
+- [ ] **33.7** Port the first owner-approved high-priority compatibility or editing capability behind the experiment's existing document/FileService/command seams, with regression tests and source provenance.
+- [ ] **33.8** Reconcile duplicate and stale feature/task/README/release claims across both repositories. Keep experiment docs and TASKS as the only live product authorities; preserve dated legacy audits/history.
+- [ ] **33.9** Complete the issue/PR/branch disposition report. Close or transfer legacy items only after successor links or acceptance evidence are present; preserve releases/tags and all unmerged owner-active work.
+- [ ] **33.10** Deliver a final owner review package: exact SHAs, files and commits reused, format compatibility results, tests, ticket outcomes, branch/PR decisions, remaining blockers, and the next prioritized milestone.
 
 **Execution authority:** [PRIMARY-REPO-RESET-AND-CONSOLIDATION-PLAN.md](PRIMARY-REPO-RESET-AND-CONSOLIDATION-PLAN.md), [LEGACY-FIRECRAFT-MIGRATION-REGISTER.md](LEGACY-FIRECRAFT-MIGRATION-REGISTER.md), and [AGENT-HANDOFF-2026-11-26.md](AGENT-HANDOFF-2026-11-26.md).
-

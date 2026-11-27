@@ -7,6 +7,19 @@
 > **Migration register:** [LEGACY-FIRECRAFT-MIGRATION-REGISTER.md](LEGACY-FIRECRAFT-MIGRATION-REGISTER.md)
 > **Only active task ledger:** [TASKS.md](TASKS.md)
 
+## Current status addendum — 2026-11-27
+
+The baseline below is historical. Main is now `00b1fd0e12859a2a81ed014d898c5af46bf2ca8e`.
+Experiment PR #13 was reviewed, updated to describe its real scope, passed exact-SHA Linux, coverage,
+WASM, Windows build/CLI smoke, and CodeQL checks, and merged as `00b1fd0`. Its review/merge task is
+closed in Phase 33. PR #14 is the remaining open planning PR; after PR #13 merged, its `TASKS.md`
+conflict was reconciled by keeping UI follow-up at Phase 32 and placing repository consolidation in
+Phase 33. PR #14 requires fresh hosted checks on the reconciled branch before merge.
+
+Still open: native Fireworks file-format compatibility and legacy ticket crosswalk, Windows 11
+interactive acceptance, browser clipboard paste under a functioning browser renderer, production
+Cloudflare deployment evidence, and the longer-term roadmap tasks. See [TASKS.md](TASKS.md).
+
 ---
 
 ## Mission
@@ -23,7 +36,7 @@ Do not begin broad refactoring or new feature implementation until this baseline
 2. On the owner's development machine, inspect all local FireCraft and experiment clones, worktrees, branches, stashes, dirty/untracked changes, and active agent sessions. The GitHub API cannot reveal unpushed commits, local edits, or an agent's active worktree.
 3. Confirm the current experiment main SHA and refresh all remote PR, branch, issue, tag, and release states. The baseline in the docs is dated and may already have changed.
 4. Preserve all local work. No reset, clean, stash-pop, forced update, branch deletion, or worktree pruning during the inventory.
-5. Audit experiment PR #13 by its **full 20-file patch**, not its misleadingly narrow title. It contains WASM image clipboard support, path-node editing, UI/file-browser changes, dependency changes, docs and release workflow edits. Produce a file-by-file review with test evidence and identify whether it should be merged as-is or split into focused PRs.
+5. *(Complete 2026-11-27.)* Audit experiment PR #13 by its full patch, update title/body, pass exact-SHA checks, and merge. Review and receipt are recorded in Phase 33.2 and the progress/audit logs.
 6. Reconcile the experiment's Phase 22.7/28.x/29.x task states with current PRs, workflow runs and the published v0.3.0 release. Keep dated audit evidence; do not rewrite historical reports.
 7. Produce the Phase 0 baseline report and update TASKS.md with precise migration tasks. Stop and report blockers before destructive operations.
 
@@ -83,7 +96,7 @@ Record:
 ## First deliverables
 
 1. Dated local + remote baseline / ownership report.
-2. PR #13 file-level review and merge/split recommendation.
+2. *(Complete.)* PR #13 file-level review, hosted checks and merge receipt.
 3. Legacy issue/PR/branch disposition report with target successor IDs where necessary.
 4. .fw.png format/real-file compatibility plan and test corpus proposal.
 5. Updated single task ledger with a dependency-ordered experiment-first sequence.

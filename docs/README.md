@@ -9,6 +9,7 @@ is the map for deeper material.
 |------|------|
 | See what is measured right now | [Audit](AUDIT.md) |
 | Read the 2026-11-26 repository audit | [Audit snapshot](AUDIT-2026-11-26.md) |
+| Review UI/menu/dialog follow-up findings | [UI follow-up audit](AUDIT-2026-11-26.md#ui-and-workflow-follow-up--2026-11-26) |
 | Review code quality and verification gaps | [Quality gap analysis](research/quality-gap-analysis.md) |
 | Review scanner findings and triage | [Pattern scan triage](research/pattern-scan-triage.md) |
 | Investigate immediate GitHub Actions failures | [GitHub Actions triage](research/github-actions-triage.md) |

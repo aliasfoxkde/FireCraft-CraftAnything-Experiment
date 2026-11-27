@@ -364,14 +364,30 @@ pub fn tools_panel_body(ui: &mut Ui, app: &mut FireCraft) {
     let mut flat_index = 0usize;
 
     for section in SECTIONS {
-        // CS6 separates categories with a subtle tinted band and a hairline, not a
-        // full-width titled header.
-        ui.add_space(if compact { 2.0 } else { 4.0 });
-        let band_h = if compact { 3.0 } else { 5.0 };
+        // CS6 labels each compact tool family on the rail; keep the label visible
+        // so the palette reads as grouped tools instead of an unlabeled icon grid.
+        ui.add_space(if compact { 1.0 } else { 3.0 });
+        let band_h = if compact { 12.0 } else { 14.0 };
         let (band, _) =
             ui.allocate_exact_size(Vec2::new(ui.available_width(), band_h), Sense::hover());
         ui.painter()
-            .rect_filled(band, 0.0, p.panel_alt.gamma_multiply(0.6));
+            .rect_filled(band, 0.0, p.panel_alt.gamma_multiply(0.38));
+        let title = match section.name {
+            "SELECT" => "Select",
+            "BITMAP" => "Bitmap",
+            "VECTOR" => "Vector",
+            "WEB" => "Web",
+            "COLORS" => "Colors",
+            "VIEW" => "View",
+            name => name,
+        };
+        ui.painter().text(
+            pos2(band.left() + 4.0, band.center().y),
+            egui::Align2::LEFT_CENTER,
+            title,
+            egui::FontId::proportional(9.5),
+            p.text_dim,
+        );
         ui.painter().line_segment(
             [
                 pos2(band.left(), band.bottom()),
@@ -475,15 +491,17 @@ fn tool_group_flyout(ui: &mut Ui, app: &mut FireCraft, opened_now: bool) {
                     ui.separator();
                     for spec in group.members {
                         let selected = app.tool == spec.tool;
-                        if ui
-                            .selectable_label(
-                                selected,
-                                format!("{}  ·  {}", spec.tip, spec.tool.name()),
-                            )
-                            .clicked()
-                        {
-                            chosen = Some(spec.tool);
-                        }
+                        ui.horizontal(|ui| {
+                            let (icon_rect, _) =
+                                ui.allocate_exact_size(Vec2::splat(18.0), Sense::hover());
+                            icons::draw(ui.painter(), icon_rect, spec.icon, p.text, 1.25);
+                            let response = ui
+                                .selectable_label(selected, spec.tool.name())
+                                .on_hover_text(spec.tip);
+                            if response.clicked() {
+                                chosen = Some(spec.tool);
+                            }
+                        });
                     }
                 });
         });

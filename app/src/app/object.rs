@@ -586,27 +586,10 @@ impl FireCraft {
                     closed: true,
                 }
             }
-            Shape::Text { at, text, size, .. } => {
-                let char_count = text.chars().count().max(1) as f32;
-                let w = (char_count * size * 0.58).max(*size);
-                let h = *size;
-                let lo = Vec2::new(at.x, at.y - h);
-                let hi = Vec2::new(at.x + w, at.y);
-                let mid_x = (lo.x + hi.x) * 0.5;
-                let mid_y = (lo.y + hi.y) * 0.5;
-                Shape::Path {
-                    points: vec![
-                        lo,
-                        Vec2::new(mid_x, lo.y),
-                        Vec2::new(hi.x, lo.y),
-                        Vec2::new(hi.x, mid_y),
-                        hi,
-                        Vec2::new(mid_x, hi.y),
-                        Vec2::new(lo.x, hi.y),
-                        Vec2::new(lo.x, mid_y),
-                    ],
-                    closed: true,
-                }
+            Shape::Text { .. } => {
+                self.status = "Text outlines are not available; the text object was left unchanged"
+                    .to_string();
+                return;
             }
             Shape::Path { .. } => {
                 self.status = "Selection is already an editable Vector Path".to_string();
@@ -627,21 +610,28 @@ impl FireCraft {
     }
 
     pub fn simplify_selected_path(&mut self) {
+        const TOLERANCE: f32 = 0.75;
+        let Some(obj) = self.selected_object() else {
+            self.status = "Select a path to simplify".to_string();
+            return;
+        };
+        let Shape::Path { points, closed } = &obj.kind else {
+            self.status = "Convert the selection to a path before simplifying".to_string();
+            return;
+        };
+        let simplified = simplify_polyline(points, *closed, TOLERANCE);
+        if simplified == *points {
+            self.status = "Path is already within the simplify tolerance".to_string();
+            return;
+        }
         self.push_undo("Simplify Path");
         self.with_selected_mut(|obj| {
-            if let Shape::Path { points, .. } = &mut obj.kind
-                && points.len() > 4
-            {
-                let mut kept = Vec::new();
-                for (i, p) in points.iter().enumerate() {
-                    if i == 0 || i + 1 == points.len() || i % 2 == 0 {
-                        kept.push(*p);
-                    }
-                }
-                *points = kept;
+            if let Shape::Path { points, .. } = &mut obj.kind {
+                *points = simplified;
             }
         });
-        self.status = "Simplified vector path".to_string();
+        self.selected_path_nodes.clear();
+        self.status = format!("Simplified path within {TOLERANCE:.2}px tolerance");
     }
 
     pub fn split_selected_path(&mut self) {
@@ -673,11 +663,29 @@ impl FireCraft {
     }
 
     pub fn toggle_selected_path_closed(&mut self) {
+        let Some(obj) = self.selected_object() else {
+            self.status = "Select a path first".to_string();
+            return;
+        };
+        let Shape::Path { points, closed } = &obj.kind else {
+            self.status = "Convert the selection to a path first".to_string();
+            return;
+        };
+        if !closed && points.len() < 3 {
+            self.status = "A closed path needs at least three anchors".to_string();
+            return;
+        }
+        self.push_undo("Toggle Path Closure");
         self.with_selected_mut(|obj| {
             if let Shape::Path { closed, .. } = &mut obj.kind {
                 *closed = !*closed;
             }
         });
+        self.status = if *closed {
+            "Opened path contour".to_string()
+        } else {
+            "Closed path contour".to_string()
+        };
     }
 
     pub fn expand_selected_bounds(&mut self, delta: f32) {
@@ -693,7 +701,19 @@ impl FireCraft {
     }
 
     pub fn reverse_selected_path(&mut self) {
-        self.convert_selected_to_path();
+        if !self
+            .selected_object()
+            .is_some_and(|obj| matches!(obj.kind, Shape::Path { .. }))
+        {
+            self.convert_selected_to_path();
+        }
+        if !self
+            .selected_object()
+            .is_some_and(|obj| matches!(obj.kind, Shape::Path { .. }))
+        {
+            return;
+        }
+        self.push_undo("Reverse Path");
         self.with_selected_mut(|obj| {
             if let Shape::Path { points, .. } = &mut obj.kind {
                 points.reverse();
@@ -727,16 +747,37 @@ impl FireCraft {
     }
 
     pub fn delete_point_from_selected_path(&mut self) {
-        self.convert_selected_to_path();
+        let Some(obj) = self.selected_object() else {
+            self.status = "Select a path and anchor point first".to_string();
+            return;
+        };
+        let Shape::Path { points, .. } = &obj.kind else {
+            self.status = "Convert the selection to a path first".to_string();
+            return;
+        };
+        let mut selected = self.selected_path_nodes.clone();
+        selected.retain(|&index| index < points.len());
+        selected.sort_unstable();
+        selected.dedup();
+        if selected.is_empty() {
+            self.status = "Click an anchor with Subselection, then choose Delete Point".to_string();
+            return;
+        }
+        let min_points = 3;
+        if points.len().saturating_sub(selected.len()) < min_points {
+            self.status = format!("A path needs at least {min_points} anchors");
+            return;
+        }
         self.push_undo("Delete Path Point");
         self.with_selected_mut(|obj| {
-            if let Shape::Path { points, .. } = &mut obj.kind
-                && points.len() > 3
-            {
-                points.pop();
+            if let Shape::Path { points, .. } = &mut obj.kind {
+                for index in selected.iter().rev() {
+                    points.remove(*index);
+                }
             }
         });
-        self.status = "Removed anchor point from path".to_string();
+        self.selected_path_nodes.clear();
+        self.status = format!("Deleted {} selected anchor(s)", selected.len());
     }
 
     pub fn round_selected_path_points(&mut self, delta_radius: f32) {
@@ -748,29 +789,47 @@ impl FireCraft {
             self.set_selected_corner_radius(next);
             self.status = format!("Adjusted corner roundness to {next:.0}px");
         } else {
-            self.add_points_to_selected_path();
-            self.simplify_selected_path();
-            self.status = "Rounded vector path corners".to_string();
+            self.status =
+                "Freeform corner rounding is unavailable; the path was left unchanged".to_string();
         }
     }
 
     pub fn align_selected_path_points(&mut self, horizontal: bool) {
-        self.convert_selected_to_path();
+        let Some(obj) = self.selected_object() else {
+            self.status = "Select two or more path anchors to align".to_string();
+            return;
+        };
+        let Shape::Path { points, .. } = &obj.kind else {
+            self.status = "Convert the selection to a path first".to_string();
+            return;
+        };
+        let mut selected = self.selected_path_nodes.clone();
+        selected.retain(|&index| index < points.len());
+        selected.sort_unstable();
+        selected.dedup();
+        if selected.len() < 2 {
+            self.status = "Shift-click at least two path anchors to align them".to_string();
+            return;
+        }
+        let avg = selected
+            .iter()
+            .map(|&index| {
+                if horizontal {
+                    points[index].y
+                } else {
+                    points[index].x
+                }
+            })
+            .sum::<f32>()
+            / selected.len() as f32;
         self.push_undo("Align Path Points");
         self.with_selected_mut(|obj| {
-            if let Shape::Path { points, .. } = &mut obj.kind
-                && !points.is_empty()
-            {
-                let avg = if horizontal {
-                    points.iter().map(|p| p.y).sum::<f32>() / points.len() as f32
-                } else {
-                    points.iter().map(|p| p.x).sum::<f32>() / points.len() as f32
-                };
-                if let Some(first) = points.first_mut() {
+            if let Shape::Path { points, .. } = &mut obj.kind {
+                for &index in &selected {
                     if horizontal {
-                        first.y = avg;
+                        points[index].y = avg;
                     } else {
-                        first.x = avg;
+                        points[index].x = avg;
                     }
                 }
             }
@@ -785,17 +844,16 @@ impl FireCraft {
     pub fn snap_selected_to_pixel(&mut self) {
         self.push_undo("Snap to Pixel");
         self.with_selected_mut(|obj| {
-            if let Some((lo, hi)) = obj.bounds() {
-                obj.set_bounds(
-                    Vec2::new(lo.x.round(), lo.y.round()),
-                    Vec2::new(hi.x.round(), hi.y.round()),
-                );
-            }
             if let Shape::Path { points, .. } = &mut obj.kind {
                 for p in points {
                     p.x = p.x.round();
                     p.y = p.y.round();
                 }
+            } else if let Some((lo, hi)) = obj.bounds() {
+                obj.set_bounds(
+                    Vec2::new(lo.x.round(), lo.y.round()),
+                    Vec2::new(hi.x.round(), hi.y.round()),
+                );
             }
         });
         self.status = "Snapped selection coordinates to pixel grid".to_string();
@@ -1012,6 +1070,91 @@ impl FireCraft {
     }
 }
 
+/// Simplify a linear contour while keeping every retained anchor within the given
+/// perpendicular-distance tolerance of the original polyline. Closed contours are split
+/// at a farthest pair and simplified as two open chains so the seam remains stable.
+fn simplify_polyline(points: &[Vec2], closed: bool, tolerance: f32) -> Vec<Vec2> {
+    if points.len() <= if closed { 3 } else { 2 } {
+        return points.to_vec();
+    }
+    if !closed {
+        return simplify_open_polyline(points, tolerance);
+    }
+
+    let start = points[0];
+    let split = points
+        .iter()
+        .enumerate()
+        .skip(1)
+        .max_by(|(_, a), (_, b)| {
+            (**a - start)
+                .length_sq()
+                .total_cmp(&(**b - start).length_sq())
+        })
+        .map(|(index, _)| index)
+        .unwrap_or(1);
+    if split == 0 || split == points.len() - 1 {
+        return points.to_vec();
+    }
+
+    let mut first = simplify_open_polyline(&points[..=split], tolerance);
+    let mut second_chain = points[split..].to_vec();
+    second_chain.push(start);
+    let second = simplify_open_polyline(&second_chain, tolerance);
+    first.extend(
+        second
+            .into_iter()
+            .skip(1)
+            .take_while(|point| *point != start),
+    );
+    if first.len() < 3 {
+        points.to_vec()
+    } else {
+        first
+    }
+}
+
+fn simplify_open_polyline(points: &[Vec2], tolerance: f32) -> Vec<Vec2> {
+    if points.len() <= 2 {
+        return points.to_vec();
+    }
+    let mut keep = vec![false; points.len()];
+    keep[0] = true;
+    keep[points.len() - 1] = true;
+    let mut spans = vec![(0, points.len() - 1)];
+    while let Some((first, last)) = spans.pop() {
+        if last <= first + 1 {
+            continue;
+        }
+        let a = points[first];
+        let b = points[last];
+        let direction = b - a;
+        let length_sq = direction.length_sq();
+        let mut farthest = (0usize, 0.0f32);
+        for (index, point) in points.iter().enumerate().take(last).skip(first + 1) {
+            let distance = if length_sq <= f32::EPSILON {
+                (*point - a).length()
+            } else {
+                let t = ((*point - a).dot(direction) / length_sq).clamp(0.0, 1.0);
+                (*point - (a + direction * t)).length()
+            };
+            if distance > farthest.1 {
+                farthest = (index, distance);
+            }
+        }
+        if farthest.1 > tolerance {
+            keep[farthest.0] = true;
+            spans.push((first, farthest.0));
+            spans.push((farthest.0, last));
+        }
+    }
+    points
+        .iter()
+        .zip(keep)
+        .filter_map(|(point, keep)| keep.then_some(*point))
+        .collect()
+}
+
 /// Polygon boolean operations backed by `geo`. `join` is handled separately because it is an
 /// endpoint operation, not an area operation.
 pub(super) fn polygon_boolean(a: &[Vec2], b: &[Vec2], op: &str) -> Option<Vec<Vec2>> {
@@ -1041,12 +1184,15 @@ pub(super) fn polygon_boolean(a: &[Vec2], b: &[Vec2], op: &str) -> Option<Vec<Ve
         if !polygon.interiors().is_empty() {
             return None;
         }
-        let pts: Vec<Vec2> = polygon
+        let mut pts: Vec<Vec2> = polygon
             .exterior()
             .0
             .iter()
             .map(|c| Vec2::new(c.x as f32, c.y as f32))
             .collect();
+        if pts.len() > 1 && (pts[0] - *pts.last().unwrap_or(&pts[0])).length_sq() <= 1e-10 {
+            pts.pop();
+        }
         if pts.len() >= 3 && polygon_area(&pts).abs() >= 0.5 {
             contours.push(pts);
         }
@@ -1140,9 +1286,16 @@ mod tests {
     #[test]
     fn path_edits_preserve_endpoints_and_snap_fractional_nodes() {
         let mut app = FireCraft::new(None);
-        let points: Vec<Vec2> = (0..7)
-            .map(|i| Vec2::new(i as f32 + 0.2, (i * 2) as f32 + 0.7))
-            .collect();
+        let points = vec![
+            Vec2::new(0.2, 0.3),
+            Vec2::new(5.1, 0.1),
+            Vec2::new(10.2, 0.4),
+            Vec2::new(10.1, 5.2),
+            Vec2::new(10.3, 10.2),
+            Vec2::new(5.2, 10.1),
+            Vec2::new(0.1, 10.3),
+            Vec2::new(0.3, 5.1),
+        ];
         app.push_object(Obj::new(
             Shape::Path {
                 points: points.clone(),
@@ -1164,17 +1317,22 @@ mod tests {
         assert!(*closed);
         assert_eq!(simplified.len(), 4);
         assert_eq!(simplified.first(), points.first());
-        assert_eq!(simplified.last(), points.last());
+        assert!((polygon_area(simplified) - polygon_area(&points)).abs() < 5.0);
 
         app.add_points_to_selected_path();
         assert!(matches!(
             &app.selected_object().unwrap().kind,
             Shape::Path { points, closed: true } if points.len() == 8
         ));
+        app.selected_path_nodes = vec![1];
+        let deleted_anchor = match &app.selected_object().unwrap().kind {
+            Shape::Path { points, .. } => points[1],
+            _ => unreachable!(),
+        };
         app.delete_point_from_selected_path();
         assert!(matches!(
             &app.selected_object().unwrap().kind,
-            Shape::Path { points, .. } if points.len() == 7
+            Shape::Path { points, closed: true } if points.len() == 7 && !points.contains(&deleted_anchor)
         ));
         app.snap_selected_to_pixel();
         let Shape::Path { points, .. } = &app.selected_object().unwrap().kind else {
@@ -1199,6 +1357,7 @@ mod tests {
             None,
         ));
         app.select_single(Some(0));
+        app.selected_path_nodes = vec![0];
         app.delete_point_from_selected_path();
         assert!(matches!(
             &app.selected_object().unwrap().kind,
@@ -1210,6 +1369,53 @@ mod tests {
             Shape::Path { closed: true, .. }
         ));
         assert_eq!(app.status, "Closed path endpoints (Join)");
+    }
+
+    #[test]
+    fn align_path_nodes_moves_all_selected_anchors_and_preserves_others() {
+        let mut app = FireCraft::new(None);
+        app.push_object(Obj::new(
+            Shape::Path {
+                points: vec![
+                    Vec2::new(0.0, 0.0),
+                    Vec2::new(10.0, 10.0),
+                    Vec2::new(20.0, 30.0),
+                ],
+                closed: false,
+            },
+            None,
+            Some(Color32::BLACK),
+        ));
+        app.select_single(Some(0));
+        app.selected_path_nodes = vec![0, 1];
+        app.align_selected_path_points(true);
+        let Shape::Path { points, .. } = &app.selected_object().unwrap().kind else {
+            panic!("alignment must preserve path type");
+        };
+        assert_eq!(points[0].y, 5.0);
+        assert_eq!(points[1].y, 5.0);
+        assert_eq!(points[2], Vec2::new(20.0, 30.0));
+    }
+
+    #[test]
+    fn unsupported_freeform_rounding_leaves_geometry_unchanged() {
+        let mut app = FireCraft::new(None);
+        let points = vec![Vec2::ZERO, Vec2::new(10.0, 0.0), Vec2::new(10.0, 10.0)];
+        app.push_object(Obj::new(
+            Shape::Path {
+                points: points.clone(),
+                closed: true,
+            },
+            None,
+            Some(Color32::BLACK),
+        ));
+        app.select_single(Some(0));
+        app.round_selected_path_points(6.0);
+        assert!(matches!(
+            &app.selected_object().unwrap().kind,
+            Shape::Path { points: current, closed: true } if current == &points
+        ));
+        assert!(app.status.contains("left unchanged"));
     }
 
     #[test]
