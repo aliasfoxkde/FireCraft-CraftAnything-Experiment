@@ -13,6 +13,7 @@ is the map for deeper material.
 | Review code quality and verification gaps | [Quality gap analysis](research/quality-gap-analysis.md) |
 | Review scanner findings and triage | [Pattern scan triage](research/pattern-scan-triage.md) |
 | Investigate immediate GitHub Actions failures | [GitHub Actions triage](research/github-actions-triage.md) |
+| Understand the experiment-first repository reset | [Consolidation Plan](PRIMARY-REPO-RESET-AND-CONSOLIDATION-PLAN.md) · [Legacy Migration Register](LEGACY-FIRECRAFT-MIGRATION-REGISTER.md) · [Agent Handoff](AGENT-HANDOFF-2026-11-26.md) |
 | Know what to work on next | [Tasks](TASKS.md) |
 | Understand the phased plan and its exit criteria | [Plan](PLAN.md) |
 | Read the public product roadmap, current vs planned | [Product Roadmap](PRODUCT_ROADMAP.md) |

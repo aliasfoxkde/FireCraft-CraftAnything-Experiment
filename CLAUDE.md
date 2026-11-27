@@ -7,6 +7,18 @@ FireCraft is a clean-room Rust/egui reimplementation of Adobe Fireworks CS6: one
 a WASM build. Domain vocabulary is defined in [GLOSSARY.md](docs/GLOSSARY.md) — use those names in code,
 UI copy, commits and docs.
 
+## Project direction (2026-11-26)
+
+This repository is the canonical FireCraft project. The older
+`aliasfoxkde/FireCraft` repository is a donor/reference source only. Do not merge its unrelated
+Git history into this project or resume the former old-repo-first consolidation strategy. Selectively
+port verified features into the current app architecture after compatibility, license, dependency
+and test review.
+
+Read the [experiment-first consolidation plan](docs/PRIMARY-REPO-RESET-AND-CONSOLIDATION-PLAN.md),
+[legacy migration register](docs/LEGACY-FIRECRAFT-MIGRATION-REGISTER.md), and
+[agent handoff](docs/AGENT-HANDOFF-2026-11-26.md) before starting cross-repository work.
+
 ## Where the truth lives
 
 | Question | File |

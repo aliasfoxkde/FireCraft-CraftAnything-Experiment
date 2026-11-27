@@ -6,6 +6,19 @@ graphics, animation states, live effects, MCP automation, and a portable desktop
 
 > FireCraft is not affiliated with Adobe. It contains no Adobe code.
 
+## Project direction (2026-11-26)
+
+This repository is the **canonical FireCraft project**. The earlier
+[FireCraft repository](https://github.com/aliasfoxkde/FireCraft) is retained as a historical
+source/reference repository. Its useful capabilities, issues and engineering work are being
+audited for selective migration into this codebase; the two application histories are not being
+merged wholesale.
+
+Start with the [experiment-first consolidation plan](docs/PRIMARY-REPO-RESET-AND-CONSOLIDATION-PLAN.md),
+the [legacy migration register](docs/LEGACY-FIRECRAFT-MIGRATION-REGISTER.md), and the
+[agent handoff](docs/AGENT-HANDOFF-2026-11-26.md). The current release and product direction
+remain grounded in this repository's code, tests, tasks and release receipts.
+
 ## Start here
 
 | I want to… | Go to |

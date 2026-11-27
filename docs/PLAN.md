@@ -189,6 +189,33 @@ Scope (F-03, F-04, F-05):
 **Exit criteria:** a tag produces a release whose artifacts pass the smoke tests in CI, and whose
 contents match `docs/build-release.md` exactly.
 
+## Cross-repository direction reset — experiment-first workstream
+
+**Status update — 2026-11-27:** PR #13 was reviewed, passed exact-SHA hosted checks, and merged as
+`00b1fd0`. The current PR #14 reconciles this planning work with the merged code/audit additions;
+Phase 32 remains the UI/clipboard follow-up and Phase 33 tracks repository consolidation.
+
+**Goal:** establish this repository as the single canonical FireCraft product and safely reconcile
+the older root FireCraft repository without replacing the current app architecture.
+
+The owner-selected direction is recorded in
+[PRIMARY-REPO-RESET-AND-CONSOLIDATION-PLAN.md](PRIMARY-REPO-RESET-AND-CONSOLIDATION-PLAN.md),
+with ticket/branch/PR mapping in [LEGACY-FIRECRAFT-MIGRATION-REGISTER.md](LEGACY-FIRECRAFT-MIGRATION-REGISTER.md)
+and the immediate operating sequence in [AGENT-HANDOFF-2026-11-26.md](AGENT-HANDOFF-2026-11-26.md).
+
+Required order:
+1. Preserve and inventory local worktrees, stashes, active sessions, branches, tags and active PRs.
+2. *(Complete for PR #13.)* Review the full changeset for clipboard/path/UI/dependency/release changes, then retain the hosted receipts and merge SHA in the progress log.
+3. Reconcile experiment TASKS and v0.3.0 release receipts against current CI and package hashes.
+4. Audit legacy issues/PRs/branches and map only still-useful work into one experiment task/issue.
+5. Prove native Fireworks .fw.png compatibility against real files before replacing or extending the current document format.
+6. Port behavior or selected algorithms/codecs behind the experiment's existing model/FileService/command seams.
+7. Close or archive legacy work only after successor links and acceptance evidence exist.
+
+**Exit criteria:** experiment is unambiguously canonical; legacy work has a complete disposition register; no active work is lost; native format compatibility has a tested decision; target tasks/PRs and release/docs point to this repository. No unrelated Git histories are merged and no duplicate task ledger is created.
+
+This workstream does not authorize mass ticket closure, branch deletion, release publication, or production deployment.
+
 ## Phase 20 — Product gaps (the INSTRUCTIONS vision)
 
 **Goal:** decide, scope and schedule the features that INSTRUCTIONS.md asks for beyond CS6 parity —
