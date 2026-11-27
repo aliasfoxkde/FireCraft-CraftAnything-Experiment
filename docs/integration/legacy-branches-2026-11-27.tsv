@@ -1,0 +1,20 @@
+snapshot_utc	branch	head_sha	ahead_of_main	related_prs	latest_commit	disposition
+2026-11-27	audit/parity-hardening-2026-11-22	bdabc54fe31cdeb39e240fbcda421dc0ccbecbd9	1	none	fix(xtask): build and test green on Windows hosts	retain-pending-content-reconciliation
+2026-11-27	climb/C4.08-selective-jpeg	4afaf2f881c810c60a1957410a37cde0a9b41981	32	none	fix(ci): the Aegis baseline covers the CI cache-refresh scripts (#162)	retain-pending-content-reconciliation
+2026-11-27	climb/C8.04-missing-docs-campaign	edb5bb1a3723d6672903cf209efd484bc2811f69	54	none	fix(ci): the Aegis baseline covers the CI cache-refresh scripts (#163)	retain-pending-content-reconciliation
+2026-11-27	feat/dev-roadmap-improvements	174385026a2fab1a2e4d6a1cfe05154bc0a2787f	6	none	feat(app): polish shell and document product roadmap	retain-pending-content-reconciliation
+2026-11-27	feat/experiment-merge	7d622af549784853729e21f5990dcba7ab6699d4	18	#187:CLOSED	docs: correct experiment PR status	retain-pending-content-reconciliation
+2026-11-27	feat/inspector-field-sets	db1e386bd980f130fd2bb85b09e71762608a15b1	7	none	fix(app): the field-set test drops its frame output too	retain-pending-content-reconciliation
+2026-11-27	feat/phase1-visual-polish	6dc7094097a698ed7db6d0f500f4b874714180c7	25	none	docs(plan): mark L1.6 P0 icon replacement as complete	retain-pending-content-reconciliation
+2026-11-27	feat/post-mvp-execution	613b822183a2584ed770d4f58d5cf67265ca29f2	21	none	chore(icons): regenerate the icon survey for the new application icon	retain-pending-content-reconciliation
+2026-11-27	feat/release-provenance	c4d32035bd0ee175a963af12acb3fb02dc6a30be	64	none	ci: add separate wasm32 job using rustc 1.100.0	retain-pending-content-reconciliation
+2026-11-27	feat/wasm-cdn-deploy	da17ddfc7a28c11ad516a2baa8ac8177b59a01d1	103	#181:CLOSED	chore: finalize working tree before experiment integration	retain-pending-content-reconciliation
+2026-11-27	feature/adam7-png-interlace	924dd6f7cfb8078ad09d3601467bfa951fa221a6	34	none	fix(ci): the Aegis baseline covers the CI cache-refresh scripts (#164)	retain-pending-content-reconciliation
+2026-11-27	feature/issue-93-behavior-export	00a73cadb0fb3c3802aad8a1777d1eecba0af6e2	14	#178:CLOSED	fix(webexport): the resolved targets travel as one value, not two arguments	retain-pending-content-reconciliation
+2026-11-27	fix/ci-fresh-workspace-crates	08b3f6960aca8ee88c9e66c122d031db89551ed5	2	#169:CLOSED	docs(ci): number the CI freshness decision 0127	retain-pending-content-reconciliation
+2026-11-27	fix/wasm-size-budget-repin	24732c8f3b9c06df6da2e42d4d5fbbaa9bf66e16	4	#83:CLOSED	fix(xtask): backtick the two camelCase words in the ceiling's doc comment	retain-pending-content-reconciliation
+2026-11-27	fix/web-deploy-p0	8e4565982410bd5a11a97acf0f87270f70cd4303	1	#184:CLOSED	docs(release): record the P0 deployment receipts and the same-day production collision	retain-pending-content-reconciliation
+2026-11-27	fix/xtask-gate-repair-2026-11-24	6a78399fede066d904068b403208ba5d6d27276b	110	none	fix(test): gate save()-using tests for native-only coverage, update panel golden	retain-pending-content-reconciliation
+2026-11-27	release/v0.2.5	01811d31abd62bbf589a5c9ecf81c75810666297	22	#6:MERGED	chore(release): v0.2.5 stamps, notes, operator checklist, aegis hygiene	retain-pending-content-reconciliation
+2026-11-27	review/post-mvp-execution	613b822183a2584ed770d4f58d5cf67265ca29f2	21	none	chore(icons): regenerate the icon survey for the new application icon	retain-pending-content-reconciliation
+2026-11-27	temp/consolidation	155ef967e72aa0b677e7d10e256adf6dce45f944	1	#186:CLOSED	feat: consolidate production readiness - WASM CDN, experiment merge, shell god-file reduction, wasm32 fixes, coverage gates, release engineering	retain-pending-content-reconciliation
