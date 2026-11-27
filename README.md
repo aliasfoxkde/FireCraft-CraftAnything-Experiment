@@ -19,6 +19,16 @@ the [legacy migration register](docs/LEGACY-FIRECRAFT-MIGRATION-REGISTER.md), an
 [agent handoff](docs/AGENT-HANDOFF-2026-11-26.md). The current release and product direction
 remain grounded in this repository's code, tests, tasks and release receipts.
 
+## Download and try FireCraft
+
+- **[Download the latest release — v0.3.1](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.1)**
+  for Windows, macOS, Linux, and WebAssembly. Linux packages include AppImage, DEB, and Flatpak.
+- **[Open the Cloudflare Web app preview](https://wasm-review-v0-3-1.firecraft-web.pages.dev/)** built
+  from source `3efe9c1`; the [GitHub Pages deployment](https://aliasfoxkde.github.io/FireCraft-CraftAnything-Experiment/)
+  uses the same release source.
+- Explore the companion [ArtCraft WebOS demo](https://artcraft-webos.pages.dev/) or browse the
+  [documentation and tutorials](docs/README.md).
+
 ## Start here
 
 | I want to… | Go to |

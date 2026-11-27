@@ -269,7 +269,7 @@ automated proof, not another manual pass.
 
 ## Phase 33 — Experiment-first repository reset and legacy migration
 
-- [ ] **33.1** Inventory and preserve all local/remote experiment worktrees, branches, stashes, agent sessions, PRs, tags and current release state; record exact source SHAs and ownership. Do not reset, clean, prune or delete anything during the inventory. *(Partial 2026-11-27: current clone was clean before work; only `main` and PR #14's remote branch remain after PR #13 merge; open issue search is empty. A full cross-repo worktree/stash/agent ownership inventory remains open.)*
+- [ ] **33.1** Inventory and preserve all local/remote experiment worktrees, branches, stashes, agent sessions, PRs, tags and current release state; record exact source SHAs and ownership. Do not reset, clean, prune or delete anything during the inventory. *(Partial 2026-11-27: current clone ends clean on `main`; only `main` local/remote branch remains, with tags `v0.3.0` and `v0.3.1`; experiment PR/issue counts are zero. A full cross-repo worktree/stash/agent ownership inventory remains open.)*
 - [x] **33.2** Audit experiment PR #13 by its complete diff, including browser image clipboard, path-node editing, file-browser/UI changes, dependencies, workflow, and docs; update its scope, validate required checks, and merge only after review. *(Done 2026-11-27: PR #13 merged as `00b1fd0`; exact-SHA hosted Linux gates, coverage, WASM, Windows build/CLI smoke, and CodeQL passed.)*
 - [ ] **33.3** Reconcile the experiment TASKS, current audit/progress, v0.3.0 release manifest/assets and CI receipts on the exact target SHA; keep build, package, install, launch and interactive acceptance states separate.
 - [ ] **33.4** Produce a complete old-repository crosswalk for the 31 open issues, old PRs #186/#187/#188, all 21 observed branches, related tasks/decisions and useful commits. Each item receives a verified target disposition and successor link where applicable.
@@ -284,8 +284,9 @@ automated proof, not another manual pass.
 
 ## Phase 34 — v0.3.1 cross-platform release
 
-- [x] **34.1** Prepare version `0.3.1`, changelog notes, and version-derived artifact naming for the merged editor/UI/WASM improvements. *(Prepared 2026-11-27; release tag and package gates remain open.)*
-- [ ] **34.2** Pass the tag workflow's full quality, dependency, security, coverage, and exact-source checks.
-- [ ] **34.3** Build Windows x86_64, universal macOS, Linux tar/AppImage/DEB/Flatpak, and WASM ZIP; validate all checksums and source-SHA manifests.
-- [ ] **34.4** Publish GitHub Release with the title exactly `v0.3.1`; deploy the matching WASM artifact to GitHub Pages and verify the deployment SHA.
+- [x] **34.1** Prepare version `0.3.1`, changelog notes, and version-derived artifact naming for the merged editor/UI/WASM improvements. *(Completed 2026-11-27 in release commit `3efe9c1`.)*
+- [x] **34.2** Pass the tag workflow's full quality, dependency, security, coverage, and exact-source checks. *(Release workflow 45935587390 passed; Aegis remains unavailable, and cargo audit advisories are documented separately.)*
+- [x] **34.3** Build Windows x86_64, universal macOS, Linux tar/AppImage/DEB/Flatpak, and WASM ZIP; validate all checksums and source-SHA manifests. *(All eight release assets verified against `SHA256SUMS.txt`; source SHA `3efe9c1c9c3bad6537c2038ecb5660946d56e028`.)*
+- [x] **34.4** Publish GitHub Release with the title exactly `v0.3.1`; deploy the matching WASM artifact to GitHub Pages and verify the deployment SHA. *(Release and Pages deployment passed; both point to source SHA `3efe9c1c9c3bad6537c2038ecb5660946d56e028`.)*
 - [ ] **34.5** Run native Windows 11 install/open/edit/save/export review and record the user's acceptance; CI smoke does not close this item.
+- [x] **34.6** Deploy the tag-built WASM bundle to a Cloudflare Pages review branch and verify version, source SHA, and served asset responses. *(2026-11-27: [preview](https://wasm-review-v0-3-1.firecraft-web.pages.dev/); source `3efe9c1c9c3bad6537c2038ecb5660946d56e028`, HTTP 200 for HTML/JS/WASM.)*

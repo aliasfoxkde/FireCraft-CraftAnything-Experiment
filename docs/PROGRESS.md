@@ -1,18 +1,29 @@
-### 2026-11-26 — experiment-first repository direction reset (documentation branch)
-
-- Owner-selected direction: this repository is the canonical FireCraft product; the older `aliasfoxkde/FireCraft` repository is a legacy donor/reference source, not the destination architecture.
-- Added `docs/PRIMARY-REPO-RESET-AND-CONSOLIDATION-PLAN.md`, including architecture policy, phased execution, product priorities, repository/PR/branch/ticket reconciliation, format compatibility work, release/docs/site and agent operating rules.
-- Added `docs/LEGACY-FIRECRAFT-MIGRATION-REGISTER.md`, inventorying the old repository's 31 open issues, PRs #186/#187/#188, 21 observed branch names, candidate donor capabilities and preliminary ticket dispositions.
-- Added `docs/AGENT-HANDOFF-2026-11-26.md` for the first implementation session; updated README, AGENTS, CLAUDE, docs index, product roadmap, plan and TASKS to make the new direction authoritative.
-- Experiment PR #13 remains open and requires a full 20-file review. It includes browser clipboard, path editing, file-browser/UI, dependency and release workflow changes beyond its title. No merge has been performed.
-- The old repository's PRs #186/#187 are closed unmerged; old PR #188 remains open and describes the superseded direction. No old issues or branches were closed/deleted.
-- The v0.3.0 release is preserved. Existing package assets are not being rewritten. Build/package/install/launch/interactive acceptance remain separate evidence states.
-- Important compatibility gap to investigate: the experiment's versioned iTXt-based project payload versus the legacy native Fireworks mkTS/mkBT chunk/tiled-raster handling. No code was copied or changed in this documentation pass.
-- Verification boundary: GitHub remote state was inspected. Local clones, worktrees, stashes, unpushed commits and active agent sessions cannot be enumerated from GitHub; Phase 0 requires read-only inspection on the owner's development machine. No application tests were run for this docs-only branch.
-
 # Progress log
 
 Newest first.
+
+## 2026-11-27 — FireCraft v0.3.1 release and Web deployments
+
+- Published GitHub Release [`v0.3.1`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.1)
+  with title exactly `v0.3.1`. The tag points to source SHA
+  `3efe9c1c9c3bad6537c2038ecb5660946d56e028`; release workflow `45935587390` passed every job.
+- Published and locally verified all eight platform packages: Windows x86_64 ZIP, macOS universal
+  ZIP and DMG, Linux tar.gz/AppImage/DEB/Flatpak, and WASM ZIP. `SHA256SUMS.txt` passes for all
+  eight. Full release manifest and source SHA match the tag.
+- GitHub Pages deployment succeeded at
+  [aliasfoxkde.github.io/FireCraft-CraftAnything-Experiment](https://aliasfoxkde.github.io/FireCraft-CraftAnything-Experiment/)
+  with deployment source SHA `3efe9c1c9c3bad6537c2038ecb5660946d56e028`.
+- Deployed the same WASM ZIP to Cloudflare Pages preview
+  [wasm-review-v0-3-1.firecraft-web.pages.dev](https://wasm-review-v0-3-1.firecraft-web.pages.dev/).
+  `BUILD-INFO.txt` reports version 0.3.1 and the release source SHA; index, JavaScript, and WASM
+  return HTTP 200 with expected MIME types. This is a preview deployment; it does not replace the
+  separate marketing site.
+- Windows review ZIP:
+  `output/release-v0.3.1/release-assets/firecraft-v0.3.1-windows-x86_64.zip`, SHA-256
+  `aa8ae62835728ac88a493fd03d9d9ca7f0bb7800de31694175d4c621bedd3839`. Hosted Windows CLI smoke
+  passed; native Windows 11 interactive acceptance remains for the reviewer.
+- Open PR and issue counts were both zero after PRs #13, #14, and #15 merged. Branch hygiene is
+  tracked in Phase 33; the only remaining local/remote branch before this log was `main`.
 
 ## 2026-11-27 — consolidation plan merged; v0.3.1 release prepared
 
@@ -43,13 +54,11 @@ Newest first.
   Exact-SHA hosted checks passed: Linux gates, coverage ratchet, WASM, Windows build/CLI smoke and
   ZIP artifact, CodeQL, and Analyze Rust. Coverage upload to GitHub Code Quality returned HTTP 404
   but is configured non-blocking; Cobertura artifact uploaded successfully.
-- PR #14 carries the repository consolidation and legacy migration plan. Its checks passed before
-  PR #13 merged; the branch conflicted in `docs/TASKS.md`. Reconciled both workstreams by retaining
-  UI follow-up as Phase 32 and moving repository consolidation to Phase 33. Its updated branch must
-  receive a fresh hosted run before merge.
-- Current main is `00b1fd0`; PR #13 is closed/merged. PR #14 is the remaining open experiment PR.
-  GitHub issue search returned no open experiment issues. Windows 11 interactive acceptance and
-  real browser clipboard-paste proof remain outstanding.
+- PR #14 carried the repository consolidation and legacy migration plan. Its `docs/TASKS.md`
+  conflict was reconciled by retaining UI follow-up as Phase 32 and moving repository consolidation
+  to Phase 33; PR #14 then passed fresh hosted checks and merged as `62e004c`.
+- Main advanced through release-prep PR #15 to `3efe9c1`; PR/issue counts are both zero. Windows 11
+  interactive acceptance and real browser clipboard-paste proof remain outstanding.
 
 ## 2026-11-26 — WASM startup diagnostics, paste tests, and hosted coverage recovery
 
