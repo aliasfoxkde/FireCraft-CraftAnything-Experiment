@@ -105,6 +105,7 @@ claimed as supported without native install/launch testing. The Flatpak currentl
 home-directory and network access because file access uses direct paths and the optional
 Intelligence feature can contact its configured provider. Review these permissions before
 installation and expect the sandbox to be broader than a portal-based package.
+The Flatpak uses the Freedesktop 26.08 runtime/SDK branch.
 
 `scripts/package-macos.sh` produces a universal `.app`, ZIP, and DMG. Packages remain unsigned and
 unnotarized until Developer ID credentials and notarization are configured; macOS may block them
