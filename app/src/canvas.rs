@@ -1309,13 +1309,18 @@ fn fill_polygon(painter: &Painter, pts: &[Pos2], star_inner: f32, center: Pos2, 
             Stroke::NONE,
         ));
     } else {
-        for i in 0..pts.len() {
-            painter.add(egui::Shape::convex_polygon(
-                vec![center, pts[i], pts[(i + 1) % pts.len()]],
-                color,
-                Stroke::NONE,
-            ));
+        // A star is concave. Painting each fan triangle as a separate antialiased shape leaves
+        // thin background-colored seams from its center to the vertices. Keep the fan in one mesh
+        // so adjacent triangles share exactly the same edge coverage.
+        let mut mesh = egui::Mesh::default();
+        mesh.colored_vertex(center, color);
+        for point in pts {
+            mesh.colored_vertex(*point, color);
         }
+        for i in 0..pts.len() {
+            mesh.add_triangle(0, i as u32 + 1, ((i + 1) % pts.len()) as u32 + 1);
+        }
+        painter.add(egui::Shape::mesh(mesh));
     }
 }
 
@@ -1830,7 +1835,7 @@ fn draw_obj(
             }
         }
         Shape::Bitmap { at, pixels, size } => {
-            let tex = app.bitmap_texture(key, pixels, *size);
+            let tex = FireCraft::bitmap_texture(&app.ctx, &mut app.textures, pixels, *size);
             if let Some(tex) = tex {
                 let rect = Rect::from_min_size(
                     to_screen(origin, zoom, *at),
@@ -1972,6 +1977,7 @@ fn draw_obj(
 
     // Selection handles (8-point resize box for every selected object in `selected_set`)
     if !preview_mode
+        && matches!(app.tool, Tool::Select | Tool::Subselect | Tool::Scale)
         && ((app.selected_layer == layer_index && app.is_selected(obj_index))
             || app
                 .selected_extra_layers
@@ -2240,7 +2246,8 @@ pub fn tool_button(
     response.on_hover_text(tip)
 }
 
-pub type TextureCache = std::collections::HashMap<(usize, usize), TextureHandle>;
+/// Bitmap texture identity follows pixel content, not a per-frame clone or mutable object slot.
+pub type TextureCache = std::collections::HashMap<(u64, usize, usize), TextureHandle>;
 
 #[cfg(test)]
 mod tests {
@@ -2325,6 +2332,52 @@ mod tests {
             )),
             None
         );
+    }
+
+    #[test]
+    fn selected_star_uses_a_seamless_fill_mesh_without_transform_box_in_shape_tool() {
+        let mut app = app_with_objects(vec![Obj::new(
+            Shape::Polygon {
+                center: Vec2::new(50.0, 50.0),
+                radius: 30.0,
+                sides: 5,
+                star_inner: 0.45,
+                angle_rad: 0.0,
+            },
+            Some(Color32::from_rgb(240, 120, 30)),
+            None,
+        )]);
+        app.selected = Some(0);
+        app.tool = Tool::Star;
+        let star = app.doc.page().layers[0].objects[0].clone();
+        let ctx = egui::Context::default();
+        let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
+            draw_obj(
+                ui.painter(),
+                &mut app,
+                &star,
+                Vec2::ZERO,
+                1.0,
+                1.0,
+                (0, 0),
+                false,
+            );
+        });
+        assert!(
+            output
+                .shapes
+                .iter()
+                .any(|clipped| matches!(clipped.shape, egui::Shape::Mesh(_))),
+            "concave star fill must use one shared-edge triangle mesh"
+        );
+        assert!(
+            output.shapes.iter().all(|clipped| !matches!(
+                clipped.shape,
+                egui::Shape::Rect(_) | egui::Shape::Circle(_)
+            )),
+            "drawing with the Star tool should not leave a selection box or handles"
+        );
+        output.textures_delta.clear();
     }
 
     #[test]

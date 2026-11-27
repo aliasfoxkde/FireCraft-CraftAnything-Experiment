@@ -803,6 +803,88 @@ mod tests {
     }
 
     #[test]
+    fn bitmap_textures_follow_images_when_hotkey_reorders_objects() {
+        let mut app = FireCraft::new(None);
+        let bitmap = |rgba: [u8; 4]| {
+            Obj::new(
+                Shape::Bitmap {
+                    at: Vec2::ZERO,
+                    pixels: rgba.to_vec(),
+                    size: Vec2::splat(1.0),
+                },
+                None,
+                None,
+            )
+        };
+        app.push_object(bitmap([255, 0, 0, 255]));
+        app.push_object(bitmap([0, 0, 255, 255]));
+        let (red_before, blue_before) = {
+            let ctx = &app.ctx;
+            let cache = &mut app.textures;
+            let objects = &app.doc.page().layers[app.selected_layer].objects;
+            let Shape::Bitmap {
+                pixels: red,
+                size: red_size,
+                ..
+            } = &objects[0].kind
+            else {
+                panic!("first object should be a bitmap")
+            };
+            let Shape::Bitmap {
+                pixels: blue,
+                size: blue_size,
+                ..
+            } = &objects[1].kind
+            else {
+                panic!("second object should be a bitmap")
+            };
+            (
+                FireCraft::bitmap_texture(ctx, cache, red, *red_size)
+                    .unwrap()
+                    .id(),
+                FireCraft::bitmap_texture(ctx, cache, blue, *blue_size)
+                    .unwrap()
+                    .id(),
+            )
+        };
+        app.select_single(Some(0));
+        app.reorder_selected_step(true);
+        {
+            let ctx = &app.ctx;
+            let cache = &mut app.textures;
+            let objects = &app.doc.page().layers[app.selected_layer].objects;
+            let Shape::Bitmap {
+                pixels: blue,
+                size: blue_size,
+                ..
+            } = &objects[0].kind
+            else {
+                panic!("blue bitmap should move to index zero")
+            };
+            let Shape::Bitmap {
+                pixels: red,
+                size: red_size,
+                ..
+            } = &objects[1].kind
+            else {
+                panic!("red bitmap should move to index one")
+            };
+            assert_eq!(
+                FireCraft::bitmap_texture(ctx, cache, blue, *blue_size)
+                    .unwrap()
+                    .id(),
+                blue_before
+            );
+            assert_eq!(
+                FireCraft::bitmap_texture(ctx, cache, red, *red_size)
+                    .unwrap()
+                    .id(),
+                red_before
+            );
+        }
+    }
+
+    #[test]
     fn scale_rotate_and_flip_keep_expected_geometry_and_report_actions() {
         let mut app = FireCraft::new(None);
         let index = rect(&mut app, Vec2::new(10.0, 20.0), Vec2::new(30.0, 60.0));

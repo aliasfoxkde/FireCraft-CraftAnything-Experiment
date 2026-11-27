@@ -236,6 +236,35 @@ mod tests {
         );
     }
 
+    #[test]
+    fn shift_q_dispatches_previous_tool_toggle_end_to_end() {
+        let mut harness = Harness::new();
+        harness.app.set_tool(crate::app::Tool::Path);
+        harness.frame(1360.0, 860.0, Vec::new());
+        let shift_q = egui::Event::Key {
+            key: Key::Q,
+            physical_key: None,
+            pressed: true,
+            repeat: false,
+            modifiers: Modifiers::SHIFT,
+        };
+        harness.frame(
+            1360.0,
+            860.0,
+            vec![
+                egui::Event::ModifiersChanged(Modifiers::SHIFT),
+                shift_q.clone(),
+            ],
+        );
+        assert_eq!(harness.app.tool, crate::app::Tool::Select);
+        harness.frame(
+            1360.0,
+            860.0,
+            vec![egui::Event::ModifiersChanged(Modifiers::SHIFT), shift_q],
+        );
+        assert_eq!(harness.app.tool, crate::app::Tool::Path);
+    }
+
     /// Phase 18.7 frame-time budget at 1920x1080 with ~500 objects.
     ///
     /// The machine under test varies, so this asserts the *relative* budget:

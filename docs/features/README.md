@@ -22,7 +22,7 @@ This is the detailed inventory. The root README is intentionally shorter.
 | Group | Tools |
 |-------|-------|
 | Select | Pointer (`V`), Subselection (`A`), Scale (`Q`), Crop (`C`), Marquee (`M`), Oval Marquee (`O`), Lasso (`L`), Magic Wand (`W`) |
-| Bitmap | Brush (`B`), Pencil, Eraser (`E`), Blur, Sharpen, Dodge, Burn, Rubber Stamp (`S`), Replace Color (`R`), Red Eye Removal (`Y`) |
+| Bitmap | Brush (`B`), Pencil, featherable alpha Eraser (`E`, size/feather in Properties), Blur, Sharpen, Dodge, Burn, Rubber Stamp (`S`), Replace Color (`R`), Red Eye Removal (`Y`) |
 | Vector | Line (`N`), Pen (`P`), Freeform (`F`), Rectangle (`U`), Rounded Rectangle, Ellipse, Polygon, Star, Text (`T`), Knife |
 | Web | Rectangle Slice (`K`), Rectangle Hotspot (`J`) |
 | Colors | Eyedropper (`I`), Paint Bucket (`G`), Gradient |

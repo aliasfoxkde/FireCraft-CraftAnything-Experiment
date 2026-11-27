@@ -2,6 +2,30 @@
 
 Newest first.
 
+### 2026-11-27 — Canvas tools, cache identity, and validation
+
+- Added Previous Tool (`Shift+Q`) with a state test and keyboard-event harness test.
+- Replaced whole-object Eraser deletion with feathered bitmap-alpha editing and Properties size/
+  feather controls. Dab, feather, non-square continuous drag, undo and freehand-not-snapped tests
+  pass. The drag test found and fixed guide snapping moving input near the page origin; Brush,
+  Pencil, Eraser, Freeform and Lasso now retain raw canvas coordinates.
+- Made Live Filter parameter/color controls editable and undoable. Their visible renderer effect
+  across object types/export is still open and is not claimed as complete.
+- Fixed bitmap cache cross-wiring after tracing the index-based key and rejecting an allocation
+  address key (the renderer clones the document each frame). Pixel-content hash plus dimensions
+  now preserve cache identity across reorder/snapshot clones and invalidate on edit. Hashing cost
+  and lifecycle/memory behavior remain to be benchmarked.
+- Reviewed Emberframe (`64dcd718dd0308e6d771f55e3d96783574a5731c`, MIT) and BonBon/Libreworks
+  (`8e11e2e0526e07abc23452ffc945c3e2716835f7`, GPL-3.0); the clean-room feature/algorithm report
+  and phased canvas plan are linked from the documentation index.
+- Verification: formatting, diff hygiene, documentation links/claims (`54` files), and strict
+  Clippy pass. Tests pass with only the frame-time case excluded: 167 unit/harness, 12 CLI, 4
+  hygiene and 10 MCP tests. The 500-object budget test passed alone, but two full-suite attempts
+  were 125.2 ms and 120.7 ms against 120 ms under competing host work; this gate is unresolved,
+  not waived. A 1360×860 demo screenshot was captured/reviewed at
+  `/tmp/firecraft-canvas-audit.png`; interactive Star/Eraser/Filter screenshots and export proof
+  remain open. No release or user sign-off is claimed.
+
 ## 2026-11-27 — Browser clipboard reproduction and architecture planning
 
 - Reproduced the reported browser image-paste failure against the v0.3.1 WASM app in headed

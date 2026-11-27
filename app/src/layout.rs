@@ -1550,6 +1550,7 @@ enum Shortcut {
     ZoomOut,
     ZoomTo(f32),
     Tool(Tool),
+    PreviousTool,
     SwapColors,
     DefaultColors,
     Nudge(Vec2),
@@ -1794,6 +1795,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
                         (Key::Semicolon, true, false, false) => Some(Shortcut::ToggleGuides),
                         (Key::I, true, false, true) => Some(Shortcut::FocusIntelligence),
                         (Key::F, true, true, false) => Some(Shortcut::InfiniteCanvas),
+                        (Key::Q, false, true, false) => Some(Shortcut::PreviousTool),
                         (Key::OpenBracket, false, false, false) => Some(Shortcut::BrushSize(-1.0)),
                         (Key::CloseBracket, false, false, false) => Some(Shortcut::BrushSize(1.0)),
                         (Key::Plus | Key::Equals, false, false, false) => Some(Shortcut::ZoomIn),
@@ -1970,6 +1972,7 @@ fn shortcuts(ui: &mut Ui, app: &mut FireCraft) {
             app.set_tool(next);
             app.status = format!("{} selected", app.tool.name());
         }
+        Some(Shortcut::PreviousTool) => app.select_previous_tool(),
         Some(Shortcut::SwapColors) => std::mem::swap(&mut app.fill, &mut app.stroke),
         Some(Shortcut::DefaultColors) => {
             app.fill = egui::Color32::WHITE;
