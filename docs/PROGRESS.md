@@ -2,13 +2,16 @@
 
 Newest first.
 
-### 2026-11-27 — Gradient direction editing TDD (in progress)
+### 2026-11-27 — Gradient direction editing TDD (PR #32 merged; task partial)
 
 - Added normalized start/end axis coordinates to per-object gradient fills. Missing coordinates in older documents default to the existing vertical direction. The Gradient tool now exposes draggable color endpoints for a selected gradient object; moving a handle changes only the fill axis and is undoable.
 - Canvas mesh rendering and PNG/raster export now project pixels through the same axis math. TDD added tests for legacy serde defaults, horizontal projection, zero-length axes, pointer editing with undo, renderer mesh sampling, and horizontal raster export. The model test first failed on the missing projection method, and the interaction test first failed on missing handles/drag states; each passes after implementation. Raster test also first caught an expected-value mismatch (gamma interpolation is 128 at the midpoint); corrected expectation follows the existing interpolation behavior.
 - Verification passed locally: `cargo test --locked` (211 passed, 1 isolated timing test ignored), strict Clippy, WASM check, formatting, whitespace, and the 60-file docs/link check. SVG/HTML export direction, multiple color stops, explicit linear/radial controls, broader path geometry parity, and GUI visual acceptance remain open; this does not complete TASK 37.3.
-- Hosted PR #32 is open at `f54fb2afb6c8f0575ad2b1f472963c3f323f7792`; exact-head CI, coverage, WASM, Windows CLI/build and CodeQL checks were queued when checked. The latest live status is authoritative at [PR #32](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/32).
-- Triage snapshot: GitHub has zero open issues; PR #32 is the only open PR and was created by this implementation. No external issue or PR needed triage. The repo's issue templates only supply bug/enhancement labels and no canonical state-label mapping, so no status labels or tracker mutations were applied.
+- PR [#32](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/32) merged as `ff564a0a8c28e98104382f1e82258dccf00ce945`. The exact final head `50a11768e11270e2d1e4823857647a5ab648c0d1` passed Gates, Rust coverage, WASM, Windows build/CLI smoke, and CodeQL. GitHub reports CodeRabbit as skipped, not passed.
+- Exact final-head Cobertura run [45996121990](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/45996121990) measures 18,253 / 26,265 = **69.50%** lines; branch counters are absent (0/0). This remains below 99% and the llvm-cov/Cobertura denominator gap remains open.
+- Windows review package from the passing PR workflow is at `output/review-pr-32/firecraft-v0.3.4-windows-x86_64.zip`, SHA-256 `fbfef6db36aa49823909b7934486b71bf11184308839dc42ba9f66da2340025c`. Its embedded build info records source `a84db32f82563d519c4b94ed3c358a71909647e4` (the workflow's PR merge ref); it is a review build, not a published release. Native Windows 11 GUI acceptance remains pending.
+- Triage snapshot after merge: zero open GitHub issues and zero open PRs. No external issue or PR needed triage. The issue templates only define bug/enhancement categories, with no canonical triage-state label mapping; no labels or tracker mutations were invented.
+- The Aegis 0.6.6 scan remains unavailable: the shell hook requires managed admission, and `aegis-scan` is absent from the managed job profiles. No substitute scan or clean result is claimed.
 - The architecture scan's four source-backed deepening candidates are pointer/tool interaction (strong; recommended first), canvas hit-testing vs painting (strong), format codecs vs disk transport (worth exploring), and Welcome/splash ownership (speculative). The visual report is `/tmp/architecture-review-2026-11-27-1205.html`; these are planning candidates, not implemented changes.
 
 ### 2026-11-27 — Exact-head coverage receipt refresh
