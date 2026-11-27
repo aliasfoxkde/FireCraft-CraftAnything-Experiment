@@ -26,6 +26,26 @@ large generated scanner detail.
 The Aegis scan remains unavailable: managed admission still does not expose the required `aegis-scan`
 profile. The Aegis repository test profile is not a substitute for scanning FireCraft.
 
+## Dependency audit follow-up (2026-11-27)
+
+On the reconciled `fc3aaf5` tree, the full `scripts/ci-local.sh` pipeline passed, including
+`cargo deny` and `cargo audit`; `cargo audit` exited successfully with **13 allowed warnings**. These
+warnings are still dependency-maintenance signals, not a clean bill of health:
+
+- `ttf-parser 0.25.1` is reported unmaintained through `owned_ttf_parser → ab_glyph → sctk-adwaita → winit → eframe`.
+- `zbus_names 4.3.5`, `zvariant 5.15.1`, and `zvariant_derive 5.15.1` are reported unmaintained in
+  the Linux accessibility/desktop dependency graph.
+- `heapless 0.8.0` receives multiple RustSec unsoundness advisories and is pulled by
+  `rstar 0.12.2 → geo 0.33.1 → FireCraft`. The application's declared `geo` release depends on this
+  `rstar` line. Do not force a major/minor dependency override without compatibility tests; revisit
+  when a compatible `geo` release updates `rstar`, or remove/replace the spatial dependency behind
+  behavior tests.
+
+`cargo deny` reports `advisories ok`, `bans ok`, `licenses ok`, and `sources ok`, plus a duplicate
+`bitflags` version warning. These results mean the configured policy passed; they do not mean the
+unmaintained/unsoundness warnings above were disproven. Track the updates in the dependency review
+workstream and rerun native/WASM/platform gates after any dependency change.
+
 ## Summary
 
 The scan reported 3,747 matches in `app/src`: 83 critical, 75 high, 1,383 medium, and 2,206 low (risk score is scanner-derived). All critical/high results fall into seven rule patterns. Most are clear heuristic mismatches: the scanner masks snippets so aggressively that ordinary Rust tokens such as `match`, `Rect`, `self`, and UI strings appear as SQL or package names. The unsafe-code rule correctly identifies unsafe Rust and therefore remains a review signal even though the project intentionally confines Windows COM interop to one module. The contact-data rules point to an intentional support email and a Windows COM GUID, respectively.

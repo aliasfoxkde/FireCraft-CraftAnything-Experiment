@@ -281,3 +281,11 @@ automated proof, not another manual pass.
 - [ ] **33.10** Deliver a final owner review package: exact SHAs, files and commits reused, format compatibility results, tests, ticket outcomes, branch/PR decisions, remaining blockers, and the next prioritized milestone.
 
 **Execution authority:** [PRIMARY-REPO-RESET-AND-CONSOLIDATION-PLAN.md](PRIMARY-REPO-RESET-AND-CONSOLIDATION-PLAN.md), [LEGACY-FIRECRAFT-MIGRATION-REGISTER.md](LEGACY-FIRECRAFT-MIGRATION-REGISTER.md), and [AGENT-HANDOFF-2026-11-26.md](AGENT-HANDOFF-2026-11-26.md).
+
+## Phase 34 — v0.3.1 cross-platform release
+
+- [x] **34.1** Prepare version `0.3.1`, changelog notes, and version-derived artifact naming for the merged editor/UI/WASM improvements. *(Prepared 2026-11-27; release tag and package gates remain open.)*
+- [ ] **34.2** Pass the tag workflow's full quality, dependency, security, coverage, and exact-source checks.
+- [ ] **34.3** Build Windows x86_64, universal macOS, Linux tar/AppImage/DEB/Flatpak, and WASM ZIP; validate all checksums and source-SHA manifests.
+- [ ] **34.4** Publish GitHub Release with the title exactly `v0.3.1`; deploy the matching WASM artifact to GitHub Pages and verify the deployment SHA.
+- [ ] **34.5** Run native Windows 11 install/open/edit/save/export review and record the user's acceptance; CI smoke does not close this item.

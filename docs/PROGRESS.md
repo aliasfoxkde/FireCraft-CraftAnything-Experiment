@@ -14,6 +14,29 @@
 
 Newest first.
 
+## 2026-11-27 — consolidation plan merged; v0.3.1 release prepared
+
+- PR #14 merged as `62e004c` after its reconciled head `fc3aaf5` passed hosted Linux gates, WASM,
+  Windows build/CLI smoke, coverage, and CodeQL. Experiment issues and open PRs now both count zero;
+  the PR #13 feature branch and PR #14 planning branch were removed by squash merge.
+- Full local `scripts/ci-local.sh` on the reconciled source passed formatting, strict Clippy, all
+  **186 tests**, docs, module size, WASM check, `cargo deny`, `cargo audit`, and coverage. Coverage:
+  **67.71% lines, 70.10% functions, 69.94% regions**, against the unchanged 67.61% line floor.
+- `cargo audit` succeeded with 13 allowed warnings (unmaintained `ttf-parser`/`zbus` crates and
+  unsound `heapless 0.8.0` via `geo → rstar`); `cargo deny` reports configured advisories/bans/
+  licenses/sources gates passing. Context and dependency chains are in
+  [`research/pattern-scan-triage.md`](research/pattern-scan-triage.md); this is not a security-clean
+  claim.
+- Prepared package version `0.3.1` and release notes for the editor/UI/WASM changes. The existing
+  `v0.3.0` tag/release remains unchanged. Tag-driven multi-platform build and GitHub Pages deployment
+  are pending on the clean release commit.
+- Current Windows review archive from hosted source `fc3aaf5`:
+  `output/windows-review-fc3aaf5/firecraft-v0.3.0-windows-x86_64.zip`, SHA-256
+  `45a5b30f045937c416ca8d9d058be64cfa034eb683ccc0f913085df371d1c8ff`. Its CI Windows CLI smoke
+  passed; interactive Win11 acceptance remains for the reviewer.
+- PR #14 and the merged main now keep UI follow-up in Phase 32 and repository consolidation in
+  Phase 33. Phase 34 tracks the new all-platform release separately from Windows acceptance.
+
 ## 2026-11-27 — PR #13 merged; roadmap reconciliation underway
 
 - Merged PR #13 as squash commit [`00b1fd0`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/commit/00b1fd0e12859a2a81ed014d898c5af46bf2ca8e).
