@@ -29,27 +29,20 @@ remain grounded in this repository's code, tests, tasks and release receipts.
 - Explore the companion [ArtCraft WebOS demo](https://artcraft-webos.pages.dev/) or browse the
   [documentation and tutorials](docs/README.md).
 
-## Start here
+## Documentation
 
-| I want to… | Go to |
-|------------|-------|
-| Build or package a release | [Build & Release](docs/build-release.md) |
-| Understand the codebase | [Architecture](docs/architecture.md) |
-| Browse the feature inventory | [Feature Surface](docs/features/README.md) |
-| Work on the infinite/god-view canvas | [Infinite Canvas](docs/features/infinite-canvas.md) |
-| Work on Find & Replace colors | [Find & Replace](docs/features/find-replace.md) |
-| Work on the file browser | [File Browser](docs/features/file-browser.md) |
-| See all documentation | [Documentation index](docs/README.md) |
-| Check remaining work | [Tasks](docs/TASKS.md) |
-| Review the v0.3.7 Windows build on Windows 11 | [Review checklist](docs/testing/windows-11-review-v0.3.7.md) |
-| See the public product roadmap | [Product Roadmap](docs/PRODUCT_ROADMAP.md) |
-| Explore extension ecosystem research and marketplace plan | [Fireworks Extensions Research](docs/research/fireworks-extensions.md) |
-| See the measured state and gaps | [Audit](docs/AUDIT.md) |
-| Read the current full audit snapshot | [2026-11-27 Audit](docs/AUDIT-2026-11-27.md) · [2026-11-26 archive](docs/AUDIT-2026-11-26.md) |
-| Understand the plan and its exit criteria | [Plan](docs/PLAN.md) |
-| Read the completed UI polish history | [Polish history](docs/ROADMAP.md) |
-| Read release notes | [Changelog](.github/CHANGELOG.md) |
-| Contribute, report a security issue, or read the community code | [Contributing](.github/CONTRIBUTING.md) · [Security](.github/SECURITY.md) · [Code of Conduct](.github/CODE_OF_CONDUCT.md) |
+The [documentation map](docs/README.md) groups guides by purpose and links each topic to its
+focused detail.
+
+- **Product and releases:** [roadmap](docs/PRODUCT_ROADMAP.md), [changelog](.github/CHANGELOG.md),
+  and [Windows 11 review checklist](docs/testing/windows-11-review-v0.3.7.md).
+- **Learn:** [tutorials](docs/tutorials/README.md) and [keybindings](docs/tutorials/keybindings.md).
+- **Feature guides:** [feature inventory](docs/features/README.md), [infinite canvas](docs/features/infinite-canvas.md),
+  [Find & Replace](docs/features/find-replace.md), and [file browser](docs/features/file-browser.md).
+- **Develop:** [architecture](docs/architecture.md), [build and release](docs/build-release.md),
+  [contribution guide](.github/CONTRIBUTING.md), and [agent instructions](AGENTS.md).
+- **Planning and evidence:** [active tasks](docs/TASKS.md), [audit](docs/AUDIT-2026-11-27.md),
+  and [workflow documentation plan](docs/DOCUMENTATION-AND-WORKFLOW-EVIDENCE.md).
 
 ## What is in the box
 

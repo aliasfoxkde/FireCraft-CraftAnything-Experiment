@@ -402,3 +402,16 @@ Evidence and design rationale: [Architecture review](ARCHITECTURE-REVIEW-2026-11
 - [ ] **45.3** Publish GitHub Release `v0.3.7` with the exact platform asset names, release manifest, source SHA, and checksum list after all release jobs pass.
 - [ ] **45.4** Deploy the tag-built WASM bundle to its versioned Cloudflare review Pages branch and verify the served bytes, version marker, MIME types, and startup; keep production distinct until accepted.
 - [ ] **45.5** Complete interactive Windows 11 acceptance using the published ZIP and record reviewer results before treating the release as signed off.
+
+## Phase 46 — documentation map and visual workflow evidence
+
+- [x] **46.1** Replace task-phrase navigation with categorized documentation maps in the root README and `docs/README.md`; add descriptions and focused paths without presenting plans as completed features. *(The documentation index now separates product/releases, tutorials, feature guides, reference, support, engineering, and evidence. Root navigation points to those categories.)*
+- [x] **46.2** Audit the current tutorial and visual-capture baseline; distinguish static screenshots from interactive end-to-end proof. *(`scripts/gui-suite.sh` captures six static states; current tutorials lack consistent verified screenshots and there is no complete workflow-to-document evidence map.)*
+- [x] **46.3** Document the staged documentation and workflow evidence process, including provenance, real app screenshots, bug-to-red/green-test loop, accessibility review, and release maintenance. *(Plan: [`DOCUMENTATION-AND-WORKFLOW-EVIDENCE.md`](DOCUMENTATION-AND-WORKFLOW-EVIDENCE.md).)*
+- [ ] **46.4** Create a stable-ID workflow catalog mapping shipped features to automated/manual scenarios, current status, canonical docs, screenshots, and open issues.
+- [ ] **46.5** Extend the visual harness to exercise real pointer/keyboard/file/clipboard flows and publish traces, screenshots, and build/environment manifests for browser and desktop runs.
+- [ ] **46.6** Run P0 workflows, fix failures with red/green regressions, and capture reviewed screenshots from the exact candidate builds.
+- [ ] **46.7** Re-author focused tutorials and feature guides from passing P0/P1 runs; include expected results, recovery/undo, platform differences, alt text, and linked workflow IDs.
+- [ ] **46.8** Audit every public keybinding/menu/format/update claim against code and a current build; replace stale release/demo links after each verified release.
+- [ ] **46.9** Add a release documentation gate that fails on broken links/images, stale release/version claims, missing workflow references for changed UI behavior, and undocumented user-facing changes.
+- [ ] **46.10** Produce a real sample design project and walkthrough, with source document, exported files, provenance/license, screenshots, and verification results.

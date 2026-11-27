@@ -53,6 +53,10 @@ in `CLAUDE.md` is authoritative for FireCraft implementation details.
    publication.
 9. Commit and push only when the user explicitly asks. A request to build or audit does not by
    itself authorize publishing binaries or deploying a public site.
+10. Tie UI validation and docs to the same reproducible workflow. Before claiming an interface behavior
+    works, record the scenario, build/version, platform, and evidence. A static screenshot proves
+    appearance only, not interaction. Follow the [documentation and workflow evidence process](docs/DOCUMENTATION-AND-WORKFLOW-EVIDENCE.md)
+    when changing UI behavior, tutorials, screenshots, or release docs.
 
 ## Finish each task with
 
