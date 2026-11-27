@@ -2288,6 +2288,35 @@ mod tests {
         )
     }
 
+    fn render_bitmap_ids(app: &mut FireCraft) -> Vec<(Rect, egui::TextureId)> {
+        let ctx = app.ctx.clone();
+        let objects = app.doc.page().layers[0].objects.clone();
+        let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
+            for (index, object) in objects.iter().enumerate() {
+                draw_obj(
+                    ui.painter(),
+                    app,
+                    object,
+                    Vec2::ZERO,
+                    1.0,
+                    1.0,
+                    (0, index),
+                    false,
+                );
+            }
+        });
+        let rendered = output
+            .shapes
+            .iter()
+            .filter_map(|clipped| match &clipped.shape {
+                egui::Shape::Mesh(mesh) => Some((mesh.calc_bounds(), mesh.texture_id)),
+                _ => None,
+            })
+            .collect();
+        output.textures_delta.clear();
+        rendered
+    }
+
     #[test]
     fn coordinate_conversion_and_resize_handle_order_are_stable() {
         assert_eq!(
@@ -2392,35 +2421,6 @@ mod tests {
 
     #[test]
     fn bitmap_rendering_keeps_each_image_texture_after_hotkey_reorder() {
-        fn render_bitmap_ids(app: &mut FireCraft) -> Vec<(Rect, egui::TextureId)> {
-            let ctx = app.ctx.clone();
-            let objects = app.doc.page().layers[0].objects.clone();
-            let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
-                for (index, object) in objects.iter().enumerate() {
-                    draw_obj(
-                        ui.painter(),
-                        app,
-                        object,
-                        Vec2::ZERO,
-                        1.0,
-                        1.0,
-                        (0, index),
-                        false,
-                    );
-                }
-            });
-            let rendered = output
-                .shapes
-                .iter()
-                .filter_map(|clipped| match &clipped.shape {
-                    egui::Shape::Mesh(mesh) => Some((mesh.calc_bounds(), mesh.texture_id)),
-                    _ => None,
-                })
-                .collect();
-            output.textures_delta.clear();
-            rendered
-        }
-
         let bitmap = |at: Vec2, rgba: [u8; 4]| {
             Obj::new(
                 Shape::Bitmap {
@@ -2477,6 +2477,116 @@ mod tests {
                 .1,
             blue_texture,
             "the blue image must retain its texture after its object index changes"
+        );
+    }
+
+    #[test]
+    fn bitmap_texture_identity_survives_duplicate_undo_redo_and_delete_add() {
+        let bitmap = |at: Vec2, rgba: [u8; 4]| {
+            Obj::new(
+                Shape::Bitmap {
+                    at,
+                    pixels: rgba.to_vec(),
+                    size: Vec2::splat(10.0),
+                    pixel_size: Vec2::splat(1.0),
+                },
+                None,
+                None,
+            )
+        };
+        let mut app = app_with_objects(vec![
+            bitmap(Vec2::new(5.0, 10.0), [255, 0, 0, 255]),
+            bitmap(Vec2::new(40.0, 10.0), [0, 0, 255, 255]),
+        ]);
+
+        let initial = render_bitmap_ids(&mut app);
+        let red = initial
+            .iter()
+            .find(|(bounds, _)| bounds.min.x == 5.0)
+            .expect("red bitmap should render")
+            .1;
+        let blue = initial
+            .iter()
+            .find(|(bounds, _)| bounds.min.x == 40.0)
+            .expect("blue bitmap should render")
+            .1;
+        assert_ne!(red, blue);
+
+        app.select_single(Some(0));
+        app.duplicate_selected();
+        let duplicated = render_bitmap_ids(&mut app);
+        assert_eq!(duplicated.len(), 3);
+        assert_eq!(
+            duplicated
+                .iter()
+                .find(|(bounds, _)| bounds.min.x == 19.0)
+                .expect("duplicate should render at its translated position")
+                .1,
+            red,
+            "a cloned bitmap should share the texture for identical pixel content"
+        );
+        assert_eq!(
+            duplicated
+                .iter()
+                .find(|(bounds, _)| bounds.min.x == 40.0)
+                .expect("blue bitmap should remain rendered")
+                .1,
+            blue
+        );
+
+        app.undo_action();
+        let undone = render_bitmap_ids(&mut app);
+        assert_eq!(undone.len(), 2, "undo should remove the duplicate");
+        assert_ne!(
+            undone
+                .iter()
+                .find(|(bounds, _)| bounds.min.x == 5.0)
+                .expect("red bitmap should be restored")
+                .1,
+            undone
+                .iter()
+                .find(|(bounds, _)| bounds.min.x == 40.0)
+                .expect("blue bitmap should be restored")
+                .1
+        );
+
+        app.redo_action();
+        let redone = render_bitmap_ids(&mut app);
+        assert_eq!(redone.len(), 3, "redo should restore the duplicate");
+        assert_eq!(
+            redone
+                .iter()
+                .find(|(bounds, _)| bounds.min.x == 5.0)
+                .expect("original red bitmap should return")
+                .1,
+            redone
+                .iter()
+                .find(|(bounds, _)| bounds.min.x == 19.0)
+                .expect("duplicated red bitmap should return")
+                .1,
+            "redo must restore the same source pixels for both red objects"
+        );
+
+        app.select_single(Some(0));
+        app.delete_selected();
+        app.push_object(bitmap(Vec2::new(80.0, 10.0), [0, 255, 0, 255]));
+        let replaced = render_bitmap_ids(&mut app);
+        assert_eq!(replaced.len(), 3);
+        assert_eq!(
+            replaced
+                .iter()
+                .find(|(bounds, _)| bounds.min.x == 80.0)
+                .expect("new green bitmap should render")
+                .1,
+            FireCraft::bitmap_texture(
+                &app.ctx,
+                &mut app.textures,
+                &[0, 255, 0, 255],
+                Vec2::splat(1.0),
+            )
+            .expect("green texture should be cacheable")
+            .id(),
+            "adding a new bitmap after deletion must render its own pixels"
         );
     }
 
