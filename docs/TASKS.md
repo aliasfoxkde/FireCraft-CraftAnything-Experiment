@@ -397,8 +397,30 @@ Evidence and design rationale: [Architecture review](ARCHITECTURE-REVIEW-2026-11
 
 ## Phase 45 — v0.3.7 cross-platform review release
 
-- [x] **45.1** Prepare the v0.3.7 patch release metadata and Windows 11 review checklist, including the focused canvas Ctrl+V scenarios. *(Version source is `app/Cargo.toml`; `Cargo.lock`, changelog, README navigation, and `docs/testing/windows-11-review-v0.3.7.md` are aligned. The release remains unpublished until its exact-tag workflow passes.)*
-- [ ] **45.2** Run the exact-tag release quality gate and build Windows, universal macOS, Linux tar/AppImage/DEB/Flatpak, and WASM assets; verify source markers, package manifest, MIME, and checksums.
-- [ ] **45.3** Publish GitHub Release `v0.3.7` with the exact platform asset names, release manifest, source SHA, and checksum list after all release jobs pass.
-- [ ] **45.4** Deploy the tag-built WASM bundle to its versioned Cloudflare review Pages branch and verify the served bytes, version marker, MIME types, and startup; keep production distinct until accepted.
+- [x] **45.1** Prepare the v0.3.7 patch release metadata and Windows 11 review checklist, including the focused canvas Ctrl+V scenarios. *(Version source is `app/Cargo.toml`; `Cargo.lock`, changelog, and `docs/testing/windows-11-review-v0.3.7.md` are aligned. README download/demo links point to the latest published/verified artifacts; update them after v0.3.7 publication and preview deployment.)*
+- [x] **45.2** Run the exact-tag release quality gate and build Windows, universal macOS, Linux tar/AppImage/DEB/Flatpak, and WASM assets; verify source markers, package manifest, MIME, and checksums. *(Workflow `46081881673` completed all build/package jobs successfully; all eight release payload checksums validated locally against `SHA256SUMS.txt`, both ZIP archives passed integrity checks, and `SOURCE-SHA.txt` matches the release manifest/tag source.)*
+- [x] **45.3** Publish GitHub Release `v0.3.7` with the exact platform asset names, release manifest, source SHA, and checksum list after all release jobs pass. *(Published 2026-11-27; exact tag title `v0.3.7`; Windows, universal macOS, Linux tar/AppImage/DEB/Flatpak, and WASM assets plus package/release manifests and checksums are present.)*
+- [ ] **45.4** Deploy the tag-built WASM bundle to its versioned Cloudflare review Pages branch and verify the served bytes, version marker, MIME types, and startup; keep production distinct until accepted. *(GitHub Pages v0.3.7 deployed and its served BUILD-INFO marker matches source `5bfdcfd`. Versioned Cloudflare deployment failed in run `46081881673`: no repository Cloudflare secret is configured; the local environment token was rejected as invalid by Cloudflare. Existing Cloudflare review preview remains v0.3.5. Production was not touched.)*
 - [ ] **45.5** Complete interactive Windows 11 acceptance using the published ZIP and record reviewer results before treating the release as signed off.
+
+## Phase 46 — documentation map and visual workflow evidence
+
+- [x] **46.1** Replace task-phrase navigation with categorized documentation maps in the root README and `docs/README.md`; add descriptions and focused paths without presenting plans as completed features. *(The documentation index now separates product/releases, tutorials, feature guides, reference, support, engineering, and evidence. Root navigation points to those categories.)*
+- [x] **46.2** Audit the current tutorial and visual-capture baseline; distinguish static screenshots from interactive end-to-end proof. *(`scripts/gui-suite.sh` captures six static states; current tutorials lack consistent verified screenshots and there is no complete workflow-to-document evidence map.)*
+- [x] **46.3** Document the staged documentation and workflow evidence process, including provenance, real app screenshots, bug-to-red/green-test loop, accessibility review, and release maintenance. *(Plan: [`DOCUMENTATION-AND-WORKFLOW-EVIDENCE.md`](DOCUMENTATION-AND-WORKFLOW-EVIDENCE.md).)*
+- [ ] **46.4** Create a stable-ID workflow catalog mapping shipped features to automated/manual scenarios, current status, canonical docs, screenshots, and open issues.
+- [ ] **46.5** Extend the visual harness to exercise real pointer/keyboard/file/clipboard flows and publish traces, screenshots, and build/environment manifests for browser and desktop runs.
+- [ ] **46.6** Run P0 workflows, fix failures with red/green regressions, and capture reviewed screenshots from the exact candidate builds.
+- [ ] **46.7** Re-author focused tutorials and feature guides from passing P0/P1 runs; include expected results, recovery/undo, platform differences, alt text, and linked workflow IDs.
+- [ ] **46.8** Audit every public keybinding/menu/format/update claim against code and a current build; replace stale release/demo links after each verified release.
+- [ ] **46.9** Add a release documentation gate that fails on broken links/images, stale release/version claims, missing workflow references for changed UI behavior, and undocumented user-facing changes.
+- [ ] **46.10** Produce a real sample design project and walkthrough, with source document, exported files, provenance/license, screenshots, and verification results.
+
+
+## Phase 47 — pull request and branch cleanup
+
+- [x] **47.1** Inventory all current GitHub PRs and remote branches; identify unmerged docs branches and protected release refs rather than deleting by name alone. *(Snapshot 2026-11-27: PR #53 is the only open PR; #51/#52 merged. Three no-PR docs branches contain unique material; protected historical `release/*` refs remain governed by branch protection.)*
+- [x] **47.2** Prune local remote-tracking refs for branches already deleted on GitHub and confirm the surviving worktrees before local cleanup. *(`git fetch --prune origin` removed six stale tracking refs; local worktrees with uncommitted files and nested worktrees were retained.)*
+- [ ] **47.3** Review and reconcile `docs/quality-and-webos-roadmap-2026-11-27` and `docs/support-feedback-pipeline-handoff-2026-11-27`; refresh stale baselines, preserve useful architecture and feature plans, and give each branch a reviewed merge-or-close disposition.
+- [ ] **47.4** Resolve the unsubmitted `docs/v0.3.2-release-receipts` branch against current progress history; preserve any unique evidence before deleting its remote ref. *(The historical v0.3.2 release/browser-paste receipt is now in `PROGRESS.md`; delete the unprotected remote ref after this documentation PR merges.)*
+- [ ] **47.5** After PR #53 passes exact-head checks and merges, remove its source branch and close the final open PR; keep protected historical release refs until the repository ruleset permits safe removal.
