@@ -20,6 +20,10 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     let ctx = ui.ctx().clone();
     app.ctx = ctx.clone();
     app.frames = app.frames.saturating_add(1);
+    #[cfg(target_arch = "wasm32")]
+    for payload in crate::take_browser_pastes() {
+        app.paste_with_text(Some(&payload));
+    }
     if app.logo_tex.is_none() {
         app.logo_tex = FireCraft::load_logo(&ctx);
     }
