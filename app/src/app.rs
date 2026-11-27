@@ -2414,7 +2414,8 @@ impl FireCraft {
             .layers
             .get(self.selected_layer)
             .is_some_and(|layer| {
-                !layer.locked
+                layer.visible
+                    && !layer.locked
                     && layer.objects.iter().rev().any(|obj| {
                         matches!(obj.kind, Shape::Bitmap { .. })
                             && obj.bounds().is_some_and(|(lo, hi)| {
@@ -2434,7 +2435,7 @@ impl FireCraft {
         let Some(layer_ref) = page.layers.get_mut(layer) else {
             return false;
         };
-        if layer_ref.locked {
+        if !layer_ref.visible || layer_ref.locked {
             return false;
         }
         let Some(obj) = layer_ref.objects.iter_mut().rev().find(|obj| {
@@ -5304,6 +5305,44 @@ mod tests {
             panic!("undo must restore the bitmap object");
         };
         assert_eq!(pixels[(16 * 32 + 16) * 4 + 3], 255);
+    }
+
+    #[test]
+    fn eraser_does_not_edit_bitmap_on_hidden_layer() {
+        let mut app = FireCraft::new(None);
+        let index = app.push_object(Obj::new(
+            Shape::Bitmap {
+                at: Vec2::ZERO,
+                pixels: [255, 80, 20, 255].repeat(8 * 8),
+                size: Vec2::splat(8.0),
+                pixel_size: Vec2::splat(8.0),
+            },
+            None,
+            None,
+        ));
+        let layer_index = app.selected_layer;
+        app.doc.page_mut().layers[layer_index].visible = false;
+        app.set_tool(Tool::Eraser);
+
+        assert!(
+            !app.erase_at(Vec2::splat(4.0)),
+            "the mutation seam must independently reject a hidden layer"
+        );
+        app.on_pointer_down(Vec2::splat(4.0), Vec2::ZERO, false, false, false);
+
+        let Shape::Bitmap { pixels, .. } = &app.doc.page().layers[layer_index].objects[index].kind
+        else {
+            panic!("eraser must preserve the hidden bitmap object");
+        };
+        assert_eq!(
+            pixels[(4 * 8 + 4) * 4 + 3],
+            255,
+            "eraser must not mutate pixels on a hidden layer"
+        );
+        assert!(
+            !app.bitmap_target_at(Vec2::splat(4.0)),
+            "hidden-layer bitmaps should not be eligible eraser targets"
+        );
     }
 
     #[test]
