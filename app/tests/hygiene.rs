@@ -5,6 +5,51 @@
 
 use std::path::{Path, PathBuf};
 
+#[cfg(unix)]
+#[test]
+fn docs_gate_fails_when_git_cannot_list_tracked_markdown() {
+    use std::os::unix::fs::PermissionsExt;
+    use std::process::Command;
+
+    let temp = std::env::temp_dir().join(format!(
+        "firecraft-docs-git-failure-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock after epoch")
+            .as_nanos()
+    ));
+    let bin = temp.join("bin");
+    std::fs::create_dir_all(&bin).expect("create fake git directory");
+    let fake_git = bin.join("git");
+    std::fs::write(&fake_git, "#!/bin/sh\nexit 128\n").expect("write fake git");
+    let mut permissions = std::fs::metadata(&fake_git)
+        .expect("stat fake git")
+        .permissions();
+    permissions.set_mode(0o755);
+    std::fs::set_permissions(&fake_git, permissions).expect("make fake git executable");
+
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let repo_root = manifest.parent().expect("app has repository parent");
+    let script = repo_root.join("scripts/check-docs.sh");
+    let original_path = std::env::var_os("PATH").unwrap_or_default();
+    let path =
+        std::env::join_paths(std::iter::once(bin).chain(std::env::split_paths(&original_path)))
+            .expect("construct fake git PATH");
+    let output = Command::new("bash")
+        .arg(script)
+        .env("PATH", path)
+        .output()
+        .expect("run docs gate with failing git");
+
+    std::fs::remove_dir_all(&temp).expect("remove fake git directory");
+    assert!(
+        !output.status.success(),
+        "docs gate silently accepted an empty tracked-file list: {}",
+        String::from_utf8_lossy(&output.stdout)
+    );
+}
+
 fn src_files() -> Vec<PathBuf> {
     fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
         for entry in std::fs::read_dir(dir).expect("read src dir") {

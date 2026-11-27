@@ -3,7 +3,7 @@ FROM --platform=linux/amd64 rust:1.100.0-bookworm@sha256:30a9c647e188457aac6e0bd
 ARG CARGO_LOCK_SHA256
 
 LABEL org.opencontainers.image.title="FireCraft GitForge CI" \
-      org.opencontainers.image.version="3" \
+      org.opencontainers.image.version="4" \
       org.opencontainers.image.source="https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment" \
       org.firecraft.cargo-lock-sha256="${CARGO_LOCK_SHA256}"
 
