@@ -2,6 +2,26 @@
 
 Newest first.
 
+### 2026-11-27 — TDD and verification follow-up
+
+- Re-ran the Save All & Quit regression by its full filter and the full suite on the current tree: 190 unit tests passed, one isolated frame-time test was ignored, and 12 CLI, 5 hygiene, and 10 MCP tests passed. Strict all-target Clippy (`-D warnings`), WASM target check, docs/link validation (63 files), rustfmt, diff check, and module-size hard budget passed. The new behavior test passes against existing production code; it did not reproduce a defect, so no production change was fabricated.
+- Recorded managed Aegis scan `0889e9ed-bbbe-4782-af42-597c4f3b9456` (Aegis 0.6.6, production profile, tree `07f2cba1d5c432bd3234e9193cdca6df52b6a51a`): 11,323 findings, with 11,241 in retained `investigation.cany/` evidence. Secret-shaped prose/temp-directory names and two static Apple plist DTD alerts were reviewed as false positives. The scan is non-clean; 82 findings outside retained evidence and individual evidence matches remain open under TASK 41.2. No raw candidate values were copied into project docs.
+- GitForge services currently answer HTTP 200 on ports 42780–42782, but the local `gitforge-status` CLI is absent and the installed server state is documented as stale. No passing local pipeline is claimed; branch-level verification is still pending.
+
+### 2026-11-27 — TDD: Save All & Quit across untitled and named documents
+
+- Added `save_all_and_quit_waits_for_untitled_save_as_then_saves_named_dirty_documents` in
+  `app/src/app/files.rs`. The regression drives the app-level quit step, confirms it switches to
+  the untitled tab and opens Save As, completes that dialog through the real commit callback, then
+  asserts the named dirty document is saved afterward and no dirty document remains to intercept
+  close. A shared in-memory `FileService` keeps the flow deterministic and disk-free.
+- The focused test passed without production changes; the existing flow met the asserted contract.
+  Full local verification passed: 190 unit tests, 12 CLI, 5 hygiene, and 10 MCP tests; one isolated
+  frame-time test remains ignored. Strict all-target Clippy (`-D warnings`), WASM target check,
+  rustfmt, `git diff --check`, and module-size passed. Docs/link validation is run with this update.
+- This expands behavior coverage in the multi-document close path; overall 99% coverage remains
+  unverified for this branch and stays open under TASK 41.3.
+
 ### 2026-11-27 — TDD: pixel-exact bitmap flatten and undo contract
 
 - Added `flatten_selected_bitmaps_is_pixel_exact_and_undo_restores_sources_and_order` at the app
