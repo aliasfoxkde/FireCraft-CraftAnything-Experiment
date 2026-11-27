@@ -16,6 +16,10 @@ minimal parameter row is a complete raster/vector engine.
   hit-tests, draws objects and selection overlays; `app/src/doc.rs` stores vector and bitmap data;
   `app/src/formats.rs` has export rasterization. Tool options live in `panels/tools.rs` and
   `panels/properties.rs`.
+- Startup presentation used to paint an opaque full-window scrim and a pretend progress bar, return
+  early, and hold the editor UI for 2.2 seconds before opening a separate Welcome modal. The new
+  design is a maximum 2.4-second alpha-fading transparent logo overlay over the live editor; the
+  Welcome screen is opt-in. It does not report fake loading progress or block pointer input.
 - The Eraser used to delete any active-layer object whose bounding box covered the pointer. It did
   not subtract image pixels. The active fix now writes feather-weighted alpha changes to a bitmap
   and preserves its object identity. Freehand tool samples also bypass guide/grid snapping; a

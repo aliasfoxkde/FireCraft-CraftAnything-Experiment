@@ -34,9 +34,7 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
         ctx.data_mut(|d| d.insert_temp(theme_id, app.theme_mode));
     }
 
-    if dialogs::startup_splash(ui, app) {
-        return;
-    }
+    dialogs::startup_splash(ui, app);
 
     // Intercept the OS close button before eframe tears the window down. CancelClose is issued
     // only while there is unsaved work so a clean session still closes normally.

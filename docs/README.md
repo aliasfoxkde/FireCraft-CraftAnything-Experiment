@@ -39,6 +39,7 @@ is the map for deeper material.
 | See changes by release | [Changelog](../.github/CHANGELOG.md) |
 | Read the vocabulary and original product brief | [Glossary](GLOSSARY.md) · [Instructions](INSTRUCTIONS.md) |
 | Review completed and planned improvements | [Improvements](IMPROVEMENTS.md) · [Roadmap](ROADMAP.md) |
+| Review architecture opportunities and the implementation order | [Architecture review (2026-11-27)](ARCHITECTURE-REVIEW-2026-11-27.md) · [Architecture](architecture.md) · [Plan](PLAN.md) |
 | Contribute or report a security issue | [Contributing](../.github/CONTRIBUTING.md) · [Security](../.github/SECURITY.md) · [Code of Conduct](../.github/CODE_OF_CONDUCT.md) |
 
 ## Conventions

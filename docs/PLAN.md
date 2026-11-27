@@ -3,6 +3,8 @@
 Inputs: [AUDIT.md](AUDIT.md) (measured baseline, findings F-01…F-18), [ROADMAP.md](ROADMAP.md)
 (completed polish pass and its open manual checks), [IMPROVEMENTS.md](IMPROVEMENTS.md)
 (untriaged user reports), [architecture.md](architecture.md) (seams), [adr/](adr/) (decisions).
+The current architecture candidate ranking and dependency audit are in
+[ARCHITECTURE-REVIEW-2026-11-27.md](ARCHITECTURE-REVIEW-2026-11-27.md).
 
 The plan continues the roadmap's numbering at **Phase 13** so IDs stay unique. Work items live in
 [TASKS.md](TASKS.md); this file explains ordering, exit criteria and risk.

@@ -624,7 +624,6 @@ pub struct FireCraft {
 
 impl FireCraft {
     pub fn new(screenshot_path: Option<String>) -> Self {
-        let show_welcome_default = screenshot_path.is_none();
         let theme_mode = ThemeMode::System;
         let palette = theme::resolve(theme_mode);
         let mut initial_doc = Document::new(constants::DEFAULT_WIDTH, constants::DEFAULT_HEIGHT);
@@ -810,7 +809,7 @@ impl FireCraft {
                 .to_string(),
             ai_rx: None,
             show_ai_settings: true,
-            show_welcome: show_welcome_default,
+            show_welcome: false,
             dont_show_welcome_again: false,
         };
         app.create_default_button_symbol();
@@ -4716,9 +4715,9 @@ mod tests {
     }
 
     #[test]
-    fn clipboard_copy_cut_paste_and_welcome_default() {
+    fn clipboard_copy_cut_paste_and_welcome_is_opt_in() {
         let mut app = FireCraft::new(None);
-        assert!(app.show_welcome);
+        assert!(!app.show_welcome);
         app.insert_auto_shape(AutoShapeKind::RoundedRect);
         app.insert_auto_shape(AutoShapeKind::Star);
         app.select_all();
