@@ -2,6 +2,14 @@
 
 Newest first.
 
+### 2026-11-27 — v0.3.3 TDD, cross-platform release, and browser review
+
+- Added a red/green host test for private browser PNG clipboard payload decoding: it verifies a valid deterministic 2×3 RGBA image's dimensions/pixels and rejects malformed payloads without inserting an object. The shared decoder fix passed focused paste tests and the complete exact-SHA GitHub release quality workflow.
+- Published [GitHub Release v0.3.3](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.3), source `918ca8ddad5b850ae18f4101327a5e76fcf12966`. All release quality gates passed, along with Windows, universal macOS, Linux tar.gz/AppImage/DEB/Flatpak, WASM, publisher, and GitHub Pages deployment jobs. The release title is exactly `v0.3.3`; all platform assets and source manifests are present.
+- Deployed the exact WASM artifact to [Cloudflare Pages preview](https://wasm-review-v0-3-3.firecraft-web.pages.dev/). HTML, build marker, JS, WASM, and favicon returned HTTP 200 with expected MIME types; marker source/version matched the release. Headed Chromium loaded the editor, then pasted a generated 32×24 PNG via the system clipboard; the canvas showed it as a selected bitmap.
+- Downloaded and checksum-verified the Windows review ZIP at `output/release-v0.3.3/firecraft-v0.3.3-windows-x86_64.zip`; SHA-256 `2222474b3d79fd12040242321da219a76f140179fb6ecad7a8b2e910978d751a`. Its `BUILD-INFO.txt` identifies v0.3.3 and the release SHA. Windows GUI acceptance remains with the reviewer; see [checklist](testing/windows-11-review.md).
+- Current coverage artifact measured **17,708 / 25,709 lines (68.88%)**. This does not meet the requested 99% target; it remains open with focused behavior and high-risk code paths prioritized. Native OS clipboard qualification, browser permission/focus/large-payload tests, and Windows/macOS/Linux GUI acceptance remain open. Cloudflare marketing-site deployment is distinct from the WASM app preview.
+
 ### 2026-11-27 — Transparent, live startup splash
 
 - Removed the full-window dark scrim and fake progress bar. The splash now fades the transparent
