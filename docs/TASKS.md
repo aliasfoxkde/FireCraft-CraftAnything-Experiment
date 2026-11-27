@@ -234,10 +234,10 @@ automated proof, not another manual pass.
 
 ## Phase 29 — v0.3.0 public multi-platform release
 
-- [ ] **29.1** Build and package Windows x64, macOS universal (arm64 + x86_64), Linux x86_64 tar.gz/DEB/AppImage/Flatpak, and WebAssembly ZIP from the same matching `v0.3.0` tag.
-- [ ] **29.2** Smoke-test each package, validate package inventories and executable versions, and create a source-SHA artifact manifest plus SHA-256 checksums.
-- [ ] **29.3** Run release workflow on public GitHub-hosted runners; resolve startup or build failures and require every platform job to pass.
-- [ ] **29.4** Publish the GitHub Release and deploy the exact WASM build only after the aggregate release gate passes.
+- [x] **29.1** Build and package Windows x64, macOS universal (arm64 + x86_64), Linux x86_64 tar.gz/DEB/AppImage/Flatpak, and WebAssembly ZIP from the same matching `v0.3.0` tag. *(Source `e415a333`; all eight platform assets published.)*
+- [x] **29.2** Smoke-test each package, validate package inventories and executable versions, and create a source-SHA artifact manifest plus SHA-256 checksums. *(All package jobs and published asset SHA-256 checks passed; source and release manifests published.)*
+- [x] **29.3** Run release workflow on public GitHub-hosted runners; resolve startup or build failures and require every platform job to pass. *(Final workflow run #81, attempt 3 passed all jobs.)*
+- [x] **29.4** Publish the GitHub Release and deploy the exact WASM build only after the aggregate release gate passes. *(Release `v0.3.0` and Pages deployment completed.)*
 - [ ] **29.5** Record macOS Developer ID signing/notarization status; publish as unsigned only with an explicit artifact note if credentials are unavailable.
 - [ ] **29.6** Collect Windows 11, macOS, and Linux native-user review; distinguish build/smoke evidence from user acceptance/certification.
 

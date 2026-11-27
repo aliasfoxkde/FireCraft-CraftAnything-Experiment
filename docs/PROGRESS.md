@@ -293,3 +293,15 @@ unverified. Do not restate the plan; link it.
   passing hosted gates, coverage, Windows build/CLI smoke, WASM, and CodeQL; the pushed doc change
   will produce a fresh receipt for the new head. `actionlint` still reports the known
   `code-quality: write` permission scope in the coverage workflow, which GitHub currently accepts.
+
+### 2026-11-27 — v0.3.0 release and version-only release title
+
+- Published [v0.3.0](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.0)
+  from source `e415a333f6a474bd738f47bb64d56704d711f1ce` with Windows, universal macOS ZIP/DMG,
+  Linux tar.gz/AppImage/DEB/Flatpak, and WASM ZIP assets. The release manifest and aggregate SHA-256
+  verification cover the exact platform asset set.
+- All release workflow jobs passed on run #81, attempt 3. The WASM site is deployed at
+  https://aliasfoxkde.github.io/FireCraft-CraftAnything-Experiment/.
+- Corrected the published release name to exactly `v0.3.0`; updated the release workflow to use the
+  tag as the release name for future releases. Verified the published release assets against
+  `SHA256SUMS.txt` and refreshed the local Windows review bundle under `dist/windows-review/v0.3.0/`.
