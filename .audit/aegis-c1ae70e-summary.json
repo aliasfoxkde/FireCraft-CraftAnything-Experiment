@@ -1,0 +1,39 @@
+{
+  "date": "2026-11-27",
+  "job_id": "277900d0-c7cb-4fe0-8cd4-a2381974bddf",
+  "exit_reason": "findings_reported",
+  "source_commit": "c1ae70e52667aae202a5577260699e2757631758",
+  "snapshot_note": "The source commit was c1ae70e; the scan also included the active decision log and local Windows review files. The documentation summary and this redacted Aegis receipt were added after the scan.",
+  "files_scanned": 291,
+  "files_skipped": 14593,
+  "files_failed": 0,
+  "suppressed_findings": 2,
+  "findings": 11325,
+  "severity": {
+    "critical": 2,
+    "high": 55,
+    "medium": 639,
+    "low": 10629
+  },
+  "category": {
+    "pii": 11055,
+    "compliance": 247,
+    "web-security": 17,
+    "secrets": 3,
+    "security-hardening": 3
+  },
+  "source_groups": {
+    "investigation.cany retained evidence": 11241,
+    "outside retained evidence": 84
+  },
+  "changed_source_files": [
+    "app/src/layout.rs",
+    "app/src/harness.rs"
+  ],
+  "changed_source_file_findings": 0,
+  "triage": {
+    "critical_findings": "Both matches are on the standard Apple plist public DOCTYPE in the static macOS bundle script; there is no entity declaration or untrusted XML parsing. They are static-template false positives.",
+    "remaining": "The full scan is not clean. The 84 findings outside retained evidence and individual findings in the protected investigation.cany evidence have not all been triaged."
+  },
+  "raw_output": "Kept in the local managed-job log outside the repository; no candidate values copied here."
+}

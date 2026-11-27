@@ -902,3 +902,39 @@ unverified. Do not restate the plan; link it.
   ignored in the concurrent suite. Strict Clippy, rustfmt, native `cargo check`, and WASM target
   `cargo check` passed. The test supplies native clipboard text at the source seam; real desktop OS
   clipboard acceptance and browser permission/focus denial behavior remain open.
+
+## 2026-11-27 — Ctrl+V routing while a dock field retains focus
+
+- Added a red regression that reproduced the reported failure: the canvas had pointer position and
+  selection, but a still-mounted dock text field retained egui focus, so the shortcut dispatcher
+  returned before handling Ctrl+V. The pre-fix assertion showed no canvas paste (expected object
+  count 43, actual 22).
+- Ctrl+V over the canvas now consumes the shortcut and any text Paste event before a persistent
+  panel field can receive it. The focused field remains the paste target when the pointer is
+  outside the canvas, and active inline canvas text editing is left alone.
+- Focused harness tests pass for internal-object canvas paste, external text paste to the canvas,
+  and ordinary focused-field paste outside the canvas (4 Ctrl+V tests total).
+- Exact source commit `c1ae70e52667aae202a5577260699e2757631758` was pushed to PR #52 and local
+  GitForge. GitHub Gates, WASM, Windows build/CLI smoke, CodeQL, and coverage passed. Hosted tests
+  report 201 unit passed, one timing test ignored, 12 CLI, 5 hygiene, and 10 MCP. Strict Clippy,
+  formatting, docs, security/dependency gates are included in the green Gates job.
+- Hosted Cobertura on this source reports 19,338 / 27,259 lines = 70.94%; branches remain unavailable
+  (0/0), so the 99% goal is still unmet. Changed-line Atheon reported 19 broad test-file matches;
+  manual review classified all as false positives or intentional test constructs. Managed full
+  Aegis scan `277900d0-c7cb-4fe0-8cd4-a2381974bddf` finished with 11,325 findings: 11,241 under
+  retained `investigation.cany/` and 84 outside it. There were 0 findings on the two changed
+  production source files; both critical hits are the known static Apple plist DTD false positive.
+  The scan is not clean; 84 outside-evidence findings and individual retained-evidence findings
+  still need triage. A redacted receipt is `.audit/aegis-c1ae70e-summary.json`.
+- Windows review ZIP: `output/review-c1ae70e/firecraft-v0.3.6-windows-x86_64.zip`, SHA-256
+  `8d27672d29b43666bfd2fc9e3d169e325bda2affdedb182c5b101f6527f6bb76`. Embedded CI source commit
+  `e6a61390feff82f8b7ba03473922611797a000da` has the same Git tree as `c1ae70e`. This is not a
+  release asset; native Windows 11 acceptance remains open.
+- OpenAI Developer Docs MCP is registered and verified by search/fetch. Added a docs-only
+  `openai-docs` Codex profile to the global MCP profile file so API lookups can avoid the wider
+  research bundle. The running Codex session still needs a restart to load newly configured tools.
+- Exact-source local GitForge run `68cea0ed-de59-4ced-8b54-da36ea0ccfb9` succeeded for commit
+  `c1ae70e` and `refs/heads/fix/tools-path-interaction` at 2026-11-27T22:41:53Z. It ran formatting,
+  strict Clippy, the full Rust test suite, docs checks, and a release WASM build. Real native OS
+  clipboard, browser clipboard permission/focus denial, native canvas/panel
+  visual acceptance, and the other listed Phase 44 interactions remain open.
