@@ -515,10 +515,141 @@ fn properties_body(ui: &mut Ui, app: &mut FireCraft) {
                             );
                         } else {
                             for (ei, eff) in obj.effects.iter().enumerate() {
-                                let mut en = eff.is_enabled();
-                                if ui.checkbox(&mut en, eff.label()).changed() {
-                                    app.toggle_live_effect(ei, en);
-                                }
+                                ui.horizontal(|ui| {
+                                    let mut enabled = eff.is_enabled();
+                                    if ui.checkbox(&mut enabled, eff.label()).changed() {
+                                        app.toggle_live_effect(ei, enabled);
+                                    }
+                                    ui.label(
+                                        RichText::new(eff.summary()).small().color(p.text_dim),
+                                    );
+                                });
+                                egui::CollapsingHeader::new("Filter Settings")
+                                    .id_salt(("live-filter", ei))
+                                    .show(ui, |ui| {
+                                        let mut edited = eff.clone();
+                                        let mut changed = false;
+                                        match &mut edited {
+                                            LiveEffect::DropShadow {
+                                                distance,
+                                                angle_deg,
+                                                blur,
+                                                color,
+                                                ..
+                                            } => {
+                                                changed |= ui
+                                                    .add(
+                                                        egui::Slider::new(distance, 0.0..=80.0)
+                                                            .text("Distance"),
+                                                    )
+                                                    .changed();
+                                                changed |= ui
+                                                    .add(
+                                                        egui::Slider::new(angle_deg, 0.0..=360.0)
+                                                            .text("Angle"),
+                                                    )
+                                                    .changed();
+                                                changed |= ui
+                                                    .add(
+                                                        egui::Slider::new(blur, 0.0..=40.0)
+                                                            .text("Blur"),
+                                                    )
+                                                    .changed();
+                                                changed |=
+                                                    ui.color_edit_button_srgba(color).changed();
+                                            }
+                                            LiveEffect::InnerShadow {
+                                                distance,
+                                                blur,
+                                                color,
+                                                ..
+                                            } => {
+                                                changed |= ui
+                                                    .add(
+                                                        egui::Slider::new(distance, 0.0..=40.0)
+                                                            .text("Distance"),
+                                                    )
+                                                    .changed();
+                                                changed |= ui
+                                                    .add(
+                                                        egui::Slider::new(blur, 0.0..=40.0)
+                                                            .text("Blur"),
+                                                    )
+                                                    .changed();
+                                                changed |=
+                                                    ui.color_edit_button_srgba(color).changed();
+                                            }
+                                            LiveEffect::Glow { radius, color, .. } => {
+                                                changed |= ui
+                                                    .add(
+                                                        egui::Slider::new(radius, 0.0..=60.0)
+                                                            .text("Radius"),
+                                                    )
+                                                    .changed();
+                                                changed |=
+                                                    ui.color_edit_button_srgba(color).changed();
+                                            }
+                                            LiveEffect::Bevel {
+                                                width,
+                                                highlight,
+                                                shadow,
+                                                ..
+                                            } => {
+                                                changed |= ui
+                                                    .add(
+                                                        egui::Slider::new(width, 0.0..=24.0)
+                                                            .text("Width"),
+                                                    )
+                                                    .changed();
+                                                changed |=
+                                                    ui.color_edit_button_srgba(highlight).changed();
+                                                changed |=
+                                                    ui.color_edit_button_srgba(shadow).changed();
+                                            }
+                                            LiveEffect::GaussianBlur { radius, .. } => {
+                                                changed |= ui
+                                                    .add(
+                                                        egui::Slider::new(radius, 0.0..=40.0)
+                                                            .text("Radius"),
+                                                    )
+                                                    .changed();
+                                            }
+                                            LiveEffect::ColorAdjust {
+                                                brightness,
+                                                contrast,
+                                                saturation,
+                                                ..
+                                            } => {
+                                                changed |= ui
+                                                    .add(
+                                                        egui::Slider::new(
+                                                            brightness,
+                                                            -100.0..=100.0,
+                                                        )
+                                                        .text("Brightness"),
+                                                    )
+                                                    .changed();
+                                                changed |= ui
+                                                    .add(
+                                                        egui::Slider::new(contrast, -100.0..=100.0)
+                                                            .text("Contrast"),
+                                                    )
+                                                    .changed();
+                                                changed |= ui
+                                                    .add(
+                                                        egui::Slider::new(
+                                                            saturation,
+                                                            -100.0..=100.0,
+                                                        )
+                                                        .text("Saturation"),
+                                                    )
+                                                    .changed();
+                                            }
+                                        }
+                                        if changed {
+                                            app.update_live_effect(ei, edited);
+                                        }
+                                    });
                             }
                         }
                     });
@@ -618,9 +749,29 @@ fn properties_body(ui: &mut Ui, app: &mut FireCraft) {
                 ui.separator();
                 if matches!(app.tool, Tool::Brush | Tool::Pencil | Tool::Eraser) {
                     ui.horizontal(|ui| {
-                        ui.label(RichText::new("Brush Size:").small().color(p.text_dim));
+                        let size_label = if app.tool == Tool::Eraser {
+                            "Eraser Size:"
+                        } else {
+                            "Brush Size:"
+                        };
+                        ui.label(RichText::new(size_label).small().color(p.text_dim));
                         ui.add(egui::Slider::new(&mut app.brush_size, 1.0..=64.0).suffix(" px"));
                     });
+                    if app.tool == Tool::Eraser {
+                        ui.horizontal(|ui| {
+                            ui.label(RichText::new("Feather:").small().color(p.text_dim));
+                            ui.add(
+                                egui::Slider::new(&mut app.eraser_feather, 0.0..=1.0)
+                                    .custom_formatter(|value, _| format!("{:.0}%", value * 100.0))
+                                    .custom_parser(|text| {
+                                        text.trim_end_matches('%')
+                                            .parse::<f64>()
+                                            .ok()
+                                            .map(|value| value / 100.0)
+                                    }),
+                            );
+                        });
+                    }
                 }
             });
         }
@@ -787,6 +938,7 @@ mod tests {
                 at: Vec2::new(10.0, 20.0),
                 pixels: vec![255, 0, 0, 255],
                 size: Vec2::new(1.0, 1.0),
+                pixel_size: Vec2::new(1.0, 1.0),
             },
             Shape::SymbolInstance {
                 symbol_id: 0,

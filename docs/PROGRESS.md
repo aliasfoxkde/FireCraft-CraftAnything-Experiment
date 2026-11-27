@@ -2,6 +2,87 @@
 
 Newest first.
 
+### 2026-11-27 — Transparent, live startup splash
+
+- Removed the full-window dark scrim and fake progress bar. The splash now fades the transparent
+  brand art over the editor for at most 2.4 seconds, while the workspace continues rendering and
+  pointer events remain available. Click or Escape skips the animation.
+- Startup now opens directly to the editor; the separate Welcome experience remains available by
+  explicit action instead of appearing after the splash.
+- Added deterministic fade timing and harness checks for the workspace rendering before, during
+  and after the splash. Targeted checks passed; full gates and hosted native/WASM checks remain
+  pending.
+- A further harness check proves Tab toggles canvas-only mode both directions during the splash,
+  without pointer refocus (1 targeted test passed). Because the splash implementation predated this
+  resumed TDD request, a failing-before receipt could not be captured without reverting existing
+  in-progress work; new fixes must record red/green evidence when a narrow test seam exists.
+- Added an asset regression test for a fully transparent splash corner. It passed immediately:
+  although the PNG is palette-based and has no explicit alpha channel according to `file`, its
+  transparency table decodes to alpha 0 at the corner. No asset change was needed.
+
+### 2026-11-27 — Architecture and repository triage
+
+- Read-only GitHub triage found zero open issues and one open PR (#19), the user's own draft and
+  therefore outside the external-PR intake bucket. Existing labels do not include the triage
+  workflow's state roles; no remote issue/PR state was changed.
+- Wrote the evidence-backed candidate ranking and staged dependency plan in
+  [`ARCHITECTURE-REVIEW-2026-11-27.md`](ARCHITECTURE-REVIEW-2026-11-27.md), linked it in the docs
+  index, and added Phase 38 tasks for bitmap correctness, canvas/export contracts, byte-codec
+  hardening, benchmark reliability, and measured coverage. The visual report is
+  `/tmp/architecture-review-20261127.html`.
+- Added a headless regression test proving Tab toggles canvas mode in both directions while the
+  splash is visible. The test failed at its exact assertion when a temporary prior-style early
+  return was injected, then passed after restoring the current source. Full tests now pass: 172
+  unit/harness, 12 CLI, 4 hygiene, 10 MCP (198 total),
+  including the previously noisy 500-object timing gate on this run. This single pass does not
+  resolve its earlier contention-sensitive failures.
+- Fresh coverage: 70.84% lines, 71.17% functions, 68.46% regions over 32,920 lines; this exceeds
+  the 67.61% ratchet floor but remains below the requested 99% goal. The 2026-11-25 audit snapshot
+  is unchanged.
+- `cargo deny check`, `cargo audit`, and `cargo machete` exited 0. `cargo audit --json` reports 0
+  vulnerabilities, 9 unsoundness advisories for transitive `heapless 0.8.0`, and 4 unmaintained
+  crates. The chain is `geo 0.33.1 → rstar 0.12.2 → heapless 0.8.0`; the patched heapless series
+  is not compatible with current rstar, so this is tracked in Phase 38.6 without a suppression.
+- Atheon single-file scanning flagged many generic Rust false positives. Inspected high/critical
+  examples and found no SQL client crate in the application manifest; the flagged source was
+  generic identifiers/help strings. The broad scan was stopped before producing output.
+  The managed Aegis scan profile refuses this checkout path because it is outside its workspace
+  allowlist. Neither tool is represented as a clean security certification.
+
+### 2026-11-27 — WASM fallback contrast triage
+
+- The hook flagged two ignored generated WASM `index.html` artifacts. Their startup-error text is
+  already white on `#282828`, but the canvas fallback text inherited the browser's default dark
+  foreground, a real low-contrast case if canvas support is absent.
+- Fixed the source template `app/index.html` with explicit `#f3f3f3` text and centered fallback
+  layout. The contrast is 13.29:1. Impeccable's targeted detector reported no remaining issue in
+  the source. The two ignored output snapshots remain historical generated artifacts; no
+  suppression was added.
+
+### 2026-11-27 — Canvas tools, cache identity, and validation
+
+- Added Previous Tool (`Shift+Q`) with a state test and keyboard-event harness test.
+- Replaced whole-object Eraser deletion with feathered bitmap-alpha editing and Properties size/
+  feather controls. Dab, feather, non-square continuous drag, undo and freehand-not-snapped tests
+  pass. The drag test found and fixed guide snapping moving input near the page origin; Brush,
+  Pencil, Eraser, Freeform and Lasso now retain raw canvas coordinates.
+- Made Live Filter parameter/color controls editable and undoable. Their visible renderer effect
+  across object types/export is still open and is not claimed as complete.
+- Fixed bitmap cache cross-wiring after tracing the index-based key and rejecting an allocation
+  address key (the renderer clones the document each frame). Pixel-content hash plus dimensions
+  now preserve cache identity across reorder/snapshot clones and invalidate on edit. Hashing cost
+  and lifecycle/memory behavior remain to be benchmarked.
+- Reviewed Emberframe (`64dcd718dd0308e6d771f55e3d96783574a5731c`, MIT) and BonBon/Libreworks
+  (`8e11e2e0526e07abc23452ffc945c3e2716835f7`, GPL-3.0); the clean-room feature/algorithm report
+  and phased canvas plan are linked from the documentation index.
+- Verification: formatting, diff hygiene, documentation links/claims (`54` files), and strict
+  Clippy pass. Tests pass with only the frame-time case excluded: 167 unit/harness, 12 CLI, 4
+  hygiene and 10 MCP tests. The 500-object budget test passed alone, but two full-suite attempts
+  were 125.2 ms and 120.7 ms against 120 ms under competing host work; this gate is unresolved,
+  not waived. A 1360×860 demo screenshot was captured/reviewed at
+  `/tmp/firecraft-canvas-audit.png`; interactive Star/Eraser/Filter screenshots and export proof
+  remain open. No release or user sign-off is claimed.
+
 ## 2026-11-27 — Browser clipboard reproduction and architecture planning
 
 - Reproduced the reported browser image-paste failure against the v0.3.1 WASM app in headed

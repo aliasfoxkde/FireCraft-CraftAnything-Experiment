@@ -18,6 +18,9 @@ is the map for deeper material.
 | Understand the phased plan and its exit criteria | [Plan](PLAN.md) |
 | Read the public product roadmap, current vs planned | [Product Roadmap](PRODUCT_ROADMAP.md) |
 | Review reference projects and feature research | [Reference project study](research/reference-projects.md) |
+| Review Emberframe and BonBon tools, implementation seams and adoption plan | [Emberframe / BonBon audit](research/emberframe-bonbon-audit.md) |
+| Track canvas tools, image rendering, gradients, filters and their phased proof plan | [Canvas tools and effects plan](CANVAS-TOOLS-AND-EFFECTS-PLAN.md) |
+| Compare current canvas behavior with documented Fireworks CS6 workflows | [Fireworks CS6 behavior audit](research/fireworks-cs6-behavior-audit.md) |
 | Review Fireworks extensions and the community marketplace plan | [Fireworks extensions research](research/fireworks-extensions.md) |
 | Review CI/CD patterns and adoption steps | [CI/CD patterns](research/ci-cd-patterns.md) |
 | See requested Codex skill installations | [Agent skill installation record](research/agent-skills-installation.md) |
@@ -36,6 +39,7 @@ is the map for deeper material.
 | See changes by release | [Changelog](../.github/CHANGELOG.md) |
 | Read the vocabulary and original product brief | [Glossary](GLOSSARY.md) · [Instructions](INSTRUCTIONS.md) |
 | Review completed and planned improvements | [Improvements](IMPROVEMENTS.md) · [Roadmap](ROADMAP.md) |
+| Review architecture opportunities and the implementation order | [Architecture review (2026-11-27)](ARCHITECTURE-REVIEW-2026-11-27.md) · [Architecture](architecture.md) · [Plan](PLAN.md) |
 | Contribute or report a security issue | [Contributing](../.github/CONTRIBUTING.md) · [Security](../.github/SECURITY.md) · [Code of Conduct](../.github/CODE_OF_CONDUCT.md) |
 
 ## Conventions

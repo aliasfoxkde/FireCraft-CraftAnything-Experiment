@@ -30,6 +30,7 @@ tested in `app/src/harness.rs`.
 | J | Rectangle Hotspot |
 | H | Hand (pan) |
 | Z | Zoom |
+| Shift+Q | Previous Tool (toggle between the current tool and the last distinct tool) |
 
 Tool groups with a corner triangle open a flyout: click the triangle or
 right-click the button.

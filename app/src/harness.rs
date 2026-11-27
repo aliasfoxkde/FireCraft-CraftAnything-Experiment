@@ -24,19 +24,28 @@ impl Harness {
         }
     }
 
-    fn raw_input(width: f32, height: f32, events: Vec<egui::Event>) -> egui::RawInput {
+    fn raw_input(width: f32, height: f32, time: f64, events: Vec<egui::Event>) -> egui::RawInput {
         egui::RawInput {
             screen_rect: Some(Rect::from_min_size(Pos2::ZERO, Vec2::new(width, height))),
             events,
-            // Past the 2.2 s startup splash, so the workspace is the thing under test.
-            time: Some(3.0),
+            time: Some(time),
             ..Default::default()
         }
     }
 
     /// Run exactly one frame at `width`x`height`, returning the number of painted shapes.
     pub fn frame(&mut self, width: f32, height: f32, events: Vec<egui::Event>) -> usize {
-        let input = Self::raw_input(width, height, events);
+        self.frame_at(width, height, 3.0, events)
+    }
+
+    pub fn frame_at(
+        &mut self,
+        width: f32,
+        height: f32,
+        time: f64,
+        events: Vec<egui::Event>,
+    ) -> usize {
+        let input = Self::raw_input(width, height, time, events);
         let app = &mut self.app;
         let mut output = self.ctx.run_ui(input, |ui| crate::layout::show(ui, app));
         // No renderer consumes the texture uploads in a headless pass.
@@ -236,6 +245,35 @@ mod tests {
         );
     }
 
+    #[test]
+    fn shift_q_dispatches_previous_tool_toggle_end_to_end() {
+        let mut harness = Harness::new();
+        harness.app.set_tool(crate::app::Tool::Path);
+        harness.frame(1360.0, 860.0, Vec::new());
+        let shift_q = egui::Event::Key {
+            key: Key::Q,
+            physical_key: None,
+            pressed: true,
+            repeat: false,
+            modifiers: Modifiers::SHIFT,
+        };
+        harness.frame(
+            1360.0,
+            860.0,
+            vec![
+                egui::Event::ModifiersChanged(Modifiers::SHIFT),
+                shift_q.clone(),
+            ],
+        );
+        assert_eq!(harness.app.tool, crate::app::Tool::Select);
+        harness.frame(
+            1360.0,
+            860.0,
+            vec![egui::Event::ModifiersChanged(Modifiers::SHIFT), shift_q],
+        );
+        assert_eq!(harness.app.tool, crate::app::Tool::Path);
+    }
+
     /// Phase 18.7 frame-time budget at 1920x1080 with ~500 objects.
     ///
     /// The machine under test varies, so this asserts the *relative* budget:
@@ -246,6 +284,7 @@ mod tests {
     /// silently. Absolute startup/GPU numbers belong to the release
     /// receipt, not a unit test.
     #[test]
+    #[ignore = "runs in isolation so concurrent unit tests cannot distort frame timing"]
     fn frame_time_with_500_objects_stays_within_budget_at_1920x1080() {
         use std::time::Instant;
 
@@ -290,17 +329,14 @@ mod tests {
     fn workspace_shell_states_paint_at_the_minimum_size() {
         let startup_shapes = {
             let mut harness = Harness::new();
-            // FireCraft::new opens the welcome by default; dismiss it for the
-            // plain startup baseline.
-            harness.app.show_welcome = false;
             harness.frame(960.0, 640.0, Vec::new())
         };
         assert!(startup_shapes > 50);
 
-        // Splash: the welcome dialog must paint and be observable as state.
+        // Explicit Welcome experience must paint and be observable as state.
         {
             let mut harness = Harness::new();
-            assert!(harness.app.show_welcome, "welcome opens by default");
+            harness.app.show_welcome = true;
             let shapes = harness.frame(960.0, 640.0, Vec::new());
             assert!(
                 shapes > startup_shapes,
@@ -359,6 +395,54 @@ mod tests {
             harness.frame(960.0, 640.0, Vec::new());
             assert!(!harness.app.status.is_empty());
         }
+    }
+
+    #[test]
+    fn startup_splash_is_a_transparent_overlay_over_the_live_workspace() {
+        let mut harness = Harness::new();
+        assert!(
+            !harness.app.show_welcome,
+            "startup should open directly to the editor"
+        );
+        let during_splash = harness.frame_at(1360.0, 860.0, 0.8, Vec::new());
+        let faded_out = harness.frame_at(1360.0, 860.0, 2.5, Vec::new());
+
+        assert!(
+            during_splash > 100,
+            "the full workspace must paint under the logo"
+        );
+        assert!(
+            faded_out > 100,
+            "the editor remains visible after the splash fades"
+        );
+        assert!(
+            during_splash > faded_out,
+            "the startup logo adds a short overlay"
+        );
+    }
+
+    #[test]
+    fn tab_can_toggle_canvas_mode_repeatedly_while_startup_splash_is_visible() {
+        let mut harness = Harness::new();
+        let key_event = |pressed| egui::Event::Key {
+            key: Key::Tab,
+            physical_key: Some(Key::Tab),
+            pressed,
+            repeat: false,
+            modifiers: Modifiers::NONE,
+        };
+
+        harness.frame_at(1360.0, 860.0, 0.8, vec![key_event(true)]);
+        assert!(
+            harness.app.full_screen_canvas,
+            "Tab should enter canvas mode"
+        );
+        harness.frame_at(1360.0, 860.0, 0.9, vec![key_event(false)]);
+        harness.frame_at(1360.0, 860.0, 1.0, vec![key_event(true)]);
+        assert!(
+            !harness.app.full_screen_canvas,
+            "the next Tab should restore the workspace without pointer refocus"
+        );
     }
 
     fn press(harness: &mut Harness, w: f32, h: f32, key: Key, mods: Modifiers) {

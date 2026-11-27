@@ -475,14 +475,24 @@ impl FireCraft {
                     reflect_pt(p);
                 }
             }
-            Shape::Bitmap { at, size, pixels } => {
+            Shape::Bitmap {
+                at,
+                size,
+                pixels,
+                pixel_size,
+            } => {
                 if horizontal {
                     at.x = axis - (at.x + size.x);
                 } else {
                     at.y = axis - (at.y + size.y);
                 }
-                let w = size.x.max(1.0) as usize;
-                let h = size.y.max(1.0) as usize;
+                let dimensions = if pixel_size.x >= 1.0 && pixel_size.y >= 1.0 {
+                    *pixel_size
+                } else {
+                    *size
+                };
+                let w = dimensions.x.max(1.0) as usize;
+                let h = dimensions.y.max(1.0) as usize;
                 if pixels.len() >= w * h * 4 {
                     if horizontal {
                         for row in 0..h {
@@ -803,6 +813,89 @@ mod tests {
     }
 
     #[test]
+    fn bitmap_textures_follow_images_when_hotkey_reorders_objects() {
+        let mut app = FireCraft::new(None);
+        let bitmap = |rgba: [u8; 4]| {
+            Obj::new(
+                Shape::Bitmap {
+                    at: Vec2::ZERO,
+                    pixels: rgba.to_vec(),
+                    size: Vec2::splat(1.0),
+                    pixel_size: Vec2::splat(1.0),
+                },
+                None,
+                None,
+            )
+        };
+        app.push_object(bitmap([255, 0, 0, 255]));
+        app.push_object(bitmap([0, 0, 255, 255]));
+        let (red_before, blue_before) = {
+            let ctx = &app.ctx;
+            let cache = &mut app.textures;
+            let objects = &app.doc.page().layers[app.selected_layer].objects;
+            let Shape::Bitmap {
+                pixels: red,
+                size: red_size,
+                ..
+            } = &objects[0].kind
+            else {
+                panic!("first object should be a bitmap")
+            };
+            let Shape::Bitmap {
+                pixels: blue,
+                size: blue_size,
+                ..
+            } = &objects[1].kind
+            else {
+                panic!("second object should be a bitmap")
+            };
+            (
+                FireCraft::bitmap_texture(ctx, cache, red, *red_size)
+                    .unwrap()
+                    .id(),
+                FireCraft::bitmap_texture(ctx, cache, blue, *blue_size)
+                    .unwrap()
+                    .id(),
+            )
+        };
+        app.select_single(Some(0));
+        app.reorder_selected_step(true);
+        {
+            let ctx = &app.ctx;
+            let cache = &mut app.textures;
+            let objects = &app.doc.page().layers[app.selected_layer].objects;
+            let Shape::Bitmap {
+                pixels: blue,
+                size: blue_size,
+                ..
+            } = &objects[0].kind
+            else {
+                panic!("blue bitmap should move to index zero")
+            };
+            let Shape::Bitmap {
+                pixels: red,
+                size: red_size,
+                ..
+            } = &objects[1].kind
+            else {
+                panic!("red bitmap should move to index one")
+            };
+            assert_eq!(
+                FireCraft::bitmap_texture(ctx, cache, blue, *blue_size)
+                    .unwrap()
+                    .id(),
+                blue_before
+            );
+            assert_eq!(
+                FireCraft::bitmap_texture(ctx, cache, red, *red_size)
+                    .unwrap()
+                    .id(),
+                red_before
+            );
+        }
+    }
+
+    #[test]
     fn scale_rotate_and_flip_keep_expected_geometry_and_report_actions() {
         let mut app = FireCraft::new(None);
         let index = rect(&mut app, Vec2::new(10.0, 20.0), Vec2::new(30.0, 60.0));
@@ -822,6 +915,51 @@ mod tests {
     }
 
     #[test]
+    fn scaling_bitmap_changes_its_display_bounds_without_resampling_source_pixels() {
+        let mut app = FireCraft::new(None);
+        let index = app.push_object(Obj::new(
+            Shape::Bitmap {
+                at: Vec2::new(10.0, 20.0),
+                pixels: vec![255; 4 * 2 * 4],
+                size: Vec2::new(4.0, 2.0),
+                pixel_size: Vec2::new(4.0, 2.0),
+            },
+            None,
+            None,
+        ));
+        app.select_single(Some(index));
+
+        app.scale_selected(2.0);
+
+        let (lo, hi) = bounds(&app, index);
+        close(hi.x - lo.x, 8.0);
+        close(hi.y - lo.y, 4.0);
+        let Shape::Bitmap { pixels, .. } =
+            &app.doc.page().layers[app.selected_layer].objects[index].kind
+        else {
+            panic!("bitmap shape should remain a bitmap");
+        };
+        assert_eq!(
+            pixels.len(),
+            4 * 2 * 4,
+            "scaling should preserve source resolution"
+        );
+        app.brush_size = 2.0;
+        app.eraser_feather = 0.0;
+        app.set_tool(Tool::Eraser);
+        app.on_pointer_down(Vec2::new(9.0, 20.0), Vec2::ZERO, false, false, false);
+        let Shape::Bitmap { pixels, .. } =
+            &app.doc.page().layers[app.selected_layer].objects[index].kind
+        else {
+            panic!("bitmap shape should remain a bitmap after erasing");
+        };
+        assert_eq!(
+            pixels[3], 0,
+            "erasing at the scaled visual center should edit the corresponding source pixel"
+        );
+    }
+
+    #[test]
     fn flipping_bitmap_mirrors_pixel_rows_and_columns() {
         let mut app = FireCraft::new(None);
         let index = app.push_object(Obj::new(
@@ -829,6 +967,7 @@ mod tests {
                 at: Vec2::new(4.0, 8.0),
                 size: Vec2::new(2.0, 2.0),
                 pixels: vec![1, 0, 0, 255, 2, 0, 0, 255, 3, 0, 0, 255, 4, 0, 0, 255],
+                pixel_size: Vec2::new(2.0, 2.0),
             },
             None,
             None,

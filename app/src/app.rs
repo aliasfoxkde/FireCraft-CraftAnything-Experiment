@@ -454,6 +454,8 @@ pub struct FireCraft {
     pub palette: Palette,
     pub view_mode: CanvasViewMode,
     pub tool: Tool,
+    /// The last distinct tool selected, used by the Previous Tool shortcut.
+    pub previous_tool: Option<Tool>,
     pub fill: Color32,
     pub stroke: Color32,
     pub swatches: Vec<Color32>,
@@ -549,6 +551,8 @@ pub struct FireCraft {
     pub pending_fit: bool,
     pub cursor_doc_pos: Option<Vec2>,
     pub brush_size: f32,
+    /// Soft edge width as a fraction of the eraser radius (0 = hard edge).
+    pub eraser_feather: f32,
     pub grid_size: f32,
     pub polygon_sides: u32,
     pub star_ratio: f32,
@@ -620,7 +624,6 @@ pub struct FireCraft {
 
 impl FireCraft {
     pub fn new(screenshot_path: Option<String>) -> Self {
-        let show_welcome_default = screenshot_path.is_none();
         let theme_mode = ThemeMode::System;
         let palette = theme::resolve(theme_mode);
         let mut initial_doc = Document::new(constants::DEFAULT_WIDTH, constants::DEFAULT_HEIGHT);
@@ -636,6 +639,7 @@ impl FireCraft {
             palette,
             view_mode: CanvasViewMode::Original,
             tool: Tool::Select,
+            previous_tool: None,
             fill: Color32::from_rgb(232, 163, 61),
             stroke: Color32::from_rgb(24, 24, 28),
             swatches: colors::swatch_grid(),
@@ -735,6 +739,7 @@ impl FireCraft {
             canvas_size: Vec2::new(980.0, 660.0),
             cursor_doc_pos: None,
             brush_size: constants::BRUSH_SIZE_DEFAULT,
+            eraser_feather: 0.2,
             grid_size: 20.0,
             polygon_sides: 5,
             star_ratio: 0.48,
@@ -804,7 +809,7 @@ impl FireCraft {
                 .to_string(),
             ai_rx: None,
             show_ai_settings: true,
-            show_welcome: show_welcome_default,
+            show_welcome: false,
             dont_show_welcome_again: false,
         };
         app.create_default_button_symbol();
@@ -1585,18 +1590,26 @@ impl FireCraft {
     }
 
     pub fn bitmap_texture(
-        &mut self,
-        key: (usize, usize),
+        ctx: &Context,
+        textures: &mut TextureCache,
         pixels: &[u8],
         size: Vec2,
     ) -> Option<TextureHandle> {
-        if let Some(tex) = self.textures.get(&key) {
-            return Some(tex.clone());
-        }
         let w = size.x.max(1.0) as usize;
         let h = size.y.max(1.0) as usize;
         if pixels.len() < w * h * 4 {
             return None;
+        }
+        // The canvas renderer takes a document snapshot before drawing. Vec addresses therefore
+        // change every frame, while object indices change on reorder. Content identity survives
+        // both. Hashing also invalidates the texture when bitmap pixels change in place.
+        use std::hash::{Hash, Hasher};
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        pixels.hash(&mut hasher);
+        let identity = hasher.finish();
+        let key = (identity, w, h);
+        if let Some(tex) = textures.get(&key) {
+            return Some(tex.clone());
         }
         let mut data = Vec::with_capacity(w * h);
         for i in 0..w * h {
@@ -1608,12 +1621,12 @@ impl FireCraft {
             ));
         }
         let image = egui::ColorImage::new([w, h], data);
-        let tex = self.ctx.load_texture(
-            format!("bitmap-{key:?}"),
+        let tex = ctx.load_texture(
+            format!("bitmap-{identity:x}-{w}x{h}"),
             image,
             egui::TextureOptions::LINEAR,
         );
-        self.textures.insert(key, tex.clone());
+        textures.insert(key, tex.clone());
         Some(tex)
     }
 
@@ -1826,11 +1839,22 @@ impl FireCraft {
     }
 
     pub fn toggle_live_effect(&mut self, eff_idx: usize, enabled: bool) {
+        self.push_undo("Toggle Live Filter");
         self.with_selection_mut(|obj| {
             if let Some(eff) = obj.effects.get_mut(eff_idx) {
                 eff.set_enabled(enabled);
             }
         });
+    }
+
+    pub fn update_live_effect(&mut self, eff_idx: usize, effect: LiveEffect) {
+        self.push_undo("Edit Live Filter");
+        self.with_selection_mut(|obj| {
+            if let Some(current) = obj.effects.get_mut(eff_idx) {
+                *current = effect.clone();
+            }
+        });
+        self.textures.clear();
     }
 
     pub fn clear_live_effects(&mut self) {
@@ -1852,10 +1876,25 @@ impl FireCraft {
     /// Switch tools through one seam so leaving the Pen commits its in-progress contour
     /// instead of leaving stray preview nodes on the canvas.
     pub fn set_tool(&mut self, tool: Tool) {
+        if tool != self.tool {
+            self.previous_tool = Some(self.tool);
+        }
         if tool != Tool::Path && !self.pen_nodes.is_empty() {
             self.finish_pen_path(false);
         }
         self.tool = tool;
+    }
+
+    /// Toggle between the current tool and the last distinct tool selected.
+    pub fn select_previous_tool(&mut self) {
+        if let Some(previous) = self.previous_tool
+            && previous != self.tool
+        {
+            let current = self.tool;
+            self.set_tool(previous);
+            self.previous_tool = Some(current);
+            self.status = format!("{} selected", self.tool.name());
+        }
     }
 
     /// Add one Pen anchor. Clicking the first anchor closes a path with at least three nodes.
@@ -2004,7 +2043,16 @@ impl FireCraft {
         ctrl: bool,
         shift: bool,
     ) {
-        let doc_pos = self.snap_pos(raw_doc_pos);
+        // Freehand samples must retain pointer precision; guide/grid snapping belongs to placed
+        // geometry and would make brush and eraser dabs jump to nearby guides.
+        let doc_pos = if matches!(
+            self.tool,
+            Tool::Brush | Tool::Pencil | Tool::Eraser | Tool::Freeform | Tool::Lasso
+        ) {
+            raw_doc_pos
+        } else {
+            self.snap_pos(raw_doc_pos)
+        };
         match self.tool {
             Tool::Hand => {
                 self.drag = Some(Drag {
@@ -2319,7 +2367,7 @@ impl FireCraft {
                     path: vec![],
                 });
             }
-            Tool::Brush | Tool::Pencil | Tool::Eraser | Tool::Freeform => {
+            Tool::Brush | Tool::Pencil | Tool::Freeform => {
                 self.push_undo("Paint");
                 self.drag = Some(Drag {
                     kind: DragKind::Paint,
@@ -2328,9 +2376,19 @@ impl FireCraft {
                     orig_bounds: None,
                     path: vec![doc_pos],
                 });
-                if self.tool == Tool::Eraser {
+            }
+            Tool::Eraser => {
+                if self.bitmap_target_at(doc_pos) {
+                    self.push_undo("Erase Pixels");
                     self.erase_at(doc_pos);
                 }
+                self.drag = Some(Drag {
+                    kind: DragKind::Paint,
+                    start: doc_pos,
+                    current: doc_pos,
+                    orig_bounds: None,
+                    path: vec![doc_pos],
+                });
             }
             Tool::Stamp => {
                 if self.selected.is_some() {
@@ -2350,24 +2408,107 @@ impl FireCraft {
         }
     }
 
-    fn erase_at(&mut self, doc_pos: Vec2) {
-        let radius = (self.brush_size / 2.0).max(2.0);
+    fn bitmap_target_at(&self, pos: Vec2) -> bool {
+        self.doc
+            .page()
+            .layers
+            .get(self.selected_layer)
+            .is_some_and(|layer| {
+                !layer.locked
+                    && layer.objects.iter().rev().any(|obj| {
+                        matches!(obj.kind, Shape::Bitmap { .. })
+                            && obj.bounds().is_some_and(|(lo, hi)| {
+                                pos.x >= lo.x && pos.x <= hi.x && pos.y >= lo.y && pos.y <= hi.y
+                            })
+                            && !obj.locked
+                            && obj.visible
+                    })
+            })
+    }
+
+    fn erase_at(&mut self, doc_pos: Vec2) -> bool {
+        let radius = (self.brush_size / 2.0).max(0.5);
+        let feather = self.eraser_feather.clamp(0.0, 1.0);
         let layer = self.selected_layer;
         let page = self.doc.page_mut();
         let Some(layer_ref) = page.layers.get_mut(layer) else {
-            return;
+            return false;
         };
-        layer_ref.objects.retain(|obj| match obj.bounds() {
-            Some((lo, hi)) => {
-                !(doc_pos.x >= lo.x - radius
-                    && doc_pos.x <= hi.x + radius
-                    && doc_pos.y >= lo.y - radius
-                    && doc_pos.y <= hi.y + radius)
+        if layer_ref.locked {
+            return false;
+        }
+        let Some(obj) = layer_ref.objects.iter_mut().rev().find(|obj| {
+            matches!(obj.kind, Shape::Bitmap { .. })
+                && obj.bounds().is_some_and(|(lo, hi)| {
+                    doc_pos.x >= lo.x && doc_pos.x <= hi.x && doc_pos.y >= lo.y && doc_pos.y <= hi.y
+                })
+                && !obj.locked
+                && obj.visible
+        }) else {
+            return false;
+        };
+        let pixel_size = obj.bitmap_pixel_size().unwrap_or(Vec2::ZERO);
+        let Shape::Bitmap {
+            at, pixels, size, ..
+        } = &mut obj.kind
+        else {
+            return false;
+        };
+        let pixel_w = pixel_size.x as usize;
+        let pixel_h = pixel_size.y as usize;
+        if pixel_w == 0 || pixel_h == 0 || size.x <= 0.0 || size.y <= 0.0 {
+            return false;
+        }
+        let px_per_doc_x = pixel_w as f32 / size.x;
+        let px_per_doc_y = pixel_h as f32 / size.y;
+        let center_x = (doc_pos.x - at.x) * px_per_doc_x;
+        let center_y = (doc_pos.y - at.y) * px_per_doc_y;
+        let radius_x = (radius * px_per_doc_x).ceil() as isize;
+        let radius_y = (radius * px_per_doc_y).ceil() as isize;
+        let mut changed = false;
+        for y in (center_y.floor() as isize - radius_y).max(0)
+            ..=(center_y.ceil() as isize + radius_y).min(pixel_h as isize - 1)
+        {
+            for x in (center_x.floor() as isize - radius_x).max(0)
+                ..=(center_x.ceil() as isize + radius_x).min(pixel_w as isize - 1)
+            {
+                let dx = (x as f32 + 0.5 - center_x) / px_per_doc_x;
+                let dy = (y as f32 + 0.5 - center_y) / px_per_doc_y;
+                let distance = dx.hypot(dy);
+                if distance > radius {
+                    continue;
+                }
+                let strength = if feather <= f32::EPSILON {
+                    1.0
+                } else {
+                    let inner = radius * (1.0 - feather);
+                    let t =
+                        ((distance - inner) / (radius - inner).max(f32::EPSILON)).clamp(0.0, 1.0);
+                    1.0 - t * t * (3.0 - 2.0 * t)
+                };
+                let idx = (y as usize * pixel_w + x as usize) * 4 + 3;
+                if let Some(alpha) = pixels.get_mut(idx) {
+                    let next = (*alpha as f32 * (1.0 - strength)).round() as u8;
+                    changed |= next != *alpha;
+                    *alpha = next;
+                }
             }
-            None => true,
-        });
-        page.sync_state();
-        self.textures.clear();
+        }
+        if changed {
+            page.sync_state();
+            self.textures.clear();
+        }
+        changed
+    }
+
+    fn erase_segment(&mut self, from: Vec2, to: Vec2) {
+        let distance = (to - from).length();
+        let spacing = (self.brush_size * 0.25).clamp(0.5, 8.0);
+        let steps = (distance / spacing).ceil().max(1.0) as usize;
+        for step in 1..=steps {
+            let t = step as f32 / steps as f32;
+            self.erase_at(from + (to - from) * t);
+        }
     }
 
     pub fn run_bitmap_filter(&mut self, filter_tool: Tool) {
@@ -2385,7 +2526,8 @@ impl FireCraft {
         else {
             return;
         };
-        let Shape::Bitmap { pixels, size, .. } = &mut obj.kind else {
+        let pixel_size = obj.bitmap_pixel_size().unwrap_or(Vec2::ZERO);
+        let Shape::Bitmap { pixels, .. } = &mut obj.kind else {
             // If it's a vector object, apply a non-destructive Live Filter or color adjustment instead
             match filter_tool {
                 Tool::Blur => self.add_live_effect(LiveEffect::GaussianBlur {
@@ -2401,8 +2543,11 @@ impl FireCraft {
             return;
         };
         let count = pixels.len() / 4;
-        let w = size.x.max(1.0) as usize;
-        let rows = size.y.max(1.0) as usize;
+        let w = pixel_size.x as usize;
+        let rows = pixel_size.y as usize;
+        if w == 0 || rows == 0 {
+            return;
+        }
         let original = pixels.clone();
         for i in 0..count {
             match filter_tool {
@@ -2527,7 +2672,14 @@ impl FireCraft {
     }
 
     pub fn on_pointer_drag(&mut self, raw_doc_pos: Vec2, shift: bool) {
-        let doc_pos = self.snap_pos(raw_doc_pos);
+        let doc_pos = if matches!(
+            self.tool,
+            Tool::Brush | Tool::Pencil | Tool::Eraser | Tool::Freeform | Tool::Lasso
+        ) {
+            raw_doc_pos
+        } else {
+            self.snap_pos(raw_doc_pos)
+        };
         let Some(drag) = self.drag.as_mut() else {
             return;
         };
@@ -2724,9 +2876,10 @@ impl FireCraft {
             DragKind::Paint | DragKind::Lasso => {
                 drag.current = doc_pos;
                 if (doc_pos - drag.path.last().copied().unwrap_or(doc_pos)).length() > 2.0 {
+                    let previous = drag.path.last().copied().unwrap_or(doc_pos);
                     drag.path.push(doc_pos);
                     if self.tool == Tool::Eraser {
-                        self.erase_at(doc_pos);
+                        self.erase_segment(previous, doc_pos);
                     }
                 }
             }
@@ -2744,9 +2897,13 @@ impl FireCraft {
 
     pub fn on_pointer_up(&mut self, raw_doc_pos: Vec2, shift: bool) {
         self.smart_guides_lines.clear();
-        let mut doc_pos = self.snap_pos(raw_doc_pos);
         let Some(drag) = self.drag.take() else {
             return;
+        };
+        let mut doc_pos = if matches!(drag.kind, DragKind::Paint | DragKind::Lasso) {
+            raw_doc_pos
+        } else {
+            self.snap_pos(raw_doc_pos)
         };
         if shift && matches!(drag.kind, DragKind::Create) {
             let d = doc_pos - drag.start;
@@ -3467,6 +3624,7 @@ impl FireCraft {
                             at: Vec2::new(40.0, 40.0),
                             size: Vec2::new(w as f32, h as f32),
                             pixels: rgba.into_raw(),
+                            pixel_size: Vec2::new(w as f32, h as f32),
                         },
                         None,
                         None,
@@ -4565,9 +4723,9 @@ mod tests {
     }
 
     #[test]
-    fn clipboard_copy_cut_paste_and_welcome_default() {
+    fn clipboard_copy_cut_paste_and_welcome_is_opt_in() {
         let mut app = FireCraft::new(None);
-        assert!(app.show_welcome);
+        assert!(!app.show_welcome);
         app.insert_auto_shape(AutoShapeKind::RoundedRect);
         app.insert_auto_shape(AutoShapeKind::Star);
         app.select_all();
@@ -5092,6 +5250,187 @@ mod tests {
             app.ai_status
         );
         assert!(app.ai_rx.is_none());
+    }
+
+    #[test]
+    fn previous_tool_shortcut_toggles_between_distinct_tools() {
+        let mut app = FireCraft::new(None);
+        assert_eq!(app.previous_tool, None);
+
+        app.set_tool(Tool::Path);
+        assert_eq!(app.previous_tool, Some(Tool::Select));
+        app.select_previous_tool();
+        assert_eq!(app.tool, Tool::Select);
+        assert_eq!(app.previous_tool, Some(Tool::Path));
+        app.select_previous_tool();
+        assert_eq!(app.tool, Tool::Path);
+        assert_eq!(app.previous_tool, Some(Tool::Select));
+
+        // Selecting the active tool must not erase the remembered tool.
+        app.set_tool(Tool::Path);
+        assert_eq!(app.previous_tool, Some(Tool::Select));
+    }
+
+    #[test]
+    fn eraser_reduces_bitmap_alpha_without_deleting_the_image_and_undo_restores_it() {
+        let mut app = FireCraft::new(None);
+        let index = app.push_object(Obj::new(
+            Shape::Bitmap {
+                at: Vec2::ZERO,
+                pixels: [255, 80, 20, 255].repeat(32 * 32),
+                size: Vec2::splat(32.0),
+                pixel_size: Vec2::splat(32.0),
+            },
+            None,
+            None,
+        ));
+        app.brush_size = 8.0;
+        app.eraser_feather = 0.0;
+        app.set_tool(Tool::Eraser);
+        app.on_pointer_down(Vec2::splat(16.0), Vec2::ZERO, false, false, false);
+
+        let objects = &app.doc.page().layers[app.selected_layer].objects;
+        assert_eq!(objects.len(), 1, "erasing must preserve the bitmap object");
+        let Shape::Bitmap { pixels, .. } = &objects[index].kind else {
+            panic!("bitmap object must remain editable");
+        };
+        assert_eq!(pixels[(16 * 32 + 16) * 4 + 3], 0);
+        assert_eq!(pixels[3], 255, "pixels outside the brush remain unchanged");
+
+        app.undo_action();
+        let Shape::Bitmap { pixels, .. } =
+            &app.doc.page().layers[app.selected_layer].objects[index].kind
+        else {
+            panic!("undo must restore the bitmap object");
+        };
+        assert_eq!(pixels[(16 * 32 + 16) * 4 + 3], 255);
+    }
+
+    #[test]
+    fn bitmap_texture_cache_uses_content_and_reuses_across_clones() {
+        let mut app = FireCraft::new(None);
+        let red = vec![255, 0, 0, 255];
+        let blue = vec![0, 0, 255, 255];
+        let red_texture =
+            FireCraft::bitmap_texture(&app.ctx, &mut app.textures, &red, Vec2::splat(1.0)).unwrap();
+        let blue_texture =
+            FireCraft::bitmap_texture(&app.ctx, &mut app.textures, &blue, Vec2::splat(1.0))
+                .unwrap();
+        assert_ne!(red_texture.id(), blue_texture.id());
+        assert_eq!(
+            FireCraft::bitmap_texture(&app.ctx, &mut app.textures, &red, Vec2::splat(1.0))
+                .unwrap()
+                .id(),
+            red_texture.id(),
+            "repainting the same image should reuse its texture"
+        );
+        let cloned_red = red.clone();
+        assert_eq!(
+            FireCraft::bitmap_texture(&app.ctx, &mut app.textures, &cloned_red, Vec2::splat(1.0))
+                .unwrap()
+                .id(),
+            red_texture.id(),
+            "a renderer snapshot clone should reuse the existing texture"
+        );
+        let edited_red = vec![254, 0, 0, 255];
+        assert_ne!(
+            FireCraft::bitmap_texture(&app.ctx, &mut app.textures, &edited_red, Vec2::splat(1.0))
+                .unwrap()
+                .id(),
+            red_texture.id(),
+            "pixel edits must produce a new texture"
+        );
+    }
+
+    #[test]
+    fn eraser_feather_partially_reduces_edge_alpha() {
+        let mut app = FireCraft::new(None);
+        let index = app.push_object(Obj::new(
+            Shape::Bitmap {
+                at: Vec2::ZERO,
+                pixels: [255, 80, 20, 255].repeat(32 * 32),
+                size: Vec2::splat(32.0),
+                pixel_size: Vec2::splat(32.0),
+            },
+            None,
+            None,
+        ));
+        app.brush_size = 16.0;
+        app.eraser_feather = 0.5;
+        app.set_tool(Tool::Eraser);
+        app.on_pointer_down(Vec2::splat(16.0), Vec2::ZERO, false, false, false);
+        let Shape::Bitmap { pixels, .. } =
+            &app.doc.page().layers[app.selected_layer].objects[index].kind
+        else {
+            panic!("bitmap object must remain editable");
+        };
+        let edge_alpha = pixels[(16 * 32 + 23) * 4 + 3];
+        assert!(
+            edge_alpha > 0 && edge_alpha < 255,
+            "feathered edge alpha was {edge_alpha}"
+        );
+    }
+
+    #[test]
+    fn eraser_drag_interpolates_pixels_and_undoes_as_one_gesture() {
+        let mut app = FireCraft::new(None);
+        let index = app.push_object(Obj::new(
+            Shape::Bitmap {
+                at: Vec2::ZERO,
+                pixels: [200, 120, 40, 255].repeat(32 * 8),
+                size: Vec2::new(32.0, 8.0),
+                pixel_size: Vec2::new(32.0, 8.0),
+            },
+            None,
+            None,
+        ));
+        app.brush_size = 2.0;
+        app.eraser_feather = 0.0;
+        app.snap_to_guides = true;
+        app.set_tool(Tool::Eraser);
+        assert!(app.bitmap_target_at(Vec2::new(2.0, 4.0)));
+        app.on_pointer_down(Vec2::new(2.0, 4.0), Vec2::ZERO, false, false, false);
+        assert_eq!(app.tool, Tool::Eraser);
+        assert!(matches!(
+            app.drag,
+            Some(Drag {
+                kind: DragKind::Paint,
+                ..
+            })
+        ));
+        let Shape::Bitmap { pixels, .. } =
+            &app.doc.page().layers[app.selected_layer].objects[index].kind
+        else {
+            panic!("eraser should keep the bitmap editable");
+        };
+        assert_eq!(pixels[(4 * 32 + 2) * 4 + 3], 0, "pointer-down should erase");
+        app.on_pointer_drag(Vec2::new(29.0, 4.0), false);
+        let Shape::Bitmap { pixels, .. } =
+            &app.doc.page().layers[app.selected_layer].objects[index].kind
+        else {
+            panic!("eraser should keep the bitmap editable");
+        };
+        assert_eq!(pixels[(4 * 32 + 16) * 4 + 3], 0, "drag should interpolate");
+        app.on_pointer_up(Vec2::new(29.0, 4.0), false);
+
+        let objects = &app.doc.page().layers[app.selected_layer].objects;
+        assert_eq!(objects.len(), 1, "a stroke must preserve the bitmap object");
+        let Shape::Bitmap { pixels, .. } = &objects[index].kind else {
+            panic!("eraser should keep the image editable");
+        };
+        assert_eq!(
+            pixels[(4 * 32 + 16) * 4 + 3],
+            0,
+            "the stroke must fill gaps"
+        );
+
+        app.undo_action();
+        let Shape::Bitmap { pixels, .. } =
+            &app.doc.page().layers[app.selected_layer].objects[index].kind
+        else {
+            panic!("undo should restore the bitmap");
+        };
+        assert_eq!(pixels[(4 * 32 + 16) * 4 + 3], 255);
     }
 
     #[test]
