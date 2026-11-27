@@ -378,6 +378,106 @@ impl FireCraft {
         }
     }
 
+    fn join_contours(mut contours: Vec<Vec<Vec2>>) -> Vec<Vec2> {
+        contours.retain(|points| points.len() >= 2);
+        if contours.len() < 2 {
+            return contours.pop().unwrap_or_default();
+        }
+
+        let mut closest_pair: Option<(f32, usize, usize, bool, bool)> = None;
+        for first in 0..contours.len() {
+            for second in first + 1..contours.len() {
+                for reverse_first in [false, true] {
+                    let first_endpoint = if reverse_first {
+                        contours[first][0]
+                    } else {
+                        *contours[first].last().unwrap()
+                    };
+                    for reverse_second in [false, true] {
+                        let second_endpoint = if reverse_second {
+                            *contours[second].last().unwrap()
+                        } else {
+                            contours[second][0]
+                        };
+                        let candidate = (
+                            (first_endpoint - second_endpoint).length(),
+                            first,
+                            second,
+                            reverse_first,
+                            reverse_second,
+                        );
+                        let is_better = closest_pair.is_none_or(|best| {
+                            candidate
+                                .0
+                                .total_cmp(&best.0)
+                                .then_with(|| candidate.1.cmp(&best.1))
+                                .then_with(|| candidate.2.cmp(&best.2))
+                                .then_with(|| candidate.3.cmp(&best.3))
+                                .then_with(|| candidate.4.cmp(&best.4))
+                                .is_lt()
+                        });
+                        if is_better {
+                            closest_pair = Some(candidate);
+                        }
+                    }
+                }
+            }
+        }
+
+        let (_, first, second, reverse_first, reverse_second) = closest_pair.unwrap();
+        let mut joined = contours.remove(first);
+        if reverse_first {
+            joined.reverse();
+        }
+        let mut next = contours.remove(second - 1);
+        if reverse_second {
+            next.reverse();
+        }
+        Self::append_join_contour(&mut joined, next);
+
+        while !contours.is_empty() {
+            let tail = *joined.last().unwrap();
+            let mut closest: Option<(f32, usize, bool)> = None;
+            for (index, points) in contours.iter().enumerate() {
+                for reverse in [false, true] {
+                    let head = if reverse {
+                        *points.last().unwrap()
+                    } else {
+                        points[0]
+                    };
+                    let candidate = ((tail - head).length(), index, reverse);
+                    let is_better = closest.is_none_or(|best| {
+                        candidate
+                            .0
+                            .total_cmp(&best.0)
+                            .then_with(|| candidate.1.cmp(&best.1))
+                            .then_with(|| candidate.2.cmp(&best.2))
+                            .is_lt()
+                    });
+                    if is_better {
+                        closest = Some(candidate);
+                    }
+                }
+            }
+            let (_, index, reverse) = closest.unwrap();
+            let mut next = contours.remove(index);
+            if reverse {
+                next.reverse();
+            }
+            Self::append_join_contour(&mut joined, next);
+        }
+        joined
+    }
+
+    fn append_join_contour(joined: &mut Vec<Vec2>, mut points: Vec<Vec2>) {
+        if let (Some(tail), Some(head)) = (joined.last(), points.first())
+            && (*tail - *head).length() < 0.01
+        {
+            points.remove(0);
+        }
+        joined.extend(points);
+    }
+
     pub fn combine_paths_op(&mut self, op: &str) {
         let mut indices = self.selected_set.clone();
         if let Some(s) = self.selected
@@ -422,30 +522,12 @@ impl FireCraft {
 
         let mut failure: Option<String> = None;
         if op == "join" {
-            // Join chains contours at their nearest endpoints instead of closing every path and
-            // importing unrelated subpaths into one object.
-            let mut joined: Vec<Vec2> = Vec::new();
-            for &idx in &indices {
-                let mut pts = Self::obj_to_polygon_points(&objs[idx]);
-                if pts.len() < 2 {
-                    continue;
-                }
-                if joined.is_empty() {
-                    joined = pts;
-                    continue;
-                }
-                let tail = *joined.last().unwrap_or(&Vec2::ZERO);
-                let d_start = (tail - pts[0]).length();
-                let d_end = (tail - *pts.last().unwrap()).length();
-                if d_end < d_start {
-                    pts.reverse();
-                }
-                let first = pts[0];
-                if (tail - first).length() < 0.01 {
-                    pts.remove(0);
-                }
-                joined.extend(pts);
-            }
+            let joined = Self::join_contours(
+                indices
+                    .iter()
+                    .map(|&idx| Self::obj_to_polygon_points(&objs[idx]))
+                    .collect(),
+            );
             if joined.len() < 2 {
                 failure = Some("Join needs at least one path with two points".to_string());
             } else {
