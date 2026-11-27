@@ -542,3 +542,33 @@ unverified. Do not restate the plan; link it.
 - Corrected the published release name to exactly `v0.3.0`; updated the release workflow to use the
   tag as the release name for future releases. Verified the published release assets against
   `SHA256SUMS.txt` and refreshed the local Windows review bundle under `dist/windows-review/v0.3.0/`.
+
+### 2026-11-27 — Bitmap texture lifecycle TDD and coverage refresh
+
+- Added renderer-level regressions in merged PRs [#26](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/26)
+  and [#27](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/27). They associate
+  rendered bitmap bounds with texture IDs across hotkey reorder, duplicate, undo/redo, delete/add,
+  and flattening selected bitmaps into a composite. The existing production cache fix was already on
+  `main`; the new tests were not run against the pre-fix revision, so no new historical red run is
+  claimed.
+- Both PRs passed the full hosted gates, including strict Rust gates, coverage, Windows CLI/build,
+  WASM build, and CodeQL. Local validation on PR #27's head passed 178 unit tests, with one isolated
+  timing test intentionally ignored in the full-suite command; strict Clippy, formatting, and
+  whitespace checks passed. After adding the flatten case, the full suite passed 179 tests with one
+  isolated timing test ignored; strict Clippy, formatting, and the 60-file documentation/link check
+  passed. The added flatten regression also passed in isolation.
+- Retrieved the exact Cobertura artifact from hosted coverage run [45984084090](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/45984084090):
+  17,934 / 25,895 lines = **69.26%**. The report has no branch counters (0/0). This is below the
+  requested 99% and differs in denominator from the older llvm-cov summary; the discrepancy remains
+  open in TASKS 38.5/39.6.
+- Aegis is installed locally as version 0.6.6, but this session's command hook requires managed
+  admission and the available job manager has no `aegis-scan` profile. Its `aegis-workspace-tests`
+  profile only runs Aegis's Rust tests, not a FireCraft scan. No Aegis findings or clean result are
+  claimed. The dependency/advisory, cache hashing-cost, broader document/page lifecycle, browser
+  WebGL2/clipboard, native Windows GUI, and 99% coverage work remain open.
+- Local GitForge health is now checked directly: API, CI/scheduler, and Git HTTP each returned HTTP
+  200; the API health response reported a connected database. Authenticated runner listing returned
+  401 (`missing_token`), neither `GITFORGE_TOKEN` nor `GITFORGE_API_TOKEN` is set, and FireCraft has
+  only its GitHub `origin`, so no local FireCraft pipeline result is claimed. The GitForge checkout
+  is itself on `main` ahead of `origin/main` by two commits with a large dirty worktree; it was left
+  untouched.
