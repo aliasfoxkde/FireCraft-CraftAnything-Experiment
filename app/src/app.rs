@@ -366,6 +366,8 @@ pub enum DragKind {
     MoveNode(usize),
     AdjustCornerRadius,
     AdjustStarInner,
+    GradientStart,
+    GradientEnd,
     Resize(usize),
     Pan,
     Paint,
@@ -2359,13 +2361,28 @@ impl FireCraft {
                 }
             }
             Tool::Gradient => {
-                self.drag = Some(Drag {
-                    kind: DragKind::Create,
-                    start: doc_pos,
-                    current: doc_pos,
-                    orig_bounds: None,
-                    path: vec![],
-                });
+                if let Some(handle) = canvas::hit_test_gradient_handle(self, raw_doc_pos) {
+                    self.push_undo("Edit Gradient Direction");
+                    let kind = match handle {
+                        canvas::GradientHandle::Start => DragKind::GradientStart,
+                        canvas::GradientHandle::End => DragKind::GradientEnd,
+                    };
+                    self.drag = Some(Drag {
+                        kind,
+                        start: raw_doc_pos,
+                        current: raw_doc_pos,
+                        orig_bounds: None,
+                        path: vec![],
+                    });
+                } else {
+                    self.drag = Some(Drag {
+                        kind: DragKind::Create,
+                        start: doc_pos,
+                        current: doc_pos,
+                        orig_bounds: None,
+                        path: vec![],
+                    });
+                }
             }
             Tool::Brush | Tool::Pencil | Tool::Freeform => {
                 self.push_undo("Paint");
@@ -2681,6 +2698,36 @@ impl FireCraft {
         } else {
             self.snap_pos(raw_doc_pos)
         };
+        if let Some(kind @ (DragKind::GradientStart | DragKind::GradientEnd)) =
+            self.drag.as_ref().map(|drag| drag.kind)
+        {
+            if let Some(drag) = self.drag.as_mut() {
+                drag.current = raw_doc_pos;
+            }
+            let Some((lo, hi)) = self.selected_object().and_then(|obj| obj.bounds()) else {
+                return;
+            };
+            let size = hi - lo;
+            if size.x <= f32::EPSILON || size.y <= f32::EPSILON {
+                return;
+            }
+            let normalized = Vec2::new(
+                ((raw_doc_pos.x - lo.x) / size.x).clamp(-4.0, 5.0),
+                ((raw_doc_pos.y - lo.y) / size.y).clamp(-4.0, 5.0),
+            );
+            let is_start = kind == DragKind::GradientStart;
+            self.with_selected_mut(|obj| {
+                if let Some(gradient) = &mut obj.gradient {
+                    if is_start {
+                        gradient.start_pos = normalized;
+                    } else {
+                        gradient.end_pos = normalized;
+                    }
+                }
+            });
+            self.status = "Gradient direction updated".to_string();
+            return;
+        }
         let Some(drag) = self.drag.as_mut() else {
             return;
         };
@@ -4686,6 +4733,52 @@ mod tests {
     }
 
     #[test]
+    fn gradient_tool_drag_changes_selected_fill_direction_and_undo_restores_it() {
+        let mut fixture = DocumentFixture::new().rect();
+        let index = fixture.last.expect("rectangle fixture selects its object");
+        fixture.app.select_single(Some(index));
+        fixture
+            .app
+            .set_selected_gradient(Some(GradientFill::new(Color32::BLACK, Color32::WHITE)));
+        fixture.app.set_tool(Tool::Gradient);
+
+        let start = Vec2::new(70.0, 20.0);
+        assert_eq!(
+            canvas::hit_test_gradient_handle(&fixture.app, start),
+            Some(canvas::GradientHandle::Start)
+        );
+        let original_bounds = fixture.app.selected_object().unwrap().bounds();
+        fixture
+            .app
+            .on_pointer_down(start, Vec2::ZERO, false, false, false);
+        assert!(matches!(
+            fixture.app.drag.as_ref().map(|drag| drag.kind),
+            Some(DragKind::GradientStart)
+        ));
+
+        fixture.app.on_pointer_drag(Vec2::new(20.0, 50.0), false);
+        let gradient = fixture
+            .app
+            .selected_object()
+            .and_then(|obj| obj.gradient)
+            .expect("gradient fill remains attached");
+        assert!((gradient.start_pos - Vec2::new(0.0, 0.5)).length() < 0.001);
+        assert_eq!(
+            fixture.app.selected_object().unwrap().bounds(),
+            original_bounds
+        );
+
+        fixture.app.on_pointer_up(Vec2::new(20.0, 50.0), false);
+        fixture.app.undo_action();
+        let restored = fixture
+            .app
+            .selected_object()
+            .and_then(|obj| obj.gradient)
+            .expect("undo preserves the gradient fill");
+        assert_eq!(restored.start_pos, Vec2::new(0.5, 0.0));
+    }
+
+    #[test]
     fn multi_tab_and_demo_showcase() {
         let mut app = FireCraft::new(None);
         app.load_demo_showcase();
@@ -5043,10 +5136,7 @@ mod tests {
             Some(from),
             Some(from),
         );
-        obj.gradient = Some(GradientFill {
-            start: from,
-            end: from,
-        });
+        obj.gradient = Some(GradientFill::new(from, from));
         obj.effects.push(LiveEffect::DropShadow {
             distance: 4.0,
             angle_deg: 45.0,

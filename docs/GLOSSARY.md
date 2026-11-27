@@ -15,6 +15,9 @@ Use these terms consistently in code, issues, UI copy, and architecture reviews.
 | **Layered `.fw.png`** | A normal PNG with an embedded versioned FireCraft JSON payload in an iTXt chunk. Reopening it restores pages, layers, and off-page objects. |
 | **Find/Replace mode** | `Text`, `FillColor`, `StrokeColor`, or `AnyColor`. The mode determines matching and which object color slots are written. |
 | **Color slot** | One replaceable color field: flat fill, stroke, gradient start/end, or a live-effect color. |
+| **Gradient fill** | A per-object linear fill with two color stops and normalized start/end points inside the object's bounds. Older documents without axis points load with the historic vertical direction. |
+| **Gradient axis** | The directed line between a gradient fill's start and end points. Color interpolation projects a point onto this line and clamps the result to the two stops. |
+| **Gradient stop** | A color at one end of the current two-stop gradient axis. Multi-stop editing is planned, but is not implemented yet. |
 | **Tool palette** | The left rail with all CS6 tools, grouped into Select, Bitmap, Vector, Web, Colors, and View. |
 | **Panel group** | A docked or floating tab group. Groups can collapse, stack, snap, and be re-docked. |
 | **Inspector** | The bottom dock containing Properties, Symbol Properties, and Intelligence tabs. |

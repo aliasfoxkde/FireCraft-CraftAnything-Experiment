@@ -276,6 +276,47 @@ impl BlendMode {
 pub struct GradientFill {
     pub start: Color32,
     pub end: Color32,
+    /// Gradient axis endpoints in normalized object-bounds coordinates. Missing values in older
+    /// project files retain the historic top-to-bottom gradient direction.
+    #[serde(default = "default_gradient_start_pos")]
+    pub start_pos: Vec2,
+    #[serde(default = "default_gradient_end_pos")]
+    pub end_pos: Vec2,
+}
+
+fn default_gradient_start_pos() -> Vec2 {
+    Vec2::new(0.5, 0.0)
+}
+
+fn default_gradient_end_pos() -> Vec2 {
+    Vec2::new(0.5, 1.0)
+}
+
+impl GradientFill {
+    pub fn new(start: Color32, end: Color32) -> Self {
+        Self {
+            start,
+            end,
+            start_pos: default_gradient_start_pos(),
+            end_pos: default_gradient_end_pos(),
+        }
+    }
+
+    /// Return the clamped interpolation parameter for a normalized point inside the object's
+    /// bounds. The end colors extend beyond the axis endpoints; a zero-length axis is neutral.
+    pub fn t_at(self, normalized_pos: Vec2) -> f32 {
+        let axis = self.end_pos - self.start_pos;
+        let length_sq = axis.length_sq();
+        if !length_sq.is_finite() || length_sq <= 1.0e-12 {
+            return 0.5;
+        }
+        let t = (normalized_pos - self.start_pos).dot(axis) / length_sq;
+        if t.is_finite() {
+            t.clamp(0.0, 1.0)
+        } else {
+            0.5
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -1374,6 +1415,33 @@ impl Document {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn gradient_projection_uses_normalized_direction_and_preserves_legacy_vertical_fill() {
+        let legacy: GradientFill =
+            serde_json::from_str(r#"{"start":[1,2,3,255],"end":[4,5,6,255]}"#)
+                .expect("two-stop gradients from older documents remain readable");
+        assert_eq!(legacy.t_at(Vec2::new(0.5, 0.0)), 0.0);
+        assert_eq!(legacy.t_at(Vec2::new(0.5, 0.5)), 0.5);
+        assert_eq!(legacy.t_at(Vec2::new(0.5, 1.0)), 1.0);
+        assert_eq!(legacy.t_at(Vec2::new(0.5, 2.0)), 1.0);
+
+        let horizontal: GradientFill = serde_json::from_str(
+            r#"{"start":[1,2,3,255],"end":[4,5,6,255],"start_pos":[0.0,0.5],"end_pos":[1.0,0.5]}"#,
+        )
+        .expect("gradient endpoints are document data");
+        assert_eq!(horizontal.t_at(Vec2::new(0.25, 0.0)), 0.25);
+        assert_eq!(horizontal.t_at(Vec2::new(0.75, 1.0)), 0.75);
+    }
+
+    #[test]
+    fn zero_length_gradient_axis_has_stable_midpoint_parameter() {
+        let gradient: GradientFill = serde_json::from_str(
+            r#"{"start":[1,2,3,255],"end":[4,5,6,255],"start_pos":[0.4,0.6],"end_pos":[0.4,0.6]}"#,
+        )
+        .expect("gradient endpoints are document data");
+        assert_eq!(gradient.t_at(Vec2::new(0.0, 0.0)), 0.5);
+    }
 
     #[test]
     fn older_bitmap_documents_infer_source_dimensions_from_display_size() {

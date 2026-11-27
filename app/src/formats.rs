@@ -3,7 +3,7 @@
 //! Raster formats go through the `image` crate (PNG, JPEG, GIF, WebP, TIFF, BMP, ICO).
 //! SVG and HTML5 (+ CSS/Slices/Hotspots) are generated natively so vectors and web overlays stay editable.
 
-use crate::doc::{Document, LiveEffect, Obj, Shape};
+use crate::doc::{Document, GradientFill, LiveEffect, Obj, Shape};
 use eframe::egui::{Color32, Vec2};
 use std::path::Path;
 
@@ -841,6 +841,18 @@ pub fn rasterize(doc: &Document) -> image::RgbaImage {
 
 fn draw_obj(img: &mut image::RgbaImage, obj: &Obj, alpha: u8) {
     let to_px = |p: Vec2| -> (i32, i32) { (p.x.round() as i32, p.y.round() as i32) };
+    let gradient_color = |gradient: GradientFill, x: f32, y: f32| {
+        let normalized = obj.bounds().map_or(Vec2::splat(0.5), |(lo, hi)| {
+            Vec2::new(
+                (x - lo.x) / (hi.x - lo.x).abs().max(1.0),
+                (y - lo.y) / (hi.y - lo.y).abs().max(1.0),
+            )
+        });
+        let c = gradient
+            .start
+            .lerp_to_gamma(gradient.end, gradient.t_at(normalized));
+        image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha])
+    };
     match &obj.kind {
         Shape::Rect { min, max, .. } => {
             let (x0, y0) = to_px(*min);
@@ -849,20 +861,15 @@ fn draw_obj(img: &mut image::RgbaImage, obj: &Obj, alpha: u8) {
             let lo_y = y0.min(y1);
             let hi_x = x0.max(x1);
             let hi_y = y0.max(y1);
-            let span = (hi_y - lo_y).max(1) as f32;
             for y in lo_y.max(0)..=hi_y.min(img.height() as i32 - 1) {
-                let t = ((y - lo_y) as f32 / span).clamp(0.0, 1.0);
-                let color = match obj.gradient {
-                    Some(g) => {
-                        let c = g.start.lerp_to_gamma(g.end, t);
-                        image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha])
-                    }
-                    None => obj
-                        .fill
-                        .map(|c| image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha]))
-                        .unwrap_or(image::Rgba::<u8>([0, 0, 0, 0])),
-                };
                 for x in lo_x.max(0)..=hi_x.min(img.width() as i32 - 1) {
+                    let color = match obj.gradient {
+                        Some(g) => gradient_color(g, x as f32, y as f32),
+                        None => obj
+                            .fill
+                            .map(|c| image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha]))
+                            .unwrap_or(image::Rgba::<u8>([0, 0, 0, 0])),
+                    };
                     let old = img.get_pixel(x as u32, y as u32);
                     img.put_pixel(x as u32, y as u32, blend(*old, color));
                 }
@@ -872,24 +879,18 @@ fn draw_obj(img: &mut image::RgbaImage, obj: &Obj, alpha: u8) {
             let (cx, cy) = to_px(*center);
             let rx = radius.x.abs().max(1.0);
             let ry = radius.y.abs().max(1.0);
-            let top = cy - ry as i32;
-            let span = (ry * 2.0).max(1.0);
             for y in (cy - ry as i32).max(0)..=(cy + ry as i32).min(img.height() as i32 - 1) {
-                let t = ((y - top) as f32 / span).clamp(0.0, 1.0);
-                let color = match obj.gradient {
-                    Some(g) => {
-                        let c = g.start.lerp_to_gamma(g.end, t);
-                        image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha])
-                    }
-                    None => obj
-                        .fill
-                        .map(|c| image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha]))
-                        .unwrap_or(image::Rgba::<u8>([0, 0, 0, 0])),
-                };
                 for x in (cx - rx as i32).max(0)..=(cx + rx as i32).min(img.width() as i32 - 1) {
                     let dx = (x as f32 - cx as f32) / rx;
                     let dy = (y as f32 - cy as f32) / ry;
                     if dx * dx + dy * dy <= 1.0 {
+                        let color = match obj.gradient {
+                            Some(g) => gradient_color(g, x as f32, y as f32),
+                            None => obj
+                                .fill
+                                .map(|c| image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha]))
+                                .unwrap_or(image::Rgba::<u8>([0, 0, 0, 0])),
+                        };
                         let old = img.get_pixel(x as u32, y as u32);
                         img.put_pixel(x as u32, y as u32, blend(*old, color));
                     }
@@ -1607,6 +1608,31 @@ mod tests {
         let img = rasterize(&doc);
         assert_eq!(img.dimensions(), (64, 48));
         assert_eq!(*img.get_pixel(32, 24), image::Rgba([255, 0, 0, 255]));
+    }
+
+    #[test]
+    fn raster_export_uses_the_editable_gradient_axis() {
+        let mut doc = Document::new(11.0, 5.0);
+        let mut rect = Obj::new(
+            Shape::Rect {
+                min: Vec2::ZERO,
+                max: Vec2::new(10.0, 4.0),
+                corner_radius: 0.0,
+                filled: true,
+            },
+            Some(Color32::BLACK),
+            None,
+        );
+        let mut gradient = GradientFill::new(Color32::BLACK, Color32::WHITE);
+        gradient.start_pos = Vec2::new(0.0, 0.5);
+        gradient.end_pos = Vec2::new(1.0, 0.5);
+        rect.gradient = Some(gradient);
+        doc.page_mut().layers[0].objects.push(rect);
+
+        let image = rasterize(&doc);
+        assert_eq!(image.get_pixel(0, 2).0, [0, 0, 0, 255]);
+        assert_eq!(image.get_pixel(10, 2).0, [255, 255, 255, 255]);
+        assert_eq!(image.get_pixel(5, 2).0, [128, 128, 128, 255]);
     }
 
     #[test]
