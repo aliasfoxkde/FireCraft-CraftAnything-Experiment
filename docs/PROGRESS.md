@@ -16,7 +16,9 @@ Newest first.
   checker, module-size gate, and `cargo machete` passed. `cargo audit` completed with 13 allowed
   transitive advisories (9 unsound `heapless 0.8.0` notices and 4 unmaintained-crate notices);
   dependency task 38.6 remains open. `cargo update -p rstar` confirmed no compatible lockfile update
-  under the current `geo 0.33.1` constraints.
+  under the current `geo 0.33.1` constraints. Exact PR-head coverage artifact from
+  [run 46036827007](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/46036827007)
+  measures 18,496 / 26,504 = **69.79%** lines; branch counters are 0/0 and 99% is not met.
 - The first targeted Cargo invocation used `--lib`, which is invalid for this binary-only crate and
   exited before compilation. The corrected focused command omitted `--lib` and passed. A red-before
   behavior failure was not claimed because production behavior already met the newly asserted
