@@ -2,6 +2,14 @@
 
 Newest first.
 
+### 2026-11-27 — v0.3.6 release candidate prepared
+
+- Prepared version `0.3.6` with matching `app/Cargo.toml`, `app/Cargo.lock`, and changelog entry for
+  the merged PR #45 raster Drop Shadow export fix. `scripts/version.sh` reports `0.3.6`; locked
+  `cargo metadata --no-deps` reports `firecraft@0.3.6`.
+- Exact-head validation, multi-platform tag release, and Cloudflare review deployment remain open;
+  these gates are tracked in TASKS 43.2–43.5. The public `v0.3.5` release has not been overwritten.
+
 ### 2026-11-27 — TDD: include Live Filter Drop Shadows in raster export
 
 - Added `raster_export_renders_enabled_drop_shadow_outside_object_bounds` in `app/src/formats.rs`. Red showed the exported rectangle pixels were present but the enabled Drop Shadow produced no alpha outside the object. The test now checks that a disabled effect adds no shadow, an enabled effect follows its offset, and blur produces an alpha falloff.
