@@ -45,9 +45,13 @@ Newest first.
   Windows 11 GUI acceptance. Cobertura artifact [run 46047264325](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/46047264325)
   reports 18,703 / 26,765 lines = **69.88%** and 0 / 0 branch counters. The 99% target is not met.
 - TASK 37.4 remains open: other live-filter types, bitmap/path/text/zoom parity, undo checks, and visual
-  acceptance still need work. The managed Aegis rerun `6ae27914-4c5c-4d96-bff0-dbee65f5cdcb` is
-  queued behind the normal-lane resource gate; the completed pre-annotation scan found only two new
-  low-confidence port-number matches in the edited audit text. No clean Aegis result is claimed.
+  acceptance still need work. Managed Aegis 0.6.6 rerun `6ae27914-4c5c-4d96-bff0-dbee65f5cdcb`
+  completed on merge `48d5d4b7b683aed199cff72aa953d43b60d549cd` (280 files scanned, 145 skipped,
+  zero failed). It reports 11,323 findings (2 critical, 55 high, 639 medium, 10,627 low; categories:
+  11,053 PII, 247 compliance, 17 web-security, 3 secrets, 3 security-hardening); 2 findings are
+  narrowly suppressed by the same-line annotation for GitForge service port numbers. 11,241 alerts
+  are in retained `investigation.cany/`; the remaining 82 are outside that evidence tree. The job
+  exits 3 due to findings; the scan is not clean and full triage remains open under TASK 41.2.
 - GitForge authentication initially failed because the environment token had expired. Logging in with
   the existing local admin credential enabled exact-run inspection. PR #46's gates succeeded on commit
   `33f49266de0bcf51712bfba8e41b371f5c736677` (run `b4e5ed15-e1c7-45c3-8132-ee43e03dfba3`). The
