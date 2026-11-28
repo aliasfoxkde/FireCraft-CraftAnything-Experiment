@@ -2,7 +2,7 @@
 
 **Product:** FireCraft — Open Source Raster and Vector Graphics Editor
 **Audience:** users, contributors, maintainers, extension authors
-**Status date:** 2026-11-27
+**Status date:** 2026-11-28
 **Status:** living plan; this document describes current foundations and proposed work, not a promise of delivery dates.
 **Execution record:** [`TASKS.md`](TASKS.md) is the only active checkbox ledger.
 **Architecture and quality:** [`architecture.md`](architecture.md), [`PLAN.md`](PLAN.md), and [`AUDIT.md`](AUDIT.md).
@@ -52,11 +52,13 @@ Execution checkboxes remain exclusively in [TASKS.md](TASKS.md).
 
 The repository currently contains a Rust/egui desktop editor with a CS6-inspired shell, raster/vector tools, layers and panel groups, pages/states, styles/effects, import/export paths, layered `.fw.png` persistence, a command palette, keybinding/help material, an Intelligence panel, CLI/MCP surfaces, and a WebAssembly build path. See the [feature inventory](features/README.md), [tutorials](tutorials/README.md), and the dated [audit](AUDIT.md) for verified details and limitations.
 
-The current product has a published [v0.3.1 release](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.1),
-with Windows x86_64, universal macOS, Linux, and WASM packages. Its release and GitHub Pages gates
-passed on source SHA `3efe9c1c9c3bad6537c2038ecb5660946d56e028`; a Cloudflare review preview is also
-available. These receipts do not certify native Windows 11 interactive acceptance, macOS signing/
-notarization, or production marketing-site deployment.
+The current product has a published [v0.3.7 release](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.7),
+with Windows x86_64, universal macOS, Linux tar/DEB/AppImage/Flatpak, and WASM packages. The release
+and GitHub Pages deployment identify source SHA `5bfdcfdcb2353f94e456b4e757c68b9f1b3ccc60`. The
+Cloudflare review preview remains [v0.3.5](https://wasm-review-v0-3-5.firecraft-web.pages.dev/);
+the v0.3.7 Cloudflare deployment did not authenticate, so the preview is older than the current
+release. These receipts do not certify native Windows 11 interactive acceptance, macOS
+signing/notarization, Cloudflare v0.3.7 deployment, or production marketing-site deployment.
 The older repository's feature and release history is still being audited; no unverified donor
 capability is included in the current product claims.
 

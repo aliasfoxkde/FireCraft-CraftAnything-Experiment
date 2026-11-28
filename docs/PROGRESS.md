@@ -2,6 +2,33 @@
 
 Newest first.
 
+## 2026-11-28 — concave path fix and documentation workflow receipt
+
+- PR #57 fixes concave closed-path rendering and filled-area hit testing with shared ear-clipping
+  triangulation and point-in-polygon logic. The test-only run reproduced the empty-notch/fill bug
+  before implementation; degenerate and self-intersecting contours remain editable outlines without
+  an invented fill. Exact GitHub head `5440ce84195a7bcec17f8f169924e14d5bd5bc09` passes Gates, WASM,
+  Windows build/CLI smoke, coverage, and CodeQL.
+- Hosted Cobertura for the PR merge ref `6a8c9cfa85c378725515f0d93793d67171d8942f` reports
+  19,678 / 27,607 lines = 71.28%; branch instrumentation is unavailable (0/0), so the requested
+  99% target is not met. The Windows review ZIP is
+  `output/review-5440ce8/firecraft-v0.3.7-windows-x86_64.zip`, SHA-256
+  `47f8680f438cfb2613ac55e3ab0acc4e99eb77e9fe3e6df7b27ffcd001f81c4f`. Its build source is the
+  GitHub PR merge ref containing head `5440ce8` and base `cd88148`; Windows CLI smoke passed, while
+  native Windows 11 GUI review remains open.
+- Atheon scanned the geometry module (SHA-256
+  `c71755f48622e65caab6a224b34cbb9dae7863acb54ef81080f026faeeabf768`): 30 findings (27 low,
+  3 medium) and an aggregate `critical` score driven by repeated low-severity patterns. Triage is in
+  [`path geometry scan receipt`](testing/path-geometry-pattern-scan-2026-11-28.md); there are no
+  suppressions, and the scan is not reported clean.
+- Updated the living roadmap to current v0.3.7 release/Pages identity and clearly labeled the older
+  v0.3.5 Cloudflare preview. Added a reusable workflow evidence receipt form linked from the docs
+  map and workflow catalog, so visual validation can feed bug reports and tutorials with provenance.
+- GitForge created exact-source run `80a1b266-8e8c-4458-912d-69dfc65fe34e`; its `gates` job is
+  assigned and heartbeating, but the run has not passed the release gate yet. PR #57 is the only
+  open GitHub PR; there are no open issues. Protected historical release branches and a dirty
+  v0.3.4 worktree were preserved during cleanup.
+
 ## 2026-11-28 — final local branch inventory
 
 - Removed the stale local `fix/aegis-macos-plist-dtd` branch after comparing its tree with `origin/main`: the plist hardening and regression test are already present from merged PR #51. No unique production or test changes were dropped.
