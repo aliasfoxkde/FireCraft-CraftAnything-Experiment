@@ -4,6 +4,8 @@ Newest first.
 
 ## 2026-11-28 — WASM splash timing and click-through fixed with browser proof
 
+- Pushed as [`PR #66`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/66), exact head
+  `f0c4fcc9db24a52d2bfbf9d08d5d26cc013d6f9f`; hosted checks are running.
 - Headed Chromium on Fedora reproduced the splash disappearing before the first screenshot. The
   root cause was using eframe WASM's absolute `performance.now()` as the splash elapsed time. The
   splash now records the first FireCraft frame time and fades over 2.4 seconds from that point.
