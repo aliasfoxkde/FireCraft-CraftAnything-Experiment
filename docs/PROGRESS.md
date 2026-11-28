@@ -2,6 +2,30 @@
 
 Newest first.
 
+## 2026-11-28 — PR #57 merged; documentation site prepared
+
+- PR #57 merged by squash as `15979dc9212eaae657d2565c71df0c41ebf166dc` after exact-head GitHub
+  Gates, WASM, Windows build/CLI smoke, Rust coverage, CodeQL, and local GitForge run `138593c0`
+  passed. Native Windows GUI review and the complete path workflow receipt remain open.
+- Added a static documentation portal at `/documentation/` that renders 63 repository Markdown
+  pages into sanitized HTML. It includes full-text search, a keyboard-operated featured-guide
+  carousel, internal article/deep links, responsive navigation, and a support/project footer. The
+  app remains the Pages root. CI builds the portal, and the release workflow includes it in the Pages
+  artifact; the hosted deploy is still pending.
+- Browser interaction checks passed for opening a tutorial, following an in-reader link, searching
+  `gradient` (23 matching pages), and advancing the carousel. Desktop and mobile captures were
+  reviewed. `scripts/check-docs.sh` passed for 75 tracked Markdown files; the generated catalog has
+  63 pages and its article output contains no script tags. Task-first section ordering is explicit;
+  sampled normal-text foreground/background pairs meet 7:1 contrast, and the large orange headline
+  clears the 4.5:1 large-text threshold.
+- Published the GitHub Wiki's new Home, `_Sidebar`, and `_Footer` as Wiki commit `111fafd`. The Wiki
+  now routes readers to the task-organized Pages guide and to the major tutorial, reference, roadmap,
+  support, release, and contribution sections; the Pages destination is pending deployment.
+- Aegis job `4c0e1457-b94f-4bf7-b88c-091048628395` finished with exit 3 after pattern findings in a
+  nested historical worktree journal. This is not a clean current-source scan. The shared manager
+  presently blocks another normal scan because a separate unmanaged Aegis process is active and
+  `/tmp` is below its 2 GiB admission floor; no scan was bypassed.
+
 ## 2026-11-28 — current PR #57 and documentation-workflow status
 
 - Current PR head is `36df3ef746fc53253725aba3fcb6c96545061395` on

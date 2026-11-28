@@ -14,6 +14,20 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  documentation-site:
+    name: Documentation Pages build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: Build the static documentation site
+        run: |
+          python3 -m venv "$RUNNER_TEMP/firecraft-docs-build"
+          "$RUNNER_TEMP/firecraft-docs-build/bin/python" -m pip install --disable-pip-version-check --requirement docs/site/requirements.txt
+          "$RUNNER_TEMP/firecraft-docs-build/bin/python" docs/site/build.py --output "$RUNNER_TEMP/firecraft-docs-output"
+          test -s "$RUNNER_TEMP/firecraft-docs-output/index.html"
+          test -s "$RUNNER_TEMP/firecraft-docs-output/catalog.json"
+          test -s "$RUNNER_TEMP/firecraft-docs-output/content/docs/tutorials/getting-started.html"
+
   linux-gates:
     name: Gates (fmt, clippy, tests, docs, WASM, security)
     runs-on: ubuntu-latest

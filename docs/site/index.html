@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#171918">
+  <meta name="description" content="Browse FireCraft tutorials, feature guides, reference, roadmap, and engineering documentation.">
+  <title>FireCraft Documentation</title>
+  <link rel="icon" href="../favicon.png" type="image/png">
+  <link rel="stylesheet" href="site.css">
+  <script type="module" src="site.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#article">Skip to documentation</a>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="FireCraft Documentation home">
+      <img src="../favicon.png" alt="" width="30" height="30">
+      <span>FireCraft <span class="brand-light">Documentation</span></span>
+    </a>
+    <nav class="top-links" aria-label="Main navigation">
+      <a href="../">Open editor <svg class="arrow-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 14 14 6M6 6h8v8"/></svg></a>
+      <a href="https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment">Source <svg class="arrow-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 14 14 6M6 6h8v8"/></svg></a>
+      <a href="https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/wiki">Wiki <svg class="arrow-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 14 14 6M6 6h8v8"/></svg></a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <div class="intro-copy">
+        <p class="eyebrow">The FireCraft field guide</p>
+        <h1 id="page-title">Make something.<br><span>Find your way.</span></h1>
+        <p class="intro-lede">Practical tutorials, feature guides, keyboard reference, and project notes—kept together and linked to the work they describe.</p>
+      </div>
+      <div class="intro-mark" aria-hidden="true">
+        <svg viewBox="0 0 190 150" role="presentation">
+          <path d="M20 126 84 22h25l61 104H20Z" fill="none" stroke="currentColor" stroke-width="2"/>
+          <path d="m56 126 40-67 40 67M70 103h52M82 83h29" fill="none" stroke="currentColor" stroke-width="2"/>
+          <circle cx="96" cy="22" r="5" fill="currentColor"/>
+          <path d="M18 136h154" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </div>
+    </section>
+
+    <section class="featured" aria-labelledby="featured-title">
+      <div class="section-heading">
+        <div><p class="eyebrow">A good place to begin</p><h2 id="featured-title">Featured guides</h2></div>
+        <div class="carousel-controls" aria-label="Featured guide controls">
+          <button id="previous-slide" class="round-button" type="button" aria-label="Previous featured guide">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <button id="next-slide" class="round-button" type="button" aria-label="Next featured guide">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="carousel" id="featured-carousel" tabindex="0" aria-roledescription="carousel" aria-label="Featured documentation">
+        <div class="slide-stage" id="slide-stage" aria-live="polite" aria-atomic="true"></div>
+        <div class="carousel-footer">
+          <div id="slide-dots" class="slide-dots" aria-label="Choose featured guide"></div>
+          <span id="slide-count" class="slide-count"></span>
+        </div>
+      </div>
+    </section>
+
+    <div class="docs-layout">
+      <aside class="sidebar" aria-label="Documentation navigation">
+        <div class="sidebar-heading"><h2>Browse documentation</h2><span id="page-total" class="page-total"></span></div>
+        <label class="search-box" for="doc-search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>
+          <input id="doc-search" type="search" placeholder="Search guides and topics" autocomplete="off">
+          <kbd>/</kbd>
+        </label>
+        <nav id="doc-navigation" class="doc-navigation" aria-label="Documentation pages"></nav>
+        <p id="empty-search" class="empty-search" hidden>No pages match that search. Try a feature name or browse a section.</p>
+      </aside>
+
+      <article id="article" class="article" tabindex="-1" aria-labelledby="article-title">
+        <div class="article-meta"><span id="article-section">Welcome</span><span class="meta-rule"></span><a id="article-source" href="https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/blob/main/docs/README.md" target="_blank" rel="noopener noreferrer">Source Markdown ↗</a></div>
+        <h2 id="article-title">A guide to FireCraft</h2>
+        <p class="article-lede">Choose a guide above, browse by topic, or search the documentation. Every page is rendered from the repository's Markdown and includes its related links.</p>
+        <div id="article-content" class="prose welcome-content">
+          <h3>Choose your route</h3>
+          <p>Start with a tutorial to complete a task, open a feature guide to learn how a tool behaves, or use the reference pages when you need an exact shortcut or term.</p>
+          <div class="welcome-links">
+            <a href="#doc=docs/tutorials/getting-started.md" data-doc="docs/tutorials/getting-started.md">Get started <svg class="arrow-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 10h14m-6-6 6 6-6 6"/></svg></a>
+            <a href="#doc=docs/features/README.md" data-doc="docs/features/README.md">Browse features <svg class="arrow-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 10h14m-6-6 6 6-6 6"/></svg></a>
+            <a href="#doc=docs/tutorials/keybindings.md" data-doc="docs/tutorials/keybindings.md">Find a shortcut <svg class="arrow-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 10h14m-6-6 6 6-6 6"/></svg></a>
+          </div>
+          <p class="source-note">Some workflow guides are still awaiting full interactive verification. Their source pages call out what has and has not been tested.</p>
+        </div>
+        <div id="article-loading" class="article-loading" role="status" hidden>Loading this page…</div>
+        <div id="article-error" class="article-error" role="alert" hidden>This page did not load. Use the source link to open it on GitHub.</div>
+      </article>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-main">
+      <div class="footer-brand"><a class="brand" href="./"><img src="../favicon.png" alt="" width="28" height="28"><span>FireCraft</span></a><p>Open source raster and vector graphics editor.</p></div>
+      <div class="footer-column"><h2>Learn</h2><a href="#doc=docs/tutorials/README.md" data-doc="docs/tutorials/README.md">Tutorials</a><a href="#doc=docs/features/README.md" data-doc="docs/features/README.md">Feature guides</a><a href="#doc=docs/tutorials/keybindings.md" data-doc="docs/tutorials/keybindings.md">Keybindings</a></div>
+      <div class="footer-column"><h2>Project</h2><a href="#doc=docs/PRODUCT_ROADMAP.md" data-doc="docs/PRODUCT_ROADMAP.md">Roadmap</a><a href="#doc=docs/architecture.md" data-doc="docs/architecture.md">Architecture</a><a href="https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/wiki">GitHub Wiki <svg class="arrow-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 14 14 6M6 6h8v8"/></svg></a></div>
+      <div class="footer-column"><h2>Get involved</h2><a href="https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/issues/new/choose">Report a problem <svg class="arrow-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 14 14 6M6 6h8v8"/></svg></a><a href="https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/blob/main/.github/CONTRIBUTING.md">Contribute <svg class="arrow-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 14 14 6M6 6h8v8"/></svg></a><a href="https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases">Releases <svg class="arrow-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 14 14 6M6 6h8v8"/></svg></a></div>
+    </div>
+    <div class="footer-bottom"><span>FireCraft · Open source raster and vector graphics editor</span><a href="https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment">View the source <svg class="arrow-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 14 14 6M6 6h8v8"/></svg></a></div>
+  </footer>
+</body>
+</html>

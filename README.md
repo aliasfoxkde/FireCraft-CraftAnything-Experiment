@@ -25,6 +25,7 @@ remain grounded in this repository's code, tests, tasks and release receipts.
   for Windows, macOS, Linux, and WebAssembly. Linux packages include AppImage, DEB, and Flatpak.
 - **[Open the v0.3.7 Web app on GitHub Pages](https://aliasfoxkde.github.io/FireCraft-CraftAnything-Experiment/)**;
   its served build marker matches source `5bfdcfd`.
+- **[Browse the hosted documentation site](https://aliasfoxkde.github.io/FireCraft-CraftAnything-Experiment/documentation/)** for a searchable guide index, tutorials, feature references, roadmap, and engineering notes.
 - **[Open the Cloudflare review preview — v0.3.5](https://wasm-review-v0-3-5.firecraft-web.pages.dev/)**.
   This preview is older than the current release; the v0.3.7 Cloudflare deployment has not completed.
 - Explore the companion [ArtCraft WebOS demo](https://artcraft-webos.pages.dev/) or browse the
@@ -32,8 +33,9 @@ remain grounded in this repository's code, tests, tasks and release receipts.
 
 ## Documentation
 
-The [documentation map](docs/README.md) groups guides by purpose and links each topic to its
-focused detail.
+The [hosted documentation site](https://aliasfoxkde.github.io/FireCraft-CraftAnything-Experiment/documentation/)
+provides searchable navigation, featured guides, article reading, and links to the GitHub Wiki. The
+[repository documentation map](docs/README.md) lists the source pages and groups them by purpose.
 
 - **Product and releases:** [roadmap](docs/PRODUCT_ROADMAP.md), [changelog](.github/CHANGELOG.md),
   and [Windows 11 review checklist](docs/testing/windows-11-review-v0.3.7.md).
