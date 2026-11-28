@@ -14,8 +14,8 @@ tutorial, reference, or engineering detail. The root [README](../README.md) is t
 - [Product roadmap](PRODUCT_ROADMAP.md) — current capabilities, planned work, future scope, and
   phase exit criteria.
 - [Changelog](../.github/CHANGELOG.md) — changes grouped by release.
-- [Windows 11 review checklist](testing/windows-11-review-v0.3.7.md) — interactive review steps for
-  the current v0.3.7 candidate; it is not a substitute for the user's Windows acceptance.
+- [Windows 11 review checklist](testing/windows-11-review-v0.3.8.md) — interactive review steps for
+  the current v0.3.8 candidate; it is not a substitute for the user's Windows acceptance.
 
 ## Tutorials
 
@@ -52,7 +52,7 @@ when its behavior has been checked against the current build.
 ## Troubleshooting and support
 
 - [Accessibility checklist](A11Y.md) — current checks, limitations, and remaining audit scope.
-- [Windows review steps](testing/windows-11-review-v0.3.7.md) — capture exact reproduction details
+- [Windows review steps](testing/windows-11-review-v0.3.8.md) — capture exact reproduction details
   and attach screenshots/sample documents when reporting a defect.
 - [Bug report](../.github/ISSUE_TEMPLATE/bug_report.yml) and [feature request](../.github/ISSUE_TEMPLATE/feature_request.yml) — choose a focused issue template.
 - [Security reports](../.github/SECURITY.md) and [Code of Conduct](../.github/CODE_OF_CONDUCT.md).

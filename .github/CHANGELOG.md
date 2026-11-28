@@ -4,6 +4,21 @@ All notable changes to **FireCraft** are documented in this file.
 
 ## [Unreleased]
 
+## [0.3.8] — 2026-11-28
+
+Documentation publishing and navigation update.
+
+### Added
+- A searchable documentation portal at `/documentation/`, built from the repository's Markdown
+  guides and references, with responsive topic navigation, a keyboard-operable featured-guide
+  carousel, deep links, and a full project footer.
+- A GitHub Wiki home, sidebar, and footer linking the documentation, tutorials, roadmap, support,
+  and contribution paths.
+
+### Changed
+- Include the documentation portal in the same GitHub Pages artifact as the WebAssembly editor.
+- Add a documentation-site build gate to pull-request CI.
+
 ## [0.3.7] — 2026-11-27
 
 Canvas paste routing and floating-workspace update.

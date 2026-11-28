@@ -2,6 +2,15 @@
 
 Newest first.
 
+## 2026-11-28 — v0.3.8 documentation publication candidate
+
+- Prepared v0.3.8 metadata so the existing tag workflow can publish the merged documentation
+  portal together with the current WASM editor at the GitHub Pages root. This includes platform
+  binaries built by the same release pipeline; no release is claimed until the tag workflow passes.
+- Added the documentation portal and GitHub Wiki publication to the changelog and updated the
+  current Windows 11 review checklist. Phase 49.5 remains open until the release deploys and the
+  served editor, documentation search/navigation, and mobile layout are verified.
+
 ## 2026-11-28 — PR #57 merged; documentation site prepared
 
 - PR #57 merged by squash as `15979dc9212eaae657d2565c71df0c41ebf166dc` after exact-head GitHub
