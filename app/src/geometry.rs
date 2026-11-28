@@ -149,9 +149,7 @@ pub(crate) fn triangulate_simple_polygon(points: &[Vec2]) -> Option<Vec<[usize; 
             break;
         }
 
-        let Some((current_index, triangle)) = ear else {
-            return None;
-        };
+        let (current_index, triangle) = ear?;
         triangles.push(triangle);
         remaining.remove(current_index);
         attempts += 1;
