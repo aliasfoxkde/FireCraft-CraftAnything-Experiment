@@ -111,6 +111,7 @@ next-env.d.ts
 /output/
 /.playwright-cli/
 /.impeccable/hook.cache.json
+/.worktrees/
 
 # ---------------------------------------------------------------------------
 # Editors, IDEs, OS

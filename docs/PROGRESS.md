@@ -2,6 +2,32 @@
 
 Newest first.
 
+## 2026-11-27 — docs PR #53 merged; v0.3.2 history and proposal branches reconciled
+
+- PR #53 merged at `d57e55d181598fe5e83c66fe262cc73d389796a7` after every exact-head GitHub check passed on
+  `342554a9e69cd0bb1cf450b04e40bcf8092e66d8`. The PR replaced task-phrase docs navigation, recorded
+  the visual evidence workflow, refreshed README release/demo links, and preserved the v0.3.2 release
+  receipt recovered from an unsubmitted branch.
+- Release `v0.3.7` is published and all platform asset hashes passed local verification. GitHub Pages
+  serves the expected version/source marker; the Playwright startup smoke found the editor title and
+  canvas. Screenshot capture timed out at the CLI's 5-second stability wait, so no screenshot is
+  claimed. Cloudflare v0.3.7 review deployment remains failed because the repository has no token
+  secret and the available local token was rejected as invalid.
+- Deleted the unprotected remote `docs/v0.3.2-release-receipts` branch after verifying its historical
+  receipt on `main`; GitHub automatically deleted the merged docs PR branch. `git fetch --prune`
+  removed both remote-tracking refs. The two remaining unsubmitted docs branches contain unique
+  WebOS and support-pipeline plans; their selected documents are being reconciled in a review branch
+  and explicitly marked as historical or proposed.
+- PR #54, [`docs: consolidate WebOS and support planning`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/54), is the sole open PR at this update. Its current head is `94c73939deab95f91fc3fec195229f9f12577b14`; the 70-file docs/link/claim check passed locally and hosted checks are running.
+- Deleted the unprotected remote refs `docs/quality-and-webos-roadmap-2026-11-27` (`6140d09`) and
+  `docs/support-feedback-pipeline-handoff-2026-11-27` (`8dcad50`) after their reviewed content was
+  pushed in PR #54; no plan content was discarded. Removed seven clean, completed local worktrees
+  and their merged local branches, including about 9.5 GB of generated Cargo build caches; retained
+  dirty/nested worktrees and their user data.
+- GitHub had no open issues at this check. Hosted line coverage remains 70.94%, with no branch data;
+  native Windows 11 acceptance, full visual workflow evidence, and 99% coverage remain outstanding.
+
+
 ## 2026-11-27 — v0.3.7 publication and cleanup inventory
 
 - GitHub Release [`v0.3.7`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.7) is published with the exact version title. Windows, universal macOS, Linux tar/AppImage/DEB/Flatpak, and WASM payloads are present alongside package/release manifests, source SHA, and checksums. Every payload hash in `SHA256SUMS.txt` verified locally; both Windows and WASM ZIP archives passed integrity checks. `SOURCE-SHA.txt` and `BUILD-INFO.txt` identify source `5bfdcfdcb2353f94e456b4e757c68b9f1b3ccc60`.
@@ -1035,3 +1061,36 @@ unverified. Do not restate the plan; link it.
   the separately recorded exact-source c1ae70e GitForge pass remains valid.
 - Updated PR #51 description through the REST API after `gh pr edit` hit the deprecated Projects
   GraphQL field; the PR now records exact passing checks, Aegis limits, and the unverified GitForge run.
+
+## 2026-11-27 — Workflow catalog and branch cleanup follow-up
+
+- Added [`docs/workflows/README.md`](workflows/README.md) with stable IDs for startup/focus, native
+  and browser clipboard, floating canvas, tools, paths, dialogs, layer reorder, eraser, gradients /
+  filters, recovery, and sample export. Each row distinguishes code-level tests from complete
+  desktop/browser acceptance and points to canonical docs and open task IDs.
+- Updated the documentation map and marked task 46.4 complete. Corrected the evidence-plan audit
+  so the old “Start Here” navigation is explicitly historical: PR #53 replaced it with labeled
+  documentation categories and verified v0.3.7 links. The v0.3.5 Cloudflare preview remains labeled
+  as old because the v0.3.7 deployment failed authentication.
+- `./scripts/check-docs.sh` passed (71 files); `git diff --check` passed. The docs changes are on PR
+  #54; its exact-head SHA and current GitHub workflow checks are available on the PR, and all
+  required checks must pass before merge.
+- Against main commit `d57e55d181598fe5e83c66fe262cc73d389796a7`,
+  `/home/mkinney/.local/bin/host-build-lease -- cargo test ctrl_v -- --nocapture` passed 5/5 focused
+  harness tests, and the same wrapper with
+  `cargo test floating_canvas_dispatches_child_viewport_keyboard_paste_to_its_document -- --nocapture`
+  passed 1/1. These prove egui dispatch and document targeting only; native OS clipboard, pointer
+  editing in a real floating window, save/re-dock, and drag/drop remain unverified.
+- Playwright opened the deployed v0.3.7 GitHub Pages app and found its editor canvas. Browser
+  screenshot capture timed out while waiting for page stability, so no visual acceptance is
+  claimed. Native Windows 11 review and production Cloudflare WASM deployment also remain open.
+- Branch cleanup follow-up: GitHub has one open PR (#54) and zero open issues. All 13 stale refs on
+  the two local GitForge mirrors (12 on `gitforge-local`, one duplicate on `gitforge-project`) were
+  reviewed against merged PRs, current GitHub main history, or superseding v0.3.6/v0.3.7 releases,
+  then deleted and pruned. The obsolete local v0.3.2 receipt branch was removed after verifying its
+  content in main. Protected GitHub historical release refs and worktrees containing nested or
+  uncommitted content were preserved.
+- Added a root-anchored `/.worktrees/` ignore so parent-worktree status cannot accidentally stage
+  nested worktrees or their build caches. Checked the root's `.worktrees/.audit/decisions.tsv` and
+  confirmed both rows are already represented in the tracked decision log with corrected timestamps;
+  no duplicate rows were copied and no nested worktree contents were removed.
