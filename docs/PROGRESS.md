@@ -18,6 +18,10 @@ Newest first.
   removed both remote-tracking refs. The two remaining unsubmitted docs branches contain unique
   WebOS and support-pipeline plans; their selected documents are being reconciled in a review branch
   and explicitly marked as historical or proposed.
+- PR #54, [`docs: consolidate WebOS and support planning`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/54), is the sole open PR at this update. Its exact head is `a7dadd58508cd1e10e531a6eb382a8ee1d0784a8`; the 70-file docs/link/claim check passed locally and hosted checks are running.
+- Deleted the unprotected remote refs `docs/quality-and-webos-roadmap-2026-11-27` (`6140d09`) and
+  `docs/support-feedback-pipeline-handoff-2026-11-27` (`8dcad50`) after their reviewed content was
+  pushed in PR #54; no plan content was discarded.
 - GitHub had no open issues at this check. Hosted line coverage remains 70.94%, with no branch data;
   native Windows 11 acceptance, full visual workflow evidence, and 99% coverage remain outstanding.
 
