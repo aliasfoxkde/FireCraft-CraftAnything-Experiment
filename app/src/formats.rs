@@ -9,6 +9,8 @@ use std::path::Path;
 
 #[path = "formats/raster_effects.rs"]
 mod raster_effects;
+#[path = "formats/raster_shapes.rs"]
+mod raster_shapes;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Format {
@@ -1020,7 +1022,16 @@ fn draw_obj_content(img: &mut image::RgbaImage, obj: &Obj, alpha: u8) {
             angle_rad,
         } => {
             let pts = Obj::polygon_vertices(*center, *radius, *sides, *star_inner, *angle_rad);
-            if let Some(c) = obj.stroke.or(obj.fill) {
+            if obj.gradient.is_some() || obj.fill.is_some() {
+                raster_shapes::fill_simple_polygon(img, &pts, |x, y| match obj.gradient {
+                    Some(g) => gradient_color(g, x as f32, y as f32),
+                    None => {
+                        let c = obj.fill.expect("checked above");
+                        image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha])
+                    }
+                });
+            }
+            if let Some(c) = obj.stroke {
                 let color = image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha]);
                 for i in 0..pts.len() {
                     draw_line_px(img, to_px(pts[i]), to_px(pts[(i + 1) % pts.len()]), color);
@@ -1028,7 +1039,16 @@ fn draw_obj_content(img: &mut image::RgbaImage, obj: &Obj, alpha: u8) {
             }
         }
         Shape::Path { points, closed } => {
-            if let Some(c) = obj.stroke.or(obj.fill) {
+            if *closed && (obj.gradient.is_some() || obj.fill.is_some()) {
+                raster_shapes::fill_simple_polygon(img, points, |x, y| match obj.gradient {
+                    Some(g) => gradient_color(g, x as f32, y as f32),
+                    None => {
+                        let c = obj.fill.expect("checked above");
+                        image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha])
+                    }
+                });
+            }
+            if let Some(c) = obj.stroke {
                 let color = image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha]);
                 for w in points.windows(2) {
                     draw_line_px(img, to_px(w[0]), to_px(w[1]), color);

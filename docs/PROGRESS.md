@@ -2,6 +2,25 @@
 
 Newest first.
 
+## 2026-11-28 — Pen path keyboard edit and raster export fixed with browser proof
+
+- Drove the exact local WASM bundle in headed Chromium on Fedora/Xvfb: created and closed a filled
+  triangle with Pen, selected and dragged an anchor, used Ctrl+Z/Ctrl+Y, saved and reopened the
+  editable `.fw.png`, and exported a PNG. The reopened document retained the Path; the exported
+  1920×1080 PNG contains the expected orange fill at `(1000, 500)`. No page or app console errors.
+- The real workflow exposed two defects. Ctrl+Z selected Zoom and left the moved anchor in place
+  because shortcuts used frame-level modifiers instead of the key event's modifier flags. Raster
+  export drew only the outlines for closed Paths and Polygon shapes. Added regressions that failed
+  before each fix; dispatch now reads per-event modifiers, and raster export scanline-fills contours
+  accepted by the same simple-polygon validator used by canvas rendering. Concave notch and gradient
+  fill tests also pass.
+- Exact-bundle receipts and unaltered screenshots: [browser path workflow](testing/browser-path-workflow-2026-11-28.md).
+  Native Windows/macOS, compound path limits, and other zoom/DPI variants remain open; this is not
+  full Fireworks parity or a public release.
+- Validation: 221 unit passed, one existing timing test ignored, 12 CLI, 5 hygiene, and 10 MCP
+  passed; strict Clippy and rustfmt passed. Release WASM build and Chromium path/edit/undo/redo/
+  save/reopen/export passed. The existing wasm-bindgen stripped-`target_features` warning remains.
+
 ## 2026-11-28 — Browser file I/O verified and dialog clipping fixed
 
 - Reproduced the file dialog's clipped desktop controls in the app layout and fixed the address
