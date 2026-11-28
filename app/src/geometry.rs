@@ -6,10 +6,55 @@
 //! invent a filled silhouette.
 
 use eframe::egui::Vec2;
+use std::cell::RefCell;
+use std::sync::Arc;
 
 const MIN_GEOMETRY_SCALE: f32 = 1.0;
 const RELATIVE_DISTANCE_EPSILON: f32 = 1.0e-6;
 const RELATIVE_AREA_EPSILON: f32 = 1.0e-7;
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct PathTriangulationCache {
+    entry: RefCell<Option<CachedTriangulation>>,
+}
+
+#[derive(Clone, Debug)]
+struct CachedTriangulation {
+    point_bits: Vec<[u32; 2]>,
+    triangles: Option<Arc<[[usize; 3]]>>,
+}
+
+impl PartialEq for PathTriangulationCache {
+    // This derived cache is not part of an object's document or equality semantics.
+    fn eq(&self, _other: &Self) -> bool {
+        true
+    }
+}
+
+impl PathTriangulationCache {
+    pub(crate) fn triangulate(&self, points: &[Vec2]) -> Option<Arc<[[usize; 3]]>> {
+        let mut entry = self.entry.borrow_mut();
+        if let Some(cached) = entry.as_ref()
+            && cached.point_bits.len() == points.len()
+            && cached.point_bits.iter().zip(points).all(|(cached, point)| {
+                cached[0] == point.x.to_bits() && cached[1] == point.y.to_bits()
+            })
+        {
+            return cached.triangles.clone();
+        }
+
+        let triangles = triangulate_simple_polygon(points)
+            .map(|triangles| Arc::<[[usize; 3]]>::from(triangles));
+        *entry = Some(CachedTriangulation {
+            point_bits: points
+                .iter()
+                .map(|point| [point.x.to_bits(), point.y.to_bits()])
+                .collect(),
+            triangles: triangles.clone(),
+        });
+        triangles
+    }
+}
 
 pub(crate) fn triangulate_simple_polygon(points: &[Vec2]) -> Option<Vec<[usize; 3]>> {
     if points.len() < 3
@@ -250,8 +295,9 @@ fn segments_intersect(
 
 #[cfg(test)]
 mod tests {
-    use super::{point_in_polygon, triangulate_simple_polygon};
+    use super::{PathTriangulationCache, point_in_polygon, triangulate_simple_polygon};
     use eframe::egui::Vec2;
+    use std::sync::Arc;
 
     fn l_shape() -> Vec<Vec2> {
         vec![
@@ -323,5 +369,18 @@ mod tests {
             Vec2::new(10.0, 0.0),
         ];
         assert!(triangulate_simple_polygon(&bow_tie).is_none());
+    }
+
+    #[test]
+    fn path_triangulation_cache_reuses_geometry_and_invalidates_after_edit() {
+        let cache = PathTriangulationCache::default();
+        let mut points = l_shape();
+        let original = cache.triangulate(&points).expect("simple L contour");
+        let reused = cache.triangulate(&points).expect("cached L contour");
+        assert!(Arc::ptr_eq(&original, &reused));
+
+        points[1].x += 10.0;
+        let edited = cache.triangulate(&points).expect("edited simple L contour");
+        assert!(!Arc::ptr_eq(&original, &edited));
     }
 }

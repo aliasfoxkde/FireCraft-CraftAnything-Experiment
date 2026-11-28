@@ -6,7 +6,7 @@ graphics, animation states, live effects, MCP automation, and a portable desktop
 
 > FireCraft is not affiliated with Adobe. It contains no Adobe code.
 
-## Project direction (2026-11-26)
+## Project direction (2026-11-28)
 
 This repository is the **canonical FireCraft project**. The earlier
 [FireCraft repository](https://github.com/aliasfoxkde/FireCraft) is retained as a historical
@@ -42,7 +42,7 @@ focused detail.
   [Find & Replace](docs/features/find-replace.md), and [file browser](docs/features/file-browser.md).
 - **Develop:** [architecture](docs/architecture.md), [build and release](docs/build-release.md),
   [contribution guide](.github/CONTRIBUTING.md), and [agent instructions](AGENTS.md).
-- **Planning and evidence:** [active tasks](docs/TASKS.md), [audit](docs/AUDIT-2026-11-27.md),
+- **Planning and evidence:** [active tasks](docs/TASKS.md), [current audit](docs/AUDIT-2026-11-28.md),
   and [workflow documentation plan](docs/DOCUMENTATION-AND-WORKFLOW-EVIDENCE.md).
 
 ## What is in the box

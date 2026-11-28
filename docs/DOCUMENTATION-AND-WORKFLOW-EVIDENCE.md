@@ -9,7 +9,7 @@ steps for the automated test, visual review, tutorial, feature reference, issue 
 notes.
 
 This is the process plan and the baseline audit. It does not claim that all workflows have been
-visually exercised. Current release and verification facts live in [the audit](AUDIT-2026-11-27.md),
+visually exercised. Current release and verification facts live in [the audit](AUDIT-2026-11-28.md),
 [the progress log](PROGRESS.md), and [the active task list](TASKS.md).
 
 ## Information architecture
@@ -45,7 +45,8 @@ reader could otherwise mistake a proposal for working behavior.
 This is a dated before-state, not a description of the current navigation. PR #53 replaced the
 task-phrase navigation with category links and updated the root README to v0.3.7. The Cloudflare
 review URL intentionally remains on v0.3.5 because the v0.3.7 deployment did not authenticate;
-see the current [audit](AUDIT-2026-11-27.md) and [active tasks](TASKS.md).
+see the [current audit](AUDIT-2026-11-28.md), the [historical audit](AUDIT-2026-11-27.md),
+and [active tasks](TASKS.md).
 
 - `docs/README.md` has a long “I want to…” table that mixes tutorials, research, audits, release
   checks, and architecture. It made the reader scan many unrelated rows; the table was replaced by

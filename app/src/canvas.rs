@@ -1871,7 +1871,7 @@ fn draw_obj(
                 let pts: Vec<Pos2> = points.iter().map(|p| to_screen(origin, zoom, *p)).collect();
                 if *closed {
                     let bounds = Rect::from_points(&pts);
-                    if let Some(triangles) = triangulate_simple_polygon(points) {
+                    if let Some(triangles) = obj.path_triangulation_cache.triangulate(points) {
                         if let Some(g) = obj.gradient {
                             paint_gradient_mesh(painter, bounds, &pts, &triangles, g, alpha);
                         } else if let Some(f) = fill {
@@ -2336,7 +2336,7 @@ fn hit_obj(obj: &Obj, p: Vec2) -> bool {
         Shape::Path { points, closed } => {
             if *closed
                 && (obj.fill.is_some_and(|color| color.a() > 0) || obj.gradient.is_some())
-                && triangulate_simple_polygon(points).is_some()
+                && obj.path_triangulation_cache.triangulate(points).is_some()
                 && point_in_polygon(points, p)
             {
                 return true;

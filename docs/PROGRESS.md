@@ -2,32 +2,40 @@
 
 Newest first.
 
-## 2026-11-28 — concave path fix and documentation workflow receipt
+## 2026-11-28 — current PR #57 and documentation-workflow status
 
-- PR #57 fixes concave closed-path rendering and filled-area hit testing with shared ear-clipping
-  triangulation and point-in-polygon logic. The test-only run reproduced the empty-notch/fill bug
-  before implementation; degenerate and self-intersecting contours remain editable outlines without
-  an invented fill. Exact GitHub head `5440ce84195a7bcec17f8f169924e14d5bd5bc09` passes Gates, WASM,
-  Windows build/CLI smoke, coverage, and CodeQL.
-- Hosted Cobertura for the PR merge ref `6a8c9cfa85c378725515f0d93793d67171d8942f` reports
-  19,678 / 27,607 lines = 71.28%; branch instrumentation is unavailable (0/0), so the requested
-  99% target is not met. The Windows review ZIP is
-  `output/review-5440ce8/firecraft-v0.3.7-windows-x86_64.zip`, SHA-256
-  `47f8680f438cfb2613ac55e3ab0acc4e99eb77e9fe3e6df7b27ffcd001f81c4f`. Its build source is the
-  GitHub PR merge ref containing head `5440ce8` and base `cd88148`; Windows CLI smoke passed, while
-  native Windows 11 GUI review remains open.
-- Atheon scanned the geometry module (SHA-256
-  `c71755f48622e65caab6a224b34cbb9dae7863acb54ef81080f026faeeabf768`): 30 findings (27 low,
-  3 medium) and an aggregate `critical` score driven by repeated low-severity patterns. Triage is in
-  [`path geometry scan receipt`](testing/path-geometry-pattern-scan-2026-11-28.md); there are no
-  suppressions, and the scan is not reported clean.
-- Updated the living roadmap to current v0.3.7 release/Pages identity and clearly labeled the older
-  v0.3.5 Cloudflare preview. Added a reusable workflow evidence receipt form linked from the docs
-  map and workflow catalog, so visual validation can feed bug reports and tutorials with provenance.
-- GitForge created exact-source run `80a1b266-8e8c-4458-912d-69dfc65fe34e`; its `gates` job is
-  assigned and heartbeating, but the run has not passed the release gate yet. PR #57 is the only
-  open GitHub PR; there are no open issues. Protected historical release branches and a dirty
-  v0.3.4 worktree were preserved during cleanup.
+- Current PR head is `36df3ef746fc53253725aba3fcb6c96545061395` on
+  [`#57`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/57), based on
+  `main` at `cd881488f5a5804c1cdf17fa6f1d94b7b8b9aced`. GitHub Gates (including fmt, Clippy,
+  tests, docs, security, and WASM), Windows build/CLI smoke, Rust coverage, and CodeQL all passed
+  for this exact head. The PR is open and reports a clean merge state.
+- Hosted Cobertura for this source reports 19,678 / 27,607 lines = 71.28%; branch instrumentation
+  is unavailable (0/0), so the aspirational 99% target is not met. The exact-head Windows review ZIP
+  is `output/review-36df3ef/firecraft-v0.3.7-windows-x86_64.zip`, SHA-256
+  `46eb4dfb31bf6f121f5eafad7c230e44c539e7c2524c82e09f2e6ca56cf62fd2`. Its build source is merge
+  ref `2e8820199ba1e38d4ade86f82dde2c083ec839df`, whose parents are PR head `36df3ef` and base
+  `cd88148`. Windows CLI smoke passed; native Windows 11 GUI acceptance remains open.
+- GitForge exact-source run `adfa9f8b-76e2-435e-9af9-f06916f90e83` succeeded. The local release
+  gate passed: 1/1 jobs succeeded or were skipped and covered the persisted pipeline definition.
+  This applies to `36df3ef` only; any new commit needs its own exact-source gate.
+- Coverage and test receipts are not interchangeable: CI reports 207 Rust tests passed, 0 failed,
+  and 1 ignored; separate CLI, hygiene, and MCP suites report 12, 5, and 10 passing tests. Exact-
+  head CI validated 73 tracked Markdown files; the updated working tree's docs check passes on 74
+  after this audit was added. These checks do not establish complete user-workflow, tutorial
+  screenshot, accessibility, or Windows GUI coverage.
+- The documentation map now uses reader-facing categories and links to the evidence workflow,
+  receipt template, and scenario catalog. The process explicitly requires real app output, artifact
+  identity, interaction evidence, reviewer notes, and follow-through into tutorials/feature guides.
+  The catalog remains mostly partial or unverified for native clipboard, floating canvas, tools,
+  paths, dialogs, and visual workflows; no broad end-to-end sign-off is claimed.
+- GitHub inventory: PR #57 is the only open PR and there are no open issues. `main` is protected;
+  five protected historical release branches remain. Preserve the dirty v0.3.4 worktree and its
+  evidence. A local geometry triangulation cache is currently uncommitted and unverified; it is not
+  part of PR #57 or the Windows artifact above.
+
+This status supersedes the earlier `5440ce8` snapshot; its review artifact remains under
+`output/review-5440ce8/`, and its CI record remains in commit/PR history. This is the current status
+as of 2026-11-28 02:27 UTC.
 
 ## 2026-11-28 — final local branch inventory
 

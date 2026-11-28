@@ -68,7 +68,8 @@ when its behavior has been checked against the current build.
 ## Planning and evidence
 
 - [Active task list](TASKS.md) — the single active implementation checklist.
-- [Dated audit](AUDIT-2026-11-27.md) — measured state, verification receipts, and open limits.
+- [Current dated audit](AUDIT-2026-11-28.md) — candidate status, measured quality, verification receipts, and open limits.
+- [Prior audit](AUDIT-2026-11-27.md) — historical v0.3.5 baseline and earlier findings.
 - [Progress log](PROGRESS.md) — chronological change and release receipts.
 - [Documentation and workflow evidence process](DOCUMENTATION-AND-WORKFLOW-EVIDENCE.md) — the
   information architecture, visual testing loop, screenshot rules, and staged completion plan.
