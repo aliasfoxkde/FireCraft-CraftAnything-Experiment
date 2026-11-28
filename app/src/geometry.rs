@@ -43,8 +43,7 @@ impl PathTriangulationCache {
             return cached.triangles.clone();
         }
 
-        let triangles = triangulate_simple_polygon(points)
-            .map(|triangles| Arc::<[[usize; 3]]>::from(triangles));
+        let triangles = triangulate_simple_polygon(points).map(Arc::<[[usize; 3]]>::from);
         *entry = Some(CachedTriangulation {
             point_bits: points
                 .iter()
