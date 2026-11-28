@@ -7,6 +7,10 @@
 
 use eframe::egui::Vec2;
 
+const MIN_GEOMETRY_SCALE: f32 = 1.0;
+const RELATIVE_DISTANCE_EPSILON: f32 = 1.0e-6;
+const RELATIVE_AREA_EPSILON: f32 = 1.0e-7;
+
 pub(crate) fn triangulate_simple_polygon(points: &[Vec2]) -> Option<Vec<[usize; 3]>> {
     if points.len() < 3
         || points
@@ -26,10 +30,10 @@ pub(crate) fn triangulate_simple_polygon(points: &[Vec2]) -> Option<Vec<[usize; 
         .fold((f32::INFINITY, f32::NEG_INFINITY), |range, p| {
             (range.0.min(p.y), range.1.max(p.y))
         });
-    let scale = (max_x - min_x).max(max_y - min_y).max(1.0);
-    let distance_epsilon = scale * 1.0e-6;
+    let scale = (max_x - min_x).max(max_y - min_y).max(MIN_GEOMETRY_SCALE);
+    let distance_epsilon = scale * RELATIVE_DISTANCE_EPSILON;
     let distance_epsilon_sq = distance_epsilon * distance_epsilon;
-    let area_epsilon = scale * scale * 1.0e-7;
+    let area_epsilon = scale * scale * RELATIVE_AREA_EPSILON;
 
     let mut polygon: Vec<usize> = Vec::with_capacity(points.len());
     for (index, point) in points.iter().enumerate() {
@@ -41,8 +45,12 @@ pub(crate) fn triangulate_simple_polygon(points: &[Vec2]) -> Option<Vec<[usize; 
         }
     }
     while polygon.len() > 1
-        && (points[*polygon.first().unwrap()] - points[*polygon.last().unwrap()]).length_sq()
-            <= distance_epsilon_sq
+        && polygon
+            .first()
+            .zip(polygon.last())
+            .is_some_and(|(&first, &last)| {
+                (points[first] - points[last]).length_sq() <= distance_epsilon_sq
+            })
     {
         polygon.pop();
     }
@@ -168,8 +176,8 @@ pub(crate) fn point_in_polygon(points: &[Vec2], point: Vec2) -> bool {
     let bounds_scale = points
         .iter()
         .map(|vertex| (vertex.x - point.x).abs().max((vertex.y - point.y).abs()))
-        .fold(1.0_f32, f32::max);
-    let epsilon = bounds_scale * 1.0e-6;
+        .fold(MIN_GEOMETRY_SCALE, f32::max);
+    let epsilon = bounds_scale * RELATIVE_DISTANCE_EPSILON;
     let mut inside = false;
     for index in 0..points.len() {
         let a = points[index];

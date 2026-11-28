@@ -74,6 +74,8 @@ when its behavior has been checked against the current build.
   information architecture, visual testing loop, screenshot rules, and staged completion plan.
 - [Workflow verification catalog](workflows/README.md) — stable scenario IDs, existing proof,
   canonical docs, and the concrete sign-off needed for each priority workflow.
+- [Workflow evidence receipt form](testing/workflow-evidence-template.md) — repeatable artifact,
+  environment, result, screenshot, and documentation metadata for a real user-flow run.
 - [Canvas tools and effects plan](CANVAS-TOOLS-AND-EFFECTS-PLAN.md) — tool correctness and proof order.
 - [Reference project research](research/reference-projects.md),
   [Fireworks CS6 behavior audit](research/fireworks-cs6-behavior-audit.md), and

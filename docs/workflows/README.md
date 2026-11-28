@@ -12,10 +12,11 @@ sign-off.
 - **Unverified** — no current end-to-end pass is recorded for the named workflow.
 - **Planned** — the product behavior has not shipped; its specification/task is the only evidence.
 
-When a workflow is run, add a dated evidence receipt under `docs/testing/` (or keep bulky traces as
-CI artifacts) with build/source identity, platform, commands or checklist revision, result, evidence
-paths/checksums, and reviewer. Add screenshot paths only after capturing actual app output. Never
-mark a row passed because a screenshot merely looks correct.
+When a workflow is run, copy the [evidence receipt form](../testing/workflow-evidence-template.md)
+to a dated file under `docs/testing/` (or keep bulky traces as CI artifacts) and record
+build/source identity, platform, commands or checklist revision, result, evidence paths/checksums,
+and reviewer. Add screenshot paths only after capturing actual app output. Never mark a row passed
+because a screenshot merely looks correct.
 
 ## Priority workflow catalog
 
