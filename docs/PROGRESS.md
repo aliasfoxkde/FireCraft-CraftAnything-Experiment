@@ -1072,9 +1072,9 @@ unverified. Do not restate the plan; link it.
   so the old “Start Here” navigation is explicitly historical: PR #53 replaced it with labeled
   documentation categories and verified v0.3.7 links. The v0.3.5 Cloudflare preview remains labeled
   as old because the v0.3.7 deployment failed authentication.
-- `./scripts/check-docs.sh` passed (70 files); `git diff --check` passed. The docs changes are on PR
-  #54 at head `f14d31259c91b70a2e3a83d045397242666a544a`; its latest GitHub workflow checks are
-  running and must pass before merge.
+- `./scripts/check-docs.sh` passed (71 files); `git diff --check` passed. The docs changes are on PR
+  #54; its exact-head SHA and current GitHub workflow checks are available on the PR, and all
+  required checks must pass before merge.
 - Against main commit `d57e55d181598fe5e83c66fe262cc73d389796a7`,
   `/home/mkinney/.local/bin/host-build-lease -- cargo test ctrl_v -- --nocapture` passed 5/5 focused
   harness tests, and the same wrapper with
