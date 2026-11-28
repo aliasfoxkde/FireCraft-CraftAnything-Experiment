@@ -1090,3 +1090,7 @@ unverified. Do not restate the plan; link it.
   then deleted and pruned. The obsolete local v0.3.2 receipt branch was removed after verifying its
   content in main. Protected GitHub historical release refs and worktrees containing nested or
   uncommitted content were preserved.
+- Added a root-anchored `/.worktrees/` ignore so parent-worktree status cannot accidentally stage
+  nested worktrees or their build caches. Checked the root's `.worktrees/.audit/decisions.tsv` and
+  confirmed both rows are already represented in the tracked decision log with corrected timestamps;
+  no duplicate rows were copied and no nested worktree contents were removed.
