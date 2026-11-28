@@ -2,6 +2,21 @@
 
 Newest first.
 
+## 2026-11-28 — compact footer controls restored at 960×640
+
+- The exact WASM app showed the footer clipping **Show All** at 960×640. Clicking its expected
+  position opened the resolution menu. Added a real-frame red test at that point; it failed before
+  the fix because infinite canvas stayed off, then passed after the compact layout change.
+- The compact footer shortens secondary metadata and controls, removes useless one-state animation
+  transport, and retains compact previous/next state navigation when multiple states exist. In headed
+  Chromium, Show All switched infinite canvas on, Rulers hid ruler markings, Grid displayed its grid,
+  and the 1360×860 wide footer kept its full labels. No console errors.
+- The same 960×640 session opened the Pen group flyout, showed its icons and short labels, selected
+  Freeform Path, and verified the active tool/status. Exact WASM hash and screenshot evidence: the
+  [responsive footer and Tools flyout receipt](testing/browser-responsive-footer-workflow-2026-11-28.md).
+- This is not a complete CS6 parity review; every tool group, multi-state interactions, and native
+  Windows/macOS/Linux layouts remain open.
+
 ## 2026-11-28 — WASM splash timing and click-through fixed with browser proof
 
 - Pushed as [`PR #66`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/66), exact head

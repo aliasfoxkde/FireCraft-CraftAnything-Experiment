@@ -1527,4 +1527,15 @@ mod tests {
             assert_eq!(obj.effects.len(), 1, "repeat-last on {i}");
         }
     }
+
+    #[test]
+    fn show_all_toggle_is_reachable_in_the_compact_canvas_footer() {
+        let mut harness = Harness::new();
+        harness.app.infinite_canvas = false;
+        harness.click(960.0, 640.0, Pos2::new(350.0, 483.0));
+        assert!(
+            harness.app.infinite_canvas,
+            "Show All should be a reachable control at 960x640"
+        );
+    }
 }
