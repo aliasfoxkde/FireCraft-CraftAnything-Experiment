@@ -29,6 +29,9 @@ Newest first.
   clipboard image file became a selected 128×128 Bitmap layer, with a visible success status and
   no page/app errors. Before/after captures and precise limits are recorded in the
   [clipboard workflow receipt](testing/browser-clipboard-workflow-2026-11-28.md).
+- Four consecutive Tab presses also toggled Full Screen Canvas and restored the workspace twice in
+  Chromium with no mouse click; the canvas remained active. Repeated-state screenshot comparisons
+  were pixel-identical. See the [Tab workflow receipt](testing/browser-tab-canvas-mode-2026-11-28.md).
 - Scope is deliberately limited: this does not sign off desktop path/overwrite behavior, OS picker
   appearance, native drag-and-drop, browser cancellation/large-file handling, other browsers,
   native Windows/macOS behavior, or a public deployment. PR #65 carries this work; its checks are
