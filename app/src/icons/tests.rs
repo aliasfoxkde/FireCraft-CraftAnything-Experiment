@@ -69,6 +69,10 @@ const ICONS: &[Icon] = &[
     Icon::StatePause,
     Icon::StateNext,
     Icon::StateLast,
+    Icon::Swap,
+    Icon::SquareHalf,
+    Icon::DropSlash,
+    Icon::CornersOut,
 ];
 
 const ALIGN_ICONS: &[AlignIcon] = &[

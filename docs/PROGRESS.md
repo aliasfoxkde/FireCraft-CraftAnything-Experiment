@@ -2,6 +2,20 @@
 
 Newest first.
 
+## 2026-11-28 — compact Tools rail footer in review
+
+- Reworked the pinned footer so a 32px collapsed rail exposes color/view actions through an
+  overflow menu, while the 82px expanded rail shows the color wells and a labeled Actions menu.
+  The full-width footer now uses bundled Phosphor glyphs for swap, default colors, no fill, and
+  fullscreen; the legacy renderer remains covered as fallback.
+- Added egui width regressions for collapsed/expanded rails and expanded the icon paint tests.
+  Focused footer tests pass (2/2), icon tests pass (4/4), `rustfmt --check` and the 76-file docs
+  gate pass; `cargo clippy --all-targets -- -D warnings` passes. Exact-branch CI, GitForge, and
+  merge remain pending. The first exact-head GitHub Gates run failed only the module-size hard
+  budget (`icons.rs` 2,038 / 2,000 lines); its tests, docs, lint, security, and WASM steps passed.
+  The legacy fallback drawings now live in `icons/extra.rs`; `icons.rs` measures 1,993 lines and
+  `scripts/module-size.sh` passes. Updated-head tests and CI are pending.
+
 ## 2026-11-28 — Pen anchors honor grid and guide snapping
 
 - A red regression confirmed that the Pen path receives raw canvas clicks: with a 10px grid,
@@ -10,9 +24,12 @@ Newest first.
 - The regression now checks both grid snapping and snapping to explicit vertical/horizontal guides.
   Full validation on this working tree passed 211 unit tests, 12 CLI, 5 hygiene, and 10 MCP tests
   (one existing frame-timing test ignored), strict Clippy, rustfmt, and documentation checks.
-- Native/WASM interactive path creation, node editing, undo/redo, save/reopen, and export remain
-  open in task 48.4. The current PR head still needs exact-source GitHub and GitForge checks and a
-  Windows review package after this follow-up change.
+- PR #62 merged at `7af68987dc516bc3fff1767bd29eff660f6d74eb`. Its exact head passed GitHub Gates,
+  docs Pages build, WASM, Windows CLI smoke/build, Rust coverage, CodeQL and local GitForge pipeline
+  `39f299ca-f77b-4c17-be79-e0035149b0d3`. Windows package
+  `output/review-d793fde/firecraft-v0.3.8-windows-x86_64.zip` passed checksum and ZIP integrity
+  checks; native Windows GUI interaction remains reviewer-owned. Native/WASM path creation,
+  node-editing, undo/redo, save/reopen, and export acceptance remain open in task 48.4.
 
 ## 2026-11-28 — Documentation portal republished and interaction-checked
 
@@ -24,6 +41,9 @@ Newest first.
   verified the featured carousel advances from slide 1 to slide 2, the `keybindings` search
   filters to 11 matching pages, and the 390×844 mobile layout retains its navigation and footer.
   The screenshot command still times out, so no fresh visual screenshot is claimed.
+- After PR #62 merged, refresh run `46117252914` rebuilt and redeployed the documentation from
+  main at `7af68987dc516bc3fff1767bd29eff660f6d74eb`. The live index and catalog still return HTTP
+  200 with 64 pages in nine sections.
 
 ## 2026-11-28 — Documentation style refresh published
 

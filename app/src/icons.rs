@@ -2,6 +2,7 @@
 
 use eframe::egui::{self, Color32, Painter, Pos2, Rect, Stroke, Vec2, pos2};
 
+mod extra;
 mod phosphor;
 
 const PHOSPHOR_FONT_FAMILY: &str = "FireCraft Phosphor";
@@ -89,6 +90,10 @@ pub enum Icon {
     StatePause,
     StateNext,
     StateLast,
+    Swap,
+    SquareHalf,
+    DropSlash,
+    CornersOut,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -206,6 +211,9 @@ fn draw_legacy(painter: &Painter, rect: Rect, icon: Icon, color: Color32, width:
     let accent = Color32::from_rgb(232, 163, 61);
     let accent_blue = Color32::from_rgb(78, 168, 240);
     match icon {
+        Icon::Swap | Icon::SquareHalf | Icon::DropSlash | Icon::CornersOut => {
+            extra::draw_legacy(painter, rect, icon, color, width);
+        }
         Icon::New => {
             // CS6 crisp page with folded dog-ear & amber '+' badge
             let doc_r = Rect::from_center_size(r.center(), Vec2::new(s * 0.72, s * 0.88));
