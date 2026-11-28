@@ -72,6 +72,8 @@ when its behavior has been checked against the current build.
 - [Progress log](PROGRESS.md) — chronological change and release receipts.
 - [Documentation and workflow evidence process](DOCUMENTATION-AND-WORKFLOW-EVIDENCE.md) — the
   information architecture, visual testing loop, screenshot rules, and staged completion plan.
+- [Workflow verification catalog](workflows/README.md) — stable scenario IDs, existing proof,
+  canonical docs, and the concrete sign-off needed for each priority workflow.
 - [Canvas tools and effects plan](CANVAS-TOOLS-AND-EFFECTS-PLAN.md) — tool correctness and proof order.
 - [Reference project research](research/reference-projects.md),
   [Fireworks CS6 behavior audit](research/fireworks-cs6-behavior-audit.md), and
