@@ -2,6 +2,14 @@
 
 Newest first.
 
+## 2026-11-28 — PR #54 merged and branch cleanup verified
+
+- PR #54 merged after all required exact-head checks passed (Gates, WASM, Windows build/CLI smoke, Rust coverage, and CodeQL); squash merge is `2a4cc24fe8dd348fca1452d1ed8286d2e26df12a`. The source branch was deleted by GitHub and its tracking ref pruned.
+- Removed the merged local branch and its clean nested worktree after verifying the worktree had no uncommitted files. Preserved other dirty/nested worktrees and protected historical release refs.
+- GitHub inventory after merge: no open pull requests and no open issues. The task ledger now records PR #54 cleanup as complete.
+- This is repository-hygiene closeout only. Product acceptance gaps remain: native Windows GUI review, real browser/native clipboard and floating-canvas interaction, complete visual workflow evidence, and the 99% coverage target.
+
+
 ## 2026-11-27 — docs PR #53 merged; v0.3.2 history and proposal branches reconciled
 
 - PR #53 merged at `d57e55d181598fe5e83c66fe262cc73d389796a7` after every exact-head GitHub check passed on
