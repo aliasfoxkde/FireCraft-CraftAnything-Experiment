@@ -2,6 +2,13 @@
 
 Newest first.
 
+## 2026-11-28 — final local branch inventory
+
+- Removed the stale local `fix/aegis-macos-plist-dtd` branch after comparing its tree with `origin/main`: the plist hardening and regression test are already present from merged PR #51. No unique production or test changes were dropped.
+- Preserved ignored `output/` artifacts by retaining that old worktree detached at its historical commit. Fast-forwarded the clean local `main` worktree to `origin/main`.
+- Remaining named local branches are `main` and the protected historical release refs `release/v0.3.3` and `release/prepare-v0.3.4`. The v0.3.4 worktree has a modified audit decision log and was left intact. GitHub still has no open PRs or issues.
+
+
 ## 2026-11-28 — PR #54 merged and branch cleanup verified
 
 - PR #54 merged after all required exact-head checks passed (Gates, WASM, Windows build/CLI smoke, Rust coverage, and CodeQL); squash merge is `2a4cc24fe8dd348fca1452d1ed8286d2e26df12a`. The source branch was deleted by GitHub and its tracking ref pruned.
