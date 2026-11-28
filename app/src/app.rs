@@ -3537,6 +3537,20 @@ impl FireCraft {
 
     pub fn begin_file_dialog(&mut self, mode: FileMode) {
         self.file_mode = mode;
+        #[cfg(target_arch = "wasm32")]
+        if matches!(mode, FileMode::Open | FileMode::Import) {
+            self.show_file_dialog = false;
+            let label = if mode == FileMode::Open {
+                "open"
+            } else {
+                "import"
+            };
+            self.status = format!("Choose a file to {label}");
+            if let Err(error) = crate::open_browser_file_picker(mode) {
+                self.status = format!("Could not open the browser file picker: {error}");
+            }
+            return;
+        }
         self.file_dialog_name = match mode {
             FileMode::Open | FileMode::Import => String::new(),
             FileMode::Save | FileMode::Export => self
@@ -3581,13 +3595,25 @@ impl FireCraft {
         }
         let path = self.file_dialog_dir.join(self.file_dialog_name.trim());
         let result = match self.file_mode {
+            #[cfg(target_arch = "wasm32")]
+            FileMode::Open | FileMode::Import => {
+                Err("Choose a file from the browser file picker".to_string())
+            }
+            #[cfg(target_arch = "wasm32")]
+            FileMode::Save => self.save_browser_file(&path, true),
+            #[cfg(target_arch = "wasm32")]
+            FileMode::Export => self.save_browser_file(&path, false),
+            #[cfg(not(target_arch = "wasm32"))]
             FileMode::Open => self
                 .run_file_intent(FileIntent::Open(path.clone()))
                 .result(),
+            #[cfg(not(target_arch = "wasm32"))]
             FileMode::Save => self
                 .run_file_intent(FileIntent::SaveAs(path.clone()))
                 .result(),
+            #[cfg(not(target_arch = "wasm32"))]
             FileMode::Import => self.import_path(&path),
+            #[cfg(not(target_arch = "wasm32"))]
             FileMode::Export => self.export_to(&path),
         };
         if result.is_ok() {
@@ -3648,23 +3674,23 @@ impl FireCraft {
             return;
         }
         for file in dropped {
-            let path = file.path();
-            if !path.as_os_str().is_empty() {
-                let is_fw = path
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .is_some_and(|n| n.to_ascii_lowercase().ends_with(".fw.png"));
-                let res = if shift || is_fw {
-                    self.open_path(path)
-                } else {
-                    self.import_path(path)
-                };
-                if res.is_ok() {
-                    self.show_welcome = false;
-                }
-            } else {
-                #[cfg(not(target_arch = "wasm32"))]
-                if let Ok(bytes) = file.bytes()
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                let path = file.path();
+                if !path.as_os_str().is_empty() {
+                    let is_fw = path
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .is_some_and(|n| n.to_ascii_lowercase().ends_with(".fw.png"));
+                    let res = if shift || is_fw {
+                        self.open_path(path)
+                    } else {
+                        self.import_path(path)
+                    };
+                    if res.is_ok() {
+                        self.show_welcome = false;
+                    }
+                } else if let Ok(bytes) = file.bytes()
                     && let Ok(img) = image::load_from_memory(&bytes)
                 {
                     let rgba = img.to_rgba8();
@@ -3687,6 +3713,29 @@ impl FireCraft {
                     self.show_welcome = false;
                     self.status = format!("Imported dropped image ({w}×{h})");
                 }
+            }
+
+            #[cfg(target_arch = "wasm32")]
+            {
+                let path = file.path();
+                let name = path
+                    .file_name()
+                    .and_then(|part| part.to_str())
+                    .unwrap_or("Dropped image")
+                    .to_string();
+                let is_layered = name.to_ascii_lowercase().ends_with(".fw.png");
+                let mode = if shift || is_layered {
+                    FileMode::Open
+                } else {
+                    FileMode::Import
+                };
+                let file = file.clone();
+                let ctx = ctx.clone();
+                wasm_bindgen_futures::spawn_local(async move {
+                    let bytes = file.bytes_async().await.unwrap_or_default();
+                    crate::queue_browser_file(mode, name, bytes);
+                    ctx.request_repaint();
+                });
             }
         }
     }

@@ -14,8 +14,10 @@ use std::path::Path;
 /// notifications.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FileIntent {
+    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     Open(PathBuf),
     SaveCurrent,
+    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     SaveAs(PathBuf),
     CloseActiveTab,
     Quit,
@@ -38,6 +40,7 @@ pub enum FileOutcome {
 impl FileOutcome {
     /// Adapters that only need success/failure (the file dialog) collapse the richer
     /// outcome here instead of matching every state.
+    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     pub fn result(self) -> Result<(), String> {
         match self {
             FileOutcome::Failed(err) => Err(err),
@@ -183,6 +186,105 @@ impl FireCraft {
                 Err(e)
             }
         }
+    }
+
+    /// Opens or imports bytes supplied by a browser file picker or drag-and-drop event.
+    #[cfg(any(target_arch = "wasm32", test))]
+    pub fn open_browser_file(
+        &mut self,
+        mode: FileMode,
+        name: &str,
+        bytes: &[u8],
+    ) -> Result<(), String> {
+        let path = Path::new(name);
+        let result = crate::formats::open_bytes(path, bytes);
+        let mut imported = match result {
+            Ok(doc) => doc,
+            Err(error) => {
+                self.status = format!("Could not open {name}: {error}");
+                return Err(error);
+            }
+        };
+        imported.file_path = None;
+        imported.name = path
+            .file_name()
+            .and_then(|part| part.to_str())
+            .unwrap_or("Untitled")
+            .to_string();
+
+        match mode {
+            FileMode::Open => {
+                self.sync_active_doc_slot();
+                imported.dirty = false;
+                self.open_docs.push(imported.clone());
+                self.active_doc = self.open_docs.len() - 1;
+                self.touch_document_tab(self.active_doc);
+                self.doc = imported;
+                self.selected = None;
+                self.selected_layer = 0;
+                self.undo.clear();
+                self.redo.clear();
+                self.textures.clear();
+                self.current_path = None;
+                self.focus_canvas = true;
+                self.show_welcome = false;
+                self.status = format!("Opened {name}");
+            }
+            FileMode::Import => {
+                self.push_undo("Import");
+                for layer in imported.page().layers.clone() {
+                    if layer.is_web_layer {
+                        continue;
+                    }
+                    for object in layer.objects {
+                        let idx = self.push_object(object);
+                        self.selected = Some(idx);
+                    }
+                }
+                self.textures.clear();
+                self.show_welcome = false;
+                self.status = format!("Imported {name}");
+            }
+            FileMode::Save | FileMode::Export => {
+                return Err("Browser file input only supports Open and Import".to_string());
+            }
+        }
+        self.show_file_dialog = false;
+        Ok(())
+    }
+
+    /// Encodes a document and asks the browser to download the bytes.
+    #[cfg(target_arch = "wasm32")]
+    pub fn save_browser_file(&mut self, path: &Path, mark_clean: bool) -> Result<(), String> {
+        let name = path
+            .file_name()
+            .and_then(|part| part.to_str())
+            .ok_or_else(|| "Enter a valid file name".to_string())?;
+        let format = crate::formats::Format::from_path(path);
+        let bytes = crate::formats::save_bytes(&self.doc, path)?;
+        let mime = match format {
+            crate::formats::Format::Svg => "image/svg+xml",
+            crate::formats::Format::Html => "text/html",
+            crate::formats::Format::Jpeg => "image/jpeg",
+            crate::formats::Format::Gif => "image/gif",
+            crate::formats::Format::WebP => "image/webp",
+            crate::formats::Format::Tiff => "image/tiff",
+            crate::formats::Format::Bmp => "image/bmp",
+            crate::formats::Format::Ico => "image/x-icon",
+            _ => "image/png",
+        };
+        crate::download_browser_file(name, &bytes, mime)?;
+        if mark_clean {
+            self.doc.name = name.to_string();
+            self.doc.file_path = None;
+            self.doc.dirty = false;
+            self.current_path = None;
+            self.sync_active_doc_slot();
+            self.status = format!("Downloaded {name}");
+        } else {
+            self.status = format!("Exported {name}");
+        }
+        Ok(())
     }
 
     pub fn import_path(&mut self, path: &Path) -> Result<(), String> {
@@ -442,6 +544,26 @@ mod tests {
         );
         assert!(!app.doc.dirty);
         assert_eq!(fake.saved.borrow().as_slice(), &[path]);
+    }
+
+    #[test]
+    fn browser_open_and_import_use_supplied_bytes_without_a_disk_path() {
+        let mut app = FireCraft::new(None);
+        let svg = br##"<svg width="80" height="60"><rect x="4" y="5" width="30" height="20" fill="#E8A33D"/></svg>"##;
+
+        app.open_browser_file(FileMode::Open, "browser-scene.svg", svg)
+            .expect("browser Open should decode the chosen SVG");
+        assert_eq!(app.doc.name, "browser-scene.svg");
+        assert_eq!(app.doc.page().layers[0].objects.len(), 1);
+        assert!(app.current_path.is_none());
+        assert!(app.doc.file_path.is_none());
+        assert!(!app.doc.dirty);
+
+        app.open_browser_file(FileMode::Import, "browser-shape.svg", svg)
+            .expect("browser Import should place the chosen SVG");
+        assert_eq!(app.doc.page().layers[0].objects.len(), 2);
+        assert!(app.selected.is_some());
+        assert!(app.current_path.is_none());
     }
 
     #[test]

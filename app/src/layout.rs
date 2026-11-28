@@ -24,6 +24,10 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     for payload in crate::take_browser_pastes() {
         app.paste_with_text(Some(&payload));
     }
+    #[cfg(target_arch = "wasm32")]
+    for (mode, name, bytes) in crate::take_browser_files() {
+        let _ = app.open_browser_file(mode, &name, &bytes);
+    }
     if app.logo_tex.is_none() {
         app.logo_tex = FireCraft::load_logo(&ctx);
     }

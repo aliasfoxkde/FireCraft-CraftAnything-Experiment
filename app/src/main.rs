@@ -204,7 +204,9 @@ fn main() {
 thread_local! {
     // WebRunner owns the resize observer and animation frame. Keep it alive for the page lifetime.
     static WEB_RUNNER: std::cell::RefCell<Option<eframe::WebRunner>> = const { std::cell::RefCell::new(None) };
+    static WEB_EGUI_CONTEXT: std::cell::RefCell<Option<eframe::egui::Context>> = const { std::cell::RefCell::new(None) };
     static BROWSER_PASTE_QUEUE: std::cell::RefCell<Vec<String>> = const { std::cell::RefCell::new(Vec::new()) };
+    static BROWSER_FILE_QUEUE: std::cell::RefCell<Vec<(app::FileMode, String, Vec<u8>)>> = const { std::cell::RefCell::new(Vec::new()) };
 }
 
 /// Queue an asynchronous browser clipboard payload for consumption during the next UI frame.
@@ -217,6 +219,136 @@ pub(crate) fn queue_browser_paste(payload: String) {
 #[cfg(target_arch = "wasm32")]
 pub(crate) fn take_browser_pastes() -> Vec<String> {
     BROWSER_PASTE_QUEUE.with(|queue| std::mem::take(&mut *queue.borrow_mut()))
+}
+
+#[cfg(target_arch = "wasm32")]
+pub(crate) fn queue_browser_file(mode: app::FileMode, name: String, bytes: Vec<u8>) {
+    BROWSER_FILE_QUEUE.with(|queue| queue.borrow_mut().push((mode, name, bytes)));
+    WEB_EGUI_CONTEXT.with(|ctx| {
+        if let Some(ctx) = ctx.borrow().as_ref() {
+            ctx.request_repaint();
+        }
+    });
+}
+
+/// Drain files read from the browser's native file picker.
+#[cfg(target_arch = "wasm32")]
+pub(crate) fn take_browser_files() -> Vec<(app::FileMode, String, Vec<u8>)> {
+    BROWSER_FILE_QUEUE.with(|queue| std::mem::take(&mut *queue.borrow_mut()))
+}
+
+/// Open the browser's native file picker from a user initiated Open or Import command.
+#[cfg(target_arch = "wasm32")]
+pub(crate) fn open_browser_file_picker(mode: app::FileMode) -> Result<(), String> {
+    use wasm_bindgen::{JsCast as _, closure::Closure};
+
+    let window = web_sys::window().ok_or_else(|| "No browser window is available".to_string())?;
+    let document = window
+        .document()
+        .ok_or_else(|| "No browser document is available".to_string())?;
+    let body = document
+        .body()
+        .ok_or_else(|| "The browser document has no body element".to_string())?;
+    let input = document
+        .create_element("input")
+        .map_err(|error| format!("Could not create file input: {error:?}"))?
+        .dyn_into::<web_sys::HtmlInputElement>()
+        .map_err(|_| "Could not create a browser file input".to_string())?;
+    input.set_type("file");
+    input.set_accept(".fw.png,.png,.jpg,.jpeg,.gif,.webp,.tif,.tiff,.bmp,.ico,.svg");
+    input
+        .set_attribute("aria-label", "Choose an image, SVG, or FireCraft document")
+        .map_err(|error| format!("Could not configure file input: {error:?}"))?;
+    input
+        .set_attribute("style", "position:fixed;left:-10000px;width:1px;height:1px")
+        .map_err(|error| format!("Could not hide file input: {error:?}"))?;
+
+    let cancel_input = input.clone();
+    let on_cancel = Closure::once_into_js(move |_event: web_sys::Event| {
+        cancel_input.remove();
+    });
+    input.set_oncancel(Some(on_cancel.unchecked_ref()));
+
+    let callback_input = input.clone();
+    let on_change = Closure::once_into_js(move |_event: web_sys::Event| {
+        let Some(file) = callback_input.files().and_then(|files| files.get(0)) else {
+            callback_input.remove();
+            return;
+        };
+        let name = file.name();
+        let Ok(reader) = web_sys::FileReader::new() else {
+            callback_input.remove();
+            return;
+        };
+        let on_load = Closure::once_into_js(move |event: web_sys::Event| {
+            let Some(reader) = event
+                .target()
+                .and_then(|target| target.dyn_into::<web_sys::FileReader>().ok())
+            else {
+                return;
+            };
+            let Ok(result) = reader.result() else {
+                return;
+            };
+            if result.is_null() || result.is_undefined() {
+                return;
+            }
+            let bytes = js_sys::Uint8Array::new(&result).to_vec();
+            if !bytes.is_empty() {
+                queue_browser_file(mode, name, bytes);
+            }
+        });
+        reader.set_onload(Some(on_load.unchecked_ref()));
+        if reader.read_as_array_buffer(&file).is_err() {
+            callback_input.remove();
+            return;
+        }
+        callback_input.remove();
+    });
+    input.set_onchange(Some(on_change.unchecked_ref()));
+    body.append_child(&input)
+        .map_err(|error| format!("Could not attach file input: {error:?}"))?;
+    input.click();
+    Ok(())
+}
+
+/// Turn encoded application data into a browser download without temporary disk files.
+#[cfg(target_arch = "wasm32")]
+pub(crate) fn download_browser_file(name: &str, bytes: &[u8], mime: &str) -> Result<(), String> {
+    use wasm_bindgen::JsCast as _;
+
+    let window = web_sys::window().ok_or_else(|| "No browser window is available".to_string())?;
+    let document = window
+        .document()
+        .ok_or_else(|| "No browser document is available".to_string())?;
+    let body = document
+        .body()
+        .ok_or_else(|| "The browser document has no body element".to_string())?;
+    let array = js_sys::Uint8Array::from(bytes);
+    let parts = js_sys::Array::new();
+    parts.push(&array);
+    let options = web_sys::BlobPropertyBag::new();
+    options.set_type(mime);
+    let blob = web_sys::Blob::new_with_u8_array_sequence_and_options(&parts, &options)
+        .map_err(|error| format!("Could not prepare download: {error:?}"))?;
+    let url = web_sys::Url::create_object_url_with_blob(&blob)
+        .map_err(|error| format!("Could not prepare download URL: {error:?}"))?;
+    let anchor = document
+        .create_element("a")
+        .map_err(|error| format!("Could not create download link: {error:?}"))?
+        .dyn_into::<web_sys::HtmlAnchorElement>()
+        .map_err(|_| "Could not create a browser download link".to_string())?;
+    anchor.set_href(&url);
+    anchor.set_download(name);
+    anchor
+        .set_attribute("aria-hidden", "true")
+        .map_err(|error| format!("Could not configure download link: {error:?}"))?;
+    body.append_child(&anchor)
+        .map_err(|error| format!("Could not attach download link: {error:?}"))?;
+    anchor.click();
+    anchor.remove();
+    let _ = web_sys::Url::revoke_object_url(&url);
+    Ok(())
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -243,6 +375,7 @@ fn main() {
                 web_options,
                 Box::new(|cc| {
                     icons::install_phosphor_font(&cc.egui_ctx);
+                    WEB_EGUI_CONTEXT.with(|ctx| ctx.replace(Some(cc.egui_ctx.clone())));
                     install_browser_image_paste(cc.egui_ctx.clone());
                     Ok(Box::new(app::FireCraft::new(None)))
                 }),

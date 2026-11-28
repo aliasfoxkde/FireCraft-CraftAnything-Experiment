@@ -24,10 +24,19 @@ pub fn file_dialog(app: &mut FireCraft) {
     let mut open = app.show_file_dialog;
     let mut close_now = app.ctx.input(|i| i.key_pressed(egui::Key::Escape));
     let available = app.ctx.content_rect().size();
-    let dialog_size = Vec2::new(
-        760.0_f32.min((available.x - 48.0).max(420.0)),
-        500.0_f32.min((available.y - 48.0).max(300.0)),
-    );
+    let browser_save_form =
+        cfg!(target_arch = "wasm32") && matches!(app.file_mode, FileMode::Save | FileMode::Export);
+    let dialog_size = if browser_save_form {
+        Vec2::new(
+            560.0_f32.min((available.x - 48.0).max(420.0)),
+            280.0_f32.min((available.y - 48.0).max(220.0)),
+        )
+    } else {
+        Vec2::new(
+            760.0_f32.min((available.x - 48.0).max(420.0)),
+            500.0_f32.min((available.y - 48.0).max(300.0)),
+        )
+    };
     let max_size = Vec2::new(
         (available.x - 24.0).max(420.0),
         (available.y - 24.0).max(300.0),
@@ -39,7 +48,11 @@ pub fn file_dialog(app: &mut FireCraft) {
         .movable(true)
         .resizable(true)
         .default_size(dialog_size)
-        .min_size(Vec2::new(560.0, 360.0).min(max_size))
+        .min_size(if browser_save_form {
+            Vec2::new(420.0, 220.0).min(max_size)
+        } else {
+            Vec2::new(560.0, 360.0).min(max_size)
+        })
         .max_size(max_size)
         .default_pos(center - dialog_size * 0.5)
         .show(&app.ctx.clone(), |ui| {
@@ -59,97 +72,134 @@ fn file_dialog_body(ui: &mut egui::Ui, app: &mut FireCraft, close_now: &mut bool
     let is_read = matches!(app.file_mode, FileMode::Open | FileMode::Import);
     let mut confirm_now = false;
 
-    // Address bar: editable, Enter/Go navigates, Up and Refresh are always available.
-    ui.horizontal(|ui| {
-        if ui.button("↑").on_hover_text("Parent folder").clicked()
-            && let Some(parent) = app.file_dialog_dir.parent()
-        {
-            let parent = parent.to_path_buf();
-            app.set_file_dialog_dir(parent);
-        }
-        if ui.button("↻").on_hover_text("Refresh").clicked() {
-            let cur = app.file_dialog_dir.clone();
-            app.set_file_dialog_dir(cur);
-        }
-        let edit = ui.add(
-            egui::TextEdit::singleline(&mut app.file_dialog_address)
-                .desired_width(f32::INFINITY)
-                .font(egui::TextStyle::Monospace)
-                .hint_text("Type a folder path and press Enter"),
-        );
-        let enter = edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
-        if ui.button("Go").clicked() || enter {
-            let raw = app.file_dialog_address.trim().trim_matches('"');
-            let path = std::path::PathBuf::from(raw);
-            if path.is_dir() {
-                app.set_file_dialog_dir(path);
-            } else if let Some(parent) = path.parent().filter(|p| p.is_dir()) {
-                app.file_dialog_name = path
-                    .file_name()
-                    .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_default();
-                app.set_file_dialog_dir(parent.to_path_buf());
-            } else {
-                app.status = format!("Folder not found: {raw}");
+    if !cfg!(target_arch = "wasm32") {
+        // Address bar: editable, Enter/Go navigates, Up and Refresh are always available.
+        ui.horizontal(|ui| {
+            if ui.button("↑").on_hover_text("Parent folder").clicked()
+                && let Some(parent) = app.file_dialog_dir.parent()
+            {
+                let parent = parent.to_path_buf();
+                app.set_file_dialog_dir(parent);
             }
-        }
-    });
-
-    ui.horizontal(|ui| {
-        ui.label(RichText::new("Look in:").small().color(p.text_dim));
-        let mut nav_target: Option<std::path::PathBuf> = None;
-        let mut accum = std::path::PathBuf::new();
-        for comp in app.file_dialog_dir.components() {
-            accum.push(comp);
-            let lbl = comp.as_os_str().to_string_lossy();
-            if ui.small_button(lbl.as_ref()).clicked() {
-                nav_target = Some(accum.clone());
+            if ui.button("↻").on_hover_text("Refresh").clicked() {
+                let cur = app.file_dialog_dir.clone();
+                app.set_file_dialog_dir(cur);
             }
-            ui.label(RichText::new("›").small().color(p.text_dim));
-        }
-        if let Some(t) = nav_target {
-            app.set_file_dialog_dir(t);
-        }
-    });
+            // Keep space for the Go button: an infinite-width text edit consumes the
+            // entire row and silently pushes the button outside the visible clip rect.
+            let address_width = (ui.available_width() - 38.0).max(100.0);
+            let edit = ui.add(
+                egui::TextEdit::singleline(&mut app.file_dialog_address)
+                    .desired_width(address_width)
+                    .font(egui::TextStyle::Monospace)
+                    .hint_text("Type a folder path and press Enter"),
+            );
+            let enter = edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+            if ui.button("Go").clicked() || enter {
+                let raw = app.file_dialog_address.trim().trim_matches('"');
+                let path = std::path::PathBuf::from(raw);
+                if path.is_dir() {
+                    app.set_file_dialog_dir(path);
+                } else if let Some(parent) = path.parent().filter(|p| p.is_dir()) {
+                    app.file_dialog_name = path
+                        .file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_default();
+                    app.set_file_dialog_dir(parent.to_path_buf());
+                } else {
+                    app.status = format!("Folder not found: {raw}");
+                }
+            }
+        });
 
-    ui.add_space(3.0);
-    ui.horizontal(|ui| {
-        ui.label(RichText::new("Filter:").small().color(p.text_dim));
-        ui.add(
-            egui::TextEdit::singleline(&mut app.file_dialog_filter)
-                .desired_width(250.0)
-                .hint_text("Search this folder…"),
-        );
-        if !app.file_dialog_filter.is_empty() && ui.small_button("×").clicked() {
-            app.file_dialog_filter.clear();
-        }
-        ui.separator();
-        ui.label(RichText::new("File type:").small().color(p.text_dim));
-        if is_read {
-            let options = [
-                "All supported files",
-                "FireCraft layered (.fw.png)",
-                "Raster images",
-                "SVG vector",
-                "PSD / AI (bridge required)",
-                "All files",
-            ];
-            let idx = app.file_dialog_type_filter.min(options.len() - 1);
-            egui::ComboBox::from_id_salt("file_browser_type")
-                .width(205.0)
-                .selected_text(options[idx])
-                .show_ui(ui, |ui| {
-                    for (i, label) in options.iter().enumerate() {
-                        if ui.selectable_label(idx == i, *label).clicked() {
-                            app.file_dialog_type_filter = i;
+        ui.horizontal(|ui| {
+            ui.label(RichText::new("Look in:").small().color(p.text_dim));
+            let mut nav_target: Option<std::path::PathBuf> = None;
+            let mut accum = std::path::PathBuf::new();
+            for comp in app.file_dialog_dir.components() {
+                accum.push(comp);
+                let lbl = comp.as_os_str().to_string_lossy();
+                if ui.small_button(lbl.as_ref()).clicked() {
+                    nav_target = Some(accum.clone());
+                }
+                ui.label(RichText::new("›").small().color(p.text_dim));
+            }
+            if let Some(t) = nav_target {
+                app.set_file_dialog_dir(t);
+            }
+        });
+
+        ui.add_space(3.0);
+        ui.horizontal(|ui| {
+            ui.label(RichText::new("Filter:").small().color(p.text_dim));
+            ui.add(
+                egui::TextEdit::singleline(&mut app.file_dialog_filter)
+                    .desired_width(250.0)
+                    .hint_text("Search this folder…"),
+            );
+            if !app.file_dialog_filter.is_empty() && ui.small_button("×").clicked() {
+                app.file_dialog_filter.clear();
+            }
+            ui.separator();
+            ui.label(RichText::new("File type:").small().color(p.text_dim));
+            if is_read {
+                let options = [
+                    "All supported files",
+                    "FireCraft layered (.fw.png)",
+                    "Raster images",
+                    "SVG vector",
+                    "PSD / AI (bridge required)",
+                    "All files",
+                ];
+                let idx = app.file_dialog_type_filter.min(options.len() - 1);
+                egui::ComboBox::from_id_salt("file_browser_type")
+                    .width(205.0)
+                    .selected_text(options[idx])
+                    .show_ui(ui, |ui| {
+                        for (i, label) in options.iter().enumerate() {
+                            if ui.selectable_label(idx == i, *label).clicked() {
+                                app.file_dialog_type_filter = i;
+                            }
                         }
-                    }
-                });
-        } else {
+                    });
+            } else {
+                let formats = save_formats();
+                let current =
+                    crate::formats::Format::from_path(std::path::Path::new(&app.file_dialog_name));
+                egui::ComboBox::from_id_salt("file_browser_save_type")
+                    .width(205.0)
+                    .selected_text(format!("{} (.{})", current.label(), current.extension()))
+                    .show_ui(ui, |ui| {
+                        for fmt in formats {
+                            if ui
+                                .selectable_label(
+                                    current == fmt,
+                                    format!("{} (.{})", fmt.label(), fmt.extension()),
+                                )
+                                .clicked()
+                            {
+                                set_file_extension(app, fmt);
+                                app.doc.optimize.format = fmt.label().to_string();
+                            }
+                        }
+                    });
+            }
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                ui.label(
+                    RichText::new(format!("{} items", app.file_dialog_entries.len()))
+                        .small()
+                        .color(p.text_dim),
+                );
+            });
+        });
+        ui.add_space(4.0);
+    } else {
+        ui.horizontal(|ui| {
+            ui.label(RichText::new("Format:").small().color(p.text_dim));
             let formats = save_formats();
             let current =
                 crate::formats::Format::from_path(std::path::Path::new(&app.file_dialog_name));
-            egui::ComboBox::from_id_salt("file_browser_save_type")
+            egui::ComboBox::from_id_salt("browser_save_type")
                 .width(205.0)
                 .selected_text(format!("{} (.{})", current.label(), current.extension()))
                 .show_ui(ui, |ui| {
@@ -166,243 +216,250 @@ fn file_dialog_body(ui: &mut egui::Ui, app: &mut FireCraft, close_now: &mut bool
                         }
                     }
                 });
-        }
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            ui.label(
-                RichText::new(format!("{} items", app.file_dialog_entries.len()))
-                    .small()
-                    .color(p.text_dim),
-            );
         });
-    });
-    ui.add_space(4.0);
+        ui.add_space(4.0);
+    }
 
-    // Quick Places rail + dense, column-aligned file list.
-    let body_top = ui.cursor().top();
-    ui.horizontal_top(|ui| {
-        ui.vertical(|ui| {
-            ui.set_width(158.0);
-            ui.label(RichText::new("PLACES").small().strong().color(p.accent));
-            ui.add_space(2.0);
-            if let Ok(home) = std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")) {
-                let hp = std::path::PathBuf::from(home);
-                for (lbl, sub) in [
-                    ("Home", ""),
-                    ("Desktop", "Desktop"),
-                    ("Documents", "Documents"),
-                    ("Pictures", "Pictures"),
-                    ("Downloads", "Downloads"),
-                ] {
-                    let target = if sub.is_empty() {
-                        hp.clone()
-                    } else {
-                        hp.join(sub)
-                    };
-                    if target.exists() {
-                        let selected = app.file_dialog_dir == target;
-                        if ui
+    // Quick Places rail + dense, column-aligned file list. `horizontal_top` fills all
+    // remaining height by design, which pushed the filename/actions below the window.
+    // Allocate the list's actual height so those persistent actions stay in the dialog.
+    if !cfg!(target_arch = "wasm32") {
+        let list_h = (ui.available_height() - 190.0).clamp(80.0, 320.0);
+        let file_list_h = 19.0 + list_h;
+        ui.allocate_ui_with_layout(
+            Vec2::new(ui.available_width(), file_list_h),
+            egui::Layout::left_to_right(egui::Align::Min),
+            |ui| {
+                ui.vertical(|ui| {
+                    ui.set_width(158.0);
+                    ui.label(RichText::new("PLACES").small().strong().color(p.accent));
+                    ui.add_space(2.0);
+                    if let Ok(home) =
+                        std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME"))
+                    {
+                        let hp = std::path::PathBuf::from(home);
+                        for (lbl, sub) in [
+                            ("Home", ""),
+                            ("Desktop", "Desktop"),
+                            ("Documents", "Documents"),
+                            ("Pictures", "Pictures"),
+                            ("Downloads", "Downloads"),
+                        ] {
+                            let target = if sub.is_empty() {
+                                hp.clone()
+                            } else {
+                                hp.join(sub)
+                            };
+                            if target.exists() {
+                                let selected = app.file_dialog_dir == target;
+                                if ui
+                                    .add_sized(
+                                        [ui.available_width(), 21.0],
+                                        egui::Button::new(RichText::new(lbl).small())
+                                            .selected(selected)
+                                            .frame(selected),
+                                    )
+                                    .clicked()
+                                {
+                                    app.set_file_dialog_dir(target);
+                                }
+                            }
+                        }
+                    }
+                    if let Ok(cwd) = std::env::current_dir()
+                        && ui
                             .add_sized(
                                 [ui.available_width(), 21.0],
-                                egui::Button::new(RichText::new(lbl).small())
-                                    .selected(selected)
-                                    .frame(selected),
+                                egui::Button::new(RichText::new("Workspace").small())
+                                    .selected(app.file_dialog_dir == cwd)
+                                    .frame(app.file_dialog_dir == cwd),
                             )
                             .clicked()
-                        {
-                            app.set_file_dialog_dir(target);
-                        }
+                    {
+                        app.set_file_dialog_dir(cwd);
                     }
-                }
-            }
-            if let Ok(cwd) = std::env::current_dir()
-                && ui
-                    .add_sized(
-                        [ui.available_width(), 21.0],
-                        egui::Button::new(RichText::new("Workspace").small())
-                            .selected(app.file_dialog_dir == cwd)
-                            .frame(app.file_dialog_dir == cwd),
-                    )
-                    .clicked()
-            {
-                app.set_file_dialog_dir(cwd);
-            }
-            ui.add_space(6.0);
-            ui.label(RichText::new("TIP").small().strong().color(p.accent));
-            ui.label(
-                RichText::new(
-                    "Double-click a file to open it. The address bar accepts full paths.",
-                )
-                .small()
-                .color(p.text_dim),
-            );
-        });
-
-        ui.separator();
-
-        ui.vertical(|ui| {
-            let list_h = (ui.available_height() - 88.0).clamp(70.0, 480.0);
-            // Column header keeps the list scannable instead of the old badge + name + pushed-right size.
-            let (head, _) =
-                ui.allocate_exact_size(Vec2::new(ui.available_width(), 19.0), egui::Sense::hover());
-            ui.painter().rect_filled(head, 0.0, p.panel_alt);
-            let name_x = head.left() + 24.0;
-            ui.painter().text(
-                egui::pos2(name_x, head.center().y),
-                Align2::LEFT_CENTER,
-                "Name",
-                egui::FontId::proportional(10.5),
-                p.text_dim,
-            );
-            ui.painter().text(
-                egui::pos2(head.right() - 205.0, head.center().y),
-                Align2::LEFT_CENTER,
-                "Type",
-                egui::FontId::proportional(10.5),
-                p.text_dim,
-            );
-            ui.painter().text(
-                egui::pos2(head.right() - 112.0, head.center().y),
-                Align2::RIGHT_CENTER,
-                "Size",
-                egui::FontId::proportional(10.5),
-                p.text_dim,
-            );
-            ui.painter().text(
-                egui::pos2(head.right() - 8.0, head.center().y),
-                Align2::RIGHT_CENTER,
-                "Modified",
-                egui::FontId::proportional(10.5),
-                p.text_dim,
-            );
-
-            let q = app.file_dialog_filter.trim().to_lowercase();
-            let visible_entries: Vec<_> = app
-                .file_dialog_entries
-                .iter()
-                .filter(|entry| {
-                    let name = entry
-                        .file_name()
-                        .map(|n| n.to_string_lossy().to_string())
-                        .unwrap_or_default();
-                    if !q.is_empty() && !name.to_lowercase().contains(&q) {
-                        return false;
-                    }
-                    let is_dir = entry.is_dir();
-                    let ext = entry
-                        .extension()
-                        .and_then(|e| e.to_str())
-                        .unwrap_or("")
-                        .to_lowercase();
-                    is_dir || !is_read || file_passes_filter(app, entry, &ext)
-                })
-                .cloned()
-                .collect();
-            egui::ScrollArea::vertical()
-                .max_height(list_h)
-                .auto_shrink([false, false])
-                .show_rows(ui, 23.0, visible_entries.len(), |ui, row_range| {
-                    for row_index in row_range {
-                        let entry = &visible_entries[row_index];
-                        let name = entry
-                            .file_name()
-                            .map(|n| n.to_string_lossy().to_string())
-                            .unwrap_or_default();
-                        let is_dir = entry.is_dir();
-                        let ext = entry
-                            .extension()
-                            .and_then(|e| e.to_str())
-                            .unwrap_or("")
-                            .to_lowercase();
-                        let row = ui.allocate_exact_size(
-                            Vec2::new(ui.available_width(), 23.0),
-                            egui::Sense::click(),
-                        );
-                        let (rect, resp) = row;
-                        let selected = !is_dir && app.file_dialog_name == name;
-                        if selected {
-                            ui.painter()
-                                .rect_filled(rect, 0.0, p.selection.gamma_multiply(0.28));
-                        } else if resp.hovered() {
-                            ui.painter().rect_filled(rect, 0.0, p.well);
-                        }
-                        if resp.clicked() && is_dir {
-                            app.set_file_dialog_dir(entry.clone());
-                        } else if resp.clicked() {
-                            app.file_dialog_name = name.clone();
-                        }
-                        if resp.double_clicked() && !is_dir {
-                            app.file_dialog_name = name.clone();
-                            confirm_now = true;
-                        }
-                        let icon_rect = egui::Rect::from_center_size(
-                            egui::pos2(rect.left() + 12.0, rect.center().y),
-                            Vec2::splat(14.0),
-                        );
-                        if is_dir {
-                            crate::icons::draw(
-                                ui.painter(),
-                                icon_rect,
-                                crate::icons::Icon::Folder,
-                                p.accent,
-                                1.25,
-                            );
-                        } else {
-                            ui.painter().text(
-                                icon_rect.center(),
-                                Align2::CENTER_CENTER,
-                                ext.chars().take(3).collect::<String>().to_uppercase(),
-                                egui::FontId::monospace(7.5),
-                                p.text_dim,
-                            );
-                        }
-                        ui.painter().text(
-                            egui::pos2(rect.left() + 24.0, rect.center().y),
-                            Align2::LEFT_CENTER,
-                            &name,
-                            egui::FontId::proportional(11.5),
-                            if selected { p.text } else { p.text_dim },
-                        );
-                        let (type_label, size_label, date_label) = if is_dir {
-                            ("Folder".to_string(), String::new(), String::new())
-                        } else {
-                            let type_label = format!("{} file", ext.to_uppercase());
-                            let meta = std::fs::metadata(entry).ok();
-                            let size_label = meta
-                                .as_ref()
-                                .map(|m| human_file_size(m.len()))
-                                .unwrap_or_default();
-                            let date_label = meta
-                                .and_then(|m| m.modified().ok())
-                                .map(relative_modified)
-                                .unwrap_or_default();
-                            (type_label, size_label, date_label)
-                        };
-                        ui.painter().text(
-                            egui::pos2(rect.right() - 205.0, rect.center().y),
-                            Align2::LEFT_CENTER,
-                            type_label,
-                            egui::FontId::proportional(10.5),
-                            p.text_dim,
-                        );
-                        ui.painter().text(
-                            egui::pos2(rect.right() - 112.0, rect.center().y),
-                            Align2::RIGHT_CENTER,
-                            size_label,
-                            egui::FontId::proportional(10.5),
-                            p.text_dim,
-                        );
-                        ui.painter().text(
-                            egui::pos2(rect.right() - 8.0, rect.center().y),
-                            Align2::RIGHT_CENTER,
-                            date_label,
-                            egui::FontId::proportional(10.5),
-                            p.text_dim,
-                        );
-                    }
+                    ui.add_space(6.0);
+                    ui.label(RichText::new("TIP").small().strong().color(p.accent));
+                    ui.label(
+                        RichText::new(
+                            "Double-click a file to open it. The address bar accepts full paths.",
+                        )
+                        .small()
+                        .color(p.text_dim),
+                    );
                 });
-        });
-    });
-    let _ = body_top;
+
+                ui.separator();
+
+                ui.vertical(|ui| {
+                    // Column header keeps the list scannable instead of the old badge + name + pushed-right size.
+                    let (head, _) = ui.allocate_exact_size(
+                        Vec2::new(ui.available_width(), 19.0),
+                        egui::Sense::hover(),
+                    );
+                    ui.painter().rect_filled(head, 0.0, p.panel_alt);
+                    let name_x = head.left() + 24.0;
+                    ui.painter().text(
+                        egui::pos2(name_x, head.center().y),
+                        Align2::LEFT_CENTER,
+                        "Name",
+                        egui::FontId::proportional(10.5),
+                        p.text_dim,
+                    );
+                    ui.painter().text(
+                        egui::pos2(head.right() - 205.0, head.center().y),
+                        Align2::LEFT_CENTER,
+                        "Type",
+                        egui::FontId::proportional(10.5),
+                        p.text_dim,
+                    );
+                    ui.painter().text(
+                        egui::pos2(head.right() - 112.0, head.center().y),
+                        Align2::RIGHT_CENTER,
+                        "Size",
+                        egui::FontId::proportional(10.5),
+                        p.text_dim,
+                    );
+                    ui.painter().text(
+                        egui::pos2(head.right() - 8.0, head.center().y),
+                        Align2::RIGHT_CENTER,
+                        "Modified",
+                        egui::FontId::proportional(10.5),
+                        p.text_dim,
+                    );
+
+                    let q = app.file_dialog_filter.trim().to_lowercase();
+                    let visible_entries: Vec<_> = app
+                        .file_dialog_entries
+                        .iter()
+                        .filter(|entry| {
+                            let name = entry
+                                .file_name()
+                                .map(|n| n.to_string_lossy().to_string())
+                                .unwrap_or_default();
+                            if !q.is_empty() && !name.to_lowercase().contains(&q) {
+                                return false;
+                            }
+                            let is_dir = entry.is_dir();
+                            let ext = entry
+                                .extension()
+                                .and_then(|e| e.to_str())
+                                .unwrap_or("")
+                                .to_lowercase();
+                            is_dir || !is_read || file_passes_filter(app, entry, &ext)
+                        })
+                        .cloned()
+                        .collect();
+                    egui::ScrollArea::vertical()
+                        .max_height(list_h)
+                        .auto_shrink([false, false])
+                        .show_rows(ui, 23.0, visible_entries.len(), |ui, row_range| {
+                            for row_index in row_range {
+                                let entry = &visible_entries[row_index];
+                                let name = entry
+                                    .file_name()
+                                    .map(|n| n.to_string_lossy().to_string())
+                                    .unwrap_or_default();
+                                let is_dir = entry.is_dir();
+                                let ext = entry
+                                    .extension()
+                                    .and_then(|e| e.to_str())
+                                    .unwrap_or("")
+                                    .to_lowercase();
+                                let row = ui.allocate_exact_size(
+                                    Vec2::new(ui.available_width(), 23.0),
+                                    egui::Sense::click(),
+                                );
+                                let (rect, resp) = row;
+                                let selected = !is_dir && app.file_dialog_name == name;
+                                if selected {
+                                    ui.painter().rect_filled(
+                                        rect,
+                                        0.0,
+                                        p.selection.gamma_multiply(0.28),
+                                    );
+                                } else if resp.hovered() {
+                                    ui.painter().rect_filled(rect, 0.0, p.well);
+                                }
+                                if resp.clicked() && is_dir {
+                                    app.set_file_dialog_dir(entry.clone());
+                                } else if resp.clicked() {
+                                    app.file_dialog_name = name.clone();
+                                }
+                                if resp.double_clicked() && !is_dir {
+                                    app.file_dialog_name = name.clone();
+                                    confirm_now = true;
+                                }
+                                let icon_rect = egui::Rect::from_center_size(
+                                    egui::pos2(rect.left() + 12.0, rect.center().y),
+                                    Vec2::splat(14.0),
+                                );
+                                if is_dir {
+                                    crate::icons::draw(
+                                        ui.painter(),
+                                        icon_rect,
+                                        crate::icons::Icon::Folder,
+                                        p.accent,
+                                        1.25,
+                                    );
+                                } else {
+                                    ui.painter().text(
+                                        icon_rect.center(),
+                                        Align2::CENTER_CENTER,
+                                        ext.chars().take(3).collect::<String>().to_uppercase(),
+                                        egui::FontId::monospace(7.5),
+                                        p.text_dim,
+                                    );
+                                }
+                                ui.painter().text(
+                                    egui::pos2(rect.left() + 24.0, rect.center().y),
+                                    Align2::LEFT_CENTER,
+                                    &name,
+                                    egui::FontId::proportional(11.5),
+                                    if selected { p.text } else { p.text_dim },
+                                );
+                                let (type_label, size_label, date_label) = if is_dir {
+                                    ("Folder".to_string(), String::new(), String::new())
+                                } else {
+                                    let type_label = format!("{} file", ext.to_uppercase());
+                                    let meta = std::fs::metadata(entry).ok();
+                                    let size_label = meta
+                                        .as_ref()
+                                        .map(|m| human_file_size(m.len()))
+                                        .unwrap_or_default();
+                                    let date_label = meta
+                                        .and_then(|m| m.modified().ok())
+                                        .map(relative_modified)
+                                        .unwrap_or_default();
+                                    (type_label, size_label, date_label)
+                                };
+                                ui.painter().text(
+                                    egui::pos2(rect.right() - 205.0, rect.center().y),
+                                    Align2::LEFT_CENTER,
+                                    type_label,
+                                    egui::FontId::proportional(10.5),
+                                    p.text_dim,
+                                );
+                                ui.painter().text(
+                                    egui::pos2(rect.right() - 112.0, rect.center().y),
+                                    Align2::RIGHT_CENTER,
+                                    size_label,
+                                    egui::FontId::proportional(10.5),
+                                    p.text_dim,
+                                );
+                                ui.painter().text(
+                                    egui::pos2(rect.right() - 8.0, rect.center().y),
+                                    Align2::RIGHT_CENTER,
+                                    date_label,
+                                    egui::FontId::proportional(10.5),
+                                    p.text_dim,
+                                );
+                            }
+                        });
+                });
+            },
+        );
+    }
 
     ui.add_space(3.0);
     ui.horizontal(|ui| {
@@ -610,6 +667,68 @@ mod tests {
         let mut output = ctx.run_ui(input, |ui| file_dialog_body(ui, app, &mut close_now));
         output.textures_delta.clear();
         output.shapes.len()
+    }
+
+    #[test]
+    fn file_dialog_actions_stay_visible_at_desktop_viewport_sizes() {
+        for (width, height) in [(1360.0, 860.0), (1024.0, 600.0), (800.0, 500.0)] {
+            for (mode, action) in [
+                (FileMode::Open, "Open"),
+                (FileMode::Import, "Import"),
+                (FileMode::Save, "Save"),
+                (FileMode::Export, "Export"),
+            ] {
+                let dir = temporary_browser_folder();
+                let mut app = app();
+                app.set_file_dialog_dir(dir.clone());
+                app.file_mode = mode;
+                app.file_dialog_name = if matches!(mode, FileMode::Save | FileMode::Export) {
+                    "image.png".into()
+                } else {
+                    String::new()
+                };
+                app.show_file_dialog = true;
+
+                let screen =
+                    egui::Rect::from_min_size(egui::Pos2::ZERO, egui::Vec2::new(width, height));
+                let input = egui::RawInput {
+                    screen_rect: Some(screen),
+                    ..Default::default()
+                };
+                let ctx = app.ctx.clone();
+                let mut output = None;
+                for _ in 0..3 {
+                    let mut frame = ctx.run_pass(input.clone(), |_| file_dialog(&mut app));
+                    frame.textures_delta.clear();
+                    output = Some(frame);
+                }
+                let output = output.expect("dialog should render a frame");
+                let text_bounds = |text: &str| {
+                    output
+                        .shapes
+                        .iter()
+                        .find_map(|clipped| match &clipped.shape {
+                            egui::Shape::Text(shape) if shape.galley.text() == text => {
+                                Some((shape.visual_bounding_rect(), clipped.clip_rect))
+                            }
+                            _ => None,
+                        })
+                };
+
+                for label in ["Go", action, "Cancel"] {
+                    let (bounds, clip) = text_bounds(label).unwrap_or_else(|| {
+                        panic!("{label} action missing for {mode:?} at {width}×{height}")
+                    });
+                    assert!(
+                        screen.contains_rect(bounds) && clip.contains_rect(bounds),
+                        "{label} action is clipped for {mode:?} at {width}×{height}: \
+                         bounds={bounds:?}, clip={clip:?}, screen={screen:?}"
+                    );
+                }
+
+                std::fs::remove_dir_all(dir).unwrap();
+            }
+        }
     }
 
     #[test]

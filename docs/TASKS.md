@@ -173,7 +173,7 @@ automated proof, not another manual pass.
 - [ ] **23.3** Define and test clipboard type coverage, cross-document paste, cross-application import/export, and unsupported-format feedback.
 - [ ] **23.4** Add user-reviewed in-app bug/feature/change submission using issue templates; attach no document or diagnostics by default.
 - [ ] **23.5** Design update discovery, signed/hash-verified platform downloads, changelog view, update notification, and rollback behavior; no silent install.
-- [ ] **23.6** Improve file dialogs with format filters, extension choices, path validation, overwrite review, drag/drop, and keyboard access.
+- [ ] **23.6** Finish file-dialog quality across desktop and WebAssembly: desktop path validation, overwrite review, drag/drop, keyboard access, and native platform review; browser download cancellation and large-file limits. *(Partial 2026-11-28: fixed vertically clipped actions and missing Go control; added browser-native Open/Import, in-memory decode/encode, layered `.fw.png` Save As, and download flow. Chromium passed SVG open → PNG import → layered save → reopen → PNG export; see [browser receipt](testing/browser-file-workflow-2026-11-28.md).)*
 
 ## Phase 24 — Help, search, and accessible workflow
 
@@ -262,7 +262,7 @@ automated proof, not another manual pass.
 
 - [ ] **32.1** Verify image/text/internal clipboard paste on Windows, macOS, Linux, and browser WASM; test browser `ClipboardEvent` permission and focus behavior, malformed images, and large clipboard payloads. *(Partial 2026-11-27: native bitmap-paste helper has valid/invalid input tests. After fixing the async WASM handoff, headed Chromium under Xvfb wrote a real PNG to the browser clipboard, sent Ctrl+V, and visibly inserted/selected a 128×128 bitmap with no JS errors. Native OS clipboard flows, browser denial/focus cases, malformed data, and large payload limits remain open.)*
 - [ ] **32.2** Re-audit every top-level CS6 menu against the checked-in screenshots; inventory absent/partial actions, add behavior or mark unsupported, and verify submenu keyboard/mouse navigation and tool flyout hover details.
-- [ ] **32.3** Rework file Open/Save/Import/Export window UX toward familiar OS file-browser behavior; decide native OS picker vs in-app parity per platform, then validate resize, small screens, keyboard, filters, overwrite, and cancellation flows.
+- [ ] **32.3** Complete platform-specific file-dialog UX: desktop uses the in-app path browser; WebAssembly uses the browser's native Open/Import chooser and a compact filename/format download form. Validate desktop resize, small screens, keyboard, filters, overwrite, cancellation, and browser cancellation/large-file behavior. *(Partial 2026-11-28: Chromium workflow and dialog layout are covered by the [browser receipt](testing/browser-file-workflow-2026-11-28.md); native platform review and remaining edge cases are open.)*
 - [ ] **32.4** Review the full workspace at 960×640, 1360×860, and browser sizes; fix spacing, alignment, panel overflow, focus, and pop-out canvas issues with before/after captures.
 - [ ] **32.5** Profile browser rendering with realistic documents and large folders; record frame, input-to-paint, memory, startup, and export baselines before adding optimization complexity.
 - [ ] **32.6** Validate swatch grid density, selection hit targets, keyboard alternative, and contrast in docked and floating panel states.
