@@ -1084,3 +1084,9 @@ unverified. Do not restate the plan; link it.
 - Playwright opened the deployed v0.3.7 GitHub Pages app and found its editor canvas. Browser
   screenshot capture timed out while waiting for page stability, so no visual acceptance is
   claimed. Native Windows 11 review and production Cloudflare WASM deployment also remain open.
+- Branch cleanup follow-up: GitHub has one open PR (#54) and zero open issues. All 13 stale refs on
+  the two local GitForge mirrors (12 on `gitforge-local`, one duplicate on `gitforge-project`) were
+  reviewed against merged PRs, current GitHub main history, or superseding v0.3.6/v0.3.7 releases,
+  then deleted and pruned. The obsolete local v0.3.2 receipt branch was removed after verifying its
+  content in main. Protected GitHub historical release refs and worktrees containing nested or
+  uncommitted content were preserved.
