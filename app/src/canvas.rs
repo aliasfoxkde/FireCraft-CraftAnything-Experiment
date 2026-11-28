@@ -4,6 +4,7 @@
 use crate::app::{CanvasViewMode, DragKind, FireCraft, Tool};
 use crate::constants;
 use crate::doc::{GradientFill, LiveEffect, Obj, Shape};
+use crate::geometry::{point_in_polygon, triangulate_simple_polygon};
 use crate::icons;
 use eframe::egui::{
     self, Align2, Color32, FontId, Painter, Pos2, Rect, Sense, Stroke, TextureHandle, Vec2, pos2,
@@ -1272,16 +1273,21 @@ fn paint_silhouette(
             if points.len() > 1 {
                 let bounds = obj.bounds();
                 let center = bounds.map(|(lo, hi)| (lo + hi) * 0.5).unwrap_or_default();
-                let pts: Vec<Pos2> = points
+                let scaled_points: Vec<Vec2> = points
                     .iter()
                     .map(|p| {
                         let dir = *p - center;
-                        let scaled = *p + dir.normalized() * expand_doc;
-                        to_screen(origin, zoom, scaled) + offset
+                        *p + dir.normalized() * expand_doc
                     })
                     .collect();
+                let pts: Vec<Pos2> = scaled_points
+                    .iter()
+                    .map(|point| to_screen(origin, zoom, *point) + offset)
+                    .collect();
                 if *closed {
-                    painter.add(egui::Shape::convex_polygon(pts, color, Stroke::NONE));
+                    if let Some(triangles) = triangulate_simple_polygon(&scaled_points) {
+                        paint_solid_mesh(painter, &pts, &triangles, color);
+                    }
                 } else {
                     painter.add(egui::Shape::line(
                         pts,
@@ -1381,6 +1387,20 @@ fn paint_gradient_mesh(
             .start
             .lerp_to_gamma(gradient.end, gradient.t_at(normalized))
             .gamma_multiply(alpha);
+        mesh.colored_vertex(*point, color);
+    }
+    for [a, b, c] in triangles {
+        mesh.add_triangle(*a as u32, *b as u32, *c as u32);
+    }
+    painter.add(egui::Shape::mesh(mesh));
+}
+
+fn paint_solid_mesh(painter: &Painter, points: &[Pos2], triangles: &[[usize; 3]], color: Color32) {
+    if points.is_empty() || triangles.is_empty() {
+        return;
+    }
+    let mut mesh = egui::Mesh::default();
+    for point in points {
         mesh.colored_vertex(*point, color);
     }
     for [a, b, c] in triangles {
@@ -1851,15 +1871,12 @@ fn draw_obj(
                 let pts: Vec<Pos2> = points.iter().map(|p| to_screen(origin, zoom, *p)).collect();
                 if *closed {
                     let bounds = Rect::from_points(&pts);
-                    if let Some(g) = obj.gradient {
-                        let center = bounds.center();
-                        let mut mesh_points = Vec::with_capacity(pts.len() + 1);
-                        mesh_points.push(center);
-                        mesh_points.extend(pts.iter().copied());
-                        let triangles = gradient_fan_triangles(pts.len());
-                        paint_gradient_mesh(painter, bounds, &mesh_points, &triangles, g, alpha);
-                    } else if let Some(f) = fill {
-                        painter.add(egui::Shape::convex_polygon(pts.clone(), f, Stroke::NONE));
+                    if let Some(triangles) = triangulate_simple_polygon(points) {
+                        if let Some(g) = obj.gradient {
+                            paint_gradient_mesh(painter, bounds, &pts, &triangles, g, alpha);
+                        } else if let Some(f) = fill {
+                            paint_solid_mesh(painter, &pts, &triangles, f);
+                        }
                     }
                     if obj.stroke.is_some() && obj.width > 0.0 {
                         painter.add(egui::Shape::closed_line(pts, Stroke::new(sw, stroke)));
@@ -2318,17 +2335,20 @@ fn hit_obj(obj: &Obj, p: Vec2) -> bool {
         }
         Shape::Path { points, closed } => {
             if *closed
-                && let Some((lo, hi)) = obj.bounds()
-                && p.x >= lo.x
-                && p.x <= hi.x
-                && p.y >= lo.y
-                && p.y <= hi.y
+                && (obj.fill.is_some_and(|color| color.a() > 0) || obj.gradient.is_some())
+                && triangulate_simple_polygon(points).is_some()
+                && point_in_polygon(points, p)
             {
                 return true;
             }
-            for w in points.windows(2) {
-                let a = w[0];
-                let b = w[1];
+            let segment_count = if *closed {
+                points.len()
+            } else {
+                points.len().saturating_sub(1)
+            };
+            for index in 0..segment_count {
+                let a = points[index];
+                let b = points[(index + 1) % points.len()];
                 let dir = b - a;
                 let len2 = dir.length_sq();
                 if len2 <= f32::EPSILON {
@@ -2491,10 +2511,9 @@ mod tests {
             .find_map(|clipped| match &clipped.shape {
                 egui::Shape::Mesh(mesh) => Some(mesh.as_ref().clone()),
                 _ => None,
-            })
-            .expect("closed paths with fills should render as a triangulated mesh");
+            });
         output.textures_delta.clear();
-        mesh
+        mesh.expect("closed paths with fills should render as a triangulated mesh")
     }
 
     fn concave_l_path(gradient: Option<GradientFill>) -> Obj {
