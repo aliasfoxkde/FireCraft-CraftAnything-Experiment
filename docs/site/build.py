@@ -71,7 +71,7 @@ def section_for(source: str) -> str:
     if source == "README.md":
         return "Product"
     if parts[0] == ".github":
-        return "Project"
+        return "Project governance"
     if len(parts) > 1 and parts[1] == "tutorials":
         return "Tutorials"
     if len(parts) > 1 and parts[1] == "features":

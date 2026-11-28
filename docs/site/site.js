@@ -1,6 +1,8 @@
 const catalogPath = new URL("catalog.json", import.meta.url);
 const contentRoot = new URL("content/", import.meta.url);
 const repository = "https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment";
+const sectionOrder = ["Tutorials", "Feature guides", "Product", "Reference", "Engineering",
+  "Roadmaps and plans", "Audits and progress", "Project documentation", "Project governance"];
 
 const featuredGuides = [
   {
@@ -88,7 +90,8 @@ function renderNavigation(query = "") {
 
   const nav = document.querySelector("#doc-navigation");
   nav.replaceChildren();
-  for (const [section, sectionPages] of groups) {
+  const orderedGroups = [...groups].sort((left, right) => sectionOrder.indexOf(left[0]) - sectionOrder.indexOf(right[0]));
+  for (const [section, sectionPages] of orderedGroups) {
     const group = document.createElement("section");
     group.className = "nav-section";
     const heading = document.createElement("h3");
