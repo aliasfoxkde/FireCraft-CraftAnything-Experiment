@@ -198,9 +198,14 @@ jobs:
             target/wasm32-unknown-unknown/release/firecraft.wasm
           cp favicon.png index.html dist/wasm/
           printf 'FireCraft %s\nsource: %s\n' "$version" "$(git rev-parse HEAD)" > dist/wasm/BUILD-INFO.txt
+          python3 -m venv /tmp/firecraft-docs-build
+          /tmp/firecraft-docs-build/bin/python -m pip install --disable-pip-version-check --requirement ../docs/site/requirements.txt
+          /tmp/firecraft-docs-build/bin/python ../docs/site/build.py --output dist/wasm/documentation
           test -s dist/wasm/firecraft_bg.wasm
           test -s dist/wasm/firecraft.js
           test -s dist/wasm/index.html
+          test -s dist/wasm/documentation/index.html
+          test -s dist/wasm/documentation/catalog.json
           cd dist/wasm
           zip -qr "../firecraft-v${version}-wasm32-web.zip" .
           cd ..

@@ -1,5 +1,9 @@
 # FireCraft Documentation
 
+> **Hosted guide:** [Browse the FireCraft Documentation site](https://aliasfoxkde.github.io/FireCraft-CraftAnything-Experiment/documentation/)
+> for searchable navigation, featured tutorials, and rendered articles. The same site is bundled
+> with the WebAssembly editor at `/documentation/`; the editor stays at the Pages root.
+
 This page is the documentation map. Start with a category, then follow its index to a focused guide,
 tutorial, reference, or engineering detail. The root [README](../README.md) is the product overview.
 
