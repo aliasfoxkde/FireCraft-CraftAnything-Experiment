@@ -33,6 +33,10 @@ Newest first.
   and tutorial/reference updates. Static `gui-suite.sh` captures are not interactive E2E coverage.
   Native/browser clipboard, floating canvas, tools, full path editing, file dialogs, raster effects,
   recovery, and accessibility remain partial or unverified.
+- Tools palette source review: collapsed mode uses a 40 px rail, 20 px icon cells, abbreviated
+  category bands, and a 12 px corner trigger region for each grouped-tool flyout. The actual compact
+  rail/flyout has no current screenshot or interaction receipt, so the reported label clipping and
+  targetability remain unverified; see TASKS 21.5.
 - GitHub inventory: PR #57 is the only open PR; no open issues. `main` and five historical release
   refs remain protected. The source branch cannot be cleaned until merge; preserve the dirty v0.3.4
   worktree and its evidence. This status is current as of 2026-11-28 03:10 UTC.
