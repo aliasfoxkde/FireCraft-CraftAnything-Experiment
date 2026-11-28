@@ -56,19 +56,33 @@ Newest first.
   native Windows/macOS behavior, or a public deployment. PR #65 carries this work; its checks are
   rerunning after the native Fedora evidence update. The tested bundle is not a release.
 
-## 2026-11-28 — compact Tools rail footer in review
+## 2026-11-28 — compact Tools rail footer merged
 
 - Reworked the pinned footer so a 32px collapsed rail exposes color/view actions through an
   overflow menu, while the 82px expanded rail shows the color wells and a labeled Actions menu.
   The full-width footer now uses bundled Phosphor glyphs for swap, default colors, no fill, and
   fullscreen; the legacy renderer remains covered as fallback.
-- Added egui width regressions for collapsed/expanded rails and expanded the icon paint tests.
-  Focused footer tests pass (2/2), icon tests pass (4/4), `rustfmt --check` and the 76-file docs
-  gate pass; `cargo clippy --all-targets -- -D warnings` passes. Exact-branch CI, GitForge, and
-  merge remain pending. The first exact-head GitHub Gates run failed only the module-size hard
-  budget (`icons.rs` 2,038 / 2,000 lines); its tests, docs, lint, security, and WASM steps passed.
-  The legacy fallback drawings now live in `icons/extra.rs`; `icons.rs` measures 1,993 lines and
-  `scripts/module-size.sh` passes. Updated-head tests and CI are pending.
+- Added egui width regressions for collapsed/expanded rails and icon paint tests. The first
+  exact-head Gates attempt caught `icons.rs` over the 2,000-line hard budget; extracting the legacy
+  fallback drawings to `icons/extra.rs` brought it to 1,993 lines and the module-size gate passed.
+- PR #63 exact head `df8a44439f06cdd31bf88875db671f0604fa53ac` passed GitHub Gates, Docs Pages,
+  WASM, Windows build/CLI smoke, Rust coverage, and CodeQL. GitForge pipeline
+  `fcf72877-d5a6-4d2d-b249-15f22055ffdf` succeeded for that exact commit. It merged at
+  `83268df5ff5a009792e8b20b7a20b0ff84b09c79`; merged tree SHA matches the validated head tree.
+- Hosted coverage is 19,875 / 27,835 lines (**71.40%**); branch counters are unavailable (0/0),
+  and the 99% target is unmet. Windows review bundle
+  `output/review-df8a444/firecraft-v0.3.8-windows-x86_64.zip` passed its checksum and ZIP checks;
+  the embedded merge-build commit has the validated PR head as a parent and the same tree. SHA-256:
+  `586e65aab47a6249868317912b94a19ecb5f5cc4ac8bdfdea19c6e6a8783870d`. Native Windows 11
+  interaction review is still reviewer-owned.
+- The separate post-refactor local focused test was refused by host admission while other compiler
+  processes were active; it was not bypassed. Exact-head GitHub Gates ran the full test suite. This
+  fixes footer overflow/access to footer actions, not the remaining full Tools palette audit or the
+  separately tracked app workflows.
+- Rewrote [`AUDIT-2026-11-28.md`](AUDIT-2026-11-28.md) from the stale PR #57 snapshot to the merged
+  PR #63 source, current 71.40% coverage receipt, Windows artifact identity, GitForge result, open
+  Aegis status, and remaining end-to-end acceptance gaps. The live docs portal still needs a refresh
+  from this reconciled main content.
 
 ## 2026-11-28 — Pen anchors honor grid and guide snapping
 
@@ -98,6 +112,9 @@ Newest first.
 - After PR #62 merged, refresh run `46117252914` rebuilt and redeployed the documentation from
   main at `7af68987dc516bc3fff1767bd29eff660f6d74eb`. The live index and catalog still return HTTP
   200 with 64 pages in nine sections.
+- The latest repository main is `83268df`; the portal still needs one refresh after the current
+  task/progress record is reconciled below. Its slider, category navigation, search and footer were
+  browser-checked at 390×844 on the prior deployment; no fresh screenshot is claimed.
 
 ## 2026-11-28 — Documentation style refresh published
 
