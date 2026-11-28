@@ -2,6 +2,29 @@
 
 Newest first.
 
+## 2026-11-28 — Pen anchors honor grid and guide snapping
+
+- A red regression confirmed that the Pen path receives raw canvas clicks: with a 10px grid,
+  `(12, 13)` was stored unchanged instead of `(10, 10)`. `pen_add_node` now snaps at the shared
+  placement seam, covering canvas, test, and accessibility callers consistently.
+- The regression now checks both grid snapping and snapping to explicit vertical/horizontal guides.
+  Full validation on this working tree passed 211 unit tests, 12 CLI, 5 hygiene, and 10 MCP tests
+  (one existing frame-timing test ignored), strict Clippy, rustfmt, and documentation checks.
+- Native/WASM interactive path creation, node editing, undo/redo, save/reopen, and export remain
+  open in task 48.4. The current PR head still needs exact-source GitHub and GitForge checks and a
+  Windows review package after this follow-up change.
+
+## 2026-11-28 — Documentation portal republished and interaction-checked
+
+- Refreshed GitHub Pages beside the published v0.3.8 WebAssembly editor using workflow
+  [`46114379709`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/46114379709).
+  It rebuilt the documentation from `main` at `712e621`; the
+  workflow's release-bundle verification and deployed-root checks passed.
+- The deployed documentation catalog loads 64 Markdown pages across nine sections. Chromium
+  verified the featured carousel advances from slide 1 to slide 2, the `keybindings` search
+  filters to 11 matching pages, and the 390×844 mobile layout retains its navigation and footer.
+  The screenshot command still times out, so no fresh visual screenshot is claimed.
+
 ## 2026-11-28 — Documentation style refresh published
 
 - After PR #61 merged at `712e621`, the first manual Pages refresh could not discover its

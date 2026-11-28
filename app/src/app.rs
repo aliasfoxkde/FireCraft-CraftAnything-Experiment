@@ -1901,6 +1901,9 @@ impl FireCraft {
 
     /// Add one Pen anchor. Clicking the first anchor closes a path with at least three nodes.
     pub fn pen_add_node(&mut self, doc_pos: Vec2) {
+        // Canvas clicks reach this method directly; snap here as the single Pen placement seam
+        // so the normal pointer dispatcher and accessibility/test callers behave identically.
+        let doc_pos = self.snap_pos(doc_pos);
         let tol = 8.0 / self.doc.zoom.max(0.1);
         if self.pen_nodes.len() >= 3 && (self.pen_nodes[0] - doc_pos).length() <= tol {
             self.finish_pen_path(true);
@@ -4468,6 +4471,25 @@ mod tests {
             }
             other => panic!("expected path, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn pen_anchors_snap_to_grid_and_guides() {
+        let mut app = FireCraft::new(None);
+        app.set_tool(Tool::Path);
+        app.snap_to_guides = false;
+        app.snap_to_grid = true;
+        app.grid_size = 10.0;
+        app.pen_add_node(Vec2::new(12.0, 13.0));
+        assert_eq!(app.pen_nodes, vec![Vec2::new(10.0, 10.0)]);
+
+        app.pen_nodes.clear();
+        app.snap_to_grid = false;
+        app.snap_to_guides = true;
+        app.doc.page_mut().guides_v = vec![30.0];
+        app.doc.page_mut().guides_h = vec![40.0];
+        app.pen_add_node(Vec2::new(27.0, 43.0));
+        assert_eq!(app.pen_nodes, vec![Vec2::new(30.0, 40.0)]);
     }
 
     #[test]
