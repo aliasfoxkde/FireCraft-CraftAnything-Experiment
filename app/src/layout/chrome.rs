@@ -338,7 +338,12 @@ pub(super) fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                             swap_pair = Some((i, i + 1));
                             ui.close();
                         }
-                        if ui.button("Float in New Window (Multi-Monitor)").clicked() {
+                        let float_label = if ui.ctx().embed_viewports() {
+                            "Open in Movable Workspace Window"
+                        } else {
+                            "Float in New Window (Multi-Monitor)"
+                        };
+                        if ui.button(float_label).clicked() {
                             float_idx = Some(i);
                             ui.close();
                         }
@@ -395,7 +400,11 @@ pub(super) fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                     && !app.floating_doc_tabs.contains(&app.active_doc)
                     && ui
                         .small_button("⧉")
-                        .on_hover_text("Float active canvas in a movable / multi-monitor OS window")
+                        .on_hover_text(if ui.ctx().embed_viewports() {
+                            "Open active canvas in a movable window in this workspace"
+                        } else {
+                            "Float active canvas in a movable / multi-monitor OS window"
+                        })
                         .clicked()
                 {
                     float_idx = Some(app.active_doc);
@@ -403,7 +412,7 @@ pub(super) fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                 if !app.floating_doc_tabs.is_empty()
                     && ui
                         .small_button(format!("Dock All ({})", app.floating_doc_tabs.len()))
-                        .on_hover_text("Dock all floating canvas windows back into main window")
+                        .on_hover_text("Dock all floating canvas windows back into the workspace")
                         .clicked()
                 {
                     app.floating_doc_tabs.clear();
@@ -426,10 +435,14 @@ pub(super) fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                     app.sync_active_doc_slot();
                     if !app.floating_doc_tabs.contains(&fi) {
                         app.floating_doc_tabs.push(fi);
-                        app.status = format!(
-                            "Floated {} to movable OS window (drag to any monitor)",
-                            app.open_docs[fi].name
-                        );
+                        app.status = if ui.ctx().embed_viewports() {
+                            format!("Opened {} in a movable workspace window", app.open_docs[fi].name)
+                        } else {
+                            format!(
+                                "Floated {} to a movable OS window (drag to any monitor)",
+                                app.open_docs[fi].name
+                            )
+                        };
                     }
                 }
                 if let Some(target) = switch_to {

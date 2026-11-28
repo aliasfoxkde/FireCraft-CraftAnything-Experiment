@@ -285,7 +285,8 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     }
 
     // 7. Central Panel: Document Tab Bar + Canvas + CS6 Canvas Footer Bar (Transport, Resolution, Scale)
-    if app.floating_doc_tabs.contains(&app.active_doc)
+    if !ctx.embed_viewports()
+        && app.floating_doc_tabs.contains(&app.active_doc)
         && let Some(first_docked) =
             (0..app.open_docs.len()).find(|i| !app.floating_doc_tabs.contains(i))
     {
@@ -293,21 +294,28 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     }
     let all_floating = !app.open_docs.is_empty()
         && (0..app.open_docs.len()).all(|i| app.floating_doc_tabs.contains(&i));
+    let active_floating = app.floating_doc_tabs.contains(&app.active_doc);
     egui::CentralPanel::default()
         .frame(egui::Frame::new().fill(app.palette.bg))
         .show(ui, |ui| {
             chrome::document_tab_strip(ui, app);
-            if all_floating {
+            if all_floating || (ctx.embed_viewports() && active_floating) {
                 ui.centered_and_justified(|ui| {
                     ui.vertical_centered(|ui| {
                         ui.add_space(40.0);
                         ui.label(
-                            RichText::new("Canvas floated to external window (Multi-Monitor Mode)")
-                                .size(14.0)
-                                .color(app.palette.text),
+                            RichText::new(if ctx.embed_viewports() {
+                                "Canvas is in a movable window in this workspace"
+                            } else {
+                                "Canvas floated to external window (Multi-Monitor Mode)"
+                            })
+                            .size(14.0)
+                            .color(app.palette.text),
                         );
                         ui.add_space(8.0);
-                        if ui.button("Dock All Canvases Back to Main Window").clicked() {
+                        if !ctx.embed_viewports()
+                            && ui.button("Dock All Canvases Back to Main Window").clicked()
+                        {
                             app.floating_doc_tabs.clear();
                             app.status =
                                 "Docked floating canvas window(s) back to main window".to_string();
@@ -555,8 +563,97 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     dialogs::saved_commands_dialog(app);
     dialogs::quit_confirm_dialog(app);
     // 10. Detached Floating Canvas Windows (Multi-Monitor Native OS Viewports)
+    if ctx.embed_viewports() && !app.floating_doc_tabs.is_empty() {
+        let floating = app.floating_doc_tabs.clone();
+        app.sync_active_doc_slot();
+        let mut redock = Vec::new();
+        let mut saved_active = app.active_doc;
+        let saved_doc = app.doc.clone();
+        for idx in floating {
+            let Some(doc) = app.open_docs.get(idx).cloned() else {
+                redock.push(idx);
+                continue;
+            };
+            app.active_doc = idx;
+            app.doc = doc;
+            let title = format!("{} — FireCraft Canvas", app.doc.name);
+            let window_id = egui::Id::NULL.with(("firecraft_embedded_canvas", idx));
+            let mut open = true;
+            let mut dock_back = false;
+            egui::Window::new(title)
+                .id(window_id)
+                .default_size([860.0, 620.0])
+                .default_pos(egui::pos2(
+                    250.0 + idx as f32 * 180.0,
+                    120.0 + idx as f32 * 28.0,
+                ))
+                .resizable(true)
+                .collapsible(false)
+                .open(&mut open)
+                .show(&ctx, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.label(RichText::new(&app.doc.name).small().strong());
+                        ui.separator();
+                        if ui
+                            .selectable_label(
+                                app.view_mode == CanvasViewMode::Original,
+                                RichText::new("Original").small(),
+                            )
+                            .clicked()
+                        {
+                            app.view_mode = CanvasViewMode::Original;
+                        }
+                        if ui
+                            .selectable_label(
+                                app.view_mode == CanvasViewMode::Preview,
+                                RichText::new("Preview").small(),
+                            )
+                            .clicked()
+                        {
+                            app.view_mode = CanvasViewMode::Preview;
+                        }
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            dock_back = ui
+                                .small_button("Dock to Main Workspace")
+                                .on_hover_text("Return this canvas to the main document tabs")
+                                .clicked();
+                        });
+                    });
+                    ui.separator();
+                    canvas::show(ui, app);
+                });
+            if let Some(pointer) = ctx.pointer_latest_pos()
+                && egui::containers::AreaState::load(&ctx, window_id)
+                    .is_some_and(|state| state.rect().contains(pointer))
+            {
+                saved_active = idx;
+            }
+            if let Some(open_doc) = app.open_docs.get_mut(idx) {
+                *open_doc = app.doc.clone();
+            }
+            if !open || dock_back {
+                redock.push(idx);
+            }
+        }
+        app.active_doc = saved_active.min(app.open_docs.len().saturating_sub(1));
+        app.doc = app
+            .open_docs
+            .get(app.active_doc)
+            .cloned()
+            .unwrap_or(saved_doc);
+        app.floating_doc_tabs.retain(|idx| !redock.contains(idx));
+        if !redock.is_empty() {
+            if let Some(&idx) = redock.last()
+                && idx < app.open_docs.len()
+            {
+                app.switch_document_tab(idx);
+            }
+            app.status = "Canvas returned to the main workspace".to_string();
+        }
+    }
+
     #[cfg(not(target_arch = "wasm32"))]
-    if !app.floating_doc_tabs.is_empty() {
+    if !ctx.embed_viewports() && !app.floating_doc_tabs.is_empty() {
         app.sync_active_doc_slot();
         let mut redock_list: Vec<usize> = Vec::new();
         let mut saved_active = app.active_doc;

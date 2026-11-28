@@ -203,7 +203,7 @@ current acceptance.
 |---|---|---|---|
 | P0 | Launch and workspace handoff | Splash duration/transparency/fade; startup focus; standard and compact sizes | Needs Windows and browser visual acceptance |
 | P0 | External clipboard paste | Image/text paste with canvas pointer over it and a dock field focused; context menu; browser permission path | egui regressions pass; native/browser acceptance open |
-| P0 | Floating canvas editing | Edit, select, move, shortcut dispatch, document synchronization, drag/drop | Code-level fixes merged; real window acceptance open |
+| P0 | Floating canvas editing | Edit, use shortcuts, drag the window, dock/close, retain document state; native OS viewport vs WebAssembly workspace window | **Partially verified 2026-11-28:** exact WASM build passed Rectangle create, Ctrl+Z/Ctrl+Y, window drag, Dock to Main, and title-bar close in Chromium at 1360×860. Web uses an in-workspace window because eframe WebRunner does not support multiple OS viewports. Native OS-window editing/save/reopen, file drag/drop, cross-window focus, and platform review remain open; see the [browser receipt](testing/browser-popout-workflow-2026-11-28.md). |
 | P0 | Tools palette and flyouts | Expanded/collapsed widths, every group, flyout labels/icons, selection and hover details | Layout fixes merged; visual sweep still open |
 | P0 | Path creation and point editing | Pen/freeform create, close, select/move points, undo/redo, save/reopen, export | Known behavior needs complete end-to-end verification |
 | P0 | File open/import/export dialogs | Open, filter types, browse, resize, confirm/cancel, small/high-DPI viewport | Current app-level review remains open |

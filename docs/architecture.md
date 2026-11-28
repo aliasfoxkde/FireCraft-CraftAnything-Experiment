@@ -67,6 +67,17 @@ It intentionally is not a second immediate-mode viewport. A second viewport re-r
 frame around the main application and produced drag lag. The in-app browser also makes the
 editable address bar and the main app's state share one event loop.
 
+### Floating canvases follow viewport support
+
+The document-tab float action uses an external eframe viewport when the active backend supports
+native viewports. When `Context::embed_viewports()` is true (including eframe WebAssembly), the
+document instead appears in a movable egui window inside the workspace. The main Tools rail and
+Properties dock continue to edit the same document; window focus selects the document used by
+keyboard commands. Docking or closing the embedded window returns the edited document to the tab
+workspace. The web fallback exists because eframe's web backend does not implement multiple OS
+viewports. Browser editing, undo/redo, move, and redock have current Chromium evidence; native OS
+window save/reopen, drag/drop, and platform focus remain separate acceptance work.
+
 ### Platform code is isolated and optional
 
 `shell_windows.rs` is compiled only on Windows. Every COM failure is logged and ignored; startup

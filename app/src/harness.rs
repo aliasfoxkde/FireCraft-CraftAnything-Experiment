@@ -558,6 +558,114 @@ mod tests {
     }
 
     #[test]
+    fn embedded_floating_canvas_keeps_an_editable_canvas_in_the_workspace() {
+        let mut floated = Harness::new();
+        floated.app.floating_doc_tabs.push(0);
+        assert!(floated.ctx.embed_viewports());
+        floated.frame(1360.0, 860.0, Vec::new());
+        let window_id = egui::Id::NULL.with(("firecraft_embedded_canvas", 0));
+        let window_rect = egui::containers::AreaState::load(&floated.ctx, window_id)
+            .expect("floating canvas should be represented by a visible in-app window")
+            .rect();
+
+        let before = floated.app.open_docs[0].total_objects_on_page();
+        floated.app.tool = crate::app::Tool::Rectangle;
+        let start = window_rect.center() - Vec2::new(60.0, 30.0);
+        let end = window_rect.center() + Vec2::new(60.0, 30.0);
+        floated.frame(
+            1360.0,
+            860.0,
+            vec![
+                egui::Event::PointerMoved(start),
+                egui::Event::PointerButton {
+                    pos: start,
+                    button: egui::PointerButton::Primary,
+                    pressed: true,
+                    modifiers: Modifiers::NONE,
+                },
+            ],
+        );
+        floated.frame(
+            1360.0,
+            860.0,
+            vec![
+                egui::Event::PointerMoved(end),
+                egui::Event::PointerButton {
+                    pos: end,
+                    button: egui::PointerButton::Primary,
+                    pressed: false,
+                    modifiers: Modifiers::NONE,
+                },
+            ],
+        );
+        assert!(
+            floated.app.open_docs[0].total_objects_on_page() > before,
+            "dragging a shape in the embedded floating canvas should edit its document"
+        );
+        floated.frame(
+            1360.0,
+            860.0,
+            vec![
+                egui::Event::ModifiersChanged(Modifiers::CTRL),
+                egui::Event::Key {
+                    key: Key::Z,
+                    physical_key: None,
+                    pressed: true,
+                    repeat: false,
+                    modifiers: Modifiers::CTRL,
+                },
+            ],
+        );
+        assert_eq!(
+            floated.app.open_docs[0].total_objects_on_page(),
+            before,
+            "undo in the embedded floating canvas should undo its edit"
+        );
+        floated.frame(
+            1360.0,
+            860.0,
+            vec![
+                egui::Event::ModifiersChanged(Modifiers::CTRL),
+                egui::Event::Key {
+                    key: Key::Y,
+                    physical_key: None,
+                    pressed: true,
+                    repeat: false,
+                    modifiers: Modifiers::CTRL,
+                },
+            ],
+        );
+        assert!(
+            floated.app.open_docs[0].total_objects_on_page() > before,
+            "redo in the embedded floating canvas should restore its edit"
+        );
+    }
+
+    #[test]
+    fn embedded_floating_canvas_under_pointer_becomes_the_active_document() {
+        let mut harness = Harness::new();
+        let first = harness.app.doc.clone();
+        let second = first.clone();
+        harness.app.open_docs = vec![first.clone(), second];
+        harness.app.active_doc = 0;
+        harness.app.doc = first;
+        harness.app.floating_doc_tabs = vec![0, 1];
+        harness.frame(1360.0, 860.0, Vec::new());
+
+        let second_window = egui::Id::NULL.with(("firecraft_embedded_canvas", 1));
+        let second_rect = egui::containers::AreaState::load(&harness.ctx, second_window)
+            .expect("second floating canvas should have its own in-app window")
+            .rect();
+        let pointer = egui::pos2(second_rect.right() - 60.0, second_rect.center().y);
+        harness.frame(1360.0, 860.0, vec![egui::Event::PointerMoved(pointer)]);
+
+        assert_eq!(
+            harness.app.active_doc, 1,
+            "keyboard shortcuts should target the floating canvas under the pointer"
+        );
+    }
+
+    #[test]
     fn closing_floated_document_does_not_overwrite_the_next_document() {
         static VIEWPORT_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
         let _guard = VIEWPORT_TEST_LOCK.lock().expect("viewport test lock");

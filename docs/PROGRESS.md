@@ -2,6 +2,25 @@
 
 Newest first.
 
+## 2026-11-28 — Web floating canvas remains editable
+
+- The previous WASM **Float** action removed the canvas from the main workspace but did not create
+  an OS window, leaving no usable canvas. Since the browser backend embeds viewports, floated
+  documents now render as movable in-workspace windows on WASM. The native external-window path is
+  retained.
+- A headed Chromium/Xvfb run used real X11 pointer actions to open the window, draw a rectangle,
+  verify it in Layers, and close the window. The edit remained visible in the main workspace after
+  close. Explicit dock, window dragging, and harness edit/undo/redo and active-document routing
+  checks also passed. See the [exact-build browser receipt](testing/browser-popout-workflow-2026-11-28.md).
+- Candidate validation: 225 unit/harness, 12 CLI, 5 hygiene, and 10 MCP tests passed; strict
+  Clippy, rustfmt, isolated 500-object performance test, macOS plist test, module-size gate, and
+  diff check passed. `cargo llvm-cov --locked --summary-only` reports 71.66% line and 75.13%
+  function coverage (29,109/36,674 lines; branch counters are unavailable). `scripts/check-docs.sh`
+  first caught missing receipt links; it passed after the receipt was added (82 Markdown files).
+- Browser console had zero JavaScript errors, plus an external-instance warning and software
+  WebGL/readback performance warnings. This was a local v0.3.8 review artifact, not a release or
+  deployment. Native OS viewport editing and Windows/macOS/Linux acceptance remain open.
+
 ## 2026-11-28 — compact footer controls restored at 960×640
 
 - The exact WASM app showed the footer clipping **Show All** at 960×640. Clicking its expected
