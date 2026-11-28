@@ -1454,6 +1454,7 @@ pub fn startup_splash(ui: &mut egui::Ui, app: &mut FireCraft) {
     let ctx = ui.ctx().clone();
     let t = ctx.input(|i| i.time);
     let skip_id = ui.make_persistent_id("splash_skipped");
+    let start_id = ui.make_persistent_id("splash_started_at");
     let tex_id = ui.make_persistent_id("firecraft_splash_tex");
     let area_id = ui.make_persistent_id("cs6_startup_splash");
     let skipped = ctx.data(|d| d.get_temp::<bool>(skip_id).unwrap_or(false));
@@ -1462,10 +1463,19 @@ pub fn startup_splash(ui: &mut egui::Ui, app: &mut FireCraft) {
         ctx.data_mut(|d| d.insert_temp(skip_id, true));
     }
     const DURATION: f64 = 2.4;
-    if t >= DURATION || skipped || skip_requested || app.screenshot_path.is_some() {
+    if skipped || skip_requested || app.screenshot_path.is_some() {
         return;
     }
-    let alpha = startup_splash_alpha(t);
+    let started_at = ctx.data(|d| d.get_temp::<f64>(start_id));
+    let started_at = started_at.unwrap_or_else(|| {
+        ctx.data_mut(|d| d.insert_temp(start_id, t));
+        t
+    });
+    let elapsed = (t - started_at).max(0.0);
+    if elapsed >= DURATION {
+        return;
+    }
+    let alpha = startup_splash_alpha(elapsed);
     let tex = ctx
         .data_mut(|d| d.get_temp::<egui::TextureHandle>(tex_id))
         .unwrap_or_else(|| {

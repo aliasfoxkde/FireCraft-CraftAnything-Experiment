@@ -795,8 +795,11 @@ mod tests {
             !harness.app.show_welcome,
             "startup should open directly to the editor"
         );
-        let during_splash = harness.frame_at(1360.0, 860.0, 0.8, Vec::new());
-        let faded_out = harness.frame_at(1360.0, 860.0, 2.5, Vec::new());
+        // Web eframe reports performance.now(), which can be far above zero before this first
+        // app frame. The duration must be measured from this frame, not the browser time origin.
+        harness.frame_at(1360.0, 860.0, 9000.0, Vec::new());
+        let during_splash = harness.frame_at(1360.0, 860.0, 9000.8, Vec::new());
+        let faded_out = harness.frame_at(1360.0, 860.0, 9002.5, Vec::new());
 
         assert!(
             during_splash > 100,

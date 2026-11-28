@@ -2,6 +2,20 @@
 
 Newest first.
 
+## 2026-11-28 — WASM splash timing and click-through fixed with browser proof
+
+- Headed Chromium on Fedora reproduced the splash disappearing before the first screenshot. The
+  root cause was using eframe WASM's absolute `performance.now()` as the splash elapsed time. The
+  splash now records the first FireCraft frame time and fades over 2.4 seconds from that point.
+- The regression failed first with an egui clock starting at 9,000 seconds; after the change it
+  passed along with the existing fade curve and transparent artwork tests. A fresh release-mode WASM
+  build then showed the transparent logo over the live workspace, faded it away, accepted `P` while
+  visible, and opened the File menu when clicked during the overlay. WebGL2 worked at 1360×860; no
+  browser/app errors were logged. Screenshots and exact WASM hashes are in the
+  [splash workflow receipt](testing/browser-splash-workflow-2026-11-28.md).
+- Native desktop timing/appearance and other browsers remain unverified. The splash interaction does
+  not block keyboard input, and a click both skips it and reaches the underlying menu.
+
 ## 2026-11-28 — post-merge evidence and current inventory
 
 - PR #65 merged at `faee526b8827ad594234a6202484a3617a493c96`; its exact head passed GitHub CI,
@@ -10,8 +24,9 @@ Newest first.
 - The PR #65 exact WASM build passed headed Chromium path create/edit/undo/redo/layered-save/reopen/
   raster-export. This found and fixed the shortcut modifier and path/polygon raster fill defects;
   details and exact artifact hashes are in the linked browser receipt.
-- Current GitHub inventory: only PR #64 is open, no issues are open, and `main` is `faee526`.
-  GitHub retains six historical release branches. The Docs Pages deployment still predates PR #65.
+- At the time of this snapshot, PR #64 remained the sole open PR, no issues were open, and app-code
+  `main` was `faee526`. PR #64 subsequently merged as docs-only `dc9f295`. The Docs Pages deployment
+  still predates PR #65 and the splash workflow receipt.
 - Local GitForge did not validate PR #65: its services report degraded state, CI is disabled, and
   its deployed release is 273 commits behind upstream. This remains a validation gap.
 
