@@ -15,7 +15,9 @@ Newest first.
 - Browser interaction checks passed for opening a tutorial, following an in-reader link, searching
   `gradient` (23 matching pages), and advancing the carousel. Desktop and mobile captures were
   reviewed. `scripts/check-docs.sh` passed for 75 tracked Markdown files; the generated catalog has
-  63 pages and its article output contains no script tags.
+  63 pages and its article output contains no script tags. Task-first section ordering is explicit;
+  sampled normal-text foreground/background pairs meet 7:1 contrast, and the large orange headline
+  clears the 4.5:1 large-text threshold.
 - Published the GitHub Wiki's new Home, `_Sidebar`, and `_Footer` as Wiki commit `111fafd`. The Wiki
   now routes readers to the task-organized Pages guide and to the major tutorial, reference, roadmap,
   support, release, and contribution sections; the Pages destination is pending deployment.

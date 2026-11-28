@@ -21,4 +21,4 @@
 - Publish the site under `/documentation/` in the same Pages artifact as the WASM editor. Preserve the editor at the Pages root.
 - Label unverified workflows and historical audit snapshots as their source documents do.
 - The featured carousel must include previous/next controls, direct navigation, keyboard operation, and a visible pause control if autoplay is ever introduced. Autoplay is disabled.
-- Target WCAG 2.1 AAA where practical, meet WCAG AA text contrast at minimum, and verify responsive layouts and focus visibility.
+- Target WCAG 2.1 AAA where practical, meet WCAG AA text contrast at minimum, and verify responsive layouts and focus visibility. The chosen body, secondary, navigation, and carousel text colors are measured at 7:1 or higher in their paired surfaces; the large orange display heading measures above the 4.5:1 large-text threshold.
