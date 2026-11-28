@@ -16,6 +16,9 @@ Newest first.
   `gradient` (23 matching pages), and advancing the carousel. Desktop and mobile captures were
   reviewed. `scripts/check-docs.sh` passed for 75 tracked Markdown files; the generated catalog has
   63 pages and its article output contains no script tags.
+- Published the GitHub Wiki's new Home, `_Sidebar`, and `_Footer` as Wiki commit `111fafd`. The Wiki
+  now routes readers to the task-organized Pages guide and to the major tutorial, reference, roadmap,
+  support, release, and contribution sections; the Pages destination is pending deployment.
 - Aegis job `4c0e1457-b94f-4bf7-b88c-091048628395` finished with exit 3 after pattern findings in a
   nested historical worktree journal. This is not a clean current-source scan. The shared manager
   presently blocks another normal scan because a separate unmanaged Aegis process is active and
