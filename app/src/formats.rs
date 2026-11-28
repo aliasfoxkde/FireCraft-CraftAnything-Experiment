@@ -9,6 +9,8 @@ use std::path::Path;
 
 #[path = "formats/raster_effects.rs"]
 mod raster_effects;
+#[path = "formats/raster_shapes.rs"]
+mod raster_shapes;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Format {
@@ -28,6 +30,36 @@ pub enum Format {
 }
 
 impl Format {
+    /// Resolves a filename extension for an actual output operation.
+    ///
+    /// `from_path` intentionally defaults to PNG for UI display when a filename is empty. A save
+    /// operation must not inherit that fallback, because an unknown extension would otherwise
+    /// silently write PNG data under a misleading filename.
+    pub fn from_output_path(path: &Path) -> Result<Format, String> {
+        let ext = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_ascii_lowercase();
+        let format = match ext.as_str() {
+            "png" => Format::Png,
+            "jpg" | "jpeg" | "jpe" => Format::Jpeg,
+            "gif" => Format::Gif,
+            "webp" => Format::WebP,
+            "tif" | "tiff" => Format::Tiff,
+            "bmp" => Format::Bmp,
+            "ico" => Format::Ico,
+            "svg" => Format::Svg,
+            "html" | "htm" => Format::Html,
+            "avif" | "avifs" => Format::Avif,
+            "heic" | "heif" => Format::Heic,
+            "psd" | "psb" => Format::Psd,
+            "ai" => Format::Ai,
+            _ => return Err(format!("Unsupported output extension: .{ext}")),
+        };
+        Ok(format)
+    }
+
     pub fn from_path(path: &Path) -> Format {
         let ext = path
             .extension()
@@ -94,20 +126,44 @@ impl Format {
 }
 
 pub fn open(path: &Path) -> Result<Document, String> {
-    let format = Format::from_path(path);
+    if Format::from_path(path) == Format::Svg {
+        return open_svg(path);
+    }
+    let bytes = std::fs::read(path).map_err(|e| format!("Could not read the file: {e}"))?;
+    open_bytes(path, &bytes)
+}
+
+/// Opens an image or FireCraft document supplied by a host, such as the browser file picker.
+pub fn open_bytes(name: &Path, bytes: &[u8]) -> Result<Document, String> {
+    let format = Format::from_path(name);
     match format {
-        Format::Svg => open_svg(path),
+        Format::Svg => {
+            let text = std::str::from_utf8(bytes)
+                .map_err(|e| format!("Could not read the SVG text: {e}"))?;
+            let mut doc = parse_svg_str(text);
+            doc.name = name
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("Vector.svg")
+                .to_string();
+            doc.file_path = None;
+            doc.dirty = false;
+            Ok(doc)
+        }
         Format::Avif | Format::Heic | Format::Psd | Format::Ai => Err(format!(
             "{} files need a format bridge decoder. Export to PNG or SVG from the source application and open that instead.",
             format.label()
         )),
-        _ => open_raster(path),
+        _ => {
+            let mut doc = open_raster_bytes(name, bytes)?;
+            doc.file_path = None;
+            Ok(doc)
+        }
     }
 }
 
-fn open_raster(path: &Path) -> Result<Document, String> {
-    let bytes = std::fs::read(path).map_err(|e| format!("Could not read the file: {e}"))?;
-    if let Some(payload) = extract_firecraft_payload(&bytes)
+fn open_raster_bytes(path: &Path, bytes: &[u8]) -> Result<Document, String> {
+    if let Some(payload) = extract_firecraft_payload(bytes)
         && let Ok(mut doc) = serde_json::from_slice::<Document>(&payload)
     {
         doc.file_path = Some(path.to_path_buf());
@@ -120,7 +176,8 @@ fn open_raster(path: &Path) -> Result<Document, String> {
         doc.current_page = doc.current_page.min(doc.pages.len().saturating_sub(1));
         return Ok(doc);
     }
-    let img = image::open(path).map_err(|e| format!("Could not read the image: {e}"))?;
+    let img =
+        image::load_from_memory(bytes).map_err(|e| format!("Could not read the image: {e}"))?;
     let rgba = img.to_rgba8();
     let (w, h) = rgba.dimensions();
     let mut doc = Document::new(w as f32, h as f32);
@@ -965,7 +1022,16 @@ fn draw_obj_content(img: &mut image::RgbaImage, obj: &Obj, alpha: u8) {
             angle_rad,
         } => {
             let pts = Obj::polygon_vertices(*center, *radius, *sides, *star_inner, *angle_rad);
-            if let Some(c) = obj.stroke.or(obj.fill) {
+            if obj.gradient.is_some() || obj.fill.is_some() {
+                raster_shapes::fill_simple_polygon(img, &pts, |x, y| match obj.gradient {
+                    Some(g) => gradient_color(g, x as f32, y as f32),
+                    None => {
+                        let c = obj.fill.expect("checked above");
+                        image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha])
+                    }
+                });
+            }
+            if let Some(c) = obj.stroke {
                 let color = image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha]);
                 for i in 0..pts.len() {
                     draw_line_px(img, to_px(pts[i]), to_px(pts[(i + 1) % pts.len()]), color);
@@ -973,7 +1039,16 @@ fn draw_obj_content(img: &mut image::RgbaImage, obj: &Obj, alpha: u8) {
             }
         }
         Shape::Path { points, closed } => {
-            if let Some(c) = obj.stroke.or(obj.fill) {
+            if *closed && (obj.gradient.is_some() || obj.fill.is_some()) {
+                raster_shapes::fill_simple_polygon(img, points, |x, y| match obj.gradient {
+                    Some(g) => gradient_color(g, x as f32, y as f32),
+                    None => {
+                        let c = obj.fill.expect("checked above");
+                        image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha])
+                    }
+                });
+            }
+            if let Some(c) = obj.stroke {
                 let color = image::Rgba::<u8>([c.r(), c.g(), c.b(), alpha]);
                 for w in points.windows(2) {
                     draw_line_px(img, to_px(w[0]), to_px(w[1]), color);
@@ -1139,7 +1214,13 @@ fn blend(dst: image::Rgba<u8>, src: image::Rgba<u8>) -> image::Rgba<u8> {
 
 /// Saves the document in the format implied by the path.
 pub fn save(doc: &Document, path: &Path) -> Result<(), String> {
-    let format = Format::from_path(path);
+    let bytes = save_bytes(doc, path)?;
+    std::fs::write(path, bytes).map_err(|e| format!("Could not write the file: {e}"))
+}
+
+/// Encodes a document without touching the filesystem. Used by browser downloads and tests.
+pub fn save_bytes(doc: &Document, path: &Path) -> Result<Vec<u8>, String> {
+    let format = Format::from_output_path(path)?;
     if !format.writeable() {
         return Err(format!(
             "FireCraft cannot write {} directly. Choose PNG, JPEG, WebP, TIFF, GIF, BMP, ICO, SVG or HTML.",
@@ -1147,10 +1228,8 @@ pub fn save(doc: &Document, path: &Path) -> Result<(), String> {
         ));
     }
     match format {
-        Format::Svg => std::fs::write(path, export_svg(doc))
-            .map_err(|e| format!("Could not write the file: {e}")),
-        Format::Html => std::fs::write(path, export_html(doc))
-            .map_err(|e| format!("Could not write the file: {e}")),
+        Format::Svg => Ok(export_svg(doc).into_bytes()),
+        Format::Html => Ok(export_html(doc).into_bytes()),
         _ => {
             let img = rasterize(doc);
             // ICO entries are limited to 256x256; scale down instead of failing on a normal page.
@@ -1163,11 +1242,32 @@ pub fn save(doc: &Document, path: &Path) -> Result<(), String> {
                 img
             };
             let dyn_img = image::DynamicImage::ImageRgba8(img);
-            let result = match format {
-                Format::Jpeg | Format::Bmp => dyn_img.to_rgb8().save(path),
-                _ => dyn_img.to_rgba8().save(path),
+            let image_format = match format {
+                Format::Png => image::ImageFormat::Png,
+                Format::Jpeg => image::ImageFormat::Jpeg,
+                Format::Gif => image::ImageFormat::Gif,
+                Format::WebP => image::ImageFormat::WebP,
+                Format::Tiff => image::ImageFormat::Tiff,
+                Format::Bmp => image::ImageFormat::Bmp,
+                Format::Ico => image::ImageFormat::Ico,
+                Format::Svg
+                | Format::Html
+                | Format::Avif
+                | Format::Heic
+                | Format::Psd
+                | Format::Ai => {
+                    unreachable!("non-raster format handled above")
+                }
             };
-            result.map_err(|e| format!("Could not write the file: {e}"))?;
+            let mut output = std::io::Cursor::new(Vec::new());
+            let raster = match format {
+                Format::Jpeg | Format::Bmp => image::DynamicImage::ImageRgb8(dyn_img.to_rgb8()),
+                _ => image::DynamicImage::ImageRgba8(dyn_img.to_rgba8()),
+            };
+            raster
+                .write_to(&mut output, image_format)
+                .map_err(|e| format!("Could not encode the file: {e}"))?;
+            let mut bytes = output.into_inner();
             // A `.fw.png` is a normal page-bounded PNG plus an embedded, versioned project
             // payload. Reopening it restores layers, states, symbols, styles, and objects that
             // sit outside the visible page bounds.
@@ -1178,9 +1278,9 @@ pub fn save(doc: &Document, path: &Path) -> Result<(), String> {
             if is_layered_png && format == Format::Png {
                 let json = serde_json::to_vec(doc)
                     .map_err(|e| format!("Could not encode layered project: {e}"))?;
-                embed_firecraft_payload(path, &json)?;
+                bytes = embed_firecraft_payload_bytes(&bytes, &json)?;
             }
-            Ok(())
+            Ok(bytes)
         }
     }
 }
@@ -1200,8 +1300,7 @@ fn crc32(bytes: &[u8]) -> u32 {
 }
 
 /// Appends an iTXt chunk before IEND without disturbing the image data.
-fn embed_firecraft_payload(path: &Path, payload: &[u8]) -> Result<(), String> {
-    let png = std::fs::read(path).map_err(|e| format!("Could not re-read PNG: {e}"))?;
+fn embed_firecraft_payload_bytes(png: &[u8], payload: &[u8]) -> Result<Vec<u8>, String> {
     if png.len() < 8 || &png[..8] != b"\x89PNG\r\n\x1a\n" {
         return Err("Layered save expected a PNG file".to_string());
     }
@@ -1242,7 +1341,7 @@ fn embed_firecraft_payload(path: &Path, payload: &[u8]) -> Result<(), String> {
     out.extend_from_slice(&png[..insert_at]);
     out.extend_from_slice(&chunk);
     out.extend_from_slice(&png[insert_at..]);
-    std::fs::write(path, out).map_err(|e| format!("Could not write layered PNG: {e}"))
+    Ok(out)
 }
 
 fn extract_firecraft_payload(png: &[u8]) -> Option<Vec<u8>> {
@@ -1704,6 +1803,51 @@ mod tests {
         let (lo, _) = obj.bounds().expect("bounds");
         assert!(lo.x >= 200.0);
         let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn browser_safe_bytes_preserve_layered_documents_and_decode_svg() {
+        let mut source = Document::new(64.0, 48.0);
+        source.page_mut().layers[0].objects.push(Obj::new(
+            Shape::Rect {
+                min: Vec2::new(200.0, 200.0),
+                max: Vec2::new(260.0, 240.0),
+                corner_radius: 0.0,
+                filled: true,
+            },
+            Some(Color32::from_rgb(12, 34, 56)),
+            None,
+        ));
+        let project_path = Path::new("scene.fw.png");
+        let project_bytes = save_bytes(&source, project_path).expect("encode layered project");
+        let loaded = open_bytes(project_path, &project_bytes).expect("decode layered project");
+        assert_eq!(loaded.page().layers[0].objects.len(), 1);
+        assert!(loaded.file_path.is_none());
+        assert!(!loaded.dirty);
+
+        let svg_path = Path::new("shape.svg");
+        let svg_bytes = save_bytes(&source, svg_path).expect("encode svg");
+        let svg = open_bytes(svg_path, &svg_bytes).expect("decode svg");
+        assert!(!svg.page().layers[0].objects.is_empty());
+        assert_eq!(svg.name, "shape.svg");
+    }
+
+    #[test]
+    fn output_format_rejects_unknown_and_missing_extensions() {
+        assert!(
+            Format::from_output_path(Path::new("artwork.xyz"))
+                .unwrap_err()
+                .contains("Unsupported output extension: .xyz")
+        );
+        assert!(
+            Format::from_output_path(Path::new("artwork"))
+                .unwrap_err()
+                .contains("Unsupported output extension")
+        );
+        assert_eq!(
+            Format::from_output_path(Path::new("artwork.JPEG")).unwrap(),
+            Format::Jpeg
+        );
     }
 
     #[test]

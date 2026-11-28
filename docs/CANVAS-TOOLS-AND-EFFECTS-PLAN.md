@@ -34,6 +34,12 @@ minimal parameter row is a complete raster/vector engine.
   shared edges could expose background seams/spokes. It now uses one shared-edge triangle mesh.
   Selection rectangles/handles are now limited to selection/transform tools, avoiding an extra
   transform box while a shape tool is active.
+- Closed `Path` and `Polygon` objects previously rendered their fill in the editor and SVG but were
+  exported to PNG as outlines only. Raster export now fills valid simple contours by scanline after
+  applying the shared path triangulation validation, and samples the object's gradient on that fill.
+  A real Chromium create/edit/undo/redo/save/reopen/export run confirmed the orange fill survives in
+  PNG. Wider shape/effect parity and native Windows/macOS acceptance remain open; see the
+  [browser workflow receipt](testing/browser-path-workflow-2026-11-28.md).
 - `GradientFill` currently contains two colors and vertical-only rendering. The separate
   `Shape::Gradient` contains two colors and a radial boolean but lacks arbitrary stops and a
   draggable direction handle. Task 37.3 specifies the schema/interaction work before changing

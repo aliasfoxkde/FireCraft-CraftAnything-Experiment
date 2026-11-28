@@ -2,6 +2,60 @@
 
 Newest first.
 
+## 2026-11-28 — Pen path keyboard edit and raster export fixed with browser proof
+
+- Drove the exact local WASM bundle in headed Chromium on Fedora/Xvfb: created and closed a filled
+  triangle with Pen, selected and dragged an anchor, used Ctrl+Z/Ctrl+Y, saved and reopened the
+  editable `.fw.png`, and exported a PNG. The reopened document retained the Path; the exported
+  1920×1080 PNG contains the expected orange fill at `(1000, 500)`. No page or app console errors.
+- The real workflow exposed two defects. Ctrl+Z selected Zoom and left the moved anchor in place
+  because shortcuts used frame-level modifiers instead of the key event's modifier flags. Raster
+  export drew only the outlines for closed Paths and Polygon shapes. Added regressions that failed
+  before each fix; dispatch now reads per-event modifiers, and raster export scanline-fills contours
+  accepted by the same simple-polygon validator used by canvas rendering. Concave notch and gradient
+  fill tests also pass.
+- Exact-bundle receipts and unaltered screenshots: [browser path workflow](testing/browser-path-workflow-2026-11-28.md).
+  Native Windows/macOS, compound path limits, and other zoom/DPI variants remain open; this is not
+  full Fireworks parity or a public release.
+- Validation: 221 unit passed, one existing timing test ignored, 12 CLI, 5 hygiene, and 10 MCP
+  passed; strict Clippy and rustfmt passed. Release WASM build and Chromium path/edit/undo/redo/
+  save/reopen/export passed. The existing wasm-bindgen stripped-`target_features` warning remains.
+
+## 2026-11-28 — Browser file I/O verified and dialog clipping fixed
+
+- Reproduced the file dialog's clipped desktop controls in the app layout and fixed the address
+  field sizing so Go stays visible. Added layout regression coverage at three window sizes. The
+  WebAssembly Save/Export form now uses a compact layout without an unusable empty folder browser.
+- The complete CLI suite exposed another real defect: saving `artwork.xyz` silently wrote PNG
+  bytes. Output format resolution now rejects unknown or missing extensions instead of applying
+  the UI's PNG display default.
+- Implemented browser-native Open/Import with byte-based decoding and browser Save/Export downloads.
+  Actual Chromium automation selected an SVG, imported a PNG, saved a layered `.fw.png`, reopened
+  that downloaded file with all three objects intact, and exported a valid PNG. Full evidence and
+  build hashes are in the
+  [browser workflow receipt](testing/browser-file-workflow-2026-11-28.md).
+- Validation before the extension-validation correction: 216 unit tests passed, 12 CLI tests
+  exposed the unsupported-extension bug, then 5 hygiene and 10 MCP tests passed. After adding the
+  regression, the complete run passed 217 unit tests, 12 CLI tests, 5 hygiene tests, and 10 MCP
+  tests (1 existing ignored timing test). Strict all-target/all-feature Clippy, `wasm32-unknown-
+  unknown` check, and release WASM build passed on the corrected source. Chromium reran the full
+  file round-trip against that exact bundle and also verified Open and Save As at 1024×600, with no
+  application JavaScript/page errors.
+- The native Fedora debug app was also exercised under Xvfb at 800×500: full-path Go opened the
+  actual repository favicon, Save As wrote a layered `.fw.png`, and Open restored that file. The
+  screenshots, binary hash, and output checksum are in the same receipt.
+- The current WASM candidate also passed real Chromium Clipboard API → Ctrl+V insertion: one actual
+  clipboard image file became a selected 128×128 Bitmap layer, with a visible success status and
+  no page/app errors. Before/after captures and precise limits are recorded in the
+  [clipboard workflow receipt](testing/browser-clipboard-workflow-2026-11-28.md).
+- Four consecutive Tab presses also toggled Full Screen Canvas and restored the workspace twice in
+  Chromium with no mouse click; the canvas remained active. Repeated-state screenshot comparisons
+  were pixel-identical. See the [Tab workflow receipt](testing/browser-tab-canvas-mode-2026-11-28.md).
+- Scope is deliberately limited: this does not sign off desktop path/overwrite behavior, OS picker
+  appearance, native drag-and-drop, browser cancellation/large-file handling, other browsers,
+  native Windows/macOS behavior, or a public deployment. PR #65 carries this work; its checks are
+  rerunning after the native Fedora evidence update. The tested bundle is not a release.
+
 ## 2026-11-28 — compact Tools rail footer in review
 
 - Reworked the pinned footer so a 32px collapsed rail exposes color/view actions through an

@@ -836,6 +836,41 @@ mod tests {
         );
     }
 
+    #[test]
+    fn shortcut_dispatch_uses_modifiers_from_the_key_event() {
+        let mut harness = Harness::new();
+        harness.app.show_welcome = false;
+        harness.frame(1360.0, 860.0, Vec::new());
+        harness.app.set_tool(crate::app::Tool::Subselect);
+        harness.app.push_undo("Shortcut regression");
+        let undo_before = harness.app.undo.len();
+
+        // Some browser frames deliver the key event before the frame-level modifier snapshot
+        // catches up. The key event itself still carries the correct Ctrl state.
+        harness.frame(
+            1360.0,
+            860.0,
+            vec![egui::Event::Key {
+                key: Key::Z,
+                physical_key: Some(Key::Z),
+                pressed: true,
+                repeat: false,
+                modifiers: Modifiers::CTRL,
+            }],
+        );
+
+        assert_eq!(
+            harness.app.undo.len(),
+            undo_before - 1,
+            "Ctrl+Z from the key event should execute Undo"
+        );
+        assert_eq!(
+            harness.app.tool,
+            crate::app::Tool::Subselect,
+            "Ctrl+Z must not fall through to the unmodified Z tool shortcut"
+        );
+    }
+
     fn press(harness: &mut Harness, w: f32, h: f32, key: Key, mods: Modifiers) {
         harness.frame(w, h, vec![egui::Event::ModifiersChanged(mods)]);
         harness.frame(

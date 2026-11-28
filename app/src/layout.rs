@@ -24,6 +24,10 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
     for payload in crate::take_browser_pastes() {
         app.paste_with_text(Some(&payload));
     }
+    #[cfg(target_arch = "wasm32")]
+    for (mode, name, bytes) in crate::take_browser_files() {
+        let _ = app.open_browser_file(mode, &name, &bytes);
+    }
     if app.logo_tex.is_none() {
         app.logo_tex = FireCraft::load_logo(&ctx);
     }
@@ -1782,8 +1786,6 @@ fn shortcuts_with_deferred_close(ui: &mut Ui, app: &mut FireCraft, defer_close: 
         }
         return false;
     }
-    let (ctrl, shift, alt) = ui.input(|i| (i.modifiers.ctrl, i.modifiers.shift, i.modifiers.alt));
-    let step = if shift { 10.0 } else { 1.0 };
     let menu_open = app.active_menu.is_some();
     let mut action = None;
     ui.input(|i| {
@@ -1802,8 +1804,16 @@ fn shortcuts_with_deferred_close(ui: &mut Ui, app: &mut FireCraft, defer_close: 
                     break;
                 }
                 egui::Event::Key {
-                    key, pressed: true, ..
+                    key,
+                    pressed: true,
+                    modifiers,
+                    ..
                 } => {
+                    let ctrl = modifiers.ctrl;
+                    let shift = modifiers.shift;
+                    let alt = modifiers.alt;
+                    let step = if shift { 10.0 } else { 1.0 };
+
                     // 1. Alt+Letter Menu Bar Mnemonics (Alt+F, Alt+E, Alt+V, Alt+S, Alt+M, Alt+T, Alt+C, Alt+L/I, Alt+W, Alt+H)
                     if alt && !ctrl && !shift {
                         let mnemonic_menu = match key {
