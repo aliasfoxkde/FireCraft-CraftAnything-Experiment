@@ -1,0 +1,99 @@
+---
+name: Refresh GitHub Pages documentation
+
+on:  # yamllint disable-line rule:truthy
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: >-
+          Exact published tag whose WebAssembly app stays at the Pages root
+          (for example v0.3.8)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Rebuild docs beside the published editor
+    runs-on: ubuntu-22.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: main
+      - name: Fetch and verify the exact release WebAssembly bundle
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Expected a release tag like v0.3.8" >&2
+            exit 1
+          fi
+          version="${RELEASE_TAG#v}"
+          test "$version" = "$(scripts/version.sh)"
+          published_tag="$(gh release view "$RELEASE_TAG" \
+            --json tagName,isDraft,isPrerelease \
+            --jq 'select(.isDraft == false and .isPrerelease == false) | .tagName')"
+          test "$published_tag" = "$RELEASE_TAG"
+          mkdir -p "$RUNNER_TEMP/firecraft-release" app/dist/wasm
+          gh release download "$RELEASE_TAG" \
+            --pattern "firecraft-v${version}-wasm32-web.zip" \
+            --pattern SOURCE-SHA.txt \
+            --pattern SHA256SUMS.txt \
+            --dir "$RUNNER_TEMP/firecraft-release"
+          wasm_zip="firecraft-v${version}-wasm32-web.zip"
+          expected_zip_sha="$(awk -v name="$wasm_zip" '$2 == name { print $1 }' \
+            "$RUNNER_TEMP/firecraft-release/SHA256SUMS.txt")"
+          test -n "$expected_zip_sha"
+          printf '%s  %s\n' "$expected_zip_sha" \
+            "$RUNNER_TEMP/firecraft-release/$wasm_zip" | sha256sum --check
+          unzip -q "$RUNNER_TEMP/firecraft-release/$wasm_zip" \
+            -d app/dist/wasm
+          expected_sha="$(cat "$RUNNER_TEMP/firecraft-release/SOURCE-SHA.txt")"
+          grep -Fx "FireCraft $version" app/dist/wasm/BUILD-INFO.txt
+          grep -Fx "source: $expected_sha" app/dist/wasm/BUILD-INFO.txt
+          test -s app/dist/wasm/firecraft.js
+          test -s app/dist/wasm/firecraft_bg.wasm
+      - name: Rebuild documentation from current main
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/firecraft-docs-build"
+          "$RUNNER_TEMP/firecraft-docs-build/bin/python" -m pip install \
+            --disable-pip-version-check --requirement docs/site/requirements.txt
+          "$RUNNER_TEMP/firecraft-docs-build/bin/python" docs/site/build.py \
+            --output app/dist/wasm/documentation
+          test -s app/dist/wasm/documentation/index.html
+          test -s app/dist/wasm/documentation/catalog.json
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9  # v5.0.0
+        with:
+          path: app/dist/wasm
+      - uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e  # v4
+        id: deployment
+      - name: Verify the deployed editor and refreshed documentation
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          base="${PAGE_URL%/}"
+          version="${RELEASE_TAG#v}"
+          marker="$(curl --fail --silent --show-error "$base/BUILD-INFO.txt")"
+          grep -Fx "FireCraft $version" <<<"$marker"
+          for path in / /firecraft.js /firecraft_bg.wasm \
+            /documentation/ /documentation/catalog.json; do
+            curl --fail --silent --show-error --output /dev/null "$base$path"
+          done
