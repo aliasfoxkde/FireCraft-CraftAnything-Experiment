@@ -2455,6 +2455,98 @@ mod tests {
         rendered
     }
 
+    fn mesh_covers_point(mesh: &egui::Mesh, point: Pos2) -> bool {
+        mesh.indices.chunks_exact(3).any(|triangle| {
+            let a = mesh.vertices[triangle[0] as usize].pos;
+            let b = mesh.vertices[triangle[1] as usize].pos;
+            let c = mesh.vertices[triangle[2] as usize].pos;
+            let ab = (b - a).cross(point - a);
+            let bc = (c - b).cross(point - b);
+            let ca = (a - c).cross(point - c);
+            (ab >= -0.001 && bc >= -0.001 && ca >= -0.001)
+                || (ab <= 0.001 && bc <= 0.001 && ca <= 0.001)
+        })
+    }
+
+    fn rendered_path_fill_mesh(object: Obj) -> egui::Mesh {
+        let mut app = app_with_objects(vec![object.clone()]);
+        let ctx = app.ctx.clone();
+        let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
+            draw_obj(
+                ui.painter(),
+                &mut app,
+                &object,
+                Vec2::ZERO,
+                1.0,
+                1.0,
+                (0, 0),
+                false,
+            );
+        });
+        let mesh = output
+            .shapes
+            .iter()
+            .find_map(|clipped| match &clipped.shape {
+                egui::Shape::Mesh(mesh) => Some(mesh.clone()),
+                _ => None,
+            })
+            .expect("closed paths with fills should render as a triangulated mesh");
+        output.textures_delta.clear();
+        mesh
+    }
+
+    fn concave_l_path(gradient: Option<GradientFill>) -> Obj {
+        let mut object = Obj::new(
+            Shape::Path {
+                points: vec![
+                    Vec2::new(10.0, 10.0),
+                    Vec2::new(50.0, 10.0),
+                    Vec2::new(50.0, 20.0),
+                    Vec2::new(20.0, 20.0),
+                    Vec2::new(20.0, 50.0),
+                    Vec2::new(10.0, 50.0),
+                ],
+                closed: true,
+            },
+            Some(Color32::from_rgb(230, 110, 30)),
+            Some(Color32::BLACK),
+        );
+        object.gradient = gradient;
+        object
+    }
+
+    #[test]
+    fn concave_closed_path_solid_fill_leaves_the_notch_unpainted() {
+        let mesh = rendered_path_fill_mesh(concave_l_path(None));
+        assert!(mesh_covers_point(&mesh, pos2(15.0, 15.0)));
+        assert!(
+            !mesh_covers_point(&mesh, pos2(40.0, 40.0)),
+            "the concave notch must remain transparent instead of being filled by a convex hull"
+        );
+    }
+
+    #[test]
+    fn concave_closed_path_gradient_leaves_the_notch_unpainted() {
+        let gradient = GradientFill::new(Color32::BLACK, Color32::WHITE);
+        let mesh = rendered_path_fill_mesh(concave_l_path(Some(gradient)));
+        assert!(mesh_covers_point(&mesh, pos2(15.0, 15.0)));
+        assert!(
+            !mesh_covers_point(&mesh, pos2(40.0, 40.0)),
+            "gradient triangles must follow the path contour and leave its notch transparent"
+        );
+    }
+
+    #[test]
+    fn concave_closed_path_hit_testing_ignores_the_empty_notch() {
+        let app = app_with_objects(vec![concave_l_path(None)]);
+        assert_eq!(hit_test(&app, Vec2::new(15.0, 15.0)), Some((0, 0)));
+        assert_eq!(
+            hit_test(&app, Vec2::new(40.0, 40.0)),
+            None,
+            "path hit testing must respect the contour instead of its rectangular bounds"
+        );
+    }
+
     #[test]
     fn coordinate_conversion_and_resize_handle_order_are_stable() {
         assert_eq!(
