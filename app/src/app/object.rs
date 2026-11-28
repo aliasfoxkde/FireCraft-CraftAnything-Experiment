@@ -833,7 +833,7 @@ impl FireCraft {
             self.status = "Select a path and anchor point first".to_string();
             return;
         };
-        let Shape::Path { points, .. } = &obj.kind else {
+        let Shape::Path { points, closed } = &obj.kind else {
             self.status = "Convert the selection to a path first".to_string();
             return;
         };
@@ -845,9 +845,14 @@ impl FireCraft {
             self.status = "Click an anchor with Subselection, then choose Delete Point".to_string();
             return;
         }
-        let min_points = 3;
+        let min_points = if *closed { 3 } else { 2 };
         if points.len().saturating_sub(selected.len()) < min_points {
-            self.status = format!("A path needs at least {min_points} anchors");
+            let path_kind = if *closed {
+                "A closed path"
+            } else {
+                "An open path"
+            };
+            self.status = format!("{path_kind} needs at least {min_points} anchors");
             return;
         }
         self.push_undo("Delete Path Point");
@@ -1429,7 +1434,28 @@ mod tests {
     }
 
     #[test]
-    fn delete_point_keeps_minimum_triangle_and_join_closes_single_selection() {
+    fn delete_point_keeps_closed_path_triangle_minimum() {
+        let mut app = FireCraft::new(None);
+        app.push_object(Obj::new(
+            Shape::Path {
+                points: vec![Vec2::ZERO, Vec2::new(10.0, 0.0), Vec2::new(10.0, 10.0)],
+                closed: true,
+            },
+            None,
+            None,
+        ));
+        app.select_single(Some(0));
+        app.selected_path_nodes = vec![0];
+        app.delete_point_from_selected_path();
+        assert!(matches!(
+            &app.selected_object().unwrap().kind,
+            Shape::Path { points, closed: true } if points.len() == 3
+        ));
+        assert_eq!(app.status, "A closed path needs at least 3 anchors");
+    }
+
+    #[test]
+    fn join_closes_single_open_path_selection() {
         let mut app = FireCraft::new(None);
         app.push_object(Obj::new(
             Shape::Path {
@@ -1440,18 +1466,48 @@ mod tests {
             None,
         ));
         app.select_single(Some(0));
-        app.selected_path_nodes = vec![0];
-        app.delete_point_from_selected_path();
-        assert!(matches!(
-            &app.selected_object().unwrap().kind,
-            Shape::Path { points, closed: false } if points.len() == 3
-        ));
         app.combine_paths_op("join");
         assert!(matches!(
             &app.selected_object().unwrap().kind,
             Shape::Path { closed: true, .. }
         ));
         assert_eq!(app.status, "Closed path endpoints (Join)");
+    }
+
+    #[test]
+    fn open_path_can_be_reduced_to_two_anchors_and_undo_restores_it() {
+        let original = vec![
+            Vec2::new(2.0, 3.0),
+            Vec2::new(10.0, 12.0),
+            Vec2::new(30.0, 40.0),
+        ];
+        let mut app = FireCraft::new(None);
+        app.push_object(Obj::new(
+            Shape::Path {
+                points: original.clone(),
+                closed: false,
+            },
+            None,
+            None,
+        ));
+        app.select_single(Some(0));
+        app.selected_path_nodes = vec![1];
+
+        app.delete_point_from_selected_path();
+
+        assert!(matches!(
+            &app.selected_object().unwrap().kind,
+            Shape::Path { points, closed: false }
+                if points == &[original[0], original[2]]
+        ));
+        assert!(app.selected_path_nodes.is_empty());
+        assert_eq!(app.status, "Deleted 1 selected anchor(s)");
+
+        app.undo_action();
+        assert!(matches!(
+            &app.selected_object().unwrap().kind,
+            Shape::Path { points, closed: false } if points == &original
+        ));
     }
 
     #[test]

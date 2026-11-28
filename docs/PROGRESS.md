@@ -2,6 +2,26 @@
 
 Newest first.
 
+## 2026-11-28 — Documentation style refresh published
+
+- After PR #61 merged at `712e621`, the first manual Pages refresh could not discover its
+  uploaded artifact. A fresh workflow dispatch succeeded (`46112359722`). The public docs
+  index and catalog return HTTP 200, and the live `site.css` SHA-256 matches `docs/site/site.css`.
+- A fresh browser screenshot still timed out; publication is verified, updated visual appearance
+  is not screenshot-verified.
+
+## 2026-11-28 — Open-path anchor deletion
+
+- Reproduced the path editing defect with a failing test: Delete Point refused to remove one
+  anchor from a three-anchor open contour because it applied the closed-contour minimum of three.
+- Made the minimum closure-aware: open paths retain at least two anchors; closed paths retain at
+  least three. The regression checks node-selection cleanup, status, and undo restoring the exact
+  original points. Closed triangle protection and one-path Join are now separate tests.
+- Red regression failed before the fix and passed after it. Full validation then passed 210 unit
+  tests (1 existing timing test ignored), 12 CLI, 5 hygiene, and 10 MCP tests; strict Clippy and
+  rustfmt checks passed. Full path create/select/edit/save/reopen/export acceptance remains open
+  in task 48.4.
+
 ## 2026-11-28 — Documentation landing-page hook triage
 
 - Removed the hero eyebrow and featured-guides kicker, dropped Inter from the type stack,
