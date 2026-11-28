@@ -4,6 +4,25 @@ All notable changes to **FireCraft** are documented in this file.
 
 ## [Unreleased]
 
+## [0.3.9] — 2026-11-28
+
+Floating-canvas and startup interaction reliability update.
+
+### Fixed
+- Keep floated WebAssembly documents editable in a movable workspace canvas; docking or closing
+  returns the same edited document to the main workspace.
+- Route native floating-window pointer presses into the canvas and restore the active document from
+  its synchronized tab state, so edits survive the next parent frame and closing the child window.
+- Start the transparent splash fade when the editor first renders instead of using the browser page
+  time origin, which could consume the splash duration during slow WASM startup.
+- Keep Snap, Rulers, Grid, and Show All reachable in the compact 960×640 canvas footer.
+
+### Verified
+- Headed Chromium/Xvfb interaction verified WASM float, draw, undo/redo, drag, dock, and close.
+- Linux Xvfb/Openbox interaction verified native floating-window draw and edit retention after close.
+- Windows CI build/smoke and the full hosted release gates passed; Windows 11 GUI acceptance remains
+  reviewer-owned.
+
 ## [0.3.8] — 2026-11-28
 
 Documentation publishing and navigation update.

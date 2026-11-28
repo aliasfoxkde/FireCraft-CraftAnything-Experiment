@@ -21,13 +21,13 @@ remain grounded in this repository's code, tests, tasks and release receipts.
 
 ## Download and try FireCraft
 
-- **[Download the latest release — v0.3.8](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.8)**
+- **[Download the latest release — FireCraft v0.3.9](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.9)**
   for Windows, macOS, Linux, and WebAssembly. Linux packages include AppImage, DEB, and Flatpak.
-- **[Open the v0.3.8 Web app on GitHub Pages](https://aliasfoxkde.github.io/FireCraft-CraftAnything-Experiment/)**;
-  its served build marker matches source `9f1dbe1`.
+- **[Open the v0.3.9 Web app on GitHub Pages](https://aliasfoxkde.github.io/FireCraft-CraftAnything-Experiment/)**;
+  check the served `BUILD-INFO.txt` for its exact source revision.
 - **[Browse the hosted documentation site](https://aliasfoxkde.github.io/FireCraft-CraftAnything-Experiment/documentation/)** for a searchable guide index, tutorials, feature references, roadmap, and engineering notes.
-- **[Open the Cloudflare review preview — v0.3.8](https://wasm-review-v0-3-8.firecraft-web.pages.dev/)**.
-  Its served build marker also matches source `9f1dbe1`; the production marketing site remains a
+- **[Open the Cloudflare review preview — v0.3.9](https://wasm-review-v0-3-9.firecraft-web.pages.dev/)**.
+  Check the served build marker for its exact source; the production marketing site remains a
   separate deployment.
 - Explore the companion [ArtCraft WebOS demo](https://artcraft-webos.pages.dev/) or browse the
   [documentation and tutorials](docs/README.md).
@@ -39,7 +39,7 @@ provides searchable navigation, featured guides, article reading, and links to t
 [repository documentation map](docs/README.md) lists the source pages and groups them by purpose.
 
 - **Product and releases:** [roadmap](docs/PRODUCT_ROADMAP.md), [changelog](.github/CHANGELOG.md),
-  and [Windows 11 review checklist](docs/testing/windows-11-review-v0.3.8.md).
+  and [Windows 11 review checklist](docs/testing/windows-11-review-v0.3.9.md).
 - **Learn:** [tutorials](docs/tutorials/README.md) and [keybindings](docs/tutorials/keybindings.md).
 - **Feature guides:** [feature inventory](docs/features/README.md), [infinite canvas](docs/features/infinite-canvas.md),
   [Find & Replace](docs/features/find-replace.md), and [file browser](docs/features/file-browser.md).

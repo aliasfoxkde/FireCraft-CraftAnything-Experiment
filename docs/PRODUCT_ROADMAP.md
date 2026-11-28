@@ -52,12 +52,13 @@ Execution checkboxes remain exclusively in [TASKS.md](TASKS.md).
 
 The repository currently contains a Rust/egui desktop editor with a CS6-inspired shell, raster/vector tools, layers and panel groups, pages/states, styles/effects, import/export paths, layered `.fw.png` persistence, a command palette, keybinding/help material, an Intelligence panel, CLI/MCP surfaces, and a WebAssembly build path. See the [feature inventory](features/README.md), [tutorials](tutorials/README.md), and the dated [audit](AUDIT.md) for verified details and limitations.
 
-The latest published release is [v0.3.8](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.8),
-with Windows x86_64, universal macOS, Linux tar/DEB/AppImage/Flatpak, and WASM packages. Its exact
-source is `9f1dbe1350a6baa51e7775abcfb3b04989c15d84`. GitHub Pages serves the editor at `/` and the
-documentation portal at `/documentation/`. The matching [Cloudflare review preview](https://wasm-review-v0-3-8.firecraft-web.pages.dev/)
-serves the same release marker. Release publication does not certify native Windows 11 interactive
-acceptance, macOS signing/notarization, or production marketing-site deployment.
+The latest published release is [v0.3.9](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.9),
+with Windows x86_64, universal macOS, Linux tar/DEB/AppImage/Flatpak, and WASM packages. Read its
+`SOURCE-SHA.txt` and `BUILD-INFO.txt` for exact build identity. GitHub Pages serves the editor at `/`
+and the documentation portal at `/documentation/`. The matching
+[Cloudflare review preview](https://wasm-review-v0-3-9.firecraft-web.pages.dev/) serves the tagged
+WASM build. Release publication does not certify native Windows 11 interactive acceptance, macOS
+signing/notarization, or production marketing-site deployment.
 The older repository's feature and release history is still being audited; no unverified donor
 capability is included in the current product claims.
 

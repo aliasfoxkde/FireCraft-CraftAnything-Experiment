@@ -1,9 +1,9 @@
 [package]
 name = "firecraft"
-version = "0.3.8"
+version = "0.3.9"
 edition = "2024"
 license = "MIT"
-description = "FireCraft - Modern vector graphics editor, inspired by Adobe Fireworks CS6"
+description = "FireCraft - Open Source Raster and Vector Graphics Editor"
 
 [lints.rust]
 unsafe_code = "deny"

@@ -306,7 +306,7 @@ jobs:
             gh release upload "$TAG" release-assets/* --clobber
           else
             gh release create "$TAG" release-assets/* \
-              --title "$TAG" \
+              --title "FireCraft - Open Source Raster and Vector Graphics Editor $TAG" \
               --generate-notes \
               --verify-tag
           fi
