@@ -22,6 +22,10 @@ Newest first.
   WebGL/readback performance warnings. This is a local v0.3.8 review artifact, not a release or
   deployment. Native save/reopen, monitor drag/drop, multiple-window interactions, Windows/macOS,
   representative hardware performance, and broader product acceptance remain open.
+- PR #66 merged as `4da8530332dd6fb5e6c5d0bb82a5700d0198a672` after Gates, Pages, WASM, Windows
+  smoke, coverage, and CodeQL passed on exact head `781442ab810151367b281828a65b2fbe5afca180`.
+  GitHub deleted the feature ref; no PRs or issues remain open. The current Aegis scan is still
+  non-clean and its findings are recorded in [the audit](AUDIT-2026-11-28.md).
 
 ## 2026-11-28 — compact footer controls restored at 960×640
 
