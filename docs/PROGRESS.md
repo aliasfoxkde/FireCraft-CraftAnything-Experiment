@@ -25,6 +25,10 @@ Newest first.
 - The native Fedora debug app was also exercised under Xvfb at 800×500: full-path Go opened the
   actual repository favicon, Save As wrote a layered `.fw.png`, and Open restored that file. The
   screenshots, binary hash, and output checksum are in the same receipt.
+- The current WASM candidate also passed real Chromium Clipboard API → Ctrl+V insertion: one actual
+  clipboard image file became a selected 128×128 Bitmap layer, with a visible success status and
+  no page/app errors. Before/after captures and precise limits are recorded in the
+  [clipboard workflow receipt](testing/browser-clipboard-workflow-2026-11-28.md).
 - Scope is deliberately limited: this does not sign off desktop path/overwrite behavior, OS picker
   appearance, native drag-and-drop, browser cancellation/large-file handling, other browsers,
   native Windows/macOS behavior, or a public deployment. PR #65 carries this work; its checks are
