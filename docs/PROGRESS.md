@@ -22,10 +22,13 @@ Newest first.
   unknown` check, and release WASM build passed on the corrected source. Chromium reran the full
   file round-trip against that exact bundle and also verified Open and Save As at 1024×600, with no
   application JavaScript/page errors.
+- The native Fedora debug app was also exercised under Xvfb at 800×500: full-path Go opened the
+  actual repository favicon, Save As wrote a layered `.fw.png`, and Open restored that file. The
+  screenshots, binary hash, and output checksum are in the same receipt.
 - Scope is deliberately limited: this does not sign off desktop path/overwrite behavior, OS picker
   appearance, native drag-and-drop, browser cancellation/large-file handling, other browsers,
-  native platform behavior, or a public deployment. The working-tree patch is not yet committed;
-  this build is not a release.
+  native Windows/macOS behavior, or a public deployment. PR #65 carries this work; its checks are
+  rerunning after the native Fedora evidence update. The tested bundle is not a release.
 
 ## 2026-11-28 — compact Tools rail footer in review
 

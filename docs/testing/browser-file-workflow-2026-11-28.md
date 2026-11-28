@@ -15,6 +15,9 @@
   `a550193af6dd25d7985a3c427de70443d96bf6091194c6e4e7e27d2aa8c8390`; `index.html`
   `0c0d78a034f625dbeba1f5385d3ebbb3aa5710f3351726979c8fe8106f599d1a`.
 - Build manifest: `output/playwright/hill-climb-2026-11-28/current-main/BUILD-INFO.txt`.
+- Native desktop smoke build: Fedora Linux, Rust debug binary at commit
+  `7343543f2e17da458ee5b4175f99f15f8a04b0de`, SHA-256
+  `862a2de8ae1824c10959780f3970e917e2f1fa1b2a916350e98e30595a28bf8f`; Xvfb, software GL.
 
 ## Browser scenarios and results
 
@@ -40,6 +43,13 @@ page-error and application-console-error listeners remained empty during both fl
 7. **Drop-path probe:** A synthetic browser `DataTransfer` SVG drop created a rendered object. This
    only proves the application drop handler with a synthetic event; OS drag-and-drop is not proven.
 
+On the native Fedora build, the in-app Open dialog at 800×500 navigated by full-path Go to
+`app/favicon.png` and opened the 128×128 bitmap. Save As wrote
+`/var/tmp/fc-native-check-20261128/output/roundtrip.fw.png` (419,556 bytes); the output is a valid
+PNG containing the FireCraft layered-document payload. Opening that exact file showed
+`roundtrip.fw.png` as the active document. This verifies a Linux Xvfb interaction, not a native
+Windows/macOS desktop run.
+
 The file chooser in automation was supplied through Playwright's `FileChooser.setFiles`; this
 exercises the real browser input, FileReader, decoder, app state, and Blob download, but does not
 visually inspect the operating-system-owned picker itself.
@@ -56,6 +66,10 @@ Screenshots are unaltered Chromium captures from the tested bundle:
 - [Reopened layered project](evidence/file-dialog-wasm-2026-11-28/browser-reopen-layered.png)
 - [Browser Export form](evidence/file-dialog-wasm-2026-11-28/browser-export-form.png)
 - [Synthetic SVG drop probe](evidence/file-dialog-wasm-2026-11-28/browser-drop-svg.png)
+- [Linux desktop Open dialog at 800×500](evidence/file-dialog-wasm-2026-11-28/desktop-open-dialog-800x500.png)
+- [Linux desktop Save As dialog at 800×500](evidence/file-dialog-wasm-2026-11-28/desktop-save-dialog-800x500.png)
+- [Linux desktop Go navigation](evidence/file-dialog-wasm-2026-11-28/desktop-open-go-path.png)
+- [Layered file reopened in the Linux desktop app](evidence/file-dialog-wasm-2026-11-28/desktop-reopened-layered.png)
 
 The saved `.fw.png` and flattened export were validated from the downloaded bytes in the Playwright
 run; they remain in the ignored local review directory, not this documentation folder.
@@ -67,8 +81,9 @@ run; they remain in the ignored local review directory, not this documentation f
   discarded. The successful compact run used the documented Xvfb setup and is captured above.
 - Browser picker cancellation, malformed/empty files, very large files and memory pressure, multiple
   selection, permission restrictions, and browser download cancellation remain untested.
-- Desktop in-app folder navigation, overwrite decisions, path errors, keyboard-only use, high-DPI
-  scaling, and native Windows/macOS/Linux review remain open.
+- Linux in-app folder navigation, full-path Go, Open, Save As, and layered reopen passed under Xvfb
+  at 800×500. Overwrite decisions, invalid-path/error cases, keyboard-only use, high-DPI scaling,
+  and native Windows/macOS runs remain open.
 - The browser cannot write to an arbitrary user-selected path; Save/Export use the browser download
   policy. Browser Save does not attach a durable local path to the open document.
 - Drop-path evidence is synthetic and does not establish OS file drag-and-drop support.

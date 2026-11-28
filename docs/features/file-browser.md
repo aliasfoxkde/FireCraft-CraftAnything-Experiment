@@ -42,8 +42,9 @@ SVG. PSD, AI, AVIF, and HEIC require a format bridge and are not decoded by the 
 
 ## Known limits
 
-- Desktop folder browsing, overwrite prompts, path validation, and native OS picker parity need
-  interactive review on Windows, macOS, and Linux.
+- Linux in-app folder navigation, full-path Go, Open, Save As, and layered reopen passed under Xvfb
+  at 800×500. Overwrite decisions, invalid-path/error cases, keyboard-only use, high-DPI scaling,
+  and native Windows/macOS runs remain unverified.
 - Browser file selection, in-memory open/import, layered Save As, reopen, and PNG download were
   exercised in Chromium at 1360×860. Open and Save As were also exercised at 1024×600. The browser
   cancel path, large-file memory limits, browser drag/drop from the operating system, and other
