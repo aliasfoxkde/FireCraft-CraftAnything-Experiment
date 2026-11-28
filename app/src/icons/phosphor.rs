@@ -61,5 +61,9 @@ pub(super) fn glyph(icon: Icon) -> Option<&'static str> {
         Icon::StatePause => "\u{E39E}",
         Icon::StateNext => "\u{E13A}",
         Icon::StateLast => "\u{E5A6}",
+        Icon::Swap => "\u{E83C}",
+        Icon::SquareHalf => "\u{E462}",
+        Icon::DropSlash => "\u{E954}",
+        Icon::CornersOut => "\u{E1D0}",
     })
 }

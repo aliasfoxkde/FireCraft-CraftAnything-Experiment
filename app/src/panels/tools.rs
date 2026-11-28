@@ -545,6 +545,44 @@ pub fn tools_panel_footer(ui: &mut Ui, app: &mut FireCraft) {
         ],
         Stroke::new(1.0, p.stroke),
     );
+    let width = ui.available_width();
+    let compact = width < 48.0;
+    let narrow = width < 110.0;
+
+    if compact {
+        ui.menu_button("⋯", |ui| color_and_view_actions(ui, app));
+        return;
+    }
+
+    color_wells(ui, app, p);
+    if narrow {
+        ui.add_space(2.0);
+        ui.menu_button("Actions", |ui| color_and_view_actions(ui, app))
+            .response
+            .on_hover_text("Fill, stroke, and canvas actions");
+    } else {
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing = Vec2::new(2.0, 0.0);
+            for (icon, tip, action) in [
+                (icons::Icon::Swap, "Swap Fill & Stroke (X)", 0u8),
+                (icons::Icon::SquareHalf, "Default Colors (D)", 1),
+                (icons::Icon::DropSlash, "No Fill on Selection", 2),
+                (icons::Icon::CornersOut, "Full-Screen Canvas (Tab / F4)", 3),
+            ] {
+                let (rect, response) = ui.allocate_exact_size(Vec2::splat(20.0), Sense::click());
+                if response.hovered() {
+                    ui.painter().rect_filled(rect, 2.0, p.panel_alt);
+                }
+                icons::draw(ui.painter(), rect.shrink(1.0), icon, p.text, 1.1);
+                if response.on_hover_text(tip).clicked() {
+                    apply_color_view_action(app, action);
+                }
+            }
+        });
+    }
+}
+
+fn color_wells(ui: &mut Ui, app: &mut FireCraft, p: crate::theme::Palette) {
     let chip = 16.0f32;
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing = Vec2::new(3.0, 1.0);
@@ -580,26 +618,33 @@ pub fn tools_panel_footer(ui: &mut Ui, app: &mut FireCraft) {
         }
         fill_resp.on_hover_text("Fill Color — click to edit");
         stroke_resp.on_hover_text("Stroke Color — click to edit");
-
-        for (label, tip, action) in [
-            ("⇄", "Swap Fill & Stroke (X)", 0u8),
-            ("▣", "Default Colors (D)", 1),
-            ("⊘", "No Fill on Selection", 2),
-            ("⛶", "Full-Screen Canvas (Tab / F4)", 3),
-        ] {
-            if ui.small_button(label).on_hover_text(tip).clicked() {
-                match action {
-                    0 => std::mem::swap(&mut app.fill, &mut app.stroke),
-                    1 => {
-                        app.fill = Color32::WHITE;
-                        app.stroke = Color32::BLACK;
-                    }
-                    2 => app.set_selected_fill(None),
-                    _ => app.toggle_full_screen_canvas(),
-                }
-            }
-        }
     });
+}
+
+fn color_and_view_actions(ui: &mut Ui, app: &mut FireCraft) {
+    for (label, action) in [
+        ("Swap Fill & Stroke (X)", 0),
+        ("Default Colors (D)", 1),
+        ("No Fill on Selection", 2),
+        ("Full-Screen Canvas (Tab / F4)", 3),
+    ] {
+        if ui.button(label).clicked() {
+            apply_color_view_action(app, action);
+            ui.close();
+        }
+    }
+}
+
+fn apply_color_view_action(app: &mut FireCraft, action: u8) {
+    match action {
+        0 => std::mem::swap(&mut app.fill, &mut app.stroke),
+        1 => {
+            app.fill = Color32::WHITE;
+            app.stroke = Color32::BLACK;
+        }
+        2 => app.set_selected_fill(None),
+        _ => app.toggle_full_screen_canvas(),
+    }
 }
 
 impl FireCraft {
@@ -656,6 +701,64 @@ mod tests {
         );
         assert_eq!(section_title("COLORS", true), "CLR");
         assert_eq!(section_title("COLORS", false), "Colors");
+    }
+
+    #[test]
+    fn footer_controls_fit_the_collapsed_tools_rail() {
+        let ctx = egui::Context::default();
+        let mut app = FireCraft::new(None);
+        let width = 32.0;
+        let mut content_rect = Rect::NOTHING;
+        let mut output = ctx.run_ui(
+            egui::RawInput {
+                screen_rect: Some(Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    Vec2::new(width, 44.0),
+                )),
+                ..Default::default()
+            },
+            |ui| {
+                tools_panel_footer(ui, &mut app);
+                content_rect = ui.min_rect();
+            },
+        );
+        output.textures_delta.clear();
+
+        assert!(
+            content_rect.max.x <= width,
+            "collapsed footer content extends to x={} in a {}px rail",
+            content_rect.max.x,
+            width
+        );
+    }
+
+    #[test]
+    fn footer_actions_fit_the_narrow_expanded_tools_rail() {
+        let ctx = egui::Context::default();
+        let mut app = FireCraft::new(None);
+        let width = 82.0;
+        let mut content_rect = Rect::NOTHING;
+        let mut output = ctx.run_ui(
+            egui::RawInput {
+                screen_rect: Some(Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    Vec2::new(width, 70.0),
+                )),
+                ..Default::default()
+            },
+            |ui| {
+                tools_panel_footer(ui, &mut app);
+                content_rect = ui.min_rect();
+            },
+        );
+        output.textures_delta.clear();
+
+        assert!(
+            content_rect.max.x <= width,
+            "narrow footer content extends to x={} in a {}px rail",
+            content_rect.max.x,
+            width
+        );
     }
 
     #[test]

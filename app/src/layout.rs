@@ -1518,7 +1518,17 @@ fn right_dock(ui: &mut Ui, app: &mut FireCraft) {
 
 /// Scrolling tool sections plus an always-visible footer pinned to the bottom of the rail.
 fn tools_dock_contents(ui: &mut Ui, app: &mut FireCraft, scroll_id: &str) {
-    let footer_h = ui.available_height().min(30.0);
+    // The standard 30px footer fits a single-row color well. A narrow expanded
+    // rail needs a second row for its labeled action menu; a collapsed rail uses
+    // only the compact overflow menu and keeps the shorter footer.
+    let footer_min = if ui.available_width() < 48.0 {
+        30.0
+    } else if ui.available_width() < 110.0 {
+        54.0
+    } else {
+        30.0
+    };
+    let footer_h = ui.available_height().min(footer_min);
     let total_h = ui.available_height();
     let body_h = (total_h - footer_h).max(0.0);
     ui.allocate_ui_with_layout(
