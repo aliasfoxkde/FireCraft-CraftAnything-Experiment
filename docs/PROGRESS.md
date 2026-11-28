@@ -2,6 +2,33 @@
 
 Newest first.
 
+## 2026-11-28 — v0.3.8 release and documentation publication
+
+- PR #58 merged the documentation reader at `11968d419b3965c6db1b403fc7003f8994882126`; PR #59
+  prepared the release and merged at `9f1dbe1350a6baa51e7775abcfb3b04989c15d84`. All required PR
+  checks passed, including the documentation build, full gates, WASM, Windows smoke, coverage, and
+  CodeQL.
+- Release workflow [`46108296597`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/actions/runs/46108296597)
+  passed its quality gate and all platform builds. GitHub Release [`v0.3.8`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.8)
+  is published with Windows x86_64, universal macOS, Linux tar/AppImage/DEB/Flatpak, and WASM files,
+  plus the package/release manifests, source SHA, and checksums. Its exact release title is `v0.3.8`.
+- The same workflow successfully deployed the tag-built WebAssembly app to GitHub Pages and the
+  `wasm-review-v0-3-8` Cloudflare Pages branch. Both `BUILD-INFO.txt` files report version `0.3.8`
+  and source `9f1dbe1350a6baa51e7775abcfb3b04989c15d84`. GitHub Pages root, editor JS/WASM, docs
+  index/catalog, and Cloudflare root/docs returned HTTP 200. Live docs CSS/JS SHA-256 values match
+  the reviewed repository files. The prior desktop/mobile captures and interactive browser checks
+  were made against the same docs source; this session's direct headless screenshot attempt hung, so
+  no fresh deployed-page screenshot is claimed.
+- The enabled GitHub Wiki is live; a read-only clone at commit `935dc37` confirmed its Home, sidebar,
+  and footer point to the deployed reader, tutorials, feature guides, keybindings, roadmap, support,
+  releases, and contribution pages. The wiki URL returned HTTP 200.
+- Added the manual Pages documentation-refresh workflow in PR #60 so a docs-only completion update
+  can be deployed beside the exact published WASM bundle without another cross-platform rebuild.
+- GitHub currently has zero open PRs and zero open issues. The merged docs source branch was deleted
+  locally and from the GitForge project remote. Repository rules reject deletion of the merged
+  `release/prepare-v0.3.8` remote branch; its local branch was removed, and the protected remote ref
+  was preserved.
+
 ## 2026-11-28 — v0.3.8 documentation publication candidate
 
 - Prepared v0.3.8 metadata so the existing tag workflow can publish the merged documentation

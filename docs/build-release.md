@@ -114,7 +114,7 @@ This limitation is not equivalent to native macOS runtime acceptance.
 
 The WASM ZIP is built from the same tag and the workflow deploys that directory to GitHub Pages and
 to the existing `firecraft-web` Cloudflare Pages project under a versioned review branch such as
-`wasm-review-v0-3-6`. The Cloudflare job checks the release source marker, HTTP status, MIME type, and
+`wasm-review-v0-3-8`. The Cloudflare job checks the release source marker, HTTP status, MIME type, and
 byte-for-byte identity of the build marker, JavaScript, WASM, and favicon. This is a review deployment;
 it does not replace the production Pages branch. Each tag keeps a separate preview URL, so rollback
 for review is to share the prior accepted preview URL (for example, `wasm-review-v0-3-5`) while the
@@ -123,6 +123,15 @@ job uses [Cloudflare's Wrangler Pages deploy command](https://developers.cloudfl
 through the [official Wrangler GitHub Action](https://github.com/cloudflare/wrangler-action).
 Cloudflare marketing-site deployment is a separate task and is not implied by the Pages deploy.
 Artifact hashes and source-SHA metadata are verified before the GitHub Release is published.
+
+The tag workflow is the source of truth for the application and first documentation publication.
+After a documentation-only change merges, use the manual **Refresh GitHub Pages documentation**
+workflow with the matching published tag. It fetches and checksum-verifies that release's WASM ZIP,
+rebuilds `/documentation/` from current `main`, and deploys the combined artifact. The workflow
+rejects a draft, prerelease, invalid tag, or tag whose version does not match current `main`; it then
+checks the deployed build marker and application/documentation endpoints. This keeps the editor at
+`/` while allowing documentation corrections and publication receipts to go live without rebuilding
+the desktop binaries.
 
 ## Command-line surface
 
