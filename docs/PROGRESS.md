@@ -2,6 +2,18 @@
 
 Newest first.
 
+## 2026-11-28 — Documentation landing-page hook triage
+
+- Removed the hero eyebrow and featured-guides kicker, dropped Inter from the type stack,
+  and replaced the cream palette with a cool green-gray reading surface. Updated the design
+  brief to match the implementation.
+- Contrast spot checks after the color edits: muted copy is 7.22:1 on the page surface and
+  7.83:1 on cards; the orange display heading is 4.87:1. Documentation checks cover 76 files
+  and pass; whitespace check passes.
+- No hook findings were ignored. Fresh Chromium screenshot capture timed out, so visual
+  confirmation of this updated styling remains open; the previous screenshot is not treated
+  as evidence for these changes.
+
 ## 2026-11-28 — v0.3.8 release and documentation publication
 
 - PR #58 merged the documentation reader at `11968d419b3965c6db1b403fc7003f8994882126`; PR #59

@@ -4,7 +4,7 @@
 
 **THESIS:** Make the documentation feel like a well-indexed workshop manual: readers can enter through a task, a feature, or a reference page and keep their place while they follow the detail. The default documentation portal that is only a link list is refused.
 
-**OWN-WORLD:** Carry FireCraft's charcoal workspace and ember-orange action color into a quiet reading surface. Use crisp borders, restrained orange accents, legible system typography, and generous reading measure; content remains the visual focus.
+**OWN-WORLD:** Carry FireCraft's charcoal workspace and ember-orange action color into a cool, pale green-gray reading surface. Use crisp borders, restrained orange accents, the platform's system UI typeface, and generous reading measure; content remains the visual focus.
 
 **STORY:** A new user sees a small set of practical guides, chooses a route through the documentation, and opens complete articles without losing the navigation. Contributors can reach architecture, roadmap, workflow, and policy material from the same index.
 
