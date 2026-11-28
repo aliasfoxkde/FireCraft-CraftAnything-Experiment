@@ -2,6 +2,45 @@
 
 Newest first.
 
+## 2026-11-28 — current PR #57 and documentation-workflow status
+
+- Current PR head is `36df3ef746fc53253725aba3fcb6c96545061395` on
+  [`#57`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/57), based on
+  protected `main` at `cd881488f5a5804c1cdf17fa6f1d94b7b8b9aced`. The current head is
+  `38cc0e95e427b9b9a7a75d881d9ba0bcd1fa1a1d`; GitHub reports the PR open with a clean merge state.
+  Gates (fmt, strict Clippy, tests, docs, security, and WASM), Windows build/CLI smoke, Rust
+  coverage, and CodeQL pass for this exact head.
+- Exact-head Gates report 208 Rust tests passed, 0 failed, and 1 ignored; the CLI, hygiene, and MCP
+  suites report 12, 5, and 10 passing tests. Hosted Cobertura reports 19,710 / 27,638 lines =
+  **71.31%**; branch instrumentation is unavailable (0/0). The requested 99% target is unmet.
+- Exact-head Windows review ZIP:
+  `output/review-38cc0e9/firecraft-v0.3.7-windows-x86_64.zip`, SHA-256
+  `c2ae22e6e8c255326269e65e20803b211f321463cf8cb382e037dd0d01cc611f`. Its build source is
+  `c98aedebe99e6ffa72e7177543ad62460f085bb9`, with PR head `38cc0e9` and base `cd88148` as parents.
+  Windows CLI smoke passed; native Windows 11 launch/edit/save/export acceptance remains open.
+- GitForge run `84bc4e8d-eb9d-4fcb-91e1-be0406d32ab6` for this exact SHA is **running**. The
+  harness job-manager registry no longer has its job, but the live GitForge release gate still
+  reports the run as running; the gate has not passed. Do not use the previous `36df3ef` GitForge
+  receipt for this commit.
+- Managed Aegis scan `4c0e1457-b94f-4bf7-b88c-091048628395` is still queued. Earlier Atheon results
+  were non-clean and ran against a different geometry hash; no current-source clean scan is claimed.
+- The path-triangulation cache is committed in this PR head and passes hosted tests/Clippy. A focused
+  local Cargo run was refused by `host-build-lease` with exit 75 under CPU/I/O pressure; this is a
+  deferred local run, not a local pass.
+- The docs navigation uses labeled categories and links a stable workflow catalog, evidence form,
+  and tested-use process. This update makes the reuse contract explicit: one workflow definition
+  drives regression/UI tests, a build-specific receipt, reviewed screenshots, issue/task follow-up,
+  and tutorial/reference updates. Static `gui-suite.sh` captures are not interactive E2E coverage.
+  Native/browser clipboard, floating canvas, tools, full path editing, file dialogs, raster effects,
+  recovery, and accessibility remain partial or unverified.
+- Tools palette source review: collapsed mode uses a 40 px rail, 20 px icon cells, abbreviated
+  category bands, and a 12 px corner trigger region for each grouped-tool flyout. The actual compact
+  rail/flyout has no current screenshot or interaction receipt, so the reported label clipping and
+  targetability remain unverified; see TASKS 21.5.
+- GitHub inventory: PR #57 is the only open PR; no open issues. `main` and five historical release
+  refs remain protected. The source branch cannot be cleaned until merge; preserve the dirty v0.3.4
+  worktree and its evidence. This status is current as of 2026-11-28 03:10 UTC.
+
 ## 2026-11-28 — final local branch inventory
 
 - Removed the stale local `fix/aegis-macos-plist-dtd` branch after comparing its tree with `origin/main`: the plist hardening and regression test are already present from merged PR #51. No unique production or test changes were dropped.

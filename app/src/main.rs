@@ -11,6 +11,7 @@ mod demo;
 mod dialogs;
 mod doc;
 mod formats;
+mod geometry;
 #[cfg(test)]
 mod harness;
 mod icons;

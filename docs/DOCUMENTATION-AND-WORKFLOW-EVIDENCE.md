@@ -9,7 +9,7 @@ steps for the automated test, visual review, tutorial, feature reference, issue 
 notes.
 
 This is the process plan and the baseline audit. It does not claim that all workflows have been
-visually exercised. Current release and verification facts live in [the audit](AUDIT-2026-11-27.md),
+visually exercised. Current release and verification facts live in [the audit](AUDIT-2026-11-28.md),
 [the progress log](PROGRESS.md), and [the active task list](TASKS.md).
 
 ## Information architecture
@@ -45,7 +45,8 @@ reader could otherwise mistake a proposal for working behavior.
 This is a dated before-state, not a description of the current navigation. PR #53 replaced the
 task-phrase navigation with category links and updated the root README to v0.3.7. The Cloudflare
 review URL intentionally remains on v0.3.5 because the v0.3.7 deployment did not authenticate;
-see the current [audit](AUDIT-2026-11-27.md) and [active tasks](TASKS.md).
+see the [current audit](AUDIT-2026-11-28.md), the [historical audit](AUDIT-2026-11-27.md),
+and [active tasks](TASKS.md).
 
 - `docs/README.md` has a long “I want to…” table that mixes tutorials, research, audits, release
   checks, and architecture. It made the reader scan many unrelated rows; the table was replaced by
@@ -71,6 +72,53 @@ before the workflow system exists.
 
 For every user-visible feature change or tutorial, follow this loop. Keep the workflow ID stable
 across source tests, browser/desktop scripts, screenshots, docs, and bug reports.
+
+### One run, several useful outputs
+
+Treat a workflow ID as the join key for one scenario across the whole project. A workflow is not
+complete when its test passes: its evidence should be reusable by engineering, support, tutorials,
+feature reference, and release review. Keep these records connected rather than copying a test's
+steps into several independently maintained documents:
+
+| Record | Owns | Reuse rule |
+|---|---|---|
+| Workflow catalog row | Stable ID, user outcome, target surface, state, next acceptance | Update it when the current proof changes; do not invent a new ID because a script or page moved. |
+| Scenario definition | Preconditions, exact actions, assertions, expected states, recovery path | Drive both automated and manual runs from the same ordered scenario. Platform-only actions are explicit branches in the scenario. |
+| Focused test or UI automation | Deterministic behavior and regression assertions | Link the test name/command from the workflow row and receipt. Do not treat a screenshot assertion as a substitute for a model invariant. |
+| Run receipt and artifacts | Exact binary/source, platform, result, trace, logs, screenshots, reviewer | One receipt per build and surface. Store bulky traces in CI artifacts; keep durable, selected screenshots in `docs/assets/` with provenance. |
+| User documentation | Tested tutorial steps, expected result, limits, related references | Write from a passing receipt and reuse its captures. A failing run updates troubleshooting/tasks, not a “working” tutorial. |
+| Defect/task record | Failure reproduction, regression link, owner, remaining acceptance | Preserve the failing evidence, then link red/green tests and the passing rerun. Close only the acceptance actually proven. |
+
+The target automation output for Phase 46.5 is grouped by CI run, workflow ID, and surface, with a
+machine-readable manifest beside the trace, console log, and captured images. The manifest must
+point to the exact source SHA and artifact checksum; it must never infer a pass from a nonempty
+screenshots directory. This output convention is a planned harness contract, not an existing
+capability of `scripts/gui-suite.sh`.
+
+Use this promotion sequence for each catalog row:
+
+1. **Reproduce from the scenario definition.** Run the baseline artifact and save the failure,
+   environment, and exact user actions. If it already passes, preserve the fresh pass as its own
+   receipt; don't reuse an old screenshot as proof of a new build.
+2. **Turn the failure into a durable check.** Add the narrowest regression test for the broken
+   behavior, then UI automation when the defect is in input routing, focus, windowing, clipboard,
+   layout, or another user-visible transition. Keep native-only acceptance as a named manual
+   checklist.
+3. **Fix and rerun the same scenario.** The acceptance path must be identical before and after the
+   change. Save the red and green results; run the focused test first, then the relevant broader
+   gates. Record any part that could not run as pending rather than silently removing it.
+4. **Review the evidence once.** Confirm source/build identity, all assertions, image legibility,
+   focus, contrast, clipping, scale, and recovery behavior. A second reviewer checks consequential
+   UI changes or release documentation.
+5. **Publish from that pass.** Update the focused feature guide, tutorial, troubleshooting page,
+   keybinding/menu reference, task ledger, and release notes only where that workflow touches them.
+   Reuse the reviewed capture, alt text, exact steps, and known limitations from the receipt.
+6. **Reconcile status and release scope.** Update the catalog state and task checkbox only to the
+   level the receipt proves. At release time, rerun affected workflows against the release artifact
+   and link the receipt; do not inherit a pre-release pass as release acceptance.
+
+This avoids a common documentation failure: manually inventing tutorial steps from memory after a
+test run, while the code, screenshots, and instructions describe slightly different behavior.
 
 ### 1. Define the user scenario
 
@@ -195,3 +243,25 @@ A user-facing change is ready when:
 - accessibility and responsive/window-size checks are recorded for the touched interface;
 - docs links/checks and the relevant code/test gates pass; and
 - any unverified platform behavior is labeled as such.
+
+## Execution order for the current backlog
+
+The active catalog and task ledger are the work queue; this order keeps shared evidence useful and
+limits repeated test setup:
+
+1. **P0 interaction defects:** startup/focus, clipboard, floating canvas, tool rail/flyouts, path
+   editing, and file dialogs. Capture baseline failures before changing behavior and rerun the same
+   scenario against the candidate.
+2. **P1 data integrity and editing:** layer reorder/image identity, raster eraser, gradients,
+   filters, save/recovery, and update/changelog. Include undo/redo and save/reopen/export in the same
+   scenario where the behavior crosses those boundaries.
+3. **P2 access and learning:** keyboard-only paths, contrast/focus, responsive sizes, and real sample
+   projects. Reuse their successful run artifacts for screenshots and tutorial/reference pages.
+4. **Release documentation sweep:** validate README links, public feature claims, changelog entries,
+   download/demo URLs, workflow receipt links, version/source markers, and package screenshots on
+   the exact release source. Record omitted platform checks instead of carrying a green status from
+   another surface.
+
+Exit is measured by catalog rows with current receipts and docs links, not by the number of pages or
+screenshots produced. Phase 46 tasks in [`TASKS.md`](TASKS.md) track the implementation of this
+workflow and its progressive rollout.

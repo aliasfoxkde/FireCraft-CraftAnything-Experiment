@@ -333,6 +333,8 @@ pub struct Obj {
     pub visible: bool,
     pub locked: bool,
     pub effects: Vec<LiveEffect>,
+    #[serde(skip)]
+    pub(crate) path_triangulation_cache: crate::geometry::PathTriangulationCache,
 }
 
 impl Obj {
@@ -386,6 +388,7 @@ impl Obj {
             visible: true,
             locked: false,
             effects: Vec::new(),
+            path_triangulation_cache: crate::geometry::PathTriangulationCache::default(),
         }
     }
 
