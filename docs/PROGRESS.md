@@ -1061,3 +1061,26 @@ unverified. Do not restate the plan; link it.
   the separately recorded exact-source c1ae70e GitForge pass remains valid.
 - Updated PR #51 description through the REST API after `gh pr edit` hit the deprecated Projects
   GraphQL field; the PR now records exact passing checks, Aegis limits, and the unverified GitForge run.
+
+## 2026-11-27 — Workflow catalog and branch cleanup follow-up
+
+- Added [`docs/workflows/README.md`](workflows/README.md) with stable IDs for startup/focus, native
+  and browser clipboard, floating canvas, tools, paths, dialogs, layer reorder, eraser, gradients /
+  filters, recovery, and sample export. Each row distinguishes code-level tests from complete
+  desktop/browser acceptance and points to canonical docs and open task IDs.
+- Updated the documentation map and marked task 46.4 complete. Corrected the evidence-plan audit
+  so the old “Start Here” navigation is explicitly historical: PR #53 replaced it with labeled
+  documentation categories and verified v0.3.7 links. The v0.3.5 Cloudflare preview remains labeled
+  as old because the v0.3.7 deployment failed authentication.
+- `./scripts/check-docs.sh` passed (70 files); `git diff --check` passed. The docs changes are on PR
+  #54 at head `f14d31259c91b70a2e3a83d045397242666a544a`; its latest GitHub workflow checks are
+  running and must pass before merge.
+- Against main commit `d57e55d181598fe5e83c66fe262cc73d389796a7`,
+  `/home/mkinney/.local/bin/host-build-lease -- cargo test ctrl_v -- --nocapture` passed 5/5 focused
+  harness tests, and the same wrapper with
+  `cargo test floating_canvas_dispatches_child_viewport_keyboard_paste_to_its_document -- --nocapture`
+  passed 1/1. These prove egui dispatch and document targeting only; native OS clipboard, pointer
+  editing in a real floating window, save/re-dock, and drag/drop remain unverified.
+- Playwright opened the deployed v0.3.7 GitHub Pages app and found its editor canvas. Browser
+  screenshot capture timed out while waiting for page stability, so no visual acceptance is
+  claimed. Native Windows 11 review and production Cloudflare WASM deployment also remain open.
