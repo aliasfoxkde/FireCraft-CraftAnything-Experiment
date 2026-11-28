@@ -6,36 +6,36 @@ Newest first.
 
 - Current PR head is `36df3ef746fc53253725aba3fcb6c96545061395` on
   [`#57`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/57), based on
-  `main` at `cd881488f5a5804c1cdf17fa6f1d94b7b8b9aced`. GitHub Gates (including fmt, Clippy,
-  tests, docs, security, and WASM), Windows build/CLI smoke, Rust coverage, and CodeQL all passed
-  for this exact head. The PR is open and reports a clean merge state.
-- Hosted Cobertura for this source reports 19,678 / 27,607 lines = 71.28%; branch instrumentation
-  is unavailable (0/0), so the aspirational 99% target is not met. The exact-head Windows review ZIP
-  is `output/review-36df3ef/firecraft-v0.3.7-windows-x86_64.zip`, SHA-256
-  `46eb4dfb31bf6f121f5eafad7c230e44c539e7c2524c82e09f2e6ca56cf62fd2`. Its build source is merge
-  ref `2e8820199ba1e38d4ade86f82dde2c083ec839df`, whose parents are PR head `36df3ef` and base
-  `cd88148`. Windows CLI smoke passed; native Windows 11 GUI acceptance remains open.
-- GitForge exact-source run `adfa9f8b-76e2-435e-9af9-f06916f90e83` succeeded. The local release
-  gate passed: 1/1 jobs succeeded or were skipped and covered the persisted pipeline definition.
-  This applies to `36df3ef` only; any new commit needs its own exact-source gate.
-- Coverage and test receipts are not interchangeable: CI reports 207 Rust tests passed, 0 failed,
-  and 1 ignored; separate CLI, hygiene, and MCP suites report 12, 5, and 10 passing tests. Exact-
-  head CI validated 73 tracked Markdown files; the updated working tree's docs check passes on 74
-  after this audit was added. These checks do not establish complete user-workflow, tutorial
-  screenshot, accessibility, or Windows GUI coverage.
-- The documentation map now uses reader-facing categories and links to the evidence workflow,
-  receipt template, and scenario catalog. The process explicitly requires real app output, artifact
-  identity, interaction evidence, reviewer notes, and follow-through into tutorials/feature guides.
-  The catalog remains mostly partial or unverified for native clipboard, floating canvas, tools,
-  paths, dialogs, and visual workflows; no broad end-to-end sign-off is claimed.
-- GitHub inventory: PR #57 is the only open PR and there are no open issues. `main` is protected;
-  five protected historical release branches remain. Preserve the dirty v0.3.4 worktree and its
-  evidence. A local geometry triangulation cache is currently uncommitted and unverified; it is not
-  part of PR #57 or the Windows artifact above.
-
-This status supersedes the earlier `5440ce8` snapshot; its review artifact remains under
-`output/review-5440ce8/`, and its CI record remains in commit/PR history. This is the current status
-as of 2026-11-28 02:27 UTC.
+  protected `main` at `cd881488f5a5804c1cdf17fa6f1d94b7b8b9aced`. The current head is
+  `38cc0e95e427b9b9a7a75d881d9ba0bcd1fa1a1d`; GitHub reports the PR open with a clean merge state.
+  Gates (fmt, strict Clippy, tests, docs, security, and WASM), Windows build/CLI smoke, Rust
+  coverage, and CodeQL pass for this exact head.
+- Exact-head Gates report 208 Rust tests passed, 0 failed, and 1 ignored; the CLI, hygiene, and MCP
+  suites report 12, 5, and 10 passing tests. Hosted Cobertura reports 19,710 / 27,638 lines =
+  **71.31%**; branch instrumentation is unavailable (0/0). The requested 99% target is unmet.
+- Exact-head Windows review ZIP:
+  `output/review-38cc0e9/firecraft-v0.3.7-windows-x86_64.zip`, SHA-256
+  `c2ae22e6e8c255326269e65e20803b211f321463cf8cb382e037dd0d01cc611f`. Its build source is
+  `c98aedebe99e6ffa72e7177543ad62460f085bb9`, with PR head `38cc0e9` and base `cd88148` as parents.
+  Windows CLI smoke passed; native Windows 11 launch/edit/save/export acceptance remains open.
+- GitForge run `84bc4e8d-eb9d-4fcb-91e1-be0406d32ab6` for this exact SHA is **running**. The
+  harness job-manager registry no longer has its job, but the live GitForge release gate still
+  reports the run as running; the gate has not passed. Do not use the previous `36df3ef` GitForge
+  receipt for this commit.
+- Managed Aegis scan `4c0e1457-b94f-4bf7-b88c-091048628395` is still queued. Earlier Atheon results
+  were non-clean and ran against a different geometry hash; no current-source clean scan is claimed.
+- The path-triangulation cache is committed in this PR head and passes hosted tests/Clippy. A focused
+  local Cargo run was refused by `host-build-lease` with exit 75 under CPU/I/O pressure; this is a
+  deferred local run, not a local pass.
+- The docs navigation uses labeled categories and links a stable workflow catalog, evidence form,
+  and tested-use process. This update makes the reuse contract explicit: one workflow definition
+  drives regression/UI tests, a build-specific receipt, reviewed screenshots, issue/task follow-up,
+  and tutorial/reference updates. Static `gui-suite.sh` captures are not interactive E2E coverage.
+  Native/browser clipboard, floating canvas, tools, full path editing, file dialogs, raster effects,
+  recovery, and accessibility remain partial or unverified.
+- GitHub inventory: PR #57 is the only open PR; no open issues. `main` and five historical release
+  refs remain protected. The source branch cannot be cleaned until merge; preserve the dirty v0.3.4
+  worktree and its evidence. This status is current as of 2026-11-28 03:10 UTC.
 
 ## 2026-11-28 — final local branch inventory
 
