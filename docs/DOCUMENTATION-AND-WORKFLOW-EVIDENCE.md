@@ -42,10 +42,17 @@ reader could otherwise mistake a proposal for working behavior.
 
 ## Baseline audit — 2026-11-27
 
+This is a dated before-state, not a description of the current navigation. PR #53 replaced the
+task-phrase navigation with category links and updated the root README to v0.3.7. The Cloudflare
+review URL intentionally remains on v0.3.5 because the v0.3.7 deployment did not authenticate;
+see the current [audit](AUDIT-2026-11-27.md) and [active tasks](TASKS.md).
+
 - `docs/README.md` has a long “I want to…” table that mixes tutorials, research, audits, release
-  checks, and architecture. It makes the reader scan many unrelated rows.
-- The root README also has a “Start here” task table and its release/demo links still refer to older
-  versions. Update those links only after the current release and deployment are confirmed.
+  checks, and architecture. It made the reader scan many unrelated rows; the table was replaced by
+  categorized navigation in PR #53.
+- The root README had a “Start here” task table and stale release/demo links. PR #53 replaced that
+  table with focused documentation links, and the v0.3.7 release and Pages URLs now match verified
+  publication receipts. The Cloudflare preview remains explicitly labeled as v0.3.5.
 - `docs/tutorials/README.md` lists four tutorials and keybindings, but the tutorials do not yet form
   a full feature-by-feature learning path with verified screenshots and example documents.
 - `scripts/gui-suite.sh` captures six static states (`home`, `splash`, `menu`, `flyout`,
