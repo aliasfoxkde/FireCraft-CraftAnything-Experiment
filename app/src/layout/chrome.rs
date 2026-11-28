@@ -338,7 +338,12 @@ pub(super) fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                             swap_pair = Some((i, i + 1));
                             ui.close();
                         }
-                        if ui.button("Float in New Window (Multi-Monitor)").clicked() {
+                        let float_label = if ui.ctx().embed_viewports() {
+                            "Open in Movable Workspace Window"
+                        } else {
+                            "Float in New Window (Multi-Monitor)"
+                        };
+                        if ui.button(float_label).clicked() {
                             float_idx = Some(i);
                             ui.close();
                         }
@@ -395,7 +400,11 @@ pub(super) fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                     && !app.floating_doc_tabs.contains(&app.active_doc)
                     && ui
                         .small_button("⧉")
-                        .on_hover_text("Float active canvas in a movable / multi-monitor OS window")
+                        .on_hover_text(if ui.ctx().embed_viewports() {
+                            "Open active canvas in a movable window in this workspace"
+                        } else {
+                            "Float active canvas in a movable / multi-monitor OS window"
+                        })
                         .clicked()
                 {
                     float_idx = Some(app.active_doc);
@@ -403,7 +412,7 @@ pub(super) fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                 if !app.floating_doc_tabs.is_empty()
                     && ui
                         .small_button(format!("Dock All ({})", app.floating_doc_tabs.len()))
-                        .on_hover_text("Dock all floating canvas windows back into main window")
+                        .on_hover_text("Dock all floating canvas windows back into the workspace")
                         .clicked()
                 {
                     app.floating_doc_tabs.clear();
@@ -426,10 +435,14 @@ pub(super) fn document_tab_strip(ui: &mut Ui, app: &mut FireCraft) {
                     app.sync_active_doc_slot();
                     if !app.floating_doc_tabs.contains(&fi) {
                         app.floating_doc_tabs.push(fi);
-                        app.status = format!(
-                            "Floated {} to movable OS window (drag to any monitor)",
-                            app.open_docs[fi].name
-                        );
+                        app.status = if ui.ctx().embed_viewports() {
+                            format!("Opened {} in a movable workspace window", app.open_docs[fi].name)
+                        } else {
+                            format!(
+                                "Floated {} to a movable OS window (drag to any monitor)",
+                                app.open_docs[fi].name
+                            )
+                        };
                     }
                 }
                 if let Some(target) = switch_to {
@@ -604,14 +617,24 @@ pub(super) fn bottom_properties_dock(ui: &mut Ui, app: &mut FireCraft) {
 /// 4. Chars | Image Edit | Auto Shapes | Library | CSS (115 px)
 pub(super) fn canvas_footer_bar(ui: &mut Ui, app: &mut FireCraft) {
     let p = app.palette;
+    let compact = canvas_footer_is_compact(ui.available_width());
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing = Vec2::new(4.0, 0.0);
-        ui.label(
-            RichText::new(format!("{} (Document)", app.doc.optimize.format))
-                .small()
-                .color(p.text_dim),
-        );
-        ui.separator();
+        if compact {
+            ui.label(
+                RichText::new(app.doc.optimize.format.as_str())
+                    .small()
+                    .color(p.text_dim),
+            )
+            .on_hover_text("Document export format");
+        } else {
+            ui.label(
+                RichText::new(format!("{} (Document)", app.doc.optimize.format))
+                    .small()
+                    .color(p.text_dim),
+            );
+            ui.separator();
+        }
         let snap_on = app.snap_to_guides || app.snap_to_objects || app.snap_to_grid;
         if ui
             .selectable_label(
@@ -666,7 +689,7 @@ pub(super) fn canvas_footer_bar(ui: &mut Ui, app: &mut FireCraft) {
                 "Infinite canvas OFF".to_string()
             };
         }
-        if app.infinite_canvas {
+        if app.infinite_canvas && !compact {
             ui.label(
                 RichText::new("only page bounds are included in flat exports")
                     .small()
@@ -676,7 +699,7 @@ pub(super) fn canvas_footer_bar(ui: &mut Ui, app: &mut FireCraft) {
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             // DPI / PPI Dropdown (moved down from the Main Toolbar)
             egui::ComboBox::from_id_salt("canvas_footer_dpi")
-                .width(68.0)
+                .width(if compact { 54.0 } else { 68.0 })
                 .selected_text(format!("{} ppi", app.doc.dpi))
                 .show_ui(ui, |ui| {
                     for &dpi in constants::DPI_PRESETS {
@@ -696,7 +719,7 @@ pub(super) fn canvas_footer_bar(ui: &mut Ui, app: &mut FireCraft) {
                 app.doc.page().height.round() as i32,
             );
             egui::ComboBox::from_id_salt("canvas_footer_res")
-                .width(122.0)
+                .width(if compact { 92.0 } else { 122.0 })
                 .selected_text(format!("{pw} × {ph}"))
                 .show_ui(ui, |ui| {
                     for &(label, w, h) in constants::RESOLUTION_PRESETS {
@@ -715,7 +738,7 @@ pub(super) fn canvas_footer_bar(ui: &mut Ui, app: &mut FireCraft) {
             // Zoom Scale Dropdown (e.g. 50% ▾)
             let zoom_pct = (app.doc.zoom * 100.0).round() as i32;
             egui::ComboBox::from_id_salt("canvas_footer_zoom")
-                .width(62.0)
+                .width(if compact { 50.0 } else { 62.0 })
                 .selected_text(format!("{zoom_pct}%"))
                 .show_ui(ui, |ui| {
                     for pct in [12, 25, 33, 50, 66, 100, 150, 200, 300, 400] {
@@ -734,61 +757,80 @@ pub(super) fn canvas_footer_bar(ui: &mut Ui, app: &mut FireCraft) {
 
             ui.separator();
 
-            // Single canonical state transport. Widgets are added right-to-left so the
-            // visual order is: First · Previous · Play/Pause · 1 / N · Next · Last.
+            // Single canonical state transport. A single-state document has no transport
+            // actions, so don't spend scarce footer width on disabled controls. Widgets are
+            // added right-to-left so the desktop visual order is First · Previous · Play/Pause
+            // · 1 / N · Next · Last.
             let state_count = app.doc.page().states.len().max(1);
-            let cur_state = app.doc.page().current_state.min(state_count - 1);
-            let can_prev = cur_state > 0;
-            let can_next = cur_state + 1 < state_count;
-            let can_play = state_count > 1;
-
-            if footer_icon_button(ui, icons::Icon::StateLast, can_next, "Last State")
-                && can_next
-            {
-                app.doc.page_mut().select_state(state_count - 1);
-                app.selected = None;
-                app.selected_set.clear();
-            }
-            if footer_icon_button(ui, icons::Icon::StateNext, can_next, "Next State")
-                && can_next
-            {
-                app.select_state_step(1);
-            }
-            ui.label(
-                RichText::new(format!("{} / {}", cur_state + 1, state_count))
-                    .small()
-                    .strong(),
-            );
-            let play_icon = if app.anim_playing {
-                icons::Icon::StatePause
-            } else {
-                icons::Icon::StatePlay
-            };
-            if footer_icon_button(
-                ui,
-                play_icon,
-                can_play,
-                if app.anim_playing {
-                    "Pause Animation States"
+            if state_count > 1 {
+                let cur_state = app.doc.page().current_state.min(state_count - 1);
+                let can_prev = cur_state > 0;
+                let can_next = cur_state + 1 < state_count;
+                if compact {
+                    if footer_icon_button(ui, icons::Icon::StateNext, can_next, "Next State")
+                        && can_next
+                    {
+                        app.select_state_step(1);
+                    }
+                    ui.label(
+                        RichText::new(format!("{} / {}", cur_state + 1, state_count))
+                            .small()
+                            .strong(),
+                    );
+                    if footer_icon_button(ui, icons::Icon::StatePrev, can_prev, "Previous State")
+                        && can_prev
+                    {
+                        app.select_state_step(-1);
+                    }
                 } else {
-                    "Play Animation States"
-                },
-            ) && can_play
-            {
-                app.anim_playing = !app.anim_playing;
-                app.anim_last_tick = ui.input(|i| i.time);
-            }
-            if footer_icon_button(ui, icons::Icon::StatePrev, can_prev, "Previous State")
-                && can_prev
-            {
-                app.select_state_step(-1);
-            }
-            if footer_icon_button(ui, icons::Icon::StateFirst, can_prev, "First State")
-                && can_prev
-            {
-                app.doc.page_mut().select_state(0);
-                app.selected = None;
-                app.selected_set.clear();
+                    if footer_icon_button(ui, icons::Icon::StateLast, can_next, "Last State")
+                        && can_next
+                    {
+                        app.doc.page_mut().select_state(state_count - 1);
+                        app.selected = None;
+                        app.selected_set.clear();
+                    }
+                    if footer_icon_button(ui, icons::Icon::StateNext, can_next, "Next State")
+                        && can_next
+                    {
+                        app.select_state_step(1);
+                    }
+                    ui.label(
+                        RichText::new(format!("{} / {}", cur_state + 1, state_count))
+                            .small()
+                            .strong(),
+                    );
+                    let play_icon = if app.anim_playing {
+                        icons::Icon::StatePause
+                    } else {
+                        icons::Icon::StatePlay
+                    };
+                    if footer_icon_button(
+                        ui,
+                        play_icon,
+                        true,
+                        if app.anim_playing {
+                            "Pause Animation States"
+                        } else {
+                            "Play Animation States"
+                        },
+                    ) {
+                        app.anim_playing = !app.anim_playing;
+                        app.anim_last_tick = ui.input(|i| i.time);
+                    }
+                    if footer_icon_button(ui, icons::Icon::StatePrev, can_prev, "Previous State")
+                        && can_prev
+                    {
+                        app.select_state_step(-1);
+                    }
+                    if footer_icon_button(ui, icons::Icon::StateFirst, can_prev, "First State")
+                        && can_prev
+                    {
+                        app.doc.page_mut().select_state(0);
+                        app.selected = None;
+                        app.selected_set.clear();
+                    }
+                }
             }
         });
     });
@@ -823,4 +865,19 @@ pub(super) fn footer_icon_button(ui: &mut Ui, icon: icons::Icon, enabled: bool, 
         resp.on_hover_text(format!("{tip} (unavailable)"));
     }
     clicked
+}
+
+fn canvas_footer_is_compact(available_width: f32) -> bool {
+    available_width < 700.0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::canvas_footer_is_compact;
+
+    #[test]
+    fn canvas_footer_switches_to_compact_controls_at_narrow_widths() {
+        assert!(canvas_footer_is_compact(620.0));
+        assert!(!canvas_footer_is_compact(820.0));
+    }
 }

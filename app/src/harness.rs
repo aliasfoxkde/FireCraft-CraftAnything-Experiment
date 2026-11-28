@@ -122,11 +122,20 @@ impl Harness {
                 viewport_id: viewport.ids.this,
                 screen_rect: Some(Rect::from_min_size(Pos2::ZERO, Vec2::new(860.0, 620.0))),
                 time: Some(4.0),
+                focused: true,
                 events,
                 ..Default::default()
             };
-            input.viewports.entry(viewport.ids.this).or_default();
-            input.viewports.entry(viewport.ids.parent).or_default();
+            input
+                .viewports
+                .entry(viewport.ids.this)
+                .or_default()
+                .focused = Some(true);
+            input
+                .viewports
+                .entry(viewport.ids.parent)
+                .or_default()
+                .focused = Some(true);
             let mut output = ctx.run_ui(input, |ui| (viewport.viewport_ui_cb)(ui));
             output.textures_delta.clear();
         });
@@ -558,6 +567,167 @@ mod tests {
     }
 
     #[test]
+    fn floating_canvas_pointer_edit_updates_its_document() {
+        static VIEWPORT_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+        let _guard = VIEWPORT_TEST_LOCK.lock().expect("viewport test lock");
+
+        let mut harness = Harness::new();
+        let floating_doc = harness.app.doc.clone();
+        harness.app.open_docs = vec![floating_doc.clone()];
+        harness.app.active_doc = 0;
+        harness.app.doc = floating_doc;
+        harness.app.floating_doc_tabs = vec![0];
+        harness.app.tool = crate::app::Tool::Rectangle;
+        let before = harness.app.open_docs[0].total_objects_on_page();
+        let start = Pos2::new(320.0, 220.0);
+        let end = Pos2::new(480.0, 340.0);
+
+        harness.frame_with_floating_viewport_events(
+            0,
+            vec![
+                egui::Event::PointerMoved(start),
+                egui::Event::PointerButton {
+                    pos: start,
+                    button: egui::PointerButton::Primary,
+                    pressed: true,
+                    modifiers: Modifiers::NONE,
+                },
+            ],
+        );
+        harness.frame_with_floating_viewport_events(0, vec![egui::Event::PointerMoved(end)]);
+        harness.frame_with_floating_viewport_events(
+            0,
+            vec![egui::Event::PointerButton {
+                pos: end,
+                button: egui::PointerButton::Primary,
+                pressed: false,
+                modifiers: Modifiers::NONE,
+            }],
+        );
+        // The following parent frame must not overwrite the child edit with a stale `app.doc`
+        // snapshot after the floating viewport has synchronized into `open_docs`.
+        harness.frame_with_floating_viewport_events(0, Vec::new());
+
+        assert_eq!(
+            harness.app.open_docs[0].total_objects_on_page(),
+            before + 1,
+            "a shape created in the native floating canvas should update that document; status={:?}, active={}, app-doc={}, floating-doc={}",
+            harness.app.status,
+            harness.app.active_doc,
+            harness.app.doc.total_objects_on_page(),
+            harness.app.open_docs[0].total_objects_on_page()
+        );
+    }
+
+    #[test]
+    fn embedded_floating_canvas_keeps_an_editable_canvas_in_the_workspace() {
+        let mut floated = Harness::new();
+        floated.app.floating_doc_tabs.push(0);
+        assert!(floated.ctx.embed_viewports());
+        floated.frame(1360.0, 860.0, Vec::new());
+        let window_id = egui::Id::NULL.with(("firecraft_embedded_canvas", 0));
+        let window_rect = egui::containers::AreaState::load(&floated.ctx, window_id)
+            .expect("floating canvas should be represented by a visible in-app window")
+            .rect();
+
+        let before = floated.app.open_docs[0].total_objects_on_page();
+        floated.app.tool = crate::app::Tool::Rectangle;
+        let start = window_rect.center() - Vec2::new(60.0, 30.0);
+        let end = window_rect.center() + Vec2::new(60.0, 30.0);
+        floated.frame(
+            1360.0,
+            860.0,
+            vec![
+                egui::Event::PointerMoved(start),
+                egui::Event::PointerButton {
+                    pos: start,
+                    button: egui::PointerButton::Primary,
+                    pressed: true,
+                    modifiers: Modifiers::NONE,
+                },
+            ],
+        );
+        floated.frame(
+            1360.0,
+            860.0,
+            vec![
+                egui::Event::PointerMoved(end),
+                egui::Event::PointerButton {
+                    pos: end,
+                    button: egui::PointerButton::Primary,
+                    pressed: false,
+                    modifiers: Modifiers::NONE,
+                },
+            ],
+        );
+        assert!(
+            floated.app.open_docs[0].total_objects_on_page() > before,
+            "dragging a shape in the embedded floating canvas should edit its document"
+        );
+        floated.frame(
+            1360.0,
+            860.0,
+            vec![
+                egui::Event::ModifiersChanged(Modifiers::CTRL),
+                egui::Event::Key {
+                    key: Key::Z,
+                    physical_key: None,
+                    pressed: true,
+                    repeat: false,
+                    modifiers: Modifiers::CTRL,
+                },
+            ],
+        );
+        assert_eq!(
+            floated.app.open_docs[0].total_objects_on_page(),
+            before,
+            "undo in the embedded floating canvas should undo its edit"
+        );
+        floated.frame(
+            1360.0,
+            860.0,
+            vec![
+                egui::Event::ModifiersChanged(Modifiers::CTRL),
+                egui::Event::Key {
+                    key: Key::Y,
+                    physical_key: None,
+                    pressed: true,
+                    repeat: false,
+                    modifiers: Modifiers::CTRL,
+                },
+            ],
+        );
+        assert!(
+            floated.app.open_docs[0].total_objects_on_page() > before,
+            "redo in the embedded floating canvas should restore its edit"
+        );
+    }
+
+    #[test]
+    fn embedded_floating_canvas_under_pointer_becomes_the_active_document() {
+        let mut harness = Harness::new();
+        let first = harness.app.doc.clone();
+        let second = first.clone();
+        harness.app.open_docs = vec![first.clone(), second];
+        harness.app.active_doc = 0;
+        harness.app.doc = first;
+        harness.app.floating_doc_tabs = vec![0, 1];
+        harness.frame(1360.0, 860.0, Vec::new());
+
+        let second_window = egui::Id::NULL.with(("firecraft_embedded_canvas", 1));
+        let second_rect = egui::containers::AreaState::load(&harness.ctx, second_window)
+            .expect("second floating canvas should have its own in-app window")
+            .rect();
+        let pointer = egui::pos2(second_rect.right() - 60.0, second_rect.center().y);
+        harness.frame(1360.0, 860.0, vec![egui::Event::PointerMoved(pointer)]);
+
+        assert_eq!(
+            harness.app.active_doc, 1,
+            "keyboard shortcuts should target the floating canvas under the pointer"
+        );
+    }
+
+    #[test]
     fn closing_floated_document_does_not_overwrite_the_next_document() {
         static VIEWPORT_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
         let _guard = VIEWPORT_TEST_LOCK.lock().expect("viewport test lock");
@@ -795,8 +965,11 @@ mod tests {
             !harness.app.show_welcome,
             "startup should open directly to the editor"
         );
-        let during_splash = harness.frame_at(1360.0, 860.0, 0.8, Vec::new());
-        let faded_out = harness.frame_at(1360.0, 860.0, 2.5, Vec::new());
+        // Web eframe reports performance.now(), which can be far above zero before this first
+        // app frame. The duration must be measured from this frame, not the browser time origin.
+        harness.frame_at(1360.0, 860.0, 9000.0, Vec::new());
+        let during_splash = harness.frame_at(1360.0, 860.0, 9000.8, Vec::new());
+        let faded_out = harness.frame_at(1360.0, 860.0, 9002.5, Vec::new());
 
         assert!(
             during_splash > 100,
@@ -1523,5 +1696,16 @@ mod tests {
             let obj = &app.doc.page().layers[layer].objects[i];
             assert_eq!(obj.effects.len(), 1, "repeat-last on {i}");
         }
+    }
+
+    #[test]
+    fn show_all_toggle_is_reachable_in_the_compact_canvas_footer() {
+        let mut harness = Harness::new();
+        harness.app.infinite_canvas = false;
+        harness.click(960.0, 640.0, Pos2::new(350.0, 483.0));
+        assert!(
+            harness.app.infinite_canvas,
+            "Show All should be a reachable control at 960x640"
+        );
     }
 }

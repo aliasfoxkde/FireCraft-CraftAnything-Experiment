@@ -2,6 +2,58 @@
 
 Newest first.
 
+## 2026-11-28 — Floating canvas edits persist on WebAssembly and Linux desktop
+
+- The previous WASM **Float** action removed the canvas from the main workspace but did not create
+  an OS window, leaving no usable canvas. Since the browser backend embeds viewports, floated
+  documents now render as movable in-workspace windows on WASM. The native external-window path is
+  retained.
+- Headed Chromium/Xvfb pointer input verified float, draw, undo, redo, drag, dock, and title-close;
+  edits remained in the main workspace. A separate Linux Xvfb/Openbox run exposed and fixed native
+  child-window hit routing and stale document restoration. It then verified drawing in the native
+  viewport and retaining the edit after close. See the [browser receipt](testing/browser-popout-workflow-2026-11-28.md)
+  and [native receipt](testing/native-floating-canvas-workflow-2026-11-28.md).
+- Final local validation on this working tree: 226 unit/harness tests passed (one existing isolated
+  timing test was ignored in the full suite), 12 CLI, 5 hygiene, and 10 MCP tests passed. Strict
+  Clippy/rustfmt, WASM target check, isolated 500-object frame-time test, docs check (83 Markdown
+  files), module-size gate, macOS plist test, and diff check passed. Coverage is 71.74% line, 75.20%
+  function, and 73.66% region; branch counters are unavailable.
+- Browser console had zero JavaScript errors, plus an external-instance warning and software
+  WebGL/readback performance warnings. This is a local v0.3.8 review artifact, not a release or
+  deployment. Native save/reopen, monitor drag/drop, multiple-window interactions, Windows/macOS,
+  representative hardware performance, and broader product acceptance remain open.
+
+## 2026-11-28 — compact footer controls restored at 960×640
+
+- The exact WASM app showed the footer clipping **Show All** at 960×640. Clicking its expected
+  position opened the resolution menu. Added a real-frame red test at that point; it failed before
+  the fix because infinite canvas stayed off, then passed after the compact layout change.
+- The compact footer shortens secondary metadata and controls, removes useless one-state animation
+  transport, and retains compact previous/next state navigation when multiple states exist. In headed
+  Chromium, Show All switched infinite canvas on, Rulers hid ruler markings, Grid displayed its grid,
+  and the 1360×860 wide footer kept its full labels. No console errors.
+- The same 960×640 session opened the Pen group flyout, showed its icons and short labels, selected
+  Freeform Path, and verified the active tool/status. Exact WASM hash and screenshot evidence: the
+  [responsive footer and Tools flyout receipt](testing/browser-responsive-footer-workflow-2026-11-28.md).
+- This is not a complete CS6 parity review; every tool group, multi-state interactions, and native
+  Windows/macOS/Linux layouts remain open.
+
+## 2026-11-28 — WASM splash timing and click-through fixed with browser proof
+
+- Pushed as [`PR #66`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/pull/66), exact head
+  `f0c4fcc9db24a52d2bfbf9d08d5d26cc013d6f9f`; hosted checks are running.
+- Headed Chromium on Fedora reproduced the splash disappearing before the first screenshot. The
+  root cause was using eframe WASM's absolute `performance.now()` as the splash elapsed time. The
+  splash now records the first FireCraft frame time and fades over 2.4 seconds from that point.
+- The regression failed first with an egui clock starting at 9,000 seconds; after the change it
+  passed along with the existing fade curve and transparent artwork tests. A fresh release-mode WASM
+  build then showed the transparent logo over the live workspace, faded it away, accepted `P` while
+  visible, and opened the File menu when clicked during the overlay. WebGL2 worked at 1360×860; no
+  browser/app errors were logged. Screenshots and exact WASM hashes are in the
+  [splash workflow receipt](testing/browser-splash-workflow-2026-11-28.md).
+- Native desktop timing/appearance and other browsers remain unverified. The splash interaction does
+  not block keyboard input, and a click both skips it and reaches the underlying menu.
+
 ## 2026-11-28 — post-merge evidence and current inventory
 
 - PR #65 merged at `faee526b8827ad594234a6202484a3617a493c96`; its exact head passed GitHub CI,
@@ -10,8 +62,9 @@ Newest first.
 - The PR #65 exact WASM build passed headed Chromium path create/edit/undo/redo/layered-save/reopen/
   raster-export. This found and fixed the shortcut modifier and path/polygon raster fill defects;
   details and exact artifact hashes are in the linked browser receipt.
-- Current GitHub inventory: only PR #64 is open, no issues are open, and `main` is `faee526`.
-  GitHub retains six historical release branches. The Docs Pages deployment still predates PR #65.
+- At the time of this snapshot, PR #64 remained the sole open PR, no issues were open, and app-code
+  `main` was `faee526`. PR #64 subsequently merged as docs-only `dc9f295`. The Docs Pages deployment
+  still predates PR #65 and the splash workflow receipt.
 - Local GitForge did not validate PR #65: its services report degraded state, CI is disabled, and
   its deployed release is 273 commits behind upstream. This remains a validation gap.
 
