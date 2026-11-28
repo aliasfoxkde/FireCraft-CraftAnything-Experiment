@@ -225,7 +225,10 @@ pub fn show(ui: &mut egui::Ui, app: &mut FireCraft) {
         app.alt_hand_pan = false;
     }
 
-    let over_canvas = (canvas_resp.hovered() || app.drag.is_some())
+    // A native child viewport may deliver a press inside this canvas before egui marks the
+    // canvas response hovered. The event is already scoped to this viewport, so its local bounds
+    // are sufficient to begin the gesture; app.drag then keeps routing the active drag.
+    let over_canvas = (canvas_resp.hovered() || app.drag.is_some() || pressed)
         && rect.contains(pointer_pos)
         && !app.show_welcome
         && app.dragging_panel.is_none()

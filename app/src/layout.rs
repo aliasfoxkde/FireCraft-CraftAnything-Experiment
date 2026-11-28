@@ -824,7 +824,11 @@ pub fn show(ui: &mut Ui, app: &mut FireCraft) {
             }
         }
         app.active_doc = saved_active.min(app.open_docs.len().saturating_sub(1));
-        app.doc = saved_doc;
+        app.doc = app
+            .open_docs
+            .get(app.active_doc)
+            .cloned()
+            .unwrap_or(saved_doc);
         if let Some(&last_redock) = redock_list.last() {
             app.floating_doc_tabs.retain(|i| !redock_list.contains(i));
             if last_redock < app.open_docs.len() {

@@ -75,8 +75,9 @@ document instead appears in a movable egui window inside the workspace. The main
 Properties dock continue to edit the same document; window focus selects the document used by
 keyboard commands. Docking or closing the embedded window returns the edited document to the tab
 workspace. The web fallback exists because eframe's web backend does not implement multiple OS
-viewports. Browser editing, undo/redo, move, and redock have current Chromium evidence; native OS
-window save/reopen, drag/drop, and platform focus remain separate acceptance work.
+viewports. Browser editing, undo/redo, move, and redock have current Chromium evidence. Linux X11
+create/edit/title-close also passed against a current native build. Native save/reopen, monitor
+drag/drop, Windows/macOS window-manager behavior, and platform focus remain separate acceptance work.
 
 ### Platform code is isolated and optional
 

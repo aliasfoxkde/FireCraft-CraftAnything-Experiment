@@ -2,24 +2,26 @@
 
 Newest first.
 
-## 2026-11-28 — Web floating canvas remains editable
+## 2026-11-28 — Floating canvas edits persist on WebAssembly and Linux desktop
 
 - The previous WASM **Float** action removed the canvas from the main workspace but did not create
   an OS window, leaving no usable canvas. Since the browser backend embeds viewports, floated
   documents now render as movable in-workspace windows on WASM. The native external-window path is
   retained.
-- A headed Chromium/Xvfb run used real X11 pointer actions to open the window, draw a rectangle,
-  verify it in Layers, and close the window. The edit remained visible in the main workspace after
-  close. Explicit dock, window dragging, and harness edit/undo/redo and active-document routing
-  checks also passed. See the [exact-build browser receipt](testing/browser-popout-workflow-2026-11-28.md).
-- Candidate validation: 225 unit/harness, 12 CLI, 5 hygiene, and 10 MCP tests passed; strict
-  Clippy, rustfmt, isolated 500-object performance test, macOS plist test, module-size gate, and
-  diff check passed. `cargo llvm-cov --locked --summary-only` reports 71.66% line and 75.13%
-  function coverage (29,109/36,674 lines; branch counters are unavailable). `scripts/check-docs.sh`
-  first caught missing receipt links; it passed after the receipt was added (82 Markdown files).
+- Headed Chromium/Xvfb pointer input verified float, draw, undo, redo, drag, dock, and title-close;
+  edits remained in the main workspace. A separate Linux Xvfb/Openbox run exposed and fixed native
+  child-window hit routing and stale document restoration. It then verified drawing in the native
+  viewport and retaining the edit after close. See the [browser receipt](testing/browser-popout-workflow-2026-11-28.md)
+  and [native receipt](testing/native-floating-canvas-workflow-2026-11-28.md).
+- Final local validation on this working tree: 226 unit/harness tests passed (one existing isolated
+  timing test was ignored in the full suite), 12 CLI, 5 hygiene, and 10 MCP tests passed. Strict
+  Clippy/rustfmt, WASM target check, isolated 500-object frame-time test, docs check (83 Markdown
+  files), module-size gate, macOS plist test, and diff check passed. Coverage is 71.74% line, 75.20%
+  function, and 73.66% region; branch counters are unavailable.
 - Browser console had zero JavaScript errors, plus an external-instance warning and software
-  WebGL/readback performance warnings. This was a local v0.3.8 review artifact, not a release or
-  deployment. Native OS viewport editing and Windows/macOS/Linux acceptance remain open.
+  WebGL/readback performance warnings. This is a local v0.3.8 review artifact, not a release or
+  deployment. Native save/reopen, monitor drag/drop, multiple-window interactions, Windows/macOS,
+  representative hardware performance, and broader product acceptance remain open.
 
 ## 2026-11-28 — compact footer controls restored at 960×640
 
