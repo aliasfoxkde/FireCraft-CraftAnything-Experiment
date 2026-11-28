@@ -2,6 +2,26 @@
 
 Newest first.
 
+## 2026-11-27 — docs PR #53 merged; v0.3.2 history and proposal branches reconciled
+
+- PR #53 merged at `d57e55d181598fe5e83c66fe262cc73d389796a7` after every exact-head GitHub check passed on
+  `342554a9e69cd0bb1cf450b04e40bcf8092e66d8`. The PR replaced task-phrase docs navigation, recorded
+  the visual evidence workflow, refreshed README release/demo links, and preserved the v0.3.2 release
+  receipt recovered from an unsubmitted branch.
+- Release `v0.3.7` is published and all platform asset hashes passed local verification. GitHub Pages
+  serves the expected version/source marker; the Playwright startup smoke found the editor title and
+  canvas. Screenshot capture timed out at the CLI's 5-second stability wait, so no screenshot is
+  claimed. Cloudflare v0.3.7 review deployment remains failed because the repository has no token
+  secret and the available local token was rejected as invalid.
+- Deleted the unprotected remote `docs/v0.3.2-release-receipts` branch after verifying its historical
+  receipt on `main`; GitHub automatically deleted the merged docs PR branch. `git fetch --prune`
+  removed both remote-tracking refs. The two remaining unsubmitted docs branches contain unique
+  WebOS and support-pipeline plans; their selected documents are being reconciled in a review branch
+  and explicitly marked as historical or proposed.
+- GitHub had no open issues at this check. Hosted line coverage remains 70.94%, with no branch data;
+  native Windows 11 acceptance, full visual workflow evidence, and 99% coverage remain outstanding.
+
+
 ## 2026-11-27 — v0.3.7 publication and cleanup inventory
 
 - GitHub Release [`v0.3.7`](https://github.com/aliasfoxkde/FireCraft-CraftAnything-Experiment/releases/tag/v0.3.7) is published with the exact version title. Windows, universal macOS, Linux tar/AppImage/DEB/Flatpak, and WASM payloads are present alongside package/release manifests, source SHA, and checksums. Every payload hash in `SHA256SUMS.txt` verified locally; both Windows and WASM ZIP archives passed integrity checks. `SOURCE-SHA.txt` and `BUILD-INFO.txt` identify source `5bfdcfdcb2353f94e456b4e757c68b9f1b3ccc60`.

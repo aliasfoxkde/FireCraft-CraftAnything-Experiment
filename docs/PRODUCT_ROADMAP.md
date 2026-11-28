@@ -181,13 +181,14 @@ capability is included in the current product claims.
 
 1. Maintain a public roadmap, completed feature list, tutorials, keybinding guide, format compatibility matrix, contributor guide, and changelog as dedicated documents linked from README and in-app Help.
 2. Add a dedicated FireCraft marketing-site page for extensions. Explain official and community status, compatibility, permissions, review process, support expectations, licensing, and a clear submit-extension path; link to the public catalog when it is operational.
-3. Establish issue templates and in-app feedback links; review submissions and publish decisions in the repository issue tracker.
+3. Establish issue templates and in-app feedback links; review submissions and publish decisions in the repository issue tracker. The [support pipeline proposal](SUPPORT-FEEDBACK-PIPELINE-HANDOFF-2026-11-27.md) is a design reference only; it does not approve autonomous merge or release authority.
 4. Reconcile experiment and main FireCraft repositories through an explicit migration plan: source-of-truth decision, history/branch mapping, duplicate issue and PR mapping, remote settings, release tags, and rollback path.
 5. Repair GitHub Actions and local GitForge CI drift; use one source SHA and record build/test/artifact identities. Require semantic application smoke tests, not health checks alone.
 6. Build target-native packages and validate install, launch, edit, save, reopen, export, update, and uninstall on supported operating systems. Cross-compilation alone is not platform certification.
 7. Publish release artifacts with manifest, SHA-256, license/notices, SBOM, provenance/attestation where supported, and clear release notes.
 8. Deploy the marketing site and updated WebAssembly app from the canonical repository using preview deployments and a verified production artifact; confirm domain, cache, rollback, and download checksums.
 9. Maintain security, accessibility, dependency, fuzz, and documentation link checks without weakening gates to force green status.
+10. Keep any ArtCraft WebOS host integration optional and separate from standalone WASM. The [host contract](WEBOS-HOST-INTEGRATION.md) is a draft requiring cross-repository review and conformance tests before implementation.
 
 **Exit:** repository ownership and release source are explicit; required workflows pass on the exact tag SHA; platform receipts are recorded; site deployment can be traced to source and rolled back.
 

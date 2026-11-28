@@ -57,6 +57,9 @@ when its behavior has been checked against the current build.
 
 - [Architecture](architecture.md) — subsystem ownership and dependency direction.
 - [Architecture review](ARCHITECTURE-REVIEW-2026-11-27.md) — ranked deepening recommendations.
+- [Quality and WebOS roadmap snapshot](QUALITY-AND-WEBOS-ROADMAP-2026-11-27.md) — historical v0.3.2 audit and phased quality plan; current figures are in the dated audit.
+- [WebOS host integration contract](WEBOS-HOST-INTEGRATION.md) — a draft future protocol; not implemented or a supported integration.
+- [Support and engineering pipeline proposal](SUPPORT-FEEDBACK-PIPELINE-HANDOFF-2026-11-27.md) — future in-app intake and delivery design; not approved or implemented.
 - [Build and release](build-release.md) — local development, packaging, and release workflow.
 - [CI/CD patterns](research/ci-cd-patterns.md) and [local GitForge workflow](ci/gitforge-image.md).
 - [Architecture decisions](adr/README.md) — accepted decisions and their trade-offs.
