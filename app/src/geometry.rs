@@ -31,7 +31,7 @@ pub(crate) fn triangulate_simple_polygon(points: &[Vec2]) -> Option<Vec<[usize; 
     let distance_epsilon_sq = distance_epsilon * distance_epsilon;
     let area_epsilon = scale * scale * 1.0e-7;
 
-    let mut polygon = Vec::with_capacity(points.len());
+    let mut polygon: Vec<usize> = Vec::with_capacity(points.len());
     for (index, point) in points.iter().enumerate() {
         if polygon
             .last()
