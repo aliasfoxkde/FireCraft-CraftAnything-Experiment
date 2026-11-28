@@ -2457,10 +2457,11 @@ mod tests {
 
     fn mesh_covers_point(mesh: &egui::Mesh, point: Pos2) -> bool {
         let cross = |a: Vec2, b: Vec2| a.x * b.y - a.y * b.x;
-        mesh.indices.chunks_exact(3).any(|triangle| {
-            let a = mesh.vertices[triangle[0] as usize].pos;
-            let b = mesh.vertices[triangle[1] as usize].pos;
-            let c = mesh.vertices[triangle[2] as usize].pos;
+        let (triangles, _) = mesh.indices.as_chunks::<3>();
+        triangles.iter().any(|&[a_index, b_index, c_index]| {
+            let a = mesh.vertices[a_index as usize].pos;
+            let b = mesh.vertices[b_index as usize].pos;
+            let c = mesh.vertices[c_index as usize].pos;
             let ab = cross(b - a, point - a);
             let bc = cross(c - b, point - b);
             let ca = cross(a - c, point - c);
