@@ -2,6 +2,7 @@
 
 use eframe::egui::{self, Color32, Painter, Pos2, Rect, Stroke, Vec2, pos2};
 
+mod extra;
 mod phosphor;
 
 const PHOSPHOR_FONT_FAMILY: &str = "FireCraft Phosphor";
@@ -210,6 +211,9 @@ fn draw_legacy(painter: &Painter, rect: Rect, icon: Icon, color: Color32, width:
     let accent = Color32::from_rgb(232, 163, 61);
     let accent_blue = Color32::from_rgb(78, 168, 240);
     match icon {
+        Icon::Swap | Icon::SquareHalf | Icon::DropSlash | Icon::CornersOut => {
+            extra::draw_legacy(painter, rect, icon, color, width);
+        }
         Icon::New => {
             // CS6 crisp page with folded dog-ear & amber '+' badge
             let doc_r = Rect::from_center_size(r.center(), Vec2::new(s * 0.72, s * 0.88));
@@ -1355,55 +1359,6 @@ fn draw_legacy(painter: &Painter, rect: Rect, icon: Icon, color: Color32, width:
                     0.0,
                     color,
                 );
-            }
-        }
-        Icon::Swap => {
-            for (y, direction) in [(-u * 0.35, 1.0), (u * 0.35, -1.0)] {
-                let left = cx - u * 0.7;
-                let right = cx + u * 0.7;
-                let (start, end) = if direction > 0.0 {
-                    (pos2(left, cy + y), pos2(right, cy + y))
-                } else {
-                    (pos2(right, cy + y), pos2(left, cy + y))
-                };
-                painter.line_segment([start, end], st);
-                painter.line_segment(
-                    [end, pos2(end.x - direction * u * 0.28, end.y - u * 0.2)],
-                    st,
-                );
-                painter.line_segment(
-                    [end, pos2(end.x - direction * u * 0.28, end.y + u * 0.2)],
-                    st,
-                );
-            }
-        }
-        Icon::SquareHalf => {
-            let square = Rect::from_center_size(r.center(), Vec2::splat(u * 1.45));
-            painter.rect_filled(
-                Rect::from_min_max(square.left_top(), pos2(cx, square.bottom())),
-                0.0,
-                color.gamma_multiply(0.42),
-            );
-            painter.rect_stroke(square, 0.0, st, egui::StrokeKind::Middle);
-            painter.line_segment([pos2(cx, square.top()), pos2(cx, square.bottom())], st);
-        }
-        Icon::DropSlash => {
-            painter.circle_stroke(r.center(), u * 0.62, st);
-            painter.line_segment(
-                [
-                    pos2(cx - u * 0.8, cy + u * 0.8),
-                    pos2(cx + u * 0.8, cy - u * 0.8),
-                ],
-                st,
-            );
-        }
-        Icon::CornersOut => {
-            let edge = u * 0.8;
-            let inner = u * 0.35;
-            for (x, y) in [(-1.0, -1.0), (1.0, -1.0), (-1.0, 1.0), (1.0, 1.0)] {
-                let corner = pos2(cx + x * edge, cy + y * edge);
-                painter.line_segment([corner, pos2(corner.x - x * inner, corner.y)], st);
-                painter.line_segment([corner, pos2(corner.x, corner.y - y * inner)], st);
             }
         }
     }

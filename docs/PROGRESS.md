@@ -11,7 +11,10 @@ Newest first.
 - Added egui width regressions for collapsed/expanded rails and expanded the icon paint tests.
   Focused footer tests pass (2/2), icon tests pass (4/4), `rustfmt --check` and the 76-file docs
   gate pass; `cargo clippy --all-targets -- -D warnings` passes. Exact-branch CI, GitForge, and
-  merge remain pending.
+  merge remain pending. The first exact-head GitHub Gates run failed only the module-size hard
+  budget (`icons.rs` 2,038 / 2,000 lines); its tests, docs, lint, security, and WASM steps passed.
+  The legacy fallback drawings now live in `icons/extra.rs`; `icons.rs` measures 1,993 lines and
+  `scripts/module-size.sh` passes. Updated-head tests and CI are pending.
 
 ## 2026-11-28 — Pen anchors honor grid and guide snapping
 
