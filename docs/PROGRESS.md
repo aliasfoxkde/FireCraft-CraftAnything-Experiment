@@ -2,6 +2,19 @@
 
 Newest first.
 
+## 2026-11-28 — post-merge evidence and current inventory
+
+- PR #65 merged at `faee526b8827ad594234a6202484a3617a493c96`; its exact head passed GitHub CI,
+  coverage, and CodeQL. The exact-head Cobertura artifact reports 20,227 / 28,222 lines (71.67%);
+  branch coverage is unavailable (0/0 counters).
+- The PR #65 exact WASM build passed headed Chromium path create/edit/undo/redo/layered-save/reopen/
+  raster-export. This found and fixed the shortcut modifier and path/polygon raster fill defects;
+  details and exact artifact hashes are in the linked browser receipt.
+- Current GitHub inventory: only PR #64 is open, no issues are open, and `main` is `faee526`.
+  GitHub retains six historical release branches. The Docs Pages deployment still predates PR #65.
+- Local GitForge did not validate PR #65: its services report degraded state, CI is disabled, and
+  its deployed release is 273 commits behind upstream. This remains a validation gap.
+
 ## 2026-11-28 — Pen path keyboard edit and raster export fixed with browser proof
 
 - Drove the exact local WASM bundle in headed Chromium on Fedora/Xvfb: created and closed a filled
@@ -112,8 +125,8 @@ Newest first.
 - After PR #62 merged, refresh run `46117252914` rebuilt and redeployed the documentation from
   main at `7af68987dc516bc3fff1767bd29eff660f6d74eb`. The live index and catalog still return HTTP
   200 with 64 pages in nine sections.
-- The latest repository main is `83268df`; the portal still needs one refresh after the current
-  task/progress record is reconciled below. Its slider, category navigation, search and footer were
+- At the time of this earlier entry, repository main was `83268df`; the portal still needs a refresh
+  to include the subsequently merged PR #65 and current task/progress record. Its slider, category navigation, search and footer were
   browser-checked at 390×844 on the prior deployment; no fresh screenshot is claimed.
 
 ## 2026-11-28 — Documentation style refresh published
