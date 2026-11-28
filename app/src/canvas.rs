@@ -2456,13 +2456,14 @@ mod tests {
     }
 
     fn mesh_covers_point(mesh: &egui::Mesh, point: Pos2) -> bool {
+        let cross = |a: Vec2, b: Vec2| a.x * b.y - a.y * b.x;
         mesh.indices.chunks_exact(3).any(|triangle| {
             let a = mesh.vertices[triangle[0] as usize].pos;
             let b = mesh.vertices[triangle[1] as usize].pos;
             let c = mesh.vertices[triangle[2] as usize].pos;
-            let ab = (b - a).cross(point - a);
-            let bc = (c - b).cross(point - b);
-            let ca = (a - c).cross(point - c);
+            let ab = cross(b - a, point - a);
+            let bc = cross(c - b, point - b);
+            let ca = cross(a - c, point - c);
             (ab >= -0.001 && bc >= -0.001 && ca >= -0.001)
                 || (ab <= 0.001 && bc <= 0.001 && ca <= 0.001)
         })
@@ -2487,7 +2488,7 @@ mod tests {
             .shapes
             .iter()
             .find_map(|clipped| match &clipped.shape {
-                egui::Shape::Mesh(mesh) => Some(mesh.clone()),
+                egui::Shape::Mesh(mesh) => Some(mesh.as_ref().clone()),
                 _ => None,
             })
             .expect("closed paths with fills should render as a triangulated mesh");
